@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "product": "Dragon AI Agent",
+  "profiles": [
+    {
+      "id": "personal-assistant",
+      "displayName": "Personal Assistant",
+      "description": "Minimal single-bot general-purpose personal assistant for research, drafting, scheduling, and computer-use.",
+      "path": "personal-assistant",
+      "tags": ["general", "minimal", "default"]
+    },
+    {
+      "id": "real-estate-cold-call-lead-refresher",
+      "displayName": "Real Estate Cold Call Lead Refresher",
+      "description": "Outbound real-estate agent team: Lead Sourcer, Cold Call Script Writer, and Follow-up Sequencer with CRM/dialer/property-data connector placeholders.",
+      "path": "real-estate-cold-call-lead-refresher",
+      "tags": ["real-estate", "outbound", "multi-bot", "example"]
+    }
+  ]
+}

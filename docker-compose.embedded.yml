@@ -1,0 +1,42 @@
+# Dragon AI Agent — embedded gateway (Bot Screen capable)
+# Windows + Docker Desktop Linux engine. Bind to loopback only.
+#
+# Usage:
+#   docker compose -f docker-compose.embedded.yml pull
+#   docker compose -f docker-compose.embedded.yml up -d
+#
+# Image: official desktop-suffixed tag (TigerVNC + Xfce baked in).
+# No secrets beyond local-only dashboard basic auth defaults below.
+
+name: airmaze-embedded
+
+services:
+  hermes-gateway:
+    image: nousresearch/hermes-agent:latest-desktop
+    container_name: hermes-airmaze-gw
+    restart: unless-stopped
+    command: ["gateway", "run"]
+    ports:
+      - "127.0.0.1:8642:8642"
+      - "127.0.0.1:9119:9119"
+    volumes:
+      - ${HERMES_EMBEDDED_DATA:-${USERPROFILE}/.hermes-airmaze-embedded}:/opt/data
+    environment:
+      HERMES_DASHBOARD: "1"
+      HERMES_DASHBOARD_HOST: "0.0.0.0"
+      HERMES_DASHBOARD_PORT: "9119"
+      # Local-only dashboard basic auth (change for anything beyond loopback)
+      HERMES_DASHBOARD_USER: "airmaze"
+      HERMES_DASHBOARD_PASSWORD: "airmaze-local"
+      HERMES_DASHBOARD_BASIC_AUTH_USER: "airmaze"
+      HERMES_DASHBOARD_BASIC_AUTH_PASSWORD: "airmaze-local"
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import socket; s=socket.create_connection(('127.0.0.1',8642),2); s.close()\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s

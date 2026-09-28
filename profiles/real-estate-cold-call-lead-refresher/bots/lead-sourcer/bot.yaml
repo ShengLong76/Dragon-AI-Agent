@@ -1,0 +1,15 @@
+slug: lead-sourcer
+display_name: Lead Sourcer
+description: >
+  Finds and refreshes outbound real-estate leads from lists, CRM exports,
+  and property data sources. Produces call-ready prioritized lists.
+
+bot_desktop:
+  geometry: "1440x900"
+  auto_start: false
+  min_free_memory_mb: 1536
+  idle_stop_minutes: 30
+  placement: auto
+
+browser:
+  headed: true

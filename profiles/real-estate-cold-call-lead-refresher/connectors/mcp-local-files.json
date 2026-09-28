@@ -1,0 +1,13 @@
+{
+  "id": "mcp-local-files",
+  "type": "mcp_server",
+  "displayName": "Local files MCP",
+  "status": "placeholder",
+  "mcp": {
+    "name": "local-lead-files",
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem", "%USERPROFILE%\\Documents\\DragonAIAgent\\leads"],
+    "env": {}
+  },
+  "notes": "Optional. Point at a folder of exported lead CSVs. Install an MCP filesystem server separately if you use this stub."
+}

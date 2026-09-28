@@ -1,0 +1,15 @@
+slug: cold-call-script-writer
+display_name: Cold Call Script Writer
+description: >
+  Writes and iterates cold-call openers, objection handlers, and talk tracks
+  for outbound real-estate agents.
+
+bot_desktop:
+  geometry: "1440x900"
+  auto_start: false
+  min_free_memory_mb: 1536
+  idle_stop_minutes: 30
+  placement: auto
+
+browser:
+  headed: true

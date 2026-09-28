@@ -1,0 +1,12 @@
+{
+  "id": "crm",
+  "type": "api_key",
+  "displayName": "CRM",
+  "status": "placeholder",
+  "fields": [
+    {"key": "base_url", "label": "CRM API base URL", "example": "https://api.example-crm.com/v1"},
+    {"key": "api_key", "label": "API key", "secret": true},
+    {"key": "pipeline_id", "label": "Default pipeline / board ID", "optional": true}
+  ],
+  "notes": "Fill secrets locally after install. Dragon AI Agent does not ship live CRM credentials."
+}

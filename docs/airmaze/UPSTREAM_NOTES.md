@@ -1,0 +1,127 @@
+# Upstream Bot Screen Notes
+
+Studied from public docs and GitHub paths (remote reads only — no local clone on Cos).  
+Primary doc: https://hermes-agent.nousresearch.com/docs/user-guide/features/bot-screen
+
+---
+
+## Critical constraint for Windows / Dragon AI Agent
+
+> The gateway host runs Linux. macOS and Windows hosts already have a real display; the pane is not offered there.
+
+Bot Screen is **Linux-gateway-only today**. UltraDragon must embed a Linux engine (Docker Desktop preferred; microVM later) so the Windows agent desktop client talks to a **localhost Linux gateway** that actually runs TigerVNC + Xfce. See `ARCHITECTURE.md`.
+
+WSL2 is a supported Linux host for Bot Screen, with a known `/tmp/.X11-unix` remount quirk; Dragon AI Agent Slice 1 prefers a container with packages pre-baked (`*-desktop` / `hermes-sandbox:desktop`) instead of relying on host package installs.
+
+---
+
+## What Bot Screen is
+
+- Per-profile headless Xfce desktop driven by the bot’s `computer_use` and headed browser.
+- TigerVNC `Xvnc` = X server + RFB on a **Unix socket only** (mode `0600`); no VNC password, no TCP VNC port.
+- Hermes Desktop embeds noVNC; gateway issues a single-use `display_ticket` and splices RFB over `/api/display/ws`.
+- Control **lease** gates human vs bot input at RFB byte level and refuses bot tools with `human_has_control` during takeover.
+- Screens are work surfaces, not OS security boundaries (shared gateway user / threat model in upstream docs).
+
+---
+
+## Images and packages
+
+| Image | Role |
+|-------|------|
+| `nousresearch/hermes-agent:latest` / `:v*` | Slim gateway (no desktop packages) |
+| `nousresearch/hermes-agent:latest-desktop` / `:v*-desktop` | Gateway **with** TigerVNC + Xfce (+ distro chromium) baked in (~930 MB apt layer on Debian) |
+| `nousresearch/hermes-sandbox:desktop` | Default **sandbox** image for docker/ssh/singularity backends when screen is placed inside the sandbox |
+
+Build flag for custom gateway images: `docker build --build-arg HERMES_BOT_DESKTOP=1 …`
+
+Debian/Ubuntu package set (also what `hermes computer-use screen install` targets):  
+`tigervnc-standalone-server xfce4-panel xfwm4 xfdesktop4 xfce4-settings xfce4-terminal dbus-x11 x11-xserver-utils x11-utils xauth fonts-dejavu-core` (+ related).
+
+Memory guidance (official image measurements): gateway ~300 MB idle; Xvnc+Xfce ~+220 MB; headed Chromium 0.5–1 GB. Default refuse-to-start if free RAM &lt; `bot_desktop.min_free_memory_mb` (1536).
+
+---
+
+## Source map (`main` as of study)
+
+### `tools/bot_desktop/`
+
+| File | Role (summary) |
+|------|----------------|
+| `runtime.py` | Start/stop/status of the profile screen; DISPLAY / XAUTHORITY binding; host support checks; orchestrates launcher |
+| `launcher.sh` | Component-wise Xfce + Xvnc bring-up (no `xfce4-session`); seeds dock; private D-Bus |
+| `placement.py` | `bot_desktop.placement`: `auto` / `gateway` / `terminal` vs `terminal.backend` |
+| `install.py` | Package-manager install path used by CLI and Desktop “Install on host” |
+| `sandbox_host.py` | Screen inside docker/ssh/singularity sandbox; markers, re-attach after gateway restart |
+| `browser.py` | Headed browser / profile path alignment with dock Browser icon |
+| `lease.py` | Human/bot control lease file semantics |
+| `rfb_filter.py` | Drop input from viewers without lease |
+| `resources.py` | Memory / idle-stop resource policy |
+| `thumbnail.py` | Preview grabs for Desktop pane |
+| `__init__.py` | Package exports |
+
+### CLI
+
+| Path | Role |
+|------|------|
+| `hermes_cli/subcommands/computer_use_screen.py` | `hermes computer-use screen {status,start,stop,install}` |
+
+### Gateway HTTP / WebSocket
+
+| Path | Role |
+|------|------|
+| `hermes_cli/web_routers/display.py` | Display observe tickets + `/api/display/ws` RFB splice for noVNC |
+
+### Docker
+
+| Path | Role |
+|------|------|
+| `docker/sandbox-desktop.Dockerfile` | Builds `nousresearch/hermes-sandbox:desktop` (nikolaik base + TigerVNC/Xfce + Chromium + cua-driver + agent-browser) |
+| `docker/sandbox-desktop-smoke.sh` | Smoke checks for the sandbox desktop image |
+| Gateway Dockerfile (repo root) | `HERMES_BOT_DESKTOP=1` opt-in for `*-desktop` gateway tags |
+
+---
+
+## Placement quick table
+
+| `terminal.backend` | `placement: auto` | Screen lives |
+|--------------------|-------------------|--------------|
+| `local` | gateway host | Same machine as gateway |
+| `docker` / `ssh` / `singularity` | inside sandbox | Needs desktop-capable sandbox image |
+| `modal` / `daytona` / `vercel_sandbox` | refused | Opt in `placement: gateway` explicitly if forcing host screen |
+
+---
+
+## Config knobs (upstream)
+
+```yaml
+bot_desktop:
+  geometry: "1440x900"
+  auto_start: false
+  min_free_memory_mb: 1536
+  idle_stop_minutes: 30
+  placement: auto   # auto | terminal | gateway
+```
+
+State: `<HERMES_HOME>/bot-desktop/` per profile (RFB socket, Xauthority, launcher log, xfconf, lease).
+
+CLI ops:
+
+```bash
+hermes computer-use screen status
+hermes computer-use screen start
+hermes computer-use screen stop [--force]
+hermes computer-use screen install [-y]
+```
+
+---
+
+## Implication for AirMaze fork work
+
+On UltraDragon after bootstrap:
+
+1. Prefer **no** early patches to `runtime.py` / `display.py` — embed a Linux gateway instead.
+2. Local branch `airmaze/embedded-bot-screen` holds docs + compose/config for the embed; code changes only if Desktop Remote discovery or Windows packaging needs them.
+3. Re-read these paths after `git pull` on UltraDragon; upstream moves quickly.
+
+License: MIT, Copyright (c) 2025 Nous Research.

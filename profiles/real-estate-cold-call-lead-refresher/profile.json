@@ -1,0 +1,59 @@
+{
+  "id": "real-estate-cold-call-lead-refresher",
+  "displayName": "Real Estate Cold Call Lead Refresher",
+  "description": "Outbound real-estate agent team that refreshes stale leads, writes cold-call scripts, and sequences follow-ups. Ships three bots plus connector placeholders for CRM, dialer, and property data APIs.",
+  "version": "1.0.0",
+  "bots": [
+    {
+      "id": "lead-sourcer",
+      "displayName": "Lead Sourcer",
+      "description": "Finds and refreshes outbound real-estate leads from lists, CRM exports, and property data sources.",
+      "soul": "bots/lead-sourcer/SOUL.md",
+      "config": "bots/lead-sourcer/bot.yaml"
+    },
+    {
+      "id": "cold-call-script-writer",
+      "displayName": "Cold Call Script Writer",
+      "description": "Writes and iterates cold-call openers, objection handlers, and talk tracks for outbound agents.",
+      "soul": "bots/cold-call-script-writer/SOUL.md",
+      "config": "bots/cold-call-script-writer/bot.yaml"
+    },
+    {
+      "id": "follow-up-sequencer",
+      "displayName": "Follow-up Sequencer",
+      "description": "Plans multi-touch SMS/email/call follow-up sequences after cold outreach.",
+      "soul": "bots/follow-up-sequencer/SOUL.md",
+      "config": "bots/follow-up-sequencer/bot.yaml"
+    }
+  ],
+  "connectors": [
+    {
+      "id": "crm",
+      "type": "api_key",
+      "displayName": "CRM (placeholder)",
+      "description": "CRM API key / OAuth template for contacts and lead status sync.",
+      "configTemplate": "connectors/crm.json"
+    },
+    {
+      "id": "dialer",
+      "type": "api_key",
+      "displayName": "Dialer / Power-dial (placeholder)",
+      "description": "Outbound dialer or softphone API for click-to-call and disposition logging.",
+      "configTemplate": "connectors/dialer.json"
+    },
+    {
+      "id": "property-data",
+      "type": "api_key",
+      "displayName": "Property data API (placeholder)",
+      "description": "Property records / comps / ownership data API for lead enrichment.",
+      "configTemplate": "connectors/property-data.json"
+    },
+    {
+      "id": "mcp-local-files",
+      "type": "mcp_server",
+      "displayName": "Local files MCP (optional)",
+      "description": "Optional MCP server stub for reading exported lead CSVs from a local folder.",
+      "configTemplate": "connectors/mcp-local-files.json"
+    }
+  ]
+}

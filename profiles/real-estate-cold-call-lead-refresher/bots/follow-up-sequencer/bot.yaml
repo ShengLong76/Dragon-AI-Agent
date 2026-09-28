@@ -1,0 +1,15 @@
+slug: follow-up-sequencer
+display_name: Follow-up Sequencer
+description: >
+  Plans multi-touch SMS/email/call follow-up sequences after cold outreach
+  and aligns next actions with CRM dispositions when configured.
+
+bot_desktop:
+  geometry: "1440x900"
+  auto_start: false
+  min_free_memory_mb: 1536
+  idle_stop_minutes: 30
+  placement: auto
+
+browser:
+  headed: true

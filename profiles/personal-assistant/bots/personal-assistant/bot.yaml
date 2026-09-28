@@ -1,0 +1,17 @@
+# Dragon AI Agent — Personal Assistant (sole base bot for minimal catalog entry)
+slug: personal-assistant
+display_name: Personal Assistant
+description: >
+  General-purpose personal assistant for research, drafting, scheduling,
+  reminders, and computer-use on a virtualized desktop. Neutral tone;
+  no business-specific or domain CRM instructions.
+
+bot_desktop:
+  geometry: "1440x900"
+  auto_start: true
+  min_free_memory_mb: 1536
+  idle_stop_minutes: 30
+  placement: auto
+
+browser:
+  headed: true

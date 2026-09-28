@@ -1,0 +1,12 @@
+{
+  "id": "dialer",
+  "type": "api_key",
+  "displayName": "Dialer / Power-dial",
+  "status": "placeholder",
+  "fields": [
+    {"key": "base_url", "label": "Dialer API base URL", "example": "https://api.example-dialer.com"},
+    {"key": "api_key", "label": "API key", "secret": true},
+    {"key": "from_number", "label": "Outbound caller ID", "optional": true}
+  ],
+  "notes": "Placeholder for click-to-call and disposition webhooks. Configure locally."
+}

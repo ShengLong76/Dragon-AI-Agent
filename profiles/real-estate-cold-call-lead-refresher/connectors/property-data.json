@@ -1,0 +1,12 @@
+{
+  "id": "property-data",
+  "type": "api_key",
+  "displayName": "Property data API",
+  "status": "placeholder",
+  "fields": [
+    {"key": "base_url", "label": "Property data API base URL"},
+    {"key": "api_key", "label": "API key", "secret": true},
+    {"key": "default_market", "label": "Default market / MLS area", "optional": true}
+  ],
+  "notes": "Used by Lead Sourcer for ownership and property enrichment when configured."
+}
