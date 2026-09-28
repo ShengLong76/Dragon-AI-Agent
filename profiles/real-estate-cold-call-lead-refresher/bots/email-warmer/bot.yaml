@@ -1,0 +1,17 @@
+slug: email-warmer
+display_name: Email Warmer
+description: >
+  Re-engages stale real-estate leads whose last interaction is beyond the
+  18-month TCPA established-business-relationship window via a short
+  CAN-SPAM-compliant email sequence that links to a phone-consent form.
+  Hands dial-ready leads to calling only after Vtiger TCPA consent fields pass.
+
+bot_desktop:
+  geometry: "1440x900"
+  auto_start: false
+  min_free_memory_mb: 1536
+  idle_stop_minutes: 30
+  placement: auto
+
+browser:
+  headed: true

@@ -16,6 +16,7 @@ Compatible with the open-source agent desktop stack (separate desktop client). T
 | Embedded gateway | `docker compose` pull + `up -d` for the packaged embedded gateway image (see `THIRD_PARTY_NOTICES.md`). |
 | Ports | `127.0.0.1:8642` (gateway API), `127.0.0.1:9119` (dashboard). Local dashboard credentials: see `docs/airmaze/EMBEDDED_GATEWAY.md`. |
 | **Profiles** | First-run menu: **select** a built-in catalog profile **or import** a zip/folder/JSON bundle. Applies bots into the local agent profiles dir and installs connector placeholders. |
+| **Onboarding** | First-run **Dragon AI Agent Setup** wizard (email / CRM / telephony + optional integrations). Secrets via Windows DPAPI. Markdown guide: `docs/airmaze/SETUP_GUIDE.md`. Real Estate bots stay `needs_setup` until required steps succeed. |
 | Agent desktop | Tries common install paths; if missing, prints next steps. Point Remote gateway at `http://127.0.0.1:9119` / API `127.0.0.1:8642`. Open **Profiles** / **Bot Screen** and pick an installed bot. |
 
 Be honest about limits: full silent WSL/Docker provision often needs a reboot and/or one-time UI clicks. This package does **not** embed the agent desktop client itself.
@@ -38,7 +39,7 @@ Install log: `%LOCALAPPDATA%\DragonAIAgent\install.log`
 Package files land in: `%LOCALAPPDATA%\DragonAIAgent\`  
 Gateway data: `%USERPROFILE%\.hermes-airmaze-embedded` (internal)
 
-Desktop / Start Menu shortcuts: **Dragon AI Agent** and **Dragon AI Agent Profiles**.
+Desktop / Start Menu shortcuts: **Dragon AI Agent**, **Dragon AI Agent Profiles**, and **Dragon AI Agent Setup** (onboarding wizard).
 
 ---
 
@@ -54,7 +55,7 @@ A **profile** is a packaged bundle with:
 | Id | Display name | Bots |
 |----|--------------|------|
 | `personal-assistant` | Personal Assistant | 1 — general PA |
-| `real-estate-cold-call-lead-refresher` | Real Estate Cold Call Lead Refresher | 3 — Lead Sourcer, Cold Call Script Writer, Follow-up Sequencer |
+| `real-estate-cold-call-lead-refresher` | Real Estate Cold Call Lead Refresher | 4 — Lead Sourcer, Email Warmer, Cold Call Script Writer, Follow-up Sequencer |
 
 ### First-run / Profiles menu
 
@@ -126,6 +127,29 @@ Zip the profile folder and import with `Import-Profile.ps1`, or place it under `
 
 ---
 
+## Onboarding wizard + setup guide
+
+After profile selection, the installer launches **Dragon AI Agent Setup** (`Onboard-Wizard.ps1`):
+
+1. Welcome  
+2. Connect email (Gmail / Outlook / SMTP + verify)  
+3. Connect CRM (Vtiger webservice)  
+4. Connect telephony (Twilio + Bland/Vapi)  
+5. Optional: property data, dialer  
+6. Review & finish  
+
+Secrets are stored with **Windows DPAPI** under `%LOCALAPPDATA%\DragonAIAgent\onboarding\secrets\` — never in plaintext JSON. Real Estate bots remain **`needs_setup`** until email + CRM + telephony succeed.
+
+Re-run anytime from Start Menu **Dragon AI Agent Setup**, or:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\DragonAIAgent\scripts\airmaze\Onboard-Wizard.ps1"
+```
+
+Human-readable steps: [`docs/airmaze/SETUP_GUIDE.md`](docs/airmaze/SETUP_GUIDE.md).
+
+---
+
 ## Docker Desktop: tray only (no dashboard popup)
 
 The installer patches Docker Desktop settings (when present) so the app opens **without** showing the dashboard window:
@@ -170,6 +194,8 @@ scripts/airmaze/
   Apply-Profile.ps1
   Select-Profile.ps1
   Import-Profile.ps1
+  Onboard-Wizard.ps1
+  DragonAI-SecureStore.ps1
 templates/profiles/personal-assistant/
 installer/
   DragonAIAgentSetup.ps1
@@ -185,7 +211,8 @@ branding/   (release: dragon-ai-agent-logo.png / .ico)
 2. `docs/airmaze/ARCHITECTURE.md` — embed Bot Screen on Windows via Docker
 3. `docs/airmaze/EMBEDDED_GATEWAY.md` — ports, compose, desktop wiring
 4. `docs/airmaze/UPSTREAM_NOTES.md` — Linux-gateway-only constraint
-5. `PACKAGING.md` — how this release was built
+5. `docs/airmaze/SETUP_GUIDE.md` — first-run onboarding (email / CRM / telephony) + Real Estate flow
+6. `PACKAGING.md` — how this release was built
 
 ---
 

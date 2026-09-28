@@ -4,9 +4,27 @@
   "displayName": "CRM",
   "status": "placeholder",
   "fields": [
-    {"key": "base_url", "label": "CRM API base URL", "example": "https://api.example-crm.com/v1"},
-    {"key": "api_key", "label": "API key", "secret": true},
-    {"key": "pipeline_id", "label": "Default pipeline / board ID", "optional": true}
+    {
+      "key": "base_url",
+      "label": "CRM API base URL",
+      "example": "https://api.example-crm.com/v1"
+    },
+    {
+      "key": "api_key",
+      "label": "API key",
+      "secret": true
+    },
+    {
+      "key": "pipeline_id",
+      "label": "Default pipeline / board ID",
+      "optional": true
+    },
+    {
+      "key": "instance",
+      "label": "CRM instance / site",
+      "example": "https://crm.dragonsden.work",
+      "optional": true
+    }
   ],
-  "notes": "Fill secrets locally after install. Dragon AI Agent does not ship live CRM credentials."
+  "notes": "Vtiger at crm.dragonsden.work (or other CRM). Email Warmer expects custom fields: TCPA Consent (checkbox), TCPA Consent Date, TCPA Consent Method, TCPA Consent Source / Source URL, TCPA Consented Phone; plus Do Not Call on Leads/Contacts. Fill secrets locally after install. Dragon AI Agent does not ship live CRM credentials."
 }

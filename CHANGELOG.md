@@ -11,7 +11,7 @@ All notable changes to Dragon AI Agent (packaging/distribution) are documented h
 - **Profile catalog** with select/import:
   - `profiles/catalog.json`
   - Personal Assistant (minimal single-bot)
-  - **Real Estate Cold Call Lead Refresher** (Lead Sourcer, Cold Call Script Writer, Follow-up Sequencer + CRM/dialer/property-data/MCP placeholders)
+  - **Real Estate Cold Call Lead Refresher** (Lead Sourcer, **Email Warmer**, Cold Call Script Writer, Follow-up Sequencer + CRM/email/consent-form/dialer/property-data/MCP placeholders)
   - Scripts: `Apply-Profile.ps1`, `Select-Profile.ps1`, `Import-Profile.ps1`
 - Windows bootstrap installer (`scripts/airmaze/install.ps1` / `installer/DragonAIAgentSetup.ps1`):
   - Best-effort WSL2 enable / `wsl --install`
@@ -19,11 +19,18 @@ All notable changes to Dragon AI Agent (packaging/distribution) are documented h
   - Docker Desktop **tray-only** (no dashboard on startup)
   - Compose pull + `up -d`
   - First-run profile menu
-  - Desktop + Start Menu shortcuts (“Dragon AI Agent”, “Dragon AI Agent Profiles”)
+  - Desktop + Start Menu shortcuts (“Dragon AI Agent”, “Dragon AI Agent Profiles”, “Dragon AI Agent Setup”)
   - Install log at `%LOCALAPPDATA%\DragonAIAgent\install.log`
 - Console `DragonAIAgentSetup.exe` (Go, branded icon when embedded) that runs sibling `payload\install.ps1`.
 - Logo assets: `dragon-ai-agent-logo.png` / `.ico`
+- **Email Warmer** bot in Real Estate pack: CAN-SPAM warming → hosted TCPA consent form → Vtiger consent fields → dial-ready handoff only
 - Docs under `docs/airmaze/` (architecture, embedded gateway, upstream notes, status).
+- **First-run onboarding wizard** (`scripts/airmaze/Onboard-Wizard.ps1`) + DPAPI secure store (`DragonAI-SecureStore.ps1`):
+  - Steps: Welcome → Email → CRM (Vtiger) → Telephony (Twilio + Bland/Vapi) → optional property-data/dialer → Review
+  - Secrets only as DPAPI binary files under `%LOCALAPPDATA%\DragonAIAgent\onboarding\secrets\`
+  - Bot readiness (`bots-status.json`): Real Estate bots stay `needs_setup` until email+crm+telephony succeed
+  - Installer invokes wizard after profile setup; Start Menu / Desktop **Dragon AI Agent Setup** shortcut
+- `docs/airmaze/SETUP_GUIDE.md` — markdown mirror of wizard steps + Real Estate Lead Sourcer → Email Warmer → consent gate → calling
 
 ### Notes / limitations
 - Agent desktop client is a separate installer when not already present.

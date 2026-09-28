@@ -7,14 +7,23 @@
       "displayName": "Personal Assistant",
       "description": "Minimal single-bot general-purpose personal assistant for research, drafting, scheduling, and computer-use.",
       "path": "personal-assistant",
-      "tags": ["general", "minimal", "default"]
+      "tags": [
+        "general",
+        "minimal",
+        "default"
+      ]
     },
     {
       "id": "real-estate-cold-call-lead-refresher",
       "displayName": "Real Estate Cold Call Lead Refresher",
-      "description": "Outbound real-estate agent team: Lead Sourcer, Cold Call Script Writer, and Follow-up Sequencer with CRM/dialer/property-data connector placeholders.",
+      "description": "Outbound real-estate agent team: Lead Sourcer, Email Warmer, Cold Call Script Writer, and Follow-up Sequencer with CRM/email/consent-form/dialer/property-data connectors.",
       "path": "real-estate-cold-call-lead-refresher",
-      "tags": ["real-estate", "outbound", "multi-bot", "example"]
+      "tags": [
+        "real-estate",
+        "outbound",
+        "multi-bot",
+        "example"
+      ]
     }
   ]
 }

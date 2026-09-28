@@ -1,8 +1,8 @@
 {
   "id": "real-estate-cold-call-lead-refresher",
   "displayName": "Real Estate Cold Call Lead Refresher",
-  "description": "Outbound real-estate agent team that refreshes stale leads, writes cold-call scripts, and sequences follow-ups. Ships three bots plus connector placeholders for CRM, dialer, and property data APIs.",
-  "version": "1.0.0",
+  "description": "Outbound real-estate agent team that refreshes stale leads, warms them with CAN-SPAM email toward a TCPA consent form, writes cold-call scripts, and sequences follow-ups. Ships four bots plus connector placeholders for CRM, email, consent form, dialer, and property data.",
+  "version": "1.1.0",
   "bots": [
     {
       "id": "lead-sourcer",
@@ -10,6 +10,13 @@
       "description": "Finds and refreshes outbound real-estate leads from lists, CRM exports, and property data sources.",
       "soul": "bots/lead-sourcer/SOUL.md",
       "config": "bots/lead-sourcer/bot.yaml"
+    },
+    {
+      "id": "email-warmer",
+      "displayName": "Email Warmer",
+      "description": "CAN-SPAM email sequences for stale / post-EBR leads that link to a TCPA phone-consent form; hands dial-ready leads only after consent gate.",
+      "soul": "bots/email-warmer/SOUL.md",
+      "config": "bots/email-warmer/bot.yaml"
     },
     {
       "id": "cold-call-script-writer",
@@ -31,8 +38,22 @@
       "id": "crm",
       "type": "api_key",
       "displayName": "CRM (placeholder)",
-      "description": "CRM API key / OAuth template for contacts and lead status sync.",
+      "description": "CRM (e.g. Vtiger) for leads/contacts including TCPA consent fields and Do Not Call.",
       "configTemplate": "connectors/crm.json"
+    },
+    {
+      "id": "email",
+      "type": "api_key",
+      "displayName": "Email sending (placeholder)",
+      "description": "SMTP/ESP or Hermes email skill for CAN-SPAM warming sequences.",
+      "configTemplate": "connectors/email.json"
+    },
+    {
+      "id": "consent-form",
+      "type": "api_key",
+      "displayName": "TCPA consent form (placeholder)",
+      "description": "Hosted consent form endpoint + disclosure version for prior express written consent.",
+      "configTemplate": "connectors/consent-form.json"
     },
     {
       "id": "dialer",

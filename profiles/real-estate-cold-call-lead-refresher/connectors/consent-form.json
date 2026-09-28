@@ -1,0 +1,14 @@
+{
+  "id": "consent-form",
+  "type": "api_key",
+  "displayName": "TCPA consent form endpoint",
+  "status": "placeholder",
+  "fields": [
+    {"key": "form_base_url", "label": "Public consent form URL", "example": "https://forms.example.com/tcpa-consent"},
+    {"key": "disclosure_version", "label": "Disclosure version id", "example": "tcpa-v1-2026-09"},
+    {"key": "seller_legal_name", "label": "Seller / company legal name shown on form"},
+    {"key": "webhook_url", "label": "Submit webhook (writes Vtiger fields)", "optional": true},
+    {"key": "webhook_secret", "label": "Webhook shared secret", "secret": true, "optional": true}
+  ],
+  "notes": "Form must use an unchecked checkbox, name the seller, authorize marketing calls/texts to the entered mobile (including autodialed/AI voice if used), state consent is not required to purchase, and capture phone, timestamp, IP, URL, disclosure version, and checkbox state."
+}

@@ -320,8 +320,15 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\Apply-Profile.ps1",
         "scripts\airmaze\Select-Profile.ps1",
         "scripts\airmaze\Import-Profile.ps1",
+        "scripts\airmaze\Onboard-Wizard.ps1",
+        "scripts\airmaze\DragonAI-SecureStore.ps1",
         "templates\profiles\personal-assistant\SOUL.md",
         "templates\profiles\personal-assistant\profile.yaml",
+        "docs\airmaze\SETUP_GUIDE.md",
+        "docs\airmaze\ARCHITECTURE.md",
+        "docs\airmaze\EMBEDDED_GATEWAY.md",
+        "docs\airmaze\UPSTREAM_NOTES.md",
+        "docs\airmaze\STATUS.md",
         "README.md",
         "CHANGELOG.md",
         "PACKAGING.md",
@@ -343,6 +350,17 @@ function Install-PackageFiles([string]$Root) {
             Write-Log "Copied $rel"
         } else {
             Write-Log "Missing optional source: $rel" "WARN"
+        }
+    }
+
+    # Copy all docs/airmaze/*.md (best-effort)
+    $docsSrc = Join-Path $Root "docs\airmaze"
+    $docsDst = Join-Path $InstallRoot "docs\airmaze"
+    if (Test-Path -LiteralPath $docsSrc) {
+        Ensure-Dir $docsDst
+        Get-ChildItem -LiteralPath $docsSrc -Filter "*.md" -File -ErrorAction SilentlyContinue | ForEach-Object {
+            Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $docsDst $_.Name) -Force
+            Write-Log "Copied docs/airmaze/$($_.Name)"
         }
     }
 
@@ -402,6 +420,29 @@ function Install-Shortcuts {
         $sc3.Description = "Dragon AI Agent — select or import a profile"
         if ($iconLocation -and (Test-Path $iconLocation)) { $sc3.IconLocation = "$iconLocation,0" }
         $sc3.Save()
+
+        $onboardScript = Join-Path $InstallRoot "scripts\airmaze\Onboard-Wizard.ps1"
+        if (Test-Path -LiteralPath $onboardScript) {
+            $sc4Path = Join-Path $StartMenuDir "Dragon AI Agent Setup.lnk"
+            $sc4 = $wsh.CreateShortcut($sc4Path)
+            $sc4.TargetPath = $targetPs
+            $sc4.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$onboardScript`" -InstallRoot `"$InstallRoot`" -PayloadRoot `"$InstallRoot`""
+            $sc4.WorkingDirectory = $InstallRoot
+            $sc4.Description = "Dragon AI Agent — first-run onboarding wizard"
+            if ($iconLocation -and (Test-Path $iconLocation)) { $sc4.IconLocation = "$iconLocation,0" }
+            $sc4.Save()
+
+            $sc5Path = Join-Path $desktop "Dragon AI Agent Setup.lnk"
+            $sc5 = $wsh.CreateShortcut($sc5Path)
+            $sc5.TargetPath = $targetPs
+            $sc5.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$onboardScript`" -InstallRoot `"$InstallRoot`" -PayloadRoot `"$InstallRoot`""
+            $sc5.WorkingDirectory = $InstallRoot
+            $sc5.Description = "Dragon AI Agent — first-run onboarding wizard"
+            if ($iconLocation -and (Test-Path $iconLocation)) { $sc5.IconLocation = "$iconLocation,0" }
+            $sc5.Save()
+            Write-Log "Setup shortcuts: $sc4Path ; $sc5Path"
+        }
+
         Write-Log "Start Menu shortcuts under: $StartMenuDir"
     } catch {
         Write-Log "Shortcut creation failed: $($_.Exception.Message)" "WARN"
@@ -537,9 +578,43 @@ if ($dockerOk -and (Test-DockerEngine)) {
 }
 
 Invoke-ProfileSetup -Root $root
+
+# First-run onboarding wizard (do not fail entire install if wizard errors)
+try {
+    $wizard = Join-Path $InstallRoot "scripts\airmaze\Onboard-Wizard.ps1"
+    if (-not (Test-Path -LiteralPath $wizard)) {
+        $wizard = Join-Path $root "scripts\airmaze\Onboard-Wizard.ps1"
+    }
+    if (Test-Path -LiteralPath $wizard) {
+        $wizProfile = $ProfileId
+        $activePath = Join-Path $InstallRoot "active-profile.json"
+        if ([string]::IsNullOrWhiteSpace($wizProfile) -and (Test-Path -LiteralPath $activePath)) {
+            try {
+                $active = Get-Content -LiteralPath $activePath -Raw -Encoding UTF8 | ConvertFrom-Json
+                $wizProfile = [string]$active.profileId
+            } catch {}
+        }
+        Write-Log "Launching onboarding wizard (profile=$wizProfile)..."
+        $wizArgs = @{
+            InstallRoot = $InstallRoot
+            PayloadRoot = $InstallRoot
+        }
+        if (-not [string]::IsNullOrWhiteSpace($wizProfile)) {
+            $wizArgs["ProfileId"] = $wizProfile
+        }
+        & $wizard @wizArgs
+        Write-Log "Onboarding wizard finished (exit $LASTEXITCODE)"
+    } else {
+        Write-Log "Onboard-Wizard.ps1 not found; skipping wizard" "WARN"
+    }
+} catch {
+    Write-Log "Onboarding wizard failed (install continues): $($_.Exception.Message)" "WARN"
+}
+
 Install-Shortcuts
 Start-AgentDesktop | Out-Null
 
+$setupGuide = Join-Path $InstallRoot "docs\airmaze\SETUP_GUIDE.md"
 Write-Log "=== Install finished. Log: $LogPath ==="
 Write-Host ""
 Write-Host "$ProductName v$ProductVersion setup complete (best-effort)."
@@ -548,4 +623,6 @@ Write-Host "  Log:          $LogPath"
 Write-Host "  Gateway:      127.0.0.1:8642  dashboard: http://127.0.0.1:9119"
 Write-Host "  Docker UI:    tray-only (dashboard suppressed on startup)"
 Write-Host "  Profiles:     Start Menu > Dragon AI Agent > Dragon AI Agent Profiles"
+Write-Host "  Setup wizard: Start Menu / Desktop > Dragon AI Agent Setup"
+Write-Host "  Setup guide:  $setupGuide"
 Write-Host ""

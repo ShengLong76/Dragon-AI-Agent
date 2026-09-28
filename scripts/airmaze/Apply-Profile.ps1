@@ -129,3 +129,24 @@ $active = [ordered]@{
 
 Write-Dragon "Active profile recorded. Bot Screen picker: open the agent desktop client, select a bot profile under Profiles (ids: $(($bots | ForEach-Object { $_.id }) -join ', '))."
 Write-Dragon "Remote gateway (if prompted): http://127.0.0.1:9119  API 127.0.0.1:8642"
+
+# Initialize bot readiness (real-estate-* -> needs_setup until onboarding completes)
+try {
+    $secureStore = Join-Path $PSScriptRoot "DragonAI-SecureStore.ps1"
+    if (-not (Test-Path -LiteralPath $secureStore)) {
+        $secureStore = Join-Path $InstallRoot "scripts\airmaze\DragonAI-SecureStore.ps1"
+    }
+    if (Test-Path -LiteralPath $secureStore) {
+        . $secureStore
+        $botIdList = @($bots | ForEach-Object { [string]$_.id } | Where-Object { $_ })
+        if ($profileId -like "real-estate*") {
+            Initialize-DragonAIBotsNeedsSetup -ProfileId $profileId -BotIds $botIdList | Out-Null
+            Write-Dragon "Bot status initialized to needs_setup (run Dragon AI Agent Setup wizard)."
+        } elseif ($profileId -like "personal-assistant*") {
+            Initialize-DragonAIBotsNeedsSetup -ProfileId $profileId -BotIds $botIdList | Out-Null
+            Write-Dragon "Bot status initialized (personal-assistant ready)."
+        }
+    }
+} catch {
+    Write-Dragon "WARNING: could not initialize bots-status: $($_.Exception.Message)"
+}
