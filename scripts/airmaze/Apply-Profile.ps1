@@ -4,7 +4,8 @@
   Apply a Dragon AI Agent profile bundle (folder with profile.json) into local config.
 
 .DESCRIPTION
-  - Copies each bot to %LOCALAPPDATA%\hermes\profiles\<bot-id>\ (agent desktop profile picker path)
+  - Copies each bot to %LOCALAPPDATA%\hermes\profiles\<bot-id>\ (Windows local picker)
+  - Mirrors the same bots into %USERPROFILE%\.hermes-airmaze-embedded\profiles\ (Linux Remote / Bot Screen)
   - Copies connector templates to %LOCALAPPDATA%\DragonAIAgent\connectors\<profile-id>\
   - Records the active profile id under DragonAIAgent\active-profile.json
 
@@ -128,7 +129,26 @@ $active = [ordered]@{
 ($active | ConvertTo-Json -Depth 5) | Set-Content -LiteralPath (Join-Path $InstallRoot "active-profile.json") -Encoding UTF8
 
 Write-Dragon "Active profile recorded. In Dragon AI Agent, open Profiles and pick a bot (ids: $(($bots | ForEach-Object { $_.id }) -join ', '))."
-Write-Dragon "Remote gateway (if prompted): http://127.0.0.1:9119  API 127.0.0.1:8642"
+Write-Dragon "Desktop Remote (Bot Screen): http://127.0.0.1:8650  (session token placeholder dragon-local). API 127.0.0.1:8642 is OpenAI-only."
+
+# Linux gateway volume (Remote serve lists these, not the Windows-local profiles dir).
+$embeddedProfiles = Join-Path $env:USERPROFILE ".hermes-airmaze-embedded\profiles"
+New-Item -ItemType Directory -Force -Path $embeddedProfiles | Out-Null
+foreach ($bot in $bots) {
+    $botId = [string]$bot.id
+    if ([string]::IsNullOrWhiteSpace($botId)) { continue }
+    $from = Join-Path $desktopProfilesRoot $botId
+    $to = Join-Path $embeddedProfiles $botId
+    if (-not (Test-Path -LiteralPath $from)) { continue }
+    New-Item -ItemType Directory -Force -Path $to | Out-Null
+    Copy-Item -Path (Join-Path $from "*") -Destination $to -Force -Recurse -ErrorAction SilentlyContinue
+    $botYaml = Join-Path $to "bot.yaml"
+    $cfgYaml = Join-Path $to "config.yaml"
+    if ((Test-Path -LiteralPath $botYaml) -and -not (Test-Path -LiteralPath $cfgYaml)) {
+        Copy-Item -LiteralPath $botYaml -Destination $cfgYaml -Force
+    }
+    Write-Dragon "Bot mirrored into embedded gateway: $botId -> $to"
+}
 
 # Initialize bot readiness (real-estate-* -> needs_setup until onboarding completes)
 try {

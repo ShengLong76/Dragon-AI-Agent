@@ -19,6 +19,7 @@ Configured in `docker-compose.embedded.yml` for **loopback-only** use (upstream 
 - Dashboard user: `dragon` (`HERMES_DASHBOARD_BASIC_AUTH_USERNAME`)
 - Dashboard password: `dragon-local`
 - Gateway API key: `dragon-local` (`API_SERVER_KEY`; host publish is `127.0.0.1:8642` only)
+- Desktop serve session token: `dragon-local` (`HERMES_DASHBOARD_SESSION_TOKEN`; host publish is `127.0.0.1:8650` only)
 
 Change these before exposing anything beyond `127.0.0.1`.
 

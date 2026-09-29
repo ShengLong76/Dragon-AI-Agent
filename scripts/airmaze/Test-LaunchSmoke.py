@@ -42,6 +42,9 @@ REQUIRED_LAUNCHER = (
     "Test-LaunchedFromShortcut",
     "Dragon AI Agent launched",
     "Smoke",
+    "Set-EmbeddedDesktopRemoteConnection",
+    "X-Hermes-Session-Token",
+    "8650",
 )
 
 REQUIRED_FINDER = (
@@ -67,6 +70,10 @@ REQUIRED_COMPOSE = (
     "API_SERVER_HOST",
     "API_SERVER_KEY",
     'HERMES_DASHBOARD_BASIC_AUTH_USERNAME: "dragon"',
+    "HERMES_DASHBOARD_SESSION_TOKEN",
+    "127.0.0.1:8650:8650",
+    "hermes-airmaze-desktop",
+    "start-desktop-serve.sh",
 )
 
 REQUIRED_INSTALLER = (
@@ -193,6 +200,11 @@ def main() -> int:
     if "rebuilt Electron" not in btxt:
         fail("BRANDING.md must say what still needs a rebuilt Electron binary")
     print(f"OK  branding: {branding.relative_to(ROOT)}")
+    adapter = ROOT / "scripts" / "airmaze" / "Test-DesktopServeAdapter.py"
+    if adapter.is_file():
+        proc = subprocess.run([sys.executable, str(adapter)], cwd=str(ROOT))
+        if proc.returncode != 0:
+            fail("Test-DesktopServeAdapter.py failed")
     run_host_smoke()
     print("SMOKE OK: opening Dragon AI Agent is wired to branded UI or a blocking error.")
     return 0

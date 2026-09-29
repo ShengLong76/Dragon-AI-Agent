@@ -43,6 +43,10 @@ $DashboardUrl = "http://127.0.0.1:9119/"
 $ApiHost = "127.0.0.1"
 $ApiPort = 8642
 $DashPort = 9119
+# Desktop Remote token/WS — NOT the OpenAI API on 8642 (that surface has no /api/ws).
+$DesktopServeUrl = "http://127.0.0.1:8650"
+$DesktopServePort = 8650
+$DesktopSessionToken = "dragon-local"
 
 if ([string]::IsNullOrWhiteSpace($InstallRoot)) {
     $InstallRoot = Join-Path $env:LOCALAPPDATA "DragonAIAgent"
@@ -55,6 +59,8 @@ $script:LaunchForm = $null
 $script:LaunchStatus = $null
 $script:DashboardUrl = $DashboardUrl
 $script:ApiKey = "dragon-local"
+$script:DesktopServeUrl = $DesktopServeUrl
+$script:DesktopSessionToken = $DesktopSessionToken
 
 $finder = Join-Path $PSScriptRoot "Find-HermesDesktop.ps1"
 if (-not (Test-Path -LiteralPath $finder)) {
@@ -513,10 +519,16 @@ function Start-GatewayContainer {
 }
 
 function Test-HttpReachable {
-    param([string]$Url, [int]$TimeoutSec = 3)
+    param(
+        [string]$Url,
+        [int]$TimeoutSec = 3,
+        [hashtable]$Headers = $null
+    )
     try {
-        $headers = @{ Authorization = "Bearer $($script:ApiKey)" }
-        $null = Invoke-WebRequest -Uri $Url -Headers $headers -UseBasicParsing -TimeoutSec $TimeoutSec -ErrorAction Stop
+        if ($null -eq $Headers) {
+            $Headers = @{ Authorization = "Bearer $($script:ApiKey)" }
+        }
+        $null = Invoke-WebRequest -Uri $Url -Headers $Headers -UseBasicParsing -TimeoutSec $TimeoutSec -ErrorAction Stop
         return $true
     } catch {
         $resp = $_.Exception.Response
@@ -527,9 +539,68 @@ function Test-HttpReachable {
     }
 }
 
+function Test-DesktopServeReady {
+    param([int]$TimeoutSec = 3)
+    $headers = @{ "X-Hermes-Session-Token" = $script:DesktopSessionToken }
+    if (Test-HttpReachable -Url "$($script:DesktopServeUrl)/api/health" -TimeoutSec $TimeoutSec -Headers $headers) {
+        return $true
+    }
+    return (Test-HttpReachable -Url "$($script:DesktopServeUrl)/api/status" -TimeoutSec $TimeoutSec -Headers $headers)
+}
+
+function Sync-EmbeddedGatewayProfiles {
+    <#
+      Remote Desktop serve lists bots from the Linux HERMES_HOME volume,
+      not %LOCALAPPDATA%\hermes\profiles. Mirror applied bots into that volume.
+    #>
+    $embedded = Join-Path $env:USERPROFILE ".hermes-airmaze-embedded"
+    $srcRoot = Join-Path $env:LOCALAPPDATA "hermes\profiles"
+    if (-not (Test-Path -LiteralPath $srcRoot)) { return 0 }
+    $destRoot = Join-Path $embedded "profiles"
+    New-Item -ItemType Directory -Force -Path $destRoot | Out-Null
+    $n = 0
+    Get-ChildItem -LiteralPath $srcRoot -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+        $dest = Join-Path $destRoot $_.Name
+        New-Item -ItemType Directory -Force -Path $dest | Out-Null
+        foreach ($name in @("SOUL.md", "bot.yaml", "profile.yaml", "config.yaml", "bot.meta.json")) {
+            $src = Join-Path $_.FullName $name
+            if (Test-Path -LiteralPath $src) {
+                Copy-Item -LiteralPath $src -Destination (Join-Path $dest $name) -Force
+            }
+        }
+        $bot = Join-Path $_.FullName "bot.yaml"
+        if ((Test-Path -LiteralPath $bot) -and -not (Test-Path -LiteralPath (Join-Path $dest "config.yaml"))) {
+            Copy-Item -LiteralPath $bot -Destination (Join-Path $dest "config.yaml") -Force
+        }
+        $n++
+    }
+    Write-LaunchLog "Synced $n profile(s) into embedded gateway $destRoot"
+    return $n
+}
+
+function Set-EmbeddedDesktopRemoteConnection {
+    $setter = Join-Path $PSScriptRoot "Set-EmbeddedDesktopConnection.ps1"
+    if (-not (Test-Path -LiteralPath $setter)) {
+        $setter = Join-Path $InstallRoot "scripts\airmaze\Set-EmbeddedDesktopConnection.ps1"
+    }
+    if (-not (Test-Path -LiteralPath $setter)) {
+        Write-LaunchLog "Set-EmbeddedDesktopConnection.ps1 missing; Desktop Remote was not auto-wired" "WARN"
+        return $false
+    }
+    try {
+        & $setter -Url $script:DesktopServeUrl -Token $script:DesktopSessionToken
+        Write-LaunchLog "Desktop Remote Embedded Linux wired to $($script:DesktopServeUrl) (session token placeholder, not echoed)"
+        return $true
+    } catch {
+        Write-LaunchLog "Desktop Remote wire skipped: $($_.Exception.Message)" "WARN"
+        return $false
+    }
+}
+
 function Wait-GatewayReady {
-    param([int]$TimeoutSec = 90)
+    param([int]$TimeoutSec = 90, [switch]$RequireDesktopServe)
     $deadline = (Get-Date).AddSeconds($TimeoutSec)
+    $last = @{ Ok = $false; Dashboard = $false; Api = $false; DesktopServe = $false }
     while ((Get-Date) -lt $deadline) {
         $apiTcp = Test-TcpOpen -TargetHost $ApiHost -Port $ApiPort
         $apiHttp = $false
@@ -540,15 +611,27 @@ function Wait-GatewayReady {
             }
         }
         $dash = Test-TcpOpen -TargetHost $ApiHost -Port $DashPort
+        $desktopTcp = Test-TcpOpen -TargetHost $ApiHost -Port $DesktopServePort
+        $desktopHttp = $false
+        if ($desktopTcp) {
+            $desktopHttp = Test-DesktopServeReady
+        }
+        $last = @{
+            Ok            = ($apiTcp -and $apiHttp)
+            Dashboard     = $dash
+            Api           = ($apiTcp -and $apiHttp)
+            DesktopServe  = ($desktopTcp -and $desktopHttp)
+        }
         # Host TCP/HTTP on 8642 is required. 9119 alone is not enough (docker-proxy
-        # can listen while the dashboard process crash-loops).
-        if ($apiTcp -and $apiHttp) {
-            return @{ Ok = $true; Dashboard = $dash; Api = $true }
+        # can listen while the dashboard process crash-loops). Bot Screen also
+        # needs the Desktop serve proxy on 8650 (/api/health + /api/ws).
+        if ($last.Ok -and ((-not $RequireDesktopServe) -or $last.DesktopServe)) {
+            return $last
         }
         Start-Sleep -Seconds 2
         if ($script:LaunchForm) { [Windows.Forms.Application]::DoEvents() }
     }
-    return @{ Ok = $false; Dashboard = $false; Api = $false }
+    return $last
 }
 
 function Open-Dashboard {
@@ -582,6 +665,9 @@ A branded shortcut is written to %LOCALAPPDATA%\DragonAIAgent\Dragon AI Agent Cl
     }
     Write-LaunchLog "Launching Dragon AI Agent desktop: $exe"
     Save-DragonAIDesktopPointer -ExePath $exe -InstallRoot $InstallRoot | Out-Null
+    # Belt-and-suspenders: some Desktop builds honor these on first boot.
+    $env:HERMES_DESKTOP_REMOTE_URL = $script:DesktopServeUrl
+    $env:HERMES_DESKTOP_REMOTE_TOKEN = $script:DesktopSessionToken
     Start-HermesDesktopClient -ExePath $exe
     return $exe
 }
@@ -626,6 +712,7 @@ function Get-LaunchPlan {
         composeExists = (Test-Path -LiteralPath $compose)
         dashboardUrl  = $DashboardUrl
         api           = "${ApiHost}:${ApiPort}"
+        desktopServe  = "${ApiHost}:${DesktopServePort}"
         log           = $script:LaunchLog
         ui            = @(
             "windowless host: Start-DragonAI.vbs / wscript.exe (no console)",
@@ -634,7 +721,9 @@ function Get-LaunchPlan {
             "launch Dragon AI Agent desktop only (not $DashboardUrl)",
             "fail-closed if Docker engine is down (no auto-start unless -StartDocker)",
             "first-run Onboard-Wizard if welcome is still pending",
-            "docker CLI stderr progress is not a terminating error"
+            "docker CLI stderr progress is not a terminating error",
+            "Desktop Remote → $($script:DesktopServeUrl) (token mode; not :8642)",
+            "wait for /api/health on the Desktop serve proxy with X-Hermes-Session-Token"
         )
     }
 }
@@ -646,6 +735,7 @@ function Invoke-Smoke {
     Write-Host ("  Compose:     {0} (exists={1})" -f $plan.compose, $plan.composeExists)
     Write-Host ("  Dashboard:   {0}" -f $plan.dashboardUrl)
     Write-Host ("  API:         {0}" -f $plan.api)
+    Write-Host ("  Desktop:     {0}" -f $plan.desktopServe)
     Write-Host ("  Log:         {0}" -f $plan.log)
     foreach ($step in $plan.ui) {
         Write-Host ("  UI:          {0}" -f $step)
@@ -667,7 +757,10 @@ function Invoke-Smoke {
         "Invoke-NativeDocker",
         "Repair-DragonAIProductShortcuts",
         "CreateNoWindow",
-        "hermes-airmaze-gw is not running"
+        "hermes-airmaze-gw is not running",
+        "Set-EmbeddedDesktopRemoteConnection",
+        "X-Hermes-Session-Token",
+        "8650"
     )
     foreach ($token in $required) {
         if ($text -notlike "*$token*") {
@@ -730,11 +823,18 @@ try {
     }
 
     Start-GatewayContainer -ComposePath $compose
-    Update-LaunchStatus "Waiting for gateway API on ${ApiHost}:${ApiPort} from Windows..."
-    $ready = Wait-GatewayReady
+    try { Sync-EmbeddedGatewayProfiles | Out-Null } catch {
+        Write-LaunchLog "Profile sync skipped: $($_.Exception.Message)" "WARN"
+    }
+    Update-LaunchStatus "Waiting for gateway API on ${ApiHost}:${ApiPort} and Desktop serve on ${ApiHost}:${DesktopServePort}..."
+    $ready = Wait-GatewayReady -TimeoutSec 120 -RequireDesktopServe
     if (-not $ready.Ok) {
         throw "The embedded gateway API is not reachable from Windows at http://${ApiHost}:${ApiPort}/ (container may be loopback-bound or crash-looping). Check Docker tray, docker logs hermes-airmaze-gw, and %LOCALAPPDATA%\DragonAIAgent\launch.log."
     }
+    if (-not $ready.DesktopServe) {
+        throw "The Desktop Bot Screen backend is not reachable at $($script:DesktopServeUrl)/api/health (expected X-Hermes-Session-Token + /api/ws). Check: docker logs hermes-airmaze-desktop && docker logs hermes-airmaze-desktop-proxy. Do not point Remote at :8642 (OpenAI API only)."
+    }
+    Set-EmbeddedDesktopRemoteConnection | Out-Null
 
     if ($showUi) {
         Start-OnboardingIfNeeded
@@ -742,7 +842,7 @@ try {
         if ($OpenDashboard) {
             try { Open-Dashboard } catch { Write-LaunchLog "Dashboard open skipped: $($_.Exception.Message)" "WARN" }
         }
-        $msg = "Dragon AI Agent launched.`nGateway API: http://${ApiHost}:${ApiPort}/"
+        $msg = "Dragon AI Agent launched.`nDesktop Screen: $($script:DesktopServeUrl)`nGateway API: http://${ApiHost}:${ApiPort}/"
         Update-LaunchStatus $msg
         if ($script:LaunchForm -and -not $script:LaunchForm.IsDisposed) {
             try {
@@ -751,7 +851,7 @@ try {
             } catch {}
         }
     } else {
-        Write-LaunchLog "Gateway-only: 127.0.0.1:$ApiPort  dashboard: $DashboardUrl"
+        Write-LaunchLog "Gateway-only: 127.0.0.1:$ApiPort  desktop serve: $($script:DesktopServeUrl)  dashboard: $DashboardUrl"
     }
     exit 0
 } catch {
