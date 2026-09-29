@@ -5,16 +5,17 @@
 
 .DESCRIPTION
   This is the Desktop / Start Menu "Dragon AI Agent" entrypoint.
-  It starts Docker if needed, brings the gateway up, waits until the API
-  is reachable on the Windows host, then launches the Dragon AI Agent
-  desktop (on-disk Hermes.exe). Failures (Docker down, compose errors,
-  missing client) show a MessageBox / popup and exit non-zero.
+  It requires Docker Desktop to already be running (fail-closed), brings the
+  gateway up, waits until the API is reachable on the Windows host, then
+  launches the Dragon AI Agent desktop (on-disk Hermes.exe). Failures
+  (engine down, compose errors, missing client) show a MessageBox / popup
+  and exit non-zero. Pass -StartDocker to opt in to auto-starting Desktop.
 
   The installed Desktop / Start Menu shortcut runs Start-DragonAI.vbs (wscript)
   so no PowerShell console flashes. Use this .ps1 directly for debugging
   (-DebugConsole keeps the console). Use -GatewayOnly for CLI-only compose.
-  Use -OpenDashboard to open :9119. Use -Smoke to validate the launch plan
-  without touching Docker (no secrets).
+  Use -OpenDashboard to open :9119 (never opened on a normal start).
+  Use -Smoke to validate the launch plan without touching Docker (no secrets).
 
 .NOTES
   Fixes PATH for Docker Desktop CLI under common install locations.
@@ -29,6 +30,7 @@ param(
     [switch]$GatewayOnly,
     [switch]$NoBrowser,
     [switch]$OpenDashboard,
+    [switch]$StartDocker,
     [switch]$SilentHost,
     [switch]$DebugConsole,
     [switch]$NoWizard,
@@ -51,7 +53,6 @@ $script:Windowless = $false
 $script:WinFormsOk = $false
 $script:LaunchForm = $null
 $script:LaunchStatus = $null
-$script:LaunchDashButton = $null
 $script:DashboardUrl = $DashboardUrl
 $script:ApiKey = "dragon-local"
 
@@ -194,22 +195,9 @@ function New-LaunchStatusForm {
         $status.Font = New-Object Drawing.Font("Segoe UI", 10)
         $form.Controls.Add($status)
 
-        $btnDash = New-Object Windows.Forms.Button
-        $btnDash.Text = "Open dashboard"
-        $btnDash.Location = New-Object Drawing.Point(16, 180)
-        $btnDash.Size = New-Object Drawing.Size(140, 36)
-        $btnDash.Enabled = $false
-        $btnDash.FlatStyle = [Windows.Forms.FlatStyle]::Flat
-        $btnDash.BackColor = [System.Drawing.Color]::FromArgb(196, 30, 58)
-        $btnDash.ForeColor = [System.Drawing.Color]::White
-        $btnDash.Add_Click({
-            try { Start-Process $script:DashboardUrl } catch {}
-        }.GetNewClosure())
-        $form.Controls.Add($btnDash)
-
         $btnSetup = New-Object Windows.Forms.Button
         $btnSetup.Text = "Setup"
-        $btnSetup.Location = New-Object Drawing.Point(168, 180)
+        $btnSetup.Location = New-Object Drawing.Point(16, 180)
         $btnSetup.Size = New-Object Drawing.Size(100, 36)
         $btnSetup.FlatStyle = [Windows.Forms.FlatStyle]::Flat
         $btnSetup.BackColor = [System.Drawing.Color]::FromArgb(40, 40, 48)
@@ -240,7 +228,6 @@ function New-LaunchStatusForm {
 
         $script:LaunchForm = $form
         $script:LaunchStatus = $status
-        $script:LaunchDashButton = $btnDash
         $form.Add_Shown({ $form.Activate() }.GetNewClosure())
         $form.Show()
         $form.Refresh()
@@ -565,7 +552,7 @@ function Wait-GatewayReady {
 }
 
 function Open-Dashboard {
-    if ($NoBrowser) { return }
+    if (-not $OpenDashboard -or $NoBrowser) { return }
     Update-LaunchStatus "Opening dashboard $DashboardUrl"
     try {
         Start-Process $DashboardUrl
@@ -645,6 +632,7 @@ function Get-LaunchPlan {
             "blocking error dialog on failure (never a raw console)",
             "require desktop client (win-unpacked Hermes.exe on disk)",
             "launch Dragon AI Agent desktop only (not $DashboardUrl)",
+            "fail-closed if Docker engine is down (no auto-start unless -StartDocker)",
             "first-run Onboard-Wizard if welcome is still pending",
             "docker CLI stderr progress is not a terminating error"
         )
@@ -673,6 +661,7 @@ function Invoke-Smoke {
         "Start-DragonAI.vbs",
         "SilentHost",
         "OpenDashboard",
+        "StartDocker",
         "DebugConsole",
         "New-LaunchStatusForm",
         "Invoke-NativeDocker",
@@ -699,6 +688,10 @@ if ($Smoke) {
 $script:WinFormsOk = Test-WinFormsAvailable
 $script:Windowless = $false
 $showUi = -not $GatewayOnly
+# Primary success is the desktop client. :9119 stays closed unless -OpenDashboard.
+if (-not $OpenDashboard) {
+    $NoBrowser = $true
+}
 if ($SilentHost) {
     $NoBrowser = $true
 }
@@ -724,8 +717,16 @@ try {
     }
 
     Update-LaunchStatus "Checking Docker..."
-    if (-not (Start-DockerIfNeeded)) {
-        throw "Docker Desktop is required and was not found or did not become ready. Install Docker Desktop, wait for the tray icon, then open Dragon AI Agent again."
+    Fix-DockerPath
+    $engineUp = (Get-Command docker -ErrorAction SilentlyContinue) -and (Test-DockerEngine)
+    if (-not $engineUp) {
+        if ($StartDocker) {
+            if (-not (Start-DockerIfNeeded)) {
+                throw "Docker Desktop did not become ready after -StartDocker. Start it from the system tray, wait until it is ready, then open Dragon AI Agent again."
+            }
+        } else {
+            throw "Docker Desktop is not running (engine unavailable). Start Docker Desktop from the system tray, wait until it is ready, then open Dragon AI Agent again. This launcher does not auto-start Docker unless you pass -StartDocker."
+        }
     }
 
     Start-GatewayContainer -ComposePath $compose
@@ -738,12 +739,11 @@ try {
     if ($showUi) {
         Start-OnboardingIfNeeded
         $exe = Start-AgentDesktopOrThrow
-        if ($OpenDashboard -and -not $NoBrowser) {
+        if ($OpenDashboard) {
             try { Open-Dashboard } catch { Write-LaunchLog "Dashboard open skipped: $($_.Exception.Message)" "WARN" }
         }
         $msg = "Dragon AI Agent launched.`nGateway API: http://${ApiHost}:${ApiPort}/"
         Update-LaunchStatus $msg
-        if ($script:LaunchDashButton) { $script:LaunchDashButton.Enabled = $true }
         if ($script:LaunchForm -and -not $script:LaunchForm.IsDisposed) {
             try {
                 $script:LaunchForm.TopMost = $false

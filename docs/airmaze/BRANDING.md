@@ -15,8 +15,8 @@ Internal protocol, image, and path names stay Hermes/AirMaze where changing them
 | Onboarding wizard | Window title **Dragon AI Agent Setup**; welcome copy; dragon logo in the header |
 | Launch status / error dialogs | **Dragon AI Agent** |
 | Install-root pointer | `Dragon AI Agent Client.lnk` + `desktop-client.json` (target is still `Hermes.exe`) |
-| Electron **window title** | Best-effort wrap: after start, `SetWindowText` → **Dragon AI Agent** |
-| Dashboard login | Username `dragon` / password `dragon-local` (loopback only) |
+| Electron **window title** | Packaging wrap: all visible Hermes windows → **Dragon AI Agent** (`SetTitleForPids`) |
+| Dashboard login | Username `dragon` / password `dragon-local` (loopback only). Page chrome/title inside the image is still upstream until a branded build or image exists. |
 | Profile catalog / Real Estate labels | Dragon AI Agent (not AirMaze/Hermes as the product) |
 
 ## What still requires a rebuilt Electron binary

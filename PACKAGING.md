@@ -63,7 +63,7 @@ Built-in catalog + import/select scripts are copied into `%LOCALAPPDATA%\DragonA
 
 ## Launch UI
 
-The **Dragon AI Agent** shortcut targets `wscript.exe` + `scripts/airmaze/Start-DragonAI.vbs` (no console flash). That host starts Docker + the gateway, waits for host HTTP on `127.0.0.1:8642`, then launches the desktop client. It does **not** open `:9119`. Missing Docker or client is a MessageBox. `start-embedded.ps1` remains for debug. See `docs/airmaze/BRANDING.md`. Verify with `python3 scripts/airmaze/Test-LaunchSmoke.py` (no secrets).
+The **Dragon AI Agent** shortcut targets `wscript.exe` + `scripts/airmaze/Start-DragonAI.vbs` (no console flash). That host requires Docker to already be running (fail-closed; `-StartDocker` to opt in), starts the gateway, waits for host HTTP on `127.0.0.1:8642`, then launches the desktop client. It does **not** open `:9119`. Missing Docker or client is a MessageBox. `start-embedded.ps1` remains for debug. See `docs/airmaze/BRANDING.md`. Verify with `python3 scripts/airmaze/Test-LaunchSmoke.py` (no secrets).
 
 ## Limitations
 

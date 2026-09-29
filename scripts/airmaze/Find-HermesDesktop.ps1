@@ -130,7 +130,7 @@ function Set-DragonAIMainWindowTitle {
     #>
     param(
         [string]$Title = "Dragon AI Agent",
-        [int]$TimeoutSec = 25
+        [int]$TimeoutSec = 40
     )
     try {
         if (-not ("DragonAIWinTitle" -as [type])) {
@@ -138,8 +138,28 @@ function Set-DragonAIMainWindowTitle {
 using System;
 using System.Runtime.InteropServices;
 public class DragonAIWinTitle {
+    public delegate bool EnumProc(IntPtr hWnd, IntPtr lParam);
+    [DllImport("user32.dll")] public static extern bool EnumWindows(EnumProc lpEnumFunc, IntPtr lParam);
+    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+    [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     public static extern bool SetWindowText(IntPtr hWnd, string lpString);
+    public static int SetTitleForPids(int[] pids, string title) {
+        int n = 0;
+        EnumWindows(delegate(IntPtr hWnd, IntPtr lParam) {
+            uint pid;
+            GetWindowThreadProcessId(hWnd, out pid);
+            if (!IsWindowVisible(hWnd)) return true;
+            for (int i = 0; i < pids.Length; i++) {
+                if (pids[i] == (int)pid) {
+                    SetWindowText(hWnd, title);
+                    n++;
+                }
+            }
+            return true;
+        }, IntPtr.Zero);
+        return n;
+    }
 }
 "@
         }
@@ -148,13 +168,22 @@ public class DragonAIWinTitle {
     }
     $deadline = (Get-Date).AddSeconds($TimeoutSec)
     while ((Get-Date) -lt $deadline) {
-        $procs = @(Get-Process -Name "Hermes" -ErrorAction SilentlyContinue)
-        foreach ($p in $procs) {
-            if ($p.MainWindowHandle -ne [IntPtr]::Zero) {
-                try {
-                    [DragonAIWinTitle]::SetWindowText($p.MainWindowHandle, $Title) | Out-Null
-                    return $true
-                } catch {}
+        $procs = @()
+        $procs += @(Get-Process -Name "Hermes" -ErrorAction SilentlyContinue)
+        $procs += @(Get-Process -Name "hermes-agent" -ErrorAction SilentlyContinue)
+        $pids = @($procs | ForEach-Object { [int]$_.Id } | Select-Object -Unique)
+        if ($pids.Count -gt 0) {
+            try {
+                $n = [DragonAIWinTitle]::SetTitleForPids([int[]]$pids, $Title)
+                if ($n -gt 0) { return $true }
+            } catch {}
+            foreach ($p in $procs) {
+                if ($p.MainWindowHandle -ne [IntPtr]::Zero) {
+                    try {
+                        [DragonAIWinTitle]::SetWindowText($p.MainWindowHandle, $Title) | Out-Null
+                        return $true
+                    } catch {}
+                }
             }
         }
         Start-Sleep -Milliseconds 400

@@ -41,7 +41,7 @@ Gateway data: `%USERPROFILE%\.hermes-airmaze-embedded` (internal)
 
 Desktop / Start Menu shortcuts: **Dragon AI Agent**, **Dragon AI Agent Profiles**, and **Dragon AI Agent Setup** (onboarding wizard).
 
-Opening **Dragon AI Agent** uses a windowless host (`Start-DragonAI.vbs` / `wscript.exe`) — no PowerShell console. It starts the gateway and opens the **desktop client** (not the :9119 dashboard). Failures are a MessageBox. Dashboard: Start Menu **Dragon AI Agent Dashboard**. Debug: run `start-embedded.ps1` in a console. Launch log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`. Branding: [`docs/airmaze/BRANDING.md`](docs/airmaze/BRANDING.md).
+Opening **Dragon AI Agent** uses a windowless host (`Start-DragonAI.vbs` / `wscript.exe`) — no PowerShell console. It starts the gateway and opens the **desktop client** (not the :9119 dashboard). Docker must already be running (fail-closed; `-StartDocker` to opt in). Failures are a MessageBox. Dashboard: Start Menu **Dragon AI Agent Dashboard**. Debug: run `start-embedded.ps1` in a console. Launch log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`. Branding: [`docs/airmaze/BRANDING.md`](docs/airmaze/BRANDING.md).
 
 ```powershell
 # Same path the shortcut uses (no secrets)

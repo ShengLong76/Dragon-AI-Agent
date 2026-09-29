@@ -33,6 +33,8 @@ REQUIRED_LAUNCHER = (
     "New-LaunchStatusForm",
     "SilentHost",
     "OpenDashboard",
+    "StartDocker",
+    "engine unavailable",
     "DebugConsole",
     "Invoke-NativeDocker",
     "Repair-DragonAIProductShortcuts",
@@ -48,6 +50,7 @@ REQUIRED_FINDER = (
     "Save-DragonAIDesktopPointer",
     "Start-HermesDesktopClient",
     "Set-DragonAIMainWindowTitle",
+    "SetTitleForPids",
     "Dragon AI Agent Client.lnk",
 )
 
@@ -79,6 +82,7 @@ REQUIRED_VBS = (
     "-WindowStyle Hidden",
     "-SilentHost",
     "-NonInteractive",
+    "RepairProductShortcuts",
     "MsgBox",
 )
 
@@ -105,6 +109,10 @@ def check_launcher() -> None:
         fail("launcher still treats a missing Hermes client as optional")
     if "Open-Dashboard" in text and 'if ($OpenDashboard' not in text:
         fail("launcher still opens the dashboard without -OpenDashboard")
+    if "Start-Process `$script:DashboardUrl" in text or "Start-Process $script:DashboardUrl" in text:
+        fail("splash/status form still auto-opens the :9119 dashboard")
+    if "if ($StartDocker)" not in text:
+        fail("launcher still auto-starts Docker Desktop without -StartDocker opt-in")
     if "Show-DragonDialog" not in text:
         fail("launcher throws without a user-visible dialog helper")
     if '$ErrorActionPreference = "Continue"' not in text:
@@ -130,6 +138,10 @@ def check_vbs() -> None:
         fail("VBS host must use wscript (cscript flashes a console)")
     if "sh.Run cmd, 0, False" not in text:
         fail("VBS host must Run powershell hidden (window style 0)")
+    if "CreateShortcut" not in text:
+        fail("VBS host must rewrite product shortcuts to wscript (old powershell .lnk flashes)")
+    if "-StartDocker" in text and 'Do not pass -StartDocker' not in text:
+        fail("VBS product host must not pass -StartDocker (fail-closed)")
 
 
 def check_compose_auth() -> None:

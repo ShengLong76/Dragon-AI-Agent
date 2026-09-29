@@ -1,6 +1,8 @@
 ' Dragon AI Agent — windowless launch host.
 ' Shortcut target must be wscript.exe (not cscript, not powershell.exe).
 ' Starts start-embedded.ps1 with a hidden console; errors are MessageBox / WinForms.
+' Also rewrites Desktop / Start Menu product shortcuts so an old powershell.exe
+' .lnk cannot flash a console on the next open.
 
 Option Explicit
 
@@ -24,8 +26,39 @@ If Not fso.FileExists(psExe) Then
     WScript.Quit 1
 End If
 
+RepairProductShortcuts
+
 ' 0 = hide the host window from process create (avoids the powershell.exe flash).
-' -SilentHost skips the 9119 dashboard and hides any leftover console.
+' -SilentHost skips the 9119 dashboard. Do not pass -StartDocker (fail-closed).
 cmd = """" & psExe & """ -STA -NoProfile -NoLogo -NonInteractive -WindowStyle Hidden" & _
       " -ExecutionPolicy Bypass -File """ & ps1 & """ -InstallRoot """ & installRoot & """ -SilentHost"
 sh.Run cmd, 0, False
+
+Sub RepairProductShortcuts()
+    Dim wsh2, fso2, desktop, smDir, wscriptExe, args, ico, targets(1), i, sc
+    Set wsh2 = CreateObject("WScript.Shell")
+    Set fso2 = CreateObject("Scripting.FileSystemObject")
+    desktop = wsh2.SpecialFolders("Desktop")
+    smDir = wsh2.ExpandEnvironmentStrings("%APPDATA%\Microsoft\Windows\Start Menu\Programs\Dragon AI Agent")
+    On Error Resume Next
+    If Not fso2.FolderExists(smDir) Then fso2.CreateFolder smDir
+    On Error GoTo 0
+    wscriptExe = wsh2.ExpandEnvironmentStrings("%SystemRoot%\System32\wscript.exe")
+    args = "//nologo """ & WScript.ScriptFullName & """"
+    ico = fso2.BuildPath(fso2.BuildPath(installRoot, "branding"), "dragon-ai-agent-logo.ico")
+    If Not fso2.FileExists(ico) Then ico = fso2.BuildPath(installRoot, "dragon-ai-agent-logo.ico")
+    targets(0) = fso2.BuildPath(desktop, "Dragon AI Agent.lnk")
+    targets(1) = fso2.BuildPath(smDir, "Dragon AI Agent.lnk")
+    For i = 0 To 1
+        On Error Resume Next
+        Set sc = wsh2.CreateShortcut(targets(i))
+        sc.TargetPath = wscriptExe
+        sc.Arguments = args
+        sc.WorkingDirectory = installRoot
+        sc.Description = "Dragon AI Agent — start the gateway and open the app"
+        sc.WindowStyle = 1
+        If fso2.FileExists(ico) Then sc.IconLocation = ico & ",0"
+        sc.Save
+        On Error GoTo 0
+    Next
+End Sub
