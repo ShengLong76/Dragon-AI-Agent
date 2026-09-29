@@ -53,6 +53,92 @@ function Get-DragonAIDesktopBrandingRoots {
     return @($roots)
 }
 
+function Get-DragonAIDesktopFontPack {
+    $here = $PSScriptRoot
+    if ([string]::IsNullOrWhiteSpace($here)) {
+        $here = Split-Path -Parent $MyInvocation.MyCommand.Path
+    }
+    $candidates = @(
+        (Join-Path (Split-Path -Parent (Split-Path -Parent $here)) "branding\fonts\syne"),
+        (Join-Path (Split-Path -Parent (Split-Path -Parent $here)) "branding\fonts\league-spartan"),
+        (Join-Path (Split-Path -Parent (Split-Path -Parent $here)) "branding\fonts\outfit"),
+        (Join-Path $here "fonts\syne"),
+        (Join-Path $here "fonts\league-spartan"),
+        (Join-Path $here "fonts\outfit")
+    )
+    foreach ($c in $candidates) {
+        if ((Test-Path -LiteralPath (Join-Path $c "dragon-ui.css")) -and (Get-ChildItem -LiteralPath $c -Filter "*.woff2" -File -ErrorAction SilentlyContinue)) {
+            return $c
+        }
+    }
+    return $null
+}
+
+function Install-DragonAIDesktopFontPack {
+    param([string[]]$Roots)
+    $pack = Get-DragonAIDesktopFontPack
+    if (-not $pack) { return @{ fontFamily = $null; copied = $false; htmlPatched = 0 } }
+    $htmlPatched = 0
+    $targets = 0
+    $link = '<link rel="stylesheet" href="./dragon-ai-branding/dragon-ui.css" data-dragon-ai-branding="ui-face" />'
+    $utf8 = New-Object System.Text.UTF8Encoding $false
+    foreach ($root in $Roots) {
+        if (-not $root -or -not (Test-Path -LiteralPath $root -PathType Container)) { continue }
+        $posix = $root.Replace("\", "/")
+        if ($posix.EndsWith("/src") -or $posix.Contains("/src/")) { continue }
+        foreach ($cand in @((Join-Path $root "dist"), $root)) {
+            if (-not (Test-Path -LiteralPath $cand -PathType Container)) { continue }
+            $hasHtml = @(Get-ChildItem -LiteralPath $cand -Filter "*.html" -File -ErrorAction SilentlyContinue)
+            $hasJs = @(Get-ChildItem -LiteralPath $cand -Filter "*.js" -File -ErrorAction SilentlyContinue)
+            $hasAssets = Test-Path -LiteralPath (Join-Path $cand "assets")
+            if (-not ($hasHtml -or $hasJs -or $hasAssets)) { continue }
+            $targets++
+            $dest = Join-Path $cand "dragon-ai-branding"
+            New-Item -ItemType Directory -Force -Path $dest | Out-Null
+            Get-ChildItem -LiteralPath $pack -File -ErrorAction SilentlyContinue |
+                Where-Object { $_.Extension -in @(".woff2", ".css", ".txt", ".md") } |
+                ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $dest $_.Name) -Force }
+            $sheetPath = Join-Path $dest "dragon-ui.css"
+            $cssMark = "/* dragon-ai-ui-face */"
+            if (Test-Path -LiteralPath $sheetPath) {
+                $sheet = [System.IO.File]::ReadAllText($sheetPath)
+                $cssFiles = @(Get-ChildItem -LiteralPath $cand -Filter "*.css" -File -ErrorAction SilentlyContinue)
+                $assetsDir = Join-Path $cand "assets"
+                if (Test-Path -LiteralPath $assetsDir) {
+                    $cssFiles += @(Get-ChildItem -LiteralPath $assetsDir -Filter "*.css" -File -ErrorAction SilentlyContinue)
+                }
+                foreach ($cssFile in $cssFiles) {
+                    if ($cssFile.FullName -like "*dragon-ai-branding*") { continue }
+                    $existing = [System.IO.File]::ReadAllText($cssFile.FullName)
+                    if ($existing.Contains($cssMark)) { continue }
+                    $cssDir = Split-Path -Parent $cssFile.FullName
+                    $prefix = "./dragon-ai-branding"
+                    if ([System.IO.Path]::GetFullPath($cssDir).TrimEnd('\') -ne [System.IO.Path]::GetFullPath($cand).TrimEnd('\')) {
+                        $prefix = "../dragon-ai-branding"
+                    }
+                    $rewritten = $sheet.Replace('url("./', ('url("' + $prefix + '/'))
+                    [System.IO.File]::WriteAllText($cssFile.FullName, ($existing.TrimEnd() + "`n" + $cssMark + "`n" + $rewritten + "`n"), $utf8)
+                }
+            }
+            foreach ($html in $hasHtml) {
+                $text = [System.IO.File]::ReadAllText($html.FullName)
+                if ($text.Contains('data-dragon-ai-branding="ui-face"') -or $text.Contains('data-dragon-ai-branding="outfit"')) { continue }
+                $out = $null
+                $lower = $text.ToLowerInvariant()
+                $idx = $lower.IndexOf("</head>")
+                if ($idx -ge 0) {
+                    $out = $text.Substring(0, $idx) + $link + "`n" + $text.Substring($idx)
+                } else {
+                    $out = $link + "`n" + $text
+                }
+                [System.IO.File]::WriteAllText($html.FullName, $out, $utf8)
+                $htmlPatched++
+            }
+        }
+    }
+    return @{ fontFamily = "Syne"; copied = ($targets -gt 0); htmlPatched = $htmlPatched; targets = $targets }
+}
+
 function Test-DragonAISkipBrandingFile {
     param([string]$Name)
     if ($Name -eq ".dragon-ai-ui-branding.json") { return $true }
@@ -151,12 +237,15 @@ function Invoke-DragonAIDesktopBrandingOverlay {
         }
     }
 
+    $font = Install-DragonAIDesktopFontPack -Roots $roots
+
     if ($ExePath) {
         $resources = Join-Path (Split-Path -Parent $ExePath) "resources"
         if (Test-Path -LiteralPath $resources) {
             $stamp = [ordered]@{
                 version              = $table.version
                 product              = $table.product
+                fontFamily           = "Syne"
                 filesChanged         = $filesChanged
                 replacementsApplied  = $replacementsApplied
             }
@@ -165,7 +254,7 @@ function Invoke-DragonAIDesktopBrandingOverlay {
     }
 
     if (-not $Quiet) {
-        Write-Host ("Dragon AI Agent UI overlay: {0} replacements in {1} files" -f $replacementsApplied, $filesChanged)
+        Write-Host ("Dragon AI Agent UI overlay: {0} replacements in {1} files (font={2})" -f $replacementsApplied, $filesChanged, $font.fontFamily)
         if ($replacementsApplied -eq 0) {
             Write-Host "No unpacked renderer strings matched. If the empty state still says HERMES AGENT, the UI is inside integrity-protected app.asar and needs an upstream Electron rebuild."
         }
@@ -174,6 +263,7 @@ function Invoke-DragonAIDesktopBrandingOverlay {
         filesChanged         = $filesChanged
         replacementsApplied  = $replacementsApplied
         roots                = $roots
+        font                 = $font
     }
 }
 

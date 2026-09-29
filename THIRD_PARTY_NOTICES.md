@@ -27,6 +27,19 @@ Change these before exposing anything beyond `127.0.0.1`.
 
 Container name `hermes-airmaze-gw`, compose project/env vars (`HERMES_*`), and data dir `%USERPROFILE%\.hermes-airmaze-embedded` are technical identifiers kept for compatibility. User-facing product name is **Dragon AI Agent**; install dir is `%LOCALAPPDATA%\DragonAIAgent`.
 
+## Syne (in-window wordmark font)
+
+Bundled under `branding/fonts/syne/` and copied into the unpacked Electron renderer by the launch overlay.
+
+| Item | Value |
+|------|--------|
+| Family | Syne |
+| License | SIL Open Font License 1.1 |
+| Authors | The Syne Project Authors |
+| Upstream | https://gitlab.com/bonjour-monde/fonderie/syne-typeface |
+
+This is **not** Universal Sans, Gotham, or any proprietary Tesla face. Syne (weight 700 on the wordmark) replaces the upstream Hermes **Collapse** display face.
+
 ## Bot Screen documentation
 
 Upstream feature documentation (public):  

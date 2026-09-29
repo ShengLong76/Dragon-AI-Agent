@@ -1,8 +1,50 @@
 {
-  "version": 1,
+  "version": 3,
   "product": "Dragon AI Agent",
   "note": "User-visible product chrome only. Do not rename process names, Docker tags, tokens, ports, protocols, or license attribution.",
+  "font": {
+    "family": "Syne",
+    "license": "OFL-1.1",
+    "pack": "branding/fonts/syne",
+    "weight": 700,
+    "why": "James picked Syne (OFL, variable, wordmark at ~700). Replaces upstream Collapse-Bold on .wordmark. Universal Sans / Gotham / Tesla faces are proprietary and are not shipped."
+  },
   "replacements": [
+    {
+      "from": "font-family: 'Collapse', var(--font-sans)",
+      "to": "font-family: 'Syne', var(--font-sans)",
+      "surface": "wordmark-font"
+    },
+    {
+      "from": "font-family:'Collapse',var(--font-sans)",
+      "to": "font-family:'Syne',var(--font-sans)",
+      "surface": "wordmark-font"
+    },
+    {
+      "from": "font-family:\"Collapse\",var(--font-sans)",
+      "to": "font-family:\"Syne\",var(--font-sans)",
+      "surface": "wordmark-font"
+    },
+    {
+      "from": "font-family: Collapse, var(--font-sans)",
+      "to": "font-family: \"Syne\", var(--font-sans)",
+      "surface": "wordmark-font"
+    },
+    {
+      "from": "font-family:Collapse,var(--font-sans)",
+      "to": "font-family:\"Syne\",var(--font-sans)",
+      "surface": "wordmark-font"
+    },
+    {
+      "from": "'Collapse', var(--font-sans)",
+      "to": "'Syne', var(--font-sans)",
+      "surface": "wordmark-font"
+    },
+    {
+      "from": "\"Collapse\", var(--font-sans)",
+      "to": "\"Syne\", var(--font-sans)",
+      "surface": "wordmark-font"
+    },
     {
       "from": "HERMES AGENT",
       "to": "DRAGON AI AGENT",

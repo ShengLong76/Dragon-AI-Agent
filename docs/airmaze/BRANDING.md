@@ -19,6 +19,7 @@ Internal protocol, image, and path names stay Hermes/AirMaze where changing them
 | Empty state heading | Overlay: **DRAGON AI AGENT** (was `HERMES AGENT` in `apps/desktop/src/components/chat/intro.tsx`) |
 | Composer placeholder | Overlay: **Give Dragon AI a task** (was `Give Hermes a task`) |
 | Settings / About / setup product copy | Overlay: **Dragon AI Agent** wherever the renderer said **Hermes Agent** (and About / appName chrome) |
+| In-window UI font | Overlay: **Syne** (SIL OFL 1.1, weight **700** on the wordmark) replacing upstream **Collapse** / Collapse-Bold, then composer and settings chrome |
 | Dashboard login | Username `dragon` / password `dragon-local` (loopback only). Page chrome/title inside the image is still upstream until a branded build or image exists. |
 | Profile catalog / Real Estate labels | Dragon AI Agent (not AirMaze/Hermes as the product) |
 
@@ -29,6 +30,21 @@ The shipped client is still upstream `Hermes.exe` (`…\win-unpacked\Hermes.exe`
 Upstream `electron-builder` packs most of the app into `resources/app.asar` (integrity-protected — do not rewrite that archive) and **unpacks `dist/**`** to `resources/app.asar.unpacked/dist`. The empty-state wordmark, composer placeholders, and settings strings live in that unpacked renderer.
 
 `Apply-DesktopBranding.ps1` / `desktop_branding.py` run from `Start-HermesDesktopClient` (every launch, idempotent) and rewrite those files in place. Table: `scripts/airmaze/desktop_branding.json`. Offline check: `python3 scripts/airmaze/Test-DesktopBranding.py`.
+
+### UI font (Syne) — empty-state wordmark first
+
+The red-boxed empty-state heading is not body text. Upstream sets `.wordmark { font-family: 'Collapse' }` and loads **Collapse-Bold** (`@nous-research/ui`): a high-contrast display face (thick/thin strokes). That is why “DRAGON AI AGENT” still looks serif-like after the string overlay.
+
+**Universal Sans**, Gotham, and other Tesla UI faces are proprietary. This overlay does **not** vendor or claim those fonts.
+
+The replacement face is **[Syne](https://gitlab.com/bonjour-monde/fonderie/syne-typeface)** (SIL OFL 1.1): James picked this OFL variable sans. The wordmark uses **weight 700**; composer and the other product chrome the overlay already touches use the same family. The overlay:
+
+1. Rewrites unpacked CSS `font-family: 'Collapse'` on `.wordmark` to `Syne`
+2. Bundles Latin `woff2` (variable + 400/600/700) under `branding/fonts/syne/` and copies them into `resources/app.asar.unpacked/dist/dragon-ai-branding/`
+3. Injects `dragon-ui.css` (also registers the files as `font-family: Collapse` so leftover rules cannot reload Collapse-Bold)
+4. Appends those rules to the renderer’s own CSS, rewriting `url()` so `assets/*.css` still finds the pack
+
+Icon fonts keep their own `font-family`. UltraDragon does not need the font installed.
 
 This is the smallest durable path that actually changes what the user sees without forking or rebuilding Electron. Re-applying after a Hermes.exe update puts the Dragon copy back.
 
