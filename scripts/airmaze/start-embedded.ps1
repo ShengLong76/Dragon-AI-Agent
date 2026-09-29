@@ -206,7 +206,7 @@ function New-LaunchStatusForm {
         $script:LaunchForm = $form
         $script:LaunchStatus = $status
         $script:LaunchDashButton = $btnDash
-        $form.Add_Shown({ $form.Activate(); $form.TopMost = $false })
+        $form.Add_Shown({ $form.Activate() }.GetNewClosure())
         $form.Show()
         $form.Refresh()
         [Windows.Forms.Application]::DoEvents()
@@ -514,8 +514,9 @@ try {
         $msg = "Gateway is running. Dashboard: $DashboardUrl$extra"
         Update-LaunchStatus $msg
         if ($script:LaunchDashButton) { $script:LaunchDashButton.Enabled = $true }
-        if ($script:LaunchForm) {
+        if ($script:LaunchForm -and -not $script:LaunchForm.IsDisposed) {
             try {
+                $script:LaunchForm.TopMost = $false
                 $script:LaunchForm.Hide()
                 $script:LaunchForm.ShowDialog() | Out-Null
             } catch {
