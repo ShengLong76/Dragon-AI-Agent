@@ -27,6 +27,19 @@ Change these before exposing anything beyond `127.0.0.1`.
 
 Container name `hermes-airmaze-gw`, compose project/env vars (`HERMES_*`), and data dir `%USERPROFILE%\.hermes-airmaze-embedded` are technical identifiers kept for compatibility. User-facing product name is **Dragon AI Agent**; install dir is `%LOCALAPPDATA%\DragonAIAgent`.
 
+## Outfit (in-window UI font)
+
+Bundled under `branding/fonts/outfit/` and copied into the unpacked Electron renderer by the launch overlay.
+
+| Item | Value |
+|------|--------|
+| Family | Outfit |
+| License | SIL Open Font License 1.1 |
+| Authors | The Outfit Project Authors |
+| Upstream | https://github.com/Outfitio/Outfit-Fonts |
+
+This is **not** Tesla Universal Sans (proprietary). Outfit is a free geometric grotesque used as the product UI face.
+
 ## Bot Screen documentation
 
 Upstream feature documentation (public):  

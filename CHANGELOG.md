@@ -5,6 +5,7 @@ All notable changes to Dragon AI Agent (packaging/distribution) are documented h
 ## [Unreleased]
 
 ### Changed
+- **In-app UI face is Outfit** (SIL OFL 1.1), bundled under `branding/fonts/outfit` and injected through the unpacked renderer CSS. Geometric grotesque in the Gotham / Universal Sans neighborhood. Tesla’s Universal Sans is proprietary and is **not** shipped. Applies to the empty-state wordmark, composer, and settings chrome the overlay already touches. `Hermes.exe` filename and Bot Screen `:8650` / `dragon-local` are unchanged. See `docs/airmaze/BRANDING.md`.
 - **In-app Electron chrome is Dragon AI Agent.** This repo still launches upstream `Hermes.exe` (no `apps/desktop` source, no rebuild). A launch-time overlay rewrites unpacked renderer strings (`resources/app.asar.unpacked/dist`): empty-state **HERMES AGENT** → **DRAGON AI AGENT**, composer **Give Hermes a task** → **Give Dragon AI a task**, and settings/About **Hermes Agent** product copy. `app.asar` is left intact (integrity). Tray, exe name, AppUserModelID, Hermes Cloud, and license attribution still need an upstream Electron rebuild — see `docs/airmaze/BRANDING.md`. Check: `python3 scripts/airmaze/Test-DesktopBranding.py`.
 
 ### Fixed

@@ -1,7 +1,13 @@
 {
-  "version": 1,
+  "version": 2,
   "product": "Dragon AI Agent",
   "note": "User-visible product chrome only. Do not rename process names, Docker tags, tokens, ports, protocols, or license attribution.",
+  "font": {
+    "family": "Outfit",
+    "license": "OFL-1.1",
+    "pack": "branding/fonts/outfit",
+    "why": "Geometric grotesque in the Gotham / Universal Sans neighborhood. Tesla's Universal Sans is proprietary — we bundle Outfit (OFL) instead of claiming or vendoring that face."
+  },
   "replacements": [
     {
       "from": "HERMES AGENT",

@@ -65,6 +65,9 @@ def test_table() -> dict:
     for token in PROTECTED:
         if token not in table.get("protected", []):
             fail(f"table must list protected token {token}")
+    font = table.get("font") or {}
+    if font.get("family") != "Outfit" or "OFL" not in str(font.get("license")):
+        fail("table must name Outfit (OFL) as the UI face")
     print("OK  desktop_branding.json surfaces")
     return table
 
@@ -108,6 +111,10 @@ const protocol = 'hermes://copilot-key/start';
         exe.write_bytes(b"MZ")
         js = dist / "renderer.js"
         js.write_text(renderer, encoding="utf-8")
+        (dist / "index.html").write_text(
+            "<!doctype html><html><head><title>Hermes</title></head><body><div id='root'></div></body></html>\n",
+            encoding="utf-8",
+        )
         # Attribution / license must stay Hermes.
         (unpacked / "resources" / "app.asar.unpacked" / "LICENSE").write_text(
             "MIT Copyright (c) 2025 Nous Research. Hermes Agent.\n",
@@ -136,10 +143,29 @@ const protocol = 'hermes://copilot-key/start';
         stamp = unpacked / "resources" / ".dragon-ai-ui-branding.json"
         if not stamp.is_file():
             fail("missing branding stamp")
+        pack_dir = dist / "dragon-ai-branding"
+        vf = pack_dir / "outfit-latin-wght-normal.woff2"
+        css = pack_dir / "dragon-ui.css"
+        if not vf.is_file() or vf.read_bytes()[:4] != b"wOF2":
+            fail("Outfit woff2 was not copied into the unpacked renderer")
+        css_txt = css.read_text(encoding="utf-8")
+        if "@font-face" not in css_txt or "Outfit" not in css_txt or ".wordmark" not in css_txt:
+            fail("injected CSS missing Outfit wordmark rules")
+        html = (dist / "index.html").read_text(encoding="utf-8")
+        if 'data-dragon-ai-branding="outfit"' not in html:
+            fail("index.html was not linked to the bundled Outfit stylesheet")
+        if html.count("dragon-ui.css") != 1:
+            fail("font stylesheet linked more than once")
+        font_info = summary.get("font") or {}
+        if font_info.get("fontFamily") != "Outfit":
+            fail(f"overlay did not report Outfit: {font_info}")
         # Idempotent second pass.
         summary2 = db.apply_to_exe(exe)
         if summary2["replacementsApplied"] != 0:
             fail(f"second pass not idempotent: {summary2}")
+        html2 = (dist / "index.html").read_text(encoding="utf-8")
+        if html2.count('data-dragon-ai-branding="outfit"') != 1:
+            fail("second pass duplicated the Outfit stylesheet link")
         print("OK  fake win-unpacked overlay")
 
 
@@ -165,15 +191,26 @@ def test_packaging_not_regressed() -> None:
     apply_ps = read(APPLY)
     if "app.asar.unpacked" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must target unpacked renderer files")
+    if "Install-DragonAIDesktopFontPack" not in apply_ps or "Outfit" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must install the bundled Outfit pack")
     for path in INSTALLERS:
         text = read(path)
         if "Apply-DesktopBranding.ps1" not in text or "desktop_branding.py" not in text:
             fail(f"{path.name} must install the UI overlay scripts")
+        if "branding\\fonts" not in text and "branding/fonts" not in text:
+            fail(f"{path.name} must copy branding/fonts for the Outfit overlay")
     branding = read(BRANDING)
     if "HERMES AGENT" not in branding and "empty state" not in branding.lower():
         fail("BRANDING.md must document the in-app overlay and leftovers")
     if "app.asar" not in branding:
         fail("BRANDING.md must say what still needs an Electron rebuild")
+    if "Outfit" not in branding or "OFL" not in branding:
+        fail("BRANDING.md must name Outfit and why (OFL geometric sans)")
+    if "Universal Sans" not in branding:
+        fail("BRANDING.md must say Universal Sans is proprietary and not shipped")
+    outfit = ROOT / "branding" / "fonts" / "outfit"
+    if not (outfit / "OFL.txt").is_file() or not (outfit / "outfit-latin-wght-normal.woff2").is_file():
+        fail("branding/fonts/outfit must bundle OFL.txt and the Outfit woff2 files")
     print("OK  packaging Bot Screen / installer wiring")
 
 

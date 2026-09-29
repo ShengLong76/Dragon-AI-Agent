@@ -313,6 +313,17 @@ function Install-PackageFiles([string]$Root) {
         }
     }
 
+    $fontsSrc = Join-Path $Root "branding\fonts"
+    if (-not (Test-Path -LiteralPath $fontsSrc)) {
+        $fontsSrc = Join-Path $PSScriptRoot "..\branding\fonts"
+    }
+    if (Test-Path -LiteralPath $fontsSrc) {
+        $fontsDstParent = Join-Path $InstallRoot "branding"
+        Ensure-Dir $fontsDstParent
+        Copy-Item -Path $fontsSrc -Destination $fontsDstParent -Recurse -Force
+        Write-Log "Copied branding/fonts (Outfit UI face)"
+    }
+
     foreach ($rel in @(
         "scripts\airmaze\start-embedded.ps1",
         "scripts\airmaze\apply-default-profile.ps1",
