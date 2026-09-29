@@ -324,6 +324,12 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\DragonAI-SecureStore.ps1",
         "scripts\airmaze\Find-HermesDesktop.ps1",
         "scripts\airmaze\Start-DragonAI.vbs",
+        "scripts\airmaze\desktop-loopback-proxy.py",
+        "scripts\airmaze\start-desktop-serve.sh",
+        "scripts\airmaze\start-desktop-proxy.sh",
+        "scripts\airmaze\embedded_desktop_connection.py",
+        "scripts\airmaze\Set-EmbeddedDesktopConnection.ps1",
+        "scripts\airmaze\Test-DesktopServeAdapter.py",
         "templates\profiles\personal-assistant\SOUL.md",
         "templates\profiles\personal-assistant\profile.yaml",
         "docs\airmaze\SETUP_GUIDE.md",
@@ -548,7 +554,7 @@ function Start-AgentDesktop {
         } catch {
             Start-Process -FilePath $exe -WorkingDirectory (Split-Path -Parent $exe) -ErrorAction SilentlyContinue
         }
-        Write-Log "Point Remote gateway at API 127.0.0.1:8642 / dashboard http://127.0.0.1:9119. Open Profiles / Bot Screen and pick an installed bot."
+        Write-Log "Point Desktop Remote at http://127.0.0.1:8650 (session token dragon-local). :8642 is OpenAI API only; :9119 is the browser dashboard."
         return $true
     }
     $hint = Join-Path $env:LOCALAPPDATA "hermes\hermes-agent\apps\desktop\release\win-unpacked\Hermes.exe"
@@ -557,7 +563,7 @@ function Start-AgentDesktop {
     Write-Host "  Expected: $hint"
     Write-Host "Next steps:"
     Write-Host "  1. Install the Dragon AI Agent desktop client (win-unpacked Hermes.exe on disk)."
-    Write-Host "  2. Add Remote gateway: host 127.0.0.1, API port 8642 / dashboard http://127.0.0.1:9119"
+    Write-Host "  2. Add Remote gateway: http://127.0.0.1:8650 with session token dragon-local (not :8642)"
     Write-Host "     Local dashboard credentials are in THIRD_PARTY_NOTICES.md / EMBEDDED_GATEWAY.md"
     Write-Host "  3. Open Profiles, select a bot from your applied Dragon AI Agent profile, then open Bot Screen."
     Write-Host ""
@@ -643,7 +649,8 @@ Write-Host ""
 Write-Host "$ProductName v$ProductVersion setup complete (best-effort)."
 Write-Host "  Install root: $InstallRoot"
 Write-Host "  Log:          $LogPath"
-Write-Host "  Gateway:      127.0.0.1:8642  dashboard: http://127.0.0.1:9119"
+Write-Host "  Desktop Screen: http://127.0.0.1:8650  (Remote token dragon-local)"
+Write-Host "  Gateway API:    127.0.0.1:8642  dashboard: http://127.0.0.1:9119"
 Write-Host "  Docker UI:    tray-only (dashboard suppressed on startup)"
 Write-Host "  Profiles:     Start Menu > Dragon AI Agent > Dragon AI Agent Profiles"
 Write-Host "  Setup wizard: Start Menu / Desktop > Dragon AI Agent Setup"

@@ -116,12 +116,27 @@ hermes computer-use screen install [-y]
 
 ---
 
+## Desktop Remote protocol vs `gateway run`
+
+The Windows client’s Remote **token** mode talks to `hermes serve` / `hermes dashboard` (`hermes_cli/web_server.py`), **not** the OpenAI API (`hermes gateway` / `api_server`):
+
+| Call | `hermes serve` (loopback) | `gateway run` `:8642` | `hermes dashboard` on `0.0.0.0` |
+|------|---------------------------|------------------------|----------------------------------|
+| Ready | `/api/health` or `/api/status` | `/health` only | `/api/health` (gated) |
+| REST auth | `X-Hermes-Session-Token` = `HERMES_DASHBOARD_SESSION_TOKEN` | `Authorization: Bearer` `API_SERVER_KEY` | Cookie / dashboard Bearer |
+| Control WS | `/api/ws?token=` | **404** | Ticket-only; `?token=` refused ([#106685](https://github.com/NousResearch/hermes-agent/issues/106685)) |
+| Bot Screen | `display.observe` then `/api/display/ws?display_ticket=` | **404** | Same routes, but Desktop cannot mint the ticket in token mode |
+
+A non-loopback bind always engages the June 2026 auth gate. Docker publish requires `0.0.0.0` inside the container, so this package binds **serve to 127.0.0.1:8651** and proxies **0.0.0.0:8650**. That is the smallest packaging fix that does not rebuild Electron or fork the image.
+
+If the official `-desktop` image later removes `serve`/`dashboard`/`web_server`, packaging cannot add `/api/ws`. Follow-up: `hermes-agent` image fork — add a supervised `serve --host 127.0.0.1` (or accept `?token=` on gated WS, #106685) and republish a Dragon-tagged `-desktop` image.
+
 ## Implication for AirMaze fork work
 
 On UltraDragon after bootstrap:
 
 1. Prefer **no** early patches to `runtime.py` / `display.py` — embed a Linux gateway instead.
-2. Local branch `airmaze/embedded-bot-screen` holds docs + compose/config for the embed; code changes only if Desktop Remote discovery or Windows packaging needs them.
+2. Desktop Remote must target the packaged `:8650` serve proxy, not `:8642`.
 3. Re-read these paths after `git pull` on UltraDragon; upstream moves quickly.
 
 License: MIT, Copyright (c) 2025 Nous Research.

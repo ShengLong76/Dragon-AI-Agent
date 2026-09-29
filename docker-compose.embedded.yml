@@ -6,7 +6,12 @@
 #   docker compose -f docker-compose.embedded.yml up -d
 #
 # Image: official desktop-suffixed tag (TigerVNC + Xfce baked in).
-# No secrets beyond local-only dashboard basic auth defaults below.
+# No secrets beyond local-only dashboard / Desktop-session placeholders below.
+#
+# Surfaces (all published on 127.0.0.1 only):
+#   :8642  OpenAI-compatible API (`gateway run`) — NOT the Desktop Remote URL
+#   :9119  Web dashboard (password-gated) — browser login, not Desktop token/WS
+#   :8650  Desktop-compatible `hermes serve` (loopback + TCP proxy) — Open Screen
 
 name: airmaze-embedded
 
@@ -19,6 +24,8 @@ services:
     ports:
       - "127.0.0.1:8642:8642"
       - "127.0.0.1:9119:9119"
+      # Shared by the desktop-serve sidecar (network_mode: service:hermes-gateway).
+      - "127.0.0.1:8650:8650"
     volumes:
       - ${HERMES_EMBEDDED_DATA:-${USERPROFILE}/.hermes-airmaze-embedded}:/opt/data
     environment:
@@ -48,3 +55,50 @@ services:
       timeout: 5s
       retries: 5
       start_period: 40s
+
+  # Headless Desktop backend (JSON-RPC /api/ws + /api/display/ws). Must bind
+  # loopback so token-mode Remote works; see start-desktop-serve.sh.
+  hermes-desktop-serve:
+    image: nousresearch/hermes-agent:latest-desktop
+    container_name: hermes-airmaze-desktop
+    restart: unless-stopped
+    network_mode: service:hermes-gateway
+    depends_on:
+      hermes-gateway:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/opt/dragon/start-desktop-serve.sh"]
+    volumes:
+      - ${HERMES_EMBEDDED_DATA:-${USERPROFILE}/.hermes-airmaze-embedded}:/opt/data
+      - ./scripts/airmaze/start-desktop-serve.sh:/opt/dragon/start-desktop-serve.sh:ro
+    environment:
+      HOME: /opt/data
+      HERMES_HOME: /opt/data
+      HERMES_DASHBOARD: "0"
+      API_SERVER_ENABLED: "false"
+      HERMES_DASHBOARD_SESSION_TOKEN: "dragon-local"
+      DESKTOP_SERVE_HOST: "127.0.0.1"
+      DESKTOP_SERVE_PORT: "8651"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python3 -c \"import urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8651/api/health', headers={'X-Hermes-Session-Token':'dragon-local'}), timeout=3)\"",
+        ]
+      interval: 20s
+      timeout: 5s
+      retries: 8
+      start_period: 50s
+
+  # 0.0.0.0:8650 → 127.0.0.1:8651 so Docker can publish the loopback serve.
+  hermes-desktop-proxy:
+    image: nousresearch/hermes-agent:latest-desktop
+    container_name: hermes-airmaze-desktop-proxy
+    restart: unless-stopped
+    network_mode: service:hermes-gateway
+    depends_on:
+      hermes-desktop-serve:
+        condition: service_started
+    entrypoint: ["/bin/sh", "/opt/dragon/start-desktop-proxy.sh"]
+    volumes:
+      - ./scripts/airmaze/desktop-loopback-proxy.py:/opt/dragon/desktop-loopback-proxy.py:ro
+      - ./scripts/airmaze/start-desktop-proxy.sh:/opt/dragon/start-desktop-proxy.sh:ro
