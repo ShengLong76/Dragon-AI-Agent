@@ -4,6 +4,9 @@ All notable changes to Dragon AI Agent (packaging/distribution) are documented h
 
 ## [Unreleased]
 
+### Changed
+- **In-app Electron chrome is Dragon AI Agent.** This repo still launches upstream `Hermes.exe` (no `apps/desktop` source, no rebuild). A launch-time overlay rewrites unpacked renderer strings (`resources/app.asar.unpacked/dist`): empty-state **HERMES AGENT** → **DRAGON AI AGENT**, composer **Give Hermes a task** → **Give Dragon AI a task**, and settings/About **Hermes Agent** product copy. `app.asar` is left intact (integrity). Tray, exe name, AppUserModelID, Hermes Cloud, and license attribution still need an upstream Electron rebuild — see `docs/airmaze/BRANDING.md`. Check: `python3 scripts/airmaze/Test-DesktopBranding.py`.
+
 ### Fixed
 - **Bot Screen on UltraDragon (Remote vs Grok Bot parity).** Local / This device Screen still correctly says Linux-gateway-only. Adding Desktop Remote → `http://127.0.0.1:8642` + `API_SERVER_KEY` failed: that port is the OpenAI API (`/health`, Bearer), not Desktop `hermes serve` (`/api/health`, `X-Hermes-Session-Token`, `/api/ws?token=`, display ticket). Gated dashboard `:9119` can look ready after a header translator, then dies with **WebSocket error before open** (upstream [hermes-agent#106685](https://github.com/NousResearch/hermes-agent/issues/106685): token-mode WS is refused on a non-loopback bind).
   - Compose now runs a sidecar `hermes serve --host 127.0.0.1 --port 8651` (token auth stays on) plus a TCP proxy published at `127.0.0.1:8650`.

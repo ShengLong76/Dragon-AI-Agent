@@ -668,6 +668,8 @@ A branded shortcut is written to %LOCALAPPDATA%\DragonAIAgent\Dragon AI Agent Cl
     # Belt-and-suspenders: some Desktop builds honor these on first boot.
     $env:HERMES_DESKTOP_REMOTE_URL = $script:DesktopServeUrl
     $env:HERMES_DESKTOP_REMOTE_TOKEN = $script:DesktopSessionToken
+    # Start-HermesDesktopClient runs Apply-DragonAIDesktopUiBranding on unpacked
+    # renderer files (empty state / composer / settings) before Hermes.exe opens.
     Start-HermesDesktopClient -ExePath $exe
     return $exe
 }
@@ -718,6 +720,7 @@ function Get-LaunchPlan {
             "windowless host: Start-DragonAI.vbs / wscript.exe (no console)",
             "blocking error dialog on failure (never a raw console)",
             "require desktop client (win-unpacked Hermes.exe on disk)",
+            "overlay unpacked Electron UI chrome to Dragon AI Agent before launch",
             "launch Dragon AI Agent desktop only (not $DashboardUrl)",
             "fail-closed if Docker engine is down (no auto-start unless -StartDocker)",
             "first-run Onboard-Wizard if welcome is still pending",
@@ -760,7 +763,8 @@ function Invoke-Smoke {
         "hermes-airmaze-gw is not running",
         "Set-EmbeddedDesktopRemoteConnection",
         "X-Hermes-Session-Token",
-        "8650"
+        "8650",
+        "Apply-DragonAIDesktopUiBranding"
     )
     foreach ($token in $required) {
         if ($text -notlike "*$token*") {

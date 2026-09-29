@@ -45,6 +45,7 @@ REQUIRED_LAUNCHER = (
     "Set-EmbeddedDesktopRemoteConnection",
     "X-Hermes-Session-Token",
     "8650",
+    "Apply-DragonAIDesktopUiBranding",
 )
 
 REQUIRED_FINDER = (
@@ -52,6 +53,7 @@ REQUIRED_FINDER = (
     "Find-HermesDesktopExe",
     "Save-DragonAIDesktopPointer",
     "Start-HermesDesktopClient",
+    "Apply-DragonAIDesktopUiBranding",
     "Set-DragonAIMainWindowTitle",
     "SetTitleForPids",
     "Dragon AI Agent Client.lnk",
@@ -205,6 +207,11 @@ def main() -> int:
         proc = subprocess.run([sys.executable, str(adapter)], cwd=str(ROOT))
         if proc.returncode != 0:
             fail("Test-DesktopServeAdapter.py failed")
+    branding_test = ROOT / "scripts" / "airmaze" / "Test-DesktopBranding.py"
+    if branding_test.is_file():
+        proc = subprocess.run([sys.executable, str(branding_test)], cwd=str(ROOT))
+        if proc.returncode != 0:
+            fail("Test-DesktopBranding.py failed")
     run_host_smoke()
     print("SMOKE OK: opening Dragon AI Agent is wired to branded UI or a blocking error.")
     return 0
