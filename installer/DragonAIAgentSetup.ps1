@@ -320,6 +320,10 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\Apply-Profile.ps1",
         "scripts\airmaze\Select-Profile.ps1",
         "scripts\airmaze\Import-Profile.ps1",
+        "scripts\airmaze\Find-HermesDesktop.ps1",
+        "scripts\airmaze\Onboard-Wizard.ps1",
+        "scripts\airmaze\DragonAI-SecureStore.ps1",
+        "scripts\airmaze\Start-DragonAI.vbs",
         "templates\profiles\personal-assistant\SOUL.md",
         "templates\profiles\personal-assistant\profile.yaml",
         "README.md",
@@ -364,9 +368,10 @@ function Install-Shortcuts {
     $iconLocation = $ico
     if (-not (Test-Path $iconLocation)) { $iconLocation = $png }
 
-    $startScript = Join-Path $InstallRoot "scripts\airmaze\start-embedded.ps1"
+    $startVbs = Join-Path $InstallRoot "scripts\airmaze\Start-DragonAI.vbs"
     $selectScript = Join-Path $InstallRoot "scripts\airmaze\Select-Profile.ps1"
     $targetPs = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
+    $targetWscript = Join-Path $env:SystemRoot "System32\wscript.exe"
 
     Ensure-Dir $StartMenuDir
     $desktop = [Environment]::GetFolderPath("Desktop")
@@ -374,12 +379,14 @@ function Install-Shortcuts {
     try {
         $wsh = New-Object -ComObject WScript.Shell
 
+        $startArgs = "//nologo `"$startVbs`""
+
         $sc1Path = Join-Path $desktop "Dragon AI Agent.lnk"
         $sc1 = $wsh.CreateShortcut($sc1Path)
-        $sc1.TargetPath = $targetPs
-        $sc1.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$startScript`""
+        $sc1.TargetPath = $targetWscript
+        $sc1.Arguments = $startArgs
         $sc1.WorkingDirectory = $InstallRoot
-        $sc1.Description = "Dragon AI Agent — start embedded gateway"
+        $sc1.Description = "Dragon AI Agent — start the gateway and open the app"
         $sc1.WindowStyle = 1
         if ($iconLocation -and (Test-Path $iconLocation)) { $sc1.IconLocation = "$iconLocation,0" }
         $sc1.Save()
@@ -387,12 +394,20 @@ function Install-Shortcuts {
 
         $sc2Path = Join-Path $StartMenuDir "Dragon AI Agent.lnk"
         $sc2 = $wsh.CreateShortcut($sc2Path)
-        $sc2.TargetPath = $targetPs
-        $sc2.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$startScript`""
+        $sc2.TargetPath = $targetWscript
+        $sc2.Arguments = $startArgs
         $sc2.WorkingDirectory = $InstallRoot
-        $sc2.Description = "Dragon AI Agent — start embedded gateway"
+        $sc2.Description = "Dragon AI Agent — start the gateway and open the app"
+        $sc2.WindowStyle = 1
         if ($iconLocation -and (Test-Path $iconLocation)) { $sc2.IconLocation = "$iconLocation,0" }
         $sc2.Save()
+
+        $scDashPath = Join-Path $StartMenuDir "Dragon AI Agent Dashboard.lnk"
+        $scDash = $wsh.CreateShortcut($scDashPath)
+        $scDash.TargetPath = "http://127.0.0.1:9119/"
+        $scDash.Description = "Dragon AI Agent — web dashboard (optional)"
+        if ($iconLocation -and (Test-Path $iconLocation)) { $scDash.IconLocation = "$iconLocation,0" }
+        $scDash.Save()
 
         $sc3Path = Join-Path $StartMenuDir "Dragon AI Agent Profiles.lnk"
         $sc3 = $wsh.CreateShortcut($sc3Path)
@@ -419,9 +434,11 @@ function Start-EmbeddedGateway {
     $env:HERMES_EMBEDDED_DATA = $DataDir
     Push-Location $InstallRoot
     try {
-        & docker compose -f docker-compose.embedded.yml pull 2>&1 | ForEach-Object { Write-Log "compose pull: $_" }
-        & docker compose -f docker-compose.embedded.yml up -d 2>&1 | ForEach-Object { Write-Log "compose up: $_" }
-        if ($LASTEXITCODE -ne 0) {
+        $pullOut = & docker compose -f docker-compose.embedded.yml pull 2>&1 | Out-String
+        if ($pullOut) { Write-Log "compose pull: $($pullOut.Trim())" }
+        $upOut = & docker compose -f docker-compose.embedded.yml up -d 2>&1 | Out-String
+        if ($upOut) { Write-Log "compose up: $($upOut.Trim())" }
+        if ($LASTEXITCODE -ne 0 -or $upOut -match 'error during connect|open //\./pipe/docker|Cannot connect to the Docker daemon') {
             Write-Log "docker compose up failed (exit $LASTEXITCODE)" "ERROR"
             return $false
         }
@@ -472,27 +489,32 @@ function Invoke-ProfileSetup([string]$Root) {
 
 function Start-AgentDesktop {
     Write-Log "Looking for agent desktop client..."
-    $candidates = @(
-        (Join-Path $env:LOCALAPPDATA "hermes\Hermes Desktop.exe"),
-        (Join-Path $env:LOCALAPPDATA "hermes\HermesDesktop.exe"),
-        (Join-Path $env:LOCALAPPDATA "Programs\hermes\Hermes Desktop.exe"),
-        (Join-Path $env:LOCALAPPDATA "Programs\Hermes\Hermes.exe"),
-        (Join-Path $env:ProgramFiles "Hermes\Hermes Desktop.exe"),
-        (Join-Path $env:ProgramFiles "Hermes\Hermes.exe"),
-        (Join-Path ${env:ProgramFiles(x86)} "Hermes\Hermes Desktop.exe")
-    )
-    foreach ($c in $candidates) {
-        if ($c -and (Test-Path -LiteralPath $c)) {
-            Write-Log "Launching agent desktop client: $c"
-            Start-Process -FilePath $c -ErrorAction SilentlyContinue
-            Write-Log "Point Remote gateway at http://127.0.0.1:9119 (API 127.0.0.1:8642). Open Profiles / Bot Screen and pick an installed bot."
-            return $true
-        }
+    $finder = Join-Path $InstallRoot "scripts\airmaze\Find-HermesDesktop.ps1"
+    if (-not (Test-Path -LiteralPath $finder)) {
+        $finder = Join-Path $PSScriptRoot "..\scripts\airmaze\Find-HermesDesktop.ps1"
     }
+    if (Test-Path -LiteralPath $finder) { . $finder }
+    $exe = $null
+    if (Get-Command Find-HermesDesktopExe -ErrorAction SilentlyContinue) {
+        $exe = Find-HermesDesktopExe -InstallRoot $InstallRoot
+    }
+    if ($exe) {
+        Write-Log "Launching agent desktop client: $exe"
+        try {
+            Save-DragonAIDesktopPointer -ExePath $exe -InstallRoot $InstallRoot | Out-Null
+            Start-HermesDesktopClient -ExePath $exe
+        } catch {
+            Start-Process -FilePath $exe -WorkingDirectory (Split-Path -Parent $exe) -ErrorAction SilentlyContinue
+        }
+        Write-Log "Point Remote gateway at API 127.0.0.1:8642 / dashboard http://127.0.0.1:9119. Open Profiles / Bot Screen and pick an installed bot."
+        return $true
+    }
+    $hint = Join-Path $env:LOCALAPPDATA "hermes\hermes-agent\apps\desktop\release\win-unpacked\Hermes.exe"
     Write-Host ""
-    Write-Host "Agent desktop client was not found."
+    Write-Host "Dragon AI Agent desktop was not found (on-disk name Hermes.exe)."
+    Write-Host "  Expected: $hint"
     Write-Host "Next steps:"
-    Write-Host "  1. Install a compatible open-source agent desktop client (separate installer)."
+    Write-Host "  1. Install the Dragon AI Agent desktop client (win-unpacked Hermes.exe on disk)."
     Write-Host "  2. Add Remote gateway: host 127.0.0.1, API port 8642 / dashboard http://127.0.0.1:9119"
     Write-Host "     Local dashboard credentials are in THIRD_PARTY_NOTICES.md / EMBEDDED_GATEWAY.md"
     Write-Host "  3. Open Profiles, select a bot from your applied Dragon AI Agent profile, then open Bot Screen."

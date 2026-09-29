@@ -2,6 +2,21 @@
 
 All notable changes to Dragon AI Agent (packaging/distribution) are documented here.
 
+## [Unreleased]
+
+### Fixed
+- **Windows launch showed no UI (UltraDragon repro).** The Desktop / Start Menu shortcut ran `start-embedded.ps1` only (`docker compose pull && up -d`, no `-NoExit`). Compose connect/pipe errors were not fatal (exit 0 + success URLs). `Start-AgentDesktop` missed the real client at `%LOCALAPPDATA%\hermes\hermes-agent\apps\desktop\release\win-unpacked\Hermes.exe`. Dashboard `9119` crash-looped (wrong basic-auth env names). Gateway `8642` was healthy inside the container but connection-closed from Windows (`API_SERVER_HOST` default loopback). Setup wizard WinForms died on `OrderedDictionary.ContainsKey` and `[Drawing.Color]` before `Add-Type`.
+  - Launcher starts Docker, treats compose/pipe/container failures as **fatal** (dialog + exit 1), waits for host HTTP on `127.0.0.1:8642`, then launches **Hermes.exe** (or a blocking “client not found” dialog).
+  - Discovery includes the unpacked Electron path; writes `%LOCALAPPDATA%\DragonAIAgent\desktop-client.json` + `Dragon AI Agent Client.lnk` (do not copy the exe out of `win-unpacked`).
+  - Compose: `HERMES_DASHBOARD_BASIC_AUTH_USERNAME` + password/secret; `API_SERVER_ENABLED=true`, `API_SERVER_HOST=0.0.0.0`, local-only `API_SERVER_KEY=dragon-local` (host publish stays `127.0.0.1`).
+  - Wizard: load System.Drawing first; IDictionary uses `.Contains()`.
+  - Shortcuts: PowerShell `-STA`. Daily start skips image pull (`-Pull` to update). Log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`.
+  - Smoke: `python3 scripts/airmaze/Test-LaunchSmoke.py` or `start-embedded.ps1 -Smoke`.
+- **Customer-facing branding is Dragon AI Agent** (not Hermes/AirMaze as the product). Shortcuts, wizard, installer resources, dashboard login (`dragon` / `dragon-local`), and profile labels updated. Window title is wrapped after launch. Tray / About / `productName` still need a rebuilt Electron binary — see `docs/airmaze/BRANDING.md`. Logo: `branding/dragon-ai-agent-logo.*`.
+- **Clean launch (no PowerShell console).** Desktop / Start Menu **Dragon AI Agent** targets `wscript.exe` + `Start-DragonAI.vbs`, which runs `start-embedded.ps1` hidden (`-NoLogo -NonInteractive -WindowStyle Hidden -SilentHost`). Failures are MessageBox / WinForms only — never `Read-Host` on a hidden console. The :9119 dashboard is not opened on start (Start Menu **Dragon AI Agent Dashboard** is optional). `start-embedded.ps1` remains for debug (`-DebugConsole`). Old powershell.exe product shortcuts are rewritten to the windowless host on the next launch.
+- **Healthy compose no longer exits 1.** Docker CLI progress on stderr (`Container … Running`) was treated as terminating under `$ErrorActionPreference=Stop`. `Invoke-NativeDocker` sets Continue and stringifies stderr for compose / inspect / info.
+- **UltraDragon re-smoke.** Normal start does **not** open `:9119` (only `-OpenDashboard` or Start Menu Dashboard). Docker engine down is **fail-closed** (dialog + exit 1); `-StartDocker` is opt-in auto-start. Product `.lnk` is rewritten by `Start-DragonAI.vbs` to `wscript.exe` so the console never appears. Window title wrap enumerates Hermes windows.
+
 ## [0.1.0] — 2026-09-28
 
 ### Added

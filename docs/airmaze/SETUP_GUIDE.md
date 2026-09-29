@@ -95,11 +95,15 @@ The summary shows **connected / skipped / failed** only — no secret values. Fi
 
 ---
 
+## After setup — open the app
+
+Desktop / Start Menu **Dragon AI Agent** starts the gateway with no PowerShell window and opens the **desktop client** (not the web dashboard). If Docker, the gateway API, or the client is missing you get a MessageBox. Optional dashboard: Start Menu **Dragon AI Agent Dashboard**. Launch log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`.
+
 ## Re-run / resume
 
 ```powershell
 cd %LOCALAPPDATA%\DragonAIAgent
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\airmaze\Onboard-Wizard.ps1
+powershell -STA -NoProfile -ExecutionPolicy Bypass -File .\scripts\airmaze\Onboard-Wizard.ps1
 ```
 
 - Resume starts at the first incomplete step.  

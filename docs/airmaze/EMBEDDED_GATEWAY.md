@@ -74,6 +74,12 @@ docker run -d `
   -e HERMES_DASHBOARD=1 `
   -e HERMES_DASHBOARD_HOST=0.0.0.0 `
   -e HERMES_DASHBOARD_PORT=9119 `
+  -e HERMES_DASHBOARD_BASIC_AUTH_USERNAME=dragon `
+  -e HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=dragon-local `
+  -e HERMES_DASHBOARD_BASIC_AUTH_SECRET=dragon-local-dashboard-session-secret `
+  -e API_SERVER_ENABLED=true `
+  -e API_SERVER_HOST=0.0.0.0 `
+  -e API_SERVER_KEY=dragon-local `
   nousresearch/hermes-agent:latest-desktop `
   gateway run
 ```
@@ -81,8 +87,8 @@ docker run -d `
 Notes:
 
 - Map secrets via the volume (`/opt/data` ↔ `%USERPROFILE%\.hermes-airmaze-embedded`), not via this package.
-- If you enable the OpenAI-compatible API beyond container defaults, set `API_SERVER_ENABLED`, `API_SERVER_HOST=0.0.0.0`, and a strong `API_SERVER_KEY` (min 8 chars) per upstream Docker docs — generate the key yourself; do not commit it here.
-- Dashboard on a non-loopback bind inside the container still expects an auth provider (June 2026 hardening). For local Desktop-only use, prefer loopback on the **host** publish (`127.0.0.1:9119`) and configure dashboard auth as upstream requires.
+- The OpenAI-compatible API (`8642`) defaults to `127.0.0.1` **inside** the container. Without `API_SERVER_ENABLED=true` and `API_SERVER_HOST=0.0.0.0`, Windows `127.0.0.1:8642` is docker-proxy only and HTTP connection-closes. Host publish stays `127.0.0.1`. Local compose uses `API_SERVER_KEY=dragon-local` (min 8 chars).
+- Dashboard on a non-loopback bind (`0.0.0.0` inside the container, required for `-p 9119:9119`) needs `HERMES_DASHBOARD_BASIC_AUTH_USERNAME` + `_PASSWORD` (not `_USER`). Wrong names → “no auth providers” crash-loop.
 
 Stop / remove:
 
@@ -150,7 +156,7 @@ With `:*-desktop` images, packages should already be present; `install` should r
    - Host: `127.0.0.1` (or `localhost`)
    - Port: gateway port you published (`8642` unless changed)
    - Auth: whatever token/key that gateway profile expects (from your local Hermes setup — not stored in this package)
-3. Select the AirMaze / embedded profile.
+3. Select the Dragon AI Agent / embedded profile.
 4. Open **Screen** (Bots → bot → Screen, or right-click → Open Screen).
 5. **Start screen** if idle; confirm live preview; test **Take over** / **Hand back**.
 
@@ -162,6 +168,9 @@ If the Screen pane says packages missing, you are on a slim tag — switch compo
 
 - [ ] `docker version` shows Server (Linux engine)
 - [ ] `docker pull nousresearch/hermes-agent:latest-desktop` succeeds
+- [ ] **Open Dragon AI Agent** (Desktop / Start Menu / double-click `Start-DragonAI.vbs`): **no PowerShell console** (shortcut target is `wscript.exe`, not Hide-ConsoleWindow after a flash). Desktop client window only. Docker engine stopped → MessageBox + exit 1 (does **not** auto-start Desktop unless `-StartDocker`). Dashboard `:9119` must **not** auto-open. A healthy `docker compose up` must not exit 1 from CLI stderr. Log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`.
+- [ ] From Windows: `http://127.0.0.1:8642/` does not connection-close (Bearer `dragon-local` if asked). `http://127.0.0.1:9119/` serves the dashboard login (user `dragon`).
+- [ ] Offline wiring check (no secrets): `python3 scripts/airmaze/Test-LaunchSmoke.py` or `powershell -File scripts\airmaze\start-embedded.ps1 -Smoke`
 - [ ] `curl http://127.0.0.1:9119/` or gateway health from Desktop connects
 - [ ] Screen pane offers Start (not “not offered on this host” — that message is for when gateway **is** Windows; embedded Linux must be the gateway)
 - [ ] `hermes computer-use screen status` (in container) → installed / running
@@ -173,11 +182,11 @@ If the Screen pane says packages missing, you are on a slim tag — switch compo
 
 - microVM packaging
 - Proxmox wiring (alternate path only)
-- Public image rebuilds / CI for AirMaze
+- Public image rebuilds / CI for Dragon AI Agent
 - Pushing the local fork anywhere
 
 ---
 
-## Docker Desktop UI (AirMaze installer)
+## Docker Desktop UI (Dragon AI Agent installer)
 
-The AirMaze Windows installer configures Docker Desktop to **start minimized to the system tray** and sets `openUIOnStartupDisabled` (and related keys) in `%APPDATA%\Docker\settings.json` / `settings-store.json` so the dashboard window does not pop on first run. The engine still starts; open the dashboard from the tray when needed.
+The Dragon AI Agent Windows installer configures Docker Desktop to **start minimized to the system tray** and sets `openUIOnStartupDisabled` (and related keys) in `%APPDATA%\Docker\settings.json` / `settings-store.json` so the dashboard window does not pop on first run. The engine still starts; open the dashboard from the tray when needed.

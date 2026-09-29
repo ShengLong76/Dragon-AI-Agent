@@ -17,7 +17,7 @@ Compatible with the open-source agent desktop stack (separate desktop client). T
 | Ports | `127.0.0.1:8642` (gateway API), `127.0.0.1:9119` (dashboard). Local dashboard credentials: see `docs/airmaze/EMBEDDED_GATEWAY.md`. |
 | **Profiles** | First-run menu: **select** a built-in catalog profile **or import** a zip/folder/JSON bundle. Applies bots into the local agent profiles dir and installs connector placeholders. |
 | **Onboarding** | First-run **Dragon AI Agent Setup** wizard (email / CRM / telephony + optional integrations). Secrets via Windows DPAPI. Markdown guide: `docs/airmaze/SETUP_GUIDE.md`. Real Estate bots stay `needs_setup` until required steps succeed. |
-| Agent desktop | Tries common install paths; if missing, prints next steps. Point Remote gateway at `http://127.0.0.1:9119` / API `127.0.0.1:8642`. Open **Profiles** / **Bot Screen** and pick an installed bot. |
+| Agent desktop | Discovers on-disk `Hermes.exe` (including `%LOCALAPPDATA%\hermes\hermes-agent\apps\desktop\release\win-unpacked\Hermes.exe`) and shows it as **Dragon AI Agent**. Opening the shortcut starts the gateway then this window (or a blocking error if Docker/client is missing). Dashboard login: `dragon` / `dragon-local`. |
 
 Be honest about limits: full silent WSL/Docker provision often needs a reboot and/or one-time UI clicks. This package does **not** embed the agent desktop client itself.
 
@@ -40,6 +40,16 @@ Package files land in: `%LOCALAPPDATA%\DragonAIAgent\`
 Gateway data: `%USERPROFILE%\.hermes-airmaze-embedded` (internal)
 
 Desktop / Start Menu shortcuts: **Dragon AI Agent**, **Dragon AI Agent Profiles**, and **Dragon AI Agent Setup** (onboarding wizard).
+
+Opening **Dragon AI Agent** uses a windowless host (`Start-DragonAI.vbs` / `wscript.exe`) — no PowerShell console. It starts the gateway and opens the **desktop client** (not the :9119 dashboard). Docker must already be running (fail-closed; `-StartDocker` to opt in). Failures are a MessageBox. Dashboard: Start Menu **Dragon AI Agent Dashboard**. Debug: run `start-embedded.ps1` in a console. Launch log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`. Branding: [`docs/airmaze/BRANDING.md`](docs/airmaze/BRANDING.md).
+
+```powershell
+# Same path the shortcut uses (no secrets)
+powershell -STA -NoProfile -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\DragonAIAgent\scripts\airmaze\start-embedded.ps1"
+
+# Offline contract check (repo checkout; Linux-safe)
+python3 scripts/airmaze/Test-LaunchSmoke.py
+```
 
 ---
 
@@ -190,6 +200,9 @@ profiles/
 scripts/airmaze/
   install.ps1
   start-embedded.ps1
+  Start-DragonAI.vbs
+  Find-HermesDesktop.ps1
+  Test-LaunchSmoke.py
   apply-default-profile.ps1
   Apply-Profile.ps1
   Select-Profile.ps1
@@ -212,7 +225,8 @@ branding/   (release: dragon-ai-agent-logo.png / .ico)
 3. `docs/airmaze/EMBEDDED_GATEWAY.md` — ports, compose, desktop wiring
 4. `docs/airmaze/UPSTREAM_NOTES.md` — Linux-gateway-only constraint
 5. `docs/airmaze/SETUP_GUIDE.md` — first-run onboarding (email / CRM / telephony) + Real Estate flow
-6. `PACKAGING.md` — how this release was built
+6. `docs/airmaze/BRANDING.md` — Dragon AI Agent vs Hermes (packaging wrap vs Electron rebuild)
+7. `PACKAGING.md` — how this release was built
 
 ---
 

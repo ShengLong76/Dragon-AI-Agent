@@ -4,7 +4,7 @@
   "displayName": "Email sending",
   "status": "placeholder",
   "fields": [
-    {"key": "provider", "label": "Provider (SMTP / ESP / Hermes email skill)", "example": "hermes-email or smtp"},
+    {"key": "provider", "label": "Provider (SMTP / ESP / email skill)", "example": "smtp"},
     {"key": "from_address", "label": "From address", "example": "agents@example.com"},
     {"key": "from_name", "label": "From display name", "example": "Dragon AI Real Estate"},
     {"key": "physical_postal_address", "label": "CAN-SPAM physical postal address", "example": "123 Main St, City, ST 00000"},
@@ -12,5 +12,5 @@
     {"key": "smtp_host", "label": "SMTP host", "optional": true},
     {"key": "list_unsubscribe_url", "label": "One-click / List-Unsubscribe URL", "optional": true}
   ],
-  "notes": "Used by Email Warmer for CAN-SPAM commercial sequences. Prefer Hermes productivity email/telephony skill when available. No live credentials ship in the package."
+  "notes": "Used by Email Warmer for CAN-SPAM commercial sequences. Prefer the Dragon AI Agent email/telephony skill when available. No live credentials ship in the package."
 }

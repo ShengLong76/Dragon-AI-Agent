@@ -45,7 +45,7 @@
       "id": "email",
       "type": "api_key",
       "displayName": "Email sending (placeholder)",
-      "description": "SMTP/ESP or Hermes email skill for CAN-SPAM warming sequences.",
+      "description": "SMTP/ESP or Dragon AI Agent email skill for CAN-SPAM warming sequences.",
       "configTemplate": "connectors/email.json"
     },
     {

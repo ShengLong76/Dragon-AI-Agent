@@ -98,4 +98,4 @@ Details: `EMBEDDED_GATEWAY.md`. Upstream map: `UPSTREAM_NOTES.md`.
 
 ## Packaging note (v0.1.0)
 
-Distribution lives in `ShengLong76/airmaze-agent` (this packaging repo). Windows `AirMazeSetup` provisions WSL2/Docker best-effort, suppresses Docker dashboard on startup (tray-only), brings up the embedded gateway, and installs the Personal Assistant profile. agent desktop client remains a separate Nous install when missing.
+Distribution lives in `ShengLong76/airmaze-agent` (this packaging repo). Windows `DragonAIAgentSetup` provisions WSL2/Docker best-effort, suppresses Docker dashboard on startup (tray-only), brings up the embedded gateway, and installs the Personal Assistant profile. The desktop client remains a separate install when missing (on-disk `Hermes.exe`; display name Dragon AI Agent — see `BRANDING.md`).
