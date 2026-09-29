@@ -100,7 +100,7 @@ function Save-DragonAIDesktopPointer {
         exe              = $ExePath
         workingDirectory = $wd
         updatedAt        = (Get-Date).ToString("o")
-        notes            = "On-disk filename stays Hermes.exe (Electron resources). Display name is Dragon AI Agent."
+        notes            = "On-disk filename stays Hermes.exe. Unpackaged renderer chrome is overlaid to Dragon AI Agent."
     }
     $pointer = Get-DragonAIDesktopPointerPath -InstallRoot $InstallRoot
     ($obj | ConvertTo-Json) | Set-Content -LiteralPath $pointer -Encoding UTF8
@@ -191,11 +191,38 @@ public class DragonAIWinTitle {
     return $false
 }
 
+function Apply-DragonAIDesktopUiBranding {
+    <#
+    .SYNOPSIS
+      Rewrite unpacked Electron renderer product chrome to Dragon AI Agent.
+      Does not rebuild Hermes.exe and does not touch app.asar integrity.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$ExePath
+    )
+    $apply = Join-Path $PSScriptRoot "Apply-DesktopBranding.ps1"
+    if (-not (Test-Path -LiteralPath $apply)) {
+        return $false
+    }
+    try {
+        . $apply
+        if (Get-Command Invoke-DragonAIDesktopBrandingOverlay -ErrorAction SilentlyContinue) {
+            Invoke-DragonAIDesktopBrandingOverlay -ExePath $ExePath -Quiet | Out-Null
+            return $true
+        }
+    } catch {
+        return $false
+    }
+    return $false
+}
+
 function Start-HermesDesktopClient {
     param(
         [Parameter(Mandatory = $true)][string]$ExePath
     )
     $wd = Split-Path -Parent $ExePath
+    # Overlay empty-state / composer / settings copy before the window opens.
+    Apply-DragonAIDesktopUiBranding -ExePath $ExePath | Out-Null
     Start-Process -FilePath $ExePath -WorkingDirectory $wd -ErrorAction Stop
     Set-DragonAIMainWindowTitle -Title "Dragon AI Agent" | Out-Null
     return $true

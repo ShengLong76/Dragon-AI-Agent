@@ -1,0 +1,136 @@
+{
+  "version": 1,
+  "product": "Dragon AI Agent",
+  "note": "User-visible product chrome only. Do not rename process names, Docker tags, tokens, ports, protocols, or license attribution.",
+  "replacements": [
+    {
+      "from": "HERMES AGENT",
+      "to": "DRAGON AI AGENT",
+      "surface": "empty-state-wordmark"
+    },
+    {
+      "from": "Let's get you setup with Hermes Agent",
+      "to": "Let's get you setup with Dragon AI Agent",
+      "surface": "settings-onboarding"
+    },
+    {
+      "from": "Setting up Hermes Agent",
+      "to": "Setting up Dragon AI Agent",
+      "surface": "settings-setup"
+    },
+    {
+      "from": "Give Hermes a task",
+      "to": "Give Dragon AI a task",
+      "surface": "composer-placeholder"
+    },
+    {
+      "from": "What should Hermes look at?",
+      "to": "What should Dragon AI look at?",
+      "surface": "empty-state-headline"
+    },
+    {
+      "from": "About Hermes Desktop",
+      "to": "About Dragon AI Agent",
+      "surface": "settings-about"
+    },
+    {
+      "from": "Configure Hermes desktop",
+      "to": "Configure Dragon AI Agent",
+      "surface": "settings-command-palette"
+    },
+    {
+      "from": "Loading Hermes settings",
+      "to": "Loading Dragon AI Agent settings",
+      "surface": "settings-loading"
+    },
+    {
+      "from": "Hermes Desktop is ready",
+      "to": "Dragon AI Agent is ready",
+      "surface": "settings-ready"
+    },
+    {
+      "from": "Starting Hermes Desktop…",
+      "to": "Starting Dragon AI Agent…",
+      "surface": "settings-boot"
+    },
+    {
+      "from": "Starting Hermes Desktop...",
+      "to": "Starting Dragon AI Agent...",
+      "surface": "settings-boot"
+    },
+    {
+      "from": "Welcome to Hermes",
+      "to": "Welcome to Dragon AI Agent",
+      "surface": "settings-welcome"
+    },
+    {
+      "from": "Uninstall Hermes",
+      "to": "Uninstall Dragon AI Agent",
+      "surface": "settings-uninstall"
+    },
+    {
+      "from": "Hermes Agent",
+      "to": "Dragon AI Agent",
+      "surface": "product-name"
+    },
+    {
+      "from": "Hermes (default)",
+      "to": "Dragon AI (default)",
+      "surface": "settings-default-profile"
+    },
+    {
+      "from": "Reconnecting to Hermes…",
+      "to": "Reconnecting to Dragon AI…",
+      "surface": "composer-placeholder"
+    },
+    {
+      "from": "Reconnecting to Hermes...",
+      "to": "Reconnecting to Dragon AI...",
+      "surface": "composer-placeholder"
+    },
+    {
+      "from": "Starting Hermes...",
+      "to": "Starting Dragon AI...",
+      "surface": "composer-placeholder"
+    },
+    {
+      "from": "Starting Hermes…",
+      "to": "Starting Dragon AI…",
+      "surface": "composer-placeholder"
+    },
+    {
+      "from": "appName: 'Hermes'",
+      "to": "appName: 'Dragon AI Agent'",
+      "surface": "settings-app-name"
+    },
+    {
+      "from": "appName: \"Hermes\"",
+      "to": "appName: \"Dragon AI Agent\"",
+      "surface": "settings-app-name"
+    },
+    {
+      "from": "appName:\"Hermes\"",
+      "to": "appName:\"Dragon AI Agent\"",
+      "surface": "settings-app-name"
+    }
+  ],
+  "source_only": [
+    {
+      "path_suffix": "plugins/hermes-bots/labels.ts",
+      "from": "return 'Hermes'",
+      "to": "return 'Dragon AI'",
+      "surface": "default-bot-label"
+    }
+  ],
+  "protected": [
+    "X-Hermes-Session-Token",
+    "127.0.0.1:8650",
+    "dragon-local",
+    "hermes-airmaze-gw",
+    "hermes-airmaze-desktop",
+    "nousresearch/hermes-agent",
+    "HERMES_DASHBOARD_SESSION_TOKEN",
+    "hermes://",
+    "com.nousresearch.hermes"
+  ]
+}
