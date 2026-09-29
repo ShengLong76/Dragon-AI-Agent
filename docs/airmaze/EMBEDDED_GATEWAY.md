@@ -74,6 +74,12 @@ docker run -d `
   -e HERMES_DASHBOARD=1 `
   -e HERMES_DASHBOARD_HOST=0.0.0.0 `
   -e HERMES_DASHBOARD_PORT=9119 `
+  -e HERMES_DASHBOARD_BASIC_AUTH_USERNAME=airmaze `
+  -e HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=airmaze-local `
+  -e HERMES_DASHBOARD_BASIC_AUTH_SECRET=airmaze-local-dashboard-session-secret `
+  -e API_SERVER_ENABLED=true `
+  -e API_SERVER_HOST=0.0.0.0 `
+  -e API_SERVER_KEY=airmaze-local `
   nousresearch/hermes-agent:latest-desktop `
   gateway run
 ```
@@ -81,8 +87,8 @@ docker run -d `
 Notes:
 
 - Map secrets via the volume (`/opt/data` ↔ `%USERPROFILE%\.hermes-airmaze-embedded`), not via this package.
-- If you enable the OpenAI-compatible API beyond container defaults, set `API_SERVER_ENABLED`, `API_SERVER_HOST=0.0.0.0`, and a strong `API_SERVER_KEY` (min 8 chars) per upstream Docker docs — generate the key yourself; do not commit it here.
-- Dashboard on a non-loopback bind inside the container still expects an auth provider (June 2026 hardening). For local Desktop-only use, prefer loopback on the **host** publish (`127.0.0.1:9119`) and configure dashboard auth as upstream requires.
+- The OpenAI-compatible API (`8642`) defaults to `127.0.0.1` **inside** the container. Without `API_SERVER_ENABLED=true` and `API_SERVER_HOST=0.0.0.0`, Windows `127.0.0.1:8642` is docker-proxy only and HTTP connection-closes. Host publish stays `127.0.0.1`. Local compose uses `API_SERVER_KEY=airmaze-local` (min 8 chars).
+- Dashboard on a non-loopback bind (`0.0.0.0` inside the container, required for `-p 9119:9119`) needs `HERMES_DASHBOARD_BASIC_AUTH_USERNAME` + `_PASSWORD` (not `_USER`). Wrong names → “no auth providers” crash-loop.
 
 Stop / remove:
 
@@ -162,7 +168,8 @@ If the Screen pane says packages missing, you are on a slim tag — switch compo
 
 - [ ] `docker version` shows Server (Linux engine)
 - [ ] `docker pull nousresearch/hermes-agent:latest-desktop` succeeds
-- [ ] **Open Dragon AI Agent** (Desktop / Start Menu): a status window appears, then the dashboard browser tab (`http://127.0.0.1:9119/`). A missing Docker engine or a dead gateway must show an error dialog — not a silent exit. Log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`.
+- [ ] **Open Dragon AI Agent** (Desktop / Start Menu): Hermes window title `Hermes` appears (from `win-unpacked\Hermes.exe` if that is the install). Docker down or a missing client must show an error dialog and a **non-zero** exit — not success URLs. Log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`.
+- [ ] From Windows: `http://127.0.0.1:8642/` does not connection-close (Bearer `airmaze-local` if asked). `http://127.0.0.1:9119/` serves the dashboard login (user `airmaze`).
 - [ ] Offline wiring check (no secrets): `python3 scripts/airmaze/Test-LaunchSmoke.py` or `powershell -File scripts\airmaze\start-embedded.ps1 -Smoke`
 - [ ] `curl http://127.0.0.1:9119/` or gateway health from Desktop connects
 - [ ] Screen pane offers Start (not “not offered on this host” — that message is for when gateway **is** Windows; embedded Linux must be the gateway)

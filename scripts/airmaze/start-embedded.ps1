@@ -5,10 +5,10 @@
 
 .DESCRIPTION
   This is the Desktop / Start Menu "Dragon AI Agent" entrypoint.
-  It starts Docker if needed, brings the gateway up, waits until localhost
-  is reachable, then opens the dashboard (and the agent desktop client when
-  installed). Failures show a MessageBox / popup — the process does not
-  silently exit.
+  It starts Docker if needed, brings the gateway up, waits until the API
+  is reachable on the Windows host, then launches the Hermes/Electron
+  desktop client. Failures (Docker down, compose errors, missing client)
+  show a MessageBox / popup and exit non-zero — never a silent flash.
 
   Use -GatewayOnly for the old CLI-only compose behavior (no browser / form).
   Use -Smoke to validate the launch plan without touching Docker (no secrets).
@@ -46,6 +46,15 @@ $script:LaunchForm = $null
 $script:LaunchStatus = $null
 $script:LaunchDashButton = $null
 $script:DashboardUrl = $DashboardUrl
+$script:ApiKey = "airmaze-local"
+
+$finder = Join-Path $PSScriptRoot "Find-HermesDesktop.ps1"
+if (-not (Test-Path -LiteralPath $finder)) {
+    $finder = Join-Path $InstallRoot "scripts\airmaze\Find-HermesDesktop.ps1"
+}
+if (Test-Path -LiteralPath $finder) {
+    . $finder
+}
 
 function Write-LaunchLog {
     param([string]$Message, [string]$Level = "INFO")
@@ -133,8 +142,8 @@ function New-LaunchStatusForm {
         $form.Text = $ProductName
         $form.Size = New-Object Drawing.Size(560, 280)
         $form.StartPosition = "CenterScreen"
-        $form.BackColor = [Drawing.Color]::FromArgb(28, 28, 32)
-        $form.ForeColor = [Drawing.Color]::FromArgb(240, 240, 245)
+        $form.BackColor = [System.Drawing.Color]::FromArgb(28, 28, 32)
+        $form.ForeColor = [System.Drawing.Color]::FromArgb(240, 240, 245)
         $form.FormBorderStyle = [Windows.Forms.FormBorderStyle]::FixedDialog
         $form.MaximizeBox = $false
         $form.MinimizeBox = $true
@@ -143,14 +152,14 @@ function New-LaunchStatusForm {
         $header = New-Object Windows.Forms.Panel
         $header.Location = New-Object Drawing.Point(0, 0)
         $header.Size = New-Object Drawing.Size(560, 56)
-        $header.BackColor = [Drawing.Color]::FromArgb(196, 30, 58)
+        $header.BackColor = [System.Drawing.Color]::FromArgb(196, 30, 58)
         $form.Controls.Add($header)
 
         $title = New-Object Windows.Forms.Label
         $title.Text = $ProductName
         $title.Location = New-Object Drawing.Point(16, 14)
         $title.Size = New-Object Drawing.Size(520, 28)
-        $title.ForeColor = [Drawing.Color]::White
+        $title.ForeColor = [System.Drawing.Color]::White
         $title.Font = New-Object Drawing.Font("Segoe UI", 14, [Drawing.FontStyle]::Bold)
         $header.Controls.Add($title)
 
@@ -167,8 +176,8 @@ function New-LaunchStatusForm {
         $btnDash.Size = New-Object Drawing.Size(140, 36)
         $btnDash.Enabled = $false
         $btnDash.FlatStyle = [Windows.Forms.FlatStyle]::Flat
-        $btnDash.BackColor = [Drawing.Color]::FromArgb(196, 30, 58)
-        $btnDash.ForeColor = [Drawing.Color]::White
+        $btnDash.BackColor = [System.Drawing.Color]::FromArgb(196, 30, 58)
+        $btnDash.ForeColor = [System.Drawing.Color]::White
         $btnDash.Add_Click({
             try { Start-Process $script:DashboardUrl } catch {}
         }.GetNewClosure())
@@ -179,8 +188,8 @@ function New-LaunchStatusForm {
         $btnSetup.Location = New-Object Drawing.Point(168, 180)
         $btnSetup.Size = New-Object Drawing.Size(100, 36)
         $btnSetup.FlatStyle = [Windows.Forms.FlatStyle]::Flat
-        $btnSetup.BackColor = [Drawing.Color]::FromArgb(40, 40, 48)
-        $btnSetup.ForeColor = [Drawing.Color]::White
+        $btnSetup.BackColor = [System.Drawing.Color]::FromArgb(40, 40, 48)
+        $btnSetup.ForeColor = [System.Drawing.Color]::White
         $rootForUi = $InstallRoot
         $btnSetup.Add_Click({
             $wiz = Join-Path $rootForUi "scripts\airmaze\Onboard-Wizard.ps1"
@@ -198,8 +207,8 @@ function New-LaunchStatusForm {
         $btnClose.Location = New-Object Drawing.Point(432, 180)
         $btnClose.Size = New-Object Drawing.Size(100, 36)
         $btnClose.FlatStyle = [Windows.Forms.FlatStyle]::Flat
-        $btnClose.BackColor = [Drawing.Color]::FromArgb(40, 40, 48)
-        $btnClose.ForeColor = [Drawing.Color]::White
+        $btnClose.BackColor = [System.Drawing.Color]::FromArgb(40, 40, 48)
+        $btnClose.ForeColor = [System.Drawing.Color]::White
         $btnClose.Add_Click({ $form.Close() }.GetNewClosure())
         $form.Controls.Add($btnClose)
 
@@ -315,11 +324,35 @@ function Start-DockerIfNeeded {
     return ((Get-Command docker -ErrorAction SilentlyContinue) -and (Test-DockerEngine))
 }
 
+function Test-DockerCliFailureText {
+    param([string]$Text)
+    if ([string]::IsNullOrWhiteSpace($Text)) { return $false }
+    return ($Text -match 'error during connect|The system cannot find the file|open //\./pipe/docker|Cannot connect to the Docker daemon|dockerDesktopLinuxEngine|failed to connect')
+}
+
+function Invoke-DockerCompose {
+    param([string[]]$ComposeArgs)
+    $output = & docker compose -f docker-compose.embedded.yml @ComposeArgs 2>&1 | Out-String
+    $code = $LASTEXITCODE
+    if ($output) { Write-LaunchLog ($output.Trim()) }
+    if ($code -ne 0) {
+        throw "docker compose $($ComposeArgs -join ' ') failed (exit $code). $output"
+    }
+    if (Test-DockerCliFailureText $output) {
+        throw "Docker engine is not running (compose printed a connect/pipe error but did not fail closed). Start Docker Desktop from the tray and try again. $output"
+    }
+    return $output
+}
+
 function Start-GatewayContainer {
     param([string]$ComposePath)
     $data = Join-Path $env:USERPROFILE ".hermes-airmaze-embedded"
     if (-not (Test-Path $data)) { New-Item -ItemType Directory -Force -Path $data | Out-Null }
     $env:HERMES_EMBEDDED_DATA = $data
+
+    if (-not (Test-DockerEngine)) {
+        throw "Docker engine is not running (docker info failed). Start Docker Desktop from the system tray, wait until it is ready, then open Dragon AI Agent again."
+    }
 
     Push-Location $InstallRoot
     try {
@@ -327,19 +360,39 @@ function Start-GatewayContainer {
         if ($SkipPull) { $doPull = $false }
         if ($doPull) {
             Update-LaunchStatus "Updating gateway image (docker compose pull)..."
-            & docker compose -f docker-compose.embedded.yml pull
-            if ($LASTEXITCODE -ne 0) {
-                throw "docker compose pull failed (exit $LASTEXITCODE)."
-            }
+            Invoke-DockerCompose -ComposeArgs @("pull") | Out-Null
         }
         Update-LaunchStatus "Starting embedded gateway..."
-        & docker compose -f docker-compose.embedded.yml up -d
-        if ($LASTEXITCODE -ne 0) {
-            throw "docker compose up failed (exit $LASTEXITCODE). Is Docker Desktop running in the tray?"
-        }
-        & docker compose -f docker-compose.embedded.yml ps
+        Invoke-DockerCompose -ComposeArgs @("up", "-d") | Out-Null
+        Invoke-DockerCompose -ComposeArgs @("ps") | Out-Null
     } finally {
         Pop-Location
+    }
+
+    $running = $false
+    try {
+        $state = & docker inspect -f "{{.State.Running}}" hermes-airmaze-gw 2>&1 | Out-String
+        $running = ($LASTEXITCODE -eq 0 -and $state.Trim() -eq "true")
+    } catch {
+        $running = $false
+    }
+    if (-not $running) {
+        throw "Container hermes-airmaze-gw is not running. Docker compose did not bring the gateway up. See launch.log and: docker logs hermes-airmaze-gw"
+    }
+}
+
+function Test-HttpReachable {
+    param([string]$Url, [int]$TimeoutSec = 3)
+    try {
+        $headers = @{ Authorization = "Bearer $($script:ApiKey)" }
+        $null = Invoke-WebRequest -Uri $Url -Headers $headers -UseBasicParsing -TimeoutSec $TimeoutSec -ErrorAction Stop
+        return $true
+    } catch {
+        $resp = $_.Exception.Response
+        if ($resp) { return $true }
+        $msg = [string]$_.Exception.Message
+        if ($msg -match '401|403|404|400') { return $true }
+        return $false
     }
 }
 
@@ -347,10 +400,19 @@ function Wait-GatewayReady {
     param([int]$TimeoutSec = 90)
     $deadline = (Get-Date).AddSeconds($TimeoutSec)
     while ((Get-Date) -lt $deadline) {
+        $apiTcp = Test-TcpOpen -TargetHost $ApiHost -Port $ApiPort
+        $apiHttp = $false
+        if ($apiTcp) {
+            $apiHttp = Test-HttpReachable -Url "http://${ApiHost}:${ApiPort}/v1/models"
+            if (-not $apiHttp) {
+                $apiHttp = Test-HttpReachable -Url "http://${ApiHost}:${ApiPort}/"
+            }
+        }
         $dash = Test-TcpOpen -TargetHost $ApiHost -Port $DashPort
-        $api = Test-TcpOpen -TargetHost $ApiHost -Port $ApiPort
-        if ($dash -or $api) {
-            return @{ Ok = $true; Dashboard = $dash; Api = $api }
+        # Host TCP/HTTP on 8642 is required. 9119 alone is not enough (docker-proxy
+        # can listen while the dashboard process crash-loops).
+        if ($apiTcp -and $apiHttp) {
+            return @{ Ok = $true; Dashboard = $dash; Api = $true }
         }
         Start-Sleep -Seconds 2
         if ($script:LaunchForm) { [Windows.Forms.Application]::DoEvents() }
@@ -370,24 +432,27 @@ function Open-Dashboard {
     }
 }
 
-function Start-AgentDesktopIfPresent {
-    $candidates = @(
-        (Join-Path $env:LOCALAPPDATA "hermes\Hermes Desktop.exe"),
-        (Join-Path $env:LOCALAPPDATA "hermes\HermesDesktop.exe"),
-        (Join-Path $env:LOCALAPPDATA "Programs\hermes\Hermes Desktop.exe"),
-        (Join-Path $env:LOCALAPPDATA "Programs\Hermes\Hermes.exe"),
-        (Join-Path $env:ProgramFiles "Hermes\Hermes Desktop.exe"),
-        (Join-Path $env:ProgramFiles "Hermes\Hermes.exe"),
-        (Join-Path ${env:ProgramFiles(x86)} "Hermes\Hermes Desktop.exe")
-    )
-    foreach ($c in $candidates) {
-        if ($c -and (Test-Path -LiteralPath $c)) {
-            Write-LaunchLog "Launching agent desktop client: $c"
-            Start-Process -FilePath $c -ErrorAction SilentlyContinue
-            return $true
-        }
+function Start-AgentDesktopOrThrow {
+    if (-not (Get-Command Find-HermesDesktopExe -ErrorAction SilentlyContinue)) {
+        throw "Find-HermesDesktop.ps1 was not loaded. Re-run DragonAIAgentSetup so scripts\airmaze\Find-HermesDesktop.ps1 is installed."
     }
-    return $false
+    $exe = Find-HermesDesktopExe -InstallRoot $InstallRoot
+    if (-not $exe) {
+        $hint = Join-Path $env:LOCALAPPDATA "hermes\hermes-agent\apps\desktop\release\win-unpacked\Hermes.exe"
+        throw @"
+Hermes desktop client was not found, so Dragon AI Agent has no window to show.
+
+Expected (UltraDragon unpacked build):
+  $hint
+
+Install or build the Hermes desktop client, then open Dragon AI Agent again.
+A stable shortcut is written to %LOCALAPPDATA%\DragonAIAgent\Hermes Desktop.lnk once the exe is found.
+"@
+    }
+    Write-LaunchLog "Launching Hermes desktop: $exe"
+    Save-DragonAIDesktopPointer -ExePath $exe -InstallRoot $InstallRoot | Out-Null
+    Start-HermesDesktopClient -ExePath $exe
+    return $exe
 }
 
 function Test-OnboardingNeedsUi {
@@ -433,9 +498,10 @@ function Get-LaunchPlan {
         api           = "${ApiHost}:${ApiPort}"
         log           = $script:LaunchLog
         ui            = @(
-            "status window (WinForms) or error dialog",
-            "open $DashboardUrl in the default browser",
-            "launch agent desktop client when installed",
+            "status window (WinForms) or blocking error dialog",
+            "require Hermes.exe (including win-unpacked path)",
+            "launch Hermes desktop wired to 127.0.0.1:8642",
+            "open $DashboardUrl only after the API is reachable",
             "first-run Onboard-Wizard if welcome is still pending"
         )
     }
@@ -457,17 +523,19 @@ function Invoke-Smoke {
     $text = Get-Content -LiteralPath $self -Raw -ErrorAction Stop
     $required = @(
         "Show-DragonDialog",
-        "Open-Dashboard",
+        "Find-HermesDesktopExe",
+        "Start-AgentDesktopOrThrow",
+        "win-unpacked",
         "http://127.0.0.1:9119",
         "New-LaunchStatusForm",
-        "Start-AgentDesktopIfPresent"
+        "hermes-airmaze-gw is not running"
     )
     foreach ($token in $required) {
         if ($text -notlike "*$token*") {
             throw "Smoke: launcher is missing required symbol '$token'"
         }
     }
-    Write-Host "SMOKE OK: a normal start shows UI (dashboard + status/error dialog). No secrets required."
+    Write-Host "SMOKE OK: a normal start launches Hermes desktop or a blocking error dialog. No secrets required."
     return 0
 }
 
@@ -500,30 +568,26 @@ try {
     }
 
     Start-GatewayContainer -ComposePath $compose
-    Update-LaunchStatus "Waiting for gateway on 127.0.0.1:$DashPort / :$ApiPort ..."
+    Update-LaunchStatus "Waiting for gateway API on ${ApiHost}:${ApiPort} from Windows..."
     $ready = Wait-GatewayReady
     if (-not $ready.Ok) {
-        throw "The embedded gateway did not become reachable on $DashboardUrl (API ${ApiHost}:${ApiPort}). Check the Docker tray icon and %LOCALAPPDATA%\DragonAIAgent\launch.log."
+        throw "The embedded gateway API is not reachable from Windows at http://${ApiHost}:${ApiPort}/ (container may be loopback-bound or crash-looping). Check Docker tray, docker logs hermes-airmaze-gw, and %LOCALAPPDATA%\DragonAIAgent\launch.log."
     }
 
     if ($showUi) {
-        Open-Dashboard
         Start-OnboardingIfNeeded
-        $desktop = Start-AgentDesktopIfPresent
-        $extra = if ($desktop) { " Agent desktop launched." } else { " Agent desktop client not installed (dashboard is the packaged UI)." }
-        $msg = "Gateway is running. Dashboard: $DashboardUrl$extra"
+        $exe = Start-AgentDesktopOrThrow
+        if (-not $NoBrowser) {
+            try { Open-Dashboard } catch { Write-LaunchLog "Dashboard open skipped: $($_.Exception.Message)" "WARN" }
+        }
+        $msg = "Hermes desktop launched: $exe`nGateway API: http://${ApiHost}:${ApiPort}/`nDashboard: $DashboardUrl"
         Update-LaunchStatus $msg
         if ($script:LaunchDashButton) { $script:LaunchDashButton.Enabled = $true }
         if ($script:LaunchForm -and -not $script:LaunchForm.IsDisposed) {
             try {
                 $script:LaunchForm.TopMost = $false
-                $script:LaunchForm.Hide()
-                $script:LaunchForm.ShowDialog() | Out-Null
-            } catch {
-                Show-DragonDialog -Message $msg -Kind Info
-            }
-        } else {
-            Show-DragonDialog -Message $msg -Kind Info
+                $script:LaunchForm.Close()
+            } catch {}
         }
     } else {
         Write-LaunchLog "Gateway-only: 127.0.0.1:$ApiPort  dashboard: $DashboardUrl"

@@ -17,7 +17,7 @@ Compatible with the open-source agent desktop stack (separate desktop client). T
 | Ports | `127.0.0.1:8642` (gateway API), `127.0.0.1:9119` (dashboard). Local dashboard credentials: see `docs/airmaze/EMBEDDED_GATEWAY.md`. |
 | **Profiles** | First-run menu: **select** a built-in catalog profile **or import** a zip/folder/JSON bundle. Applies bots into the local agent profiles dir and installs connector placeholders. |
 | **Onboarding** | First-run **Dragon AI Agent Setup** wizard (email / CRM / telephony + optional integrations). Secrets via Windows DPAPI. Markdown guide: `docs/airmaze/SETUP_GUIDE.md`. Real Estate bots stay `needs_setup` until required steps succeed. |
-| Agent desktop | Tries common install paths; if missing, the launcher still opens the localhost dashboard. Point Remote gateway at `http://127.0.0.1:9119` / API `127.0.0.1:8642`. Open **Profiles** / **Bot Screen** and pick an installed bot. |
+| Agent desktop | Discovers `Hermes.exe` including `%LOCALAPPDATA%\hermes\hermes-agent\apps\desktop\release\win-unpacked\Hermes.exe`. Opening **Dragon AI Agent** starts the gateway then this window (or a blocking error if Docker/client is missing). Point Remote gateway at API `127.0.0.1:8642` / dashboard `http://127.0.0.1:9119`. |
 
 Be honest about limits: full silent WSL/Docker provision often needs a reboot and/or one-time UI clicks. This package does **not** embed the agent desktop client itself.
 
@@ -41,7 +41,7 @@ Gateway data: `%USERPROFILE%\.hermes-airmaze-embedded` (internal)
 
 Desktop / Start Menu shortcuts: **Dragon AI Agent**, **Dragon AI Agent Profiles**, and **Dragon AI Agent Setup** (onboarding wizard).
 
-Opening **Dragon AI Agent** starts the embedded gateway and **must show UI**: a status window plus the dashboard at `http://127.0.0.1:9119/`, or a dialog if Docker / the gateway is missing. It does not exit silently. Launch log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`.
+Opening **Dragon AI Agent** starts the embedded gateway and **must show the Hermes desktop window**, or a blocking error dialog if Docker or `Hermes.exe` is missing. It does not print success URLs after a failed compose and does not exit silently. Launch log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`. Stable client pointer: `%LOCALAPPDATA%\DragonAIAgent\desktop-client.json` and `Hermes Desktop.lnk`.
 
 ```powershell
 # Same path the shortcut uses (no secrets)
@@ -200,6 +200,7 @@ profiles/
 scripts/airmaze/
   install.ps1
   start-embedded.ps1
+  Find-HermesDesktop.ps1
   Test-LaunchSmoke.py
   apply-default-profile.ps1
   Apply-Profile.ps1

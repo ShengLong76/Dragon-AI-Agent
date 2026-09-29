@@ -63,16 +63,31 @@ function Resolve-WizardProfileId {
     return "real-estate-cold-call-lead-refresher"
 }
 
+function Test-DictHasKey {
+    param($Map, [string]$Name)
+    if ($null -eq $Map) { return $false }
+    # [ordered] is OrderedDictionary: IDictionary.Contains, not ContainsKey.
+    if ($Map -is [hashtable]) { return $Map.ContainsKey($Name) }
+    if ($Map -is [System.Collections.IDictionary]) { return $Map.Contains($Name) }
+    return ($Map.PSObject.Properties.Name -contains $Name)
+}
+
+function Get-MapValue {
+    param($Map, [string]$Name, [string]$Default = "")
+    if (-not (Test-DictHasKey -Map $Map -Name $Name)) { return $Default }
+    if ($Map -is [hashtable] -or $Map -is [System.Collections.IDictionary]) {
+        return [string]$Map[$Name]
+    }
+    return [string]$Map.$Name
+}
+
 function Get-StepValue {
     param($Progress, [string]$Name)
     $steps = $Progress.steps
     if ($null -eq $steps) { return "pending" }
-    if ($steps -is [hashtable] -or $steps -is [System.Collections.IDictionary]) {
-        if ($steps.ContainsKey($Name)) { return [string]$steps[$Name] }
-        return "pending"
-    }
-    if ($steps.PSObject.Properties.Name -contains $Name) { return [string]$steps.$Name }
-    return "pending"
+    $v = Get-MapValue -Map $steps -Name $Name -Default "pending"
+    if ([string]::IsNullOrWhiteSpace($v)) { return "pending" }
+    return $v
 }
 
 function Set-StepValue {
@@ -121,13 +136,7 @@ function Write-ConnectorPlaceholders {
     }
     $ns = $Progress.nonSecret
     function NS([string]$k) {
-        if ($null -eq $ns) { return "" }
-        if ($ns -is [hashtable] -or $ns -is [System.Collections.IDictionary]) {
-            if ($ns.ContainsKey($k)) { return [string]$ns[$k] }
-            return ""
-        }
-        if ($ns.PSObject.Properties.Name -contains $k) { return [string]$ns.$k }
-        return ""
+        return (Get-MapValue -Map $ns -Name $k -Default "")
     }
 
     $emailObj = [ordered]@{
@@ -291,25 +300,41 @@ function Invoke-TwilioTestCall {
     }
 }
 
-# --- Branding colors --------------------------------------------------------
+# --- Branding colors (must load System.Drawing before [System.Drawing.Color]) -
 
-$script:BrandBack = [Drawing.Color]::FromArgb(28, 28, 32)
-$script:BrandPanel = [Drawing.Color]::FromArgb(40, 40, 48)
-$script:BrandRed = [Drawing.Color]::FromArgb(196, 30, 58)
-$script:BrandText = [Drawing.Color]::FromArgb(240, 240, 245)
-$script:BrandMuted = [Drawing.Color]::FromArgb(160, 160, 170)
-$script:BrandOk = [Drawing.Color]::FromArgb(60, 180, 90)
-$script:BrandFail = [Drawing.Color]::FromArgb(220, 70, 70)
-$script:BrandPend = [Drawing.Color]::FromArgb(200, 160, 40)
+$script:WinFormsReady = $false
+$script:BrandBack = $null
+$script:BrandPanel = $null
+$script:BrandRed = $null
+$script:BrandText = $null
+$script:BrandMuted = $null
+$script:BrandOk = $null
+$script:BrandFail = $null
+$script:BrandPend = $null
 
-function Test-WinFormsAvailable {
+function Initialize-WizardWinForms {
+    if ($script:WinFormsReady) { return $true }
     try {
         Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop | Out-Null
         Add-Type -AssemblyName System.Drawing -ErrorAction Stop | Out-Null
+        $script:BrandBack = [System.Drawing.Color]::FromArgb(28, 28, 32)
+        $script:BrandPanel = [System.Drawing.Color]::FromArgb(40, 40, 48)
+        $script:BrandRed = [System.Drawing.Color]::FromArgb(196, 30, 58)
+        $script:BrandText = [System.Drawing.Color]::FromArgb(240, 240, 245)
+        $script:BrandMuted = [System.Drawing.Color]::FromArgb(160, 160, 170)
+        $script:BrandOk = [System.Drawing.Color]::FromArgb(60, 180, 90)
+        $script:BrandFail = [System.Drawing.Color]::FromArgb(220, 70, 70)
+        $script:BrandPend = [System.Drawing.Color]::FromArgb(200, 160, 40)
+        $script:WinFormsReady = $true
         return $true
     } catch {
+        $script:WinFormsReady = $false
         return $false
     }
+}
+
+function Test-WinFormsAvailable {
+    return (Initialize-WizardWinForms)
 }
 
 # ============================================================================
@@ -577,7 +602,7 @@ function New-BrandButton {
         $b.FlatAppearance.BorderColor = $script:BrandRed
     } else {
         $b.BackColor = $script:BrandPanel
-        $b.FlatAppearance.BorderColor = [Drawing.Color]::FromArgb(80, 80, 90)
+        $b.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(80, 80, 90)
     }
     $b.Font = New-Object Drawing.Font("Segoe UI", 10)
     return $b
@@ -590,7 +615,7 @@ function New-BrandLabel {
     $l.Location = $Location
     $l.Size = New-Object Drawing.Size($Width, $Height)
     $l.ForeColor = if ($Muted) { $script:BrandMuted } else { $script:BrandText }
-    $l.BackColor = [Drawing.Color]::Transparent
+    $l.BackColor = [System.Drawing.Color]::Transparent
     if ($Title) {
         $l.Font = New-Object Drawing.Font("Segoe UI", 14, [Drawing.FontStyle]::Bold)
     } else {
@@ -604,7 +629,7 @@ function New-BrandTextBox {
     $t = New-Object Windows.Forms.TextBox
     $t.Location = $Location
     $t.Width = $Width
-    $t.BackColor = [Drawing.Color]::FromArgb(50, 50, 58)
+    $t.BackColor = [System.Drawing.Color]::FromArgb(50, 50, 58)
     $t.ForeColor = $script:BrandText
     $t.BorderStyle = [Windows.Forms.BorderStyle]::FixedSingle
     if ($Password) { $t.UseSystemPasswordChar = $true }
@@ -645,6 +670,13 @@ function Update-StatusStrip {
 function Invoke-WinFormsWizard {
     param($Progress, [string]$ProfId)
 
+    if (-not (Initialize-WizardWinForms)) {
+        throw "WinForms/System.Drawing is not available."
+    }
+    if ($null -eq $script:BrandBack) {
+        throw "Brand colors were not initialized (System.Drawing.Color missing)."
+    }
+
     $script:WizResult = 0
     $script:CurrentStep = Get-FirstIncompleteStep -Progress $Progress
     if ($SkipWelcome -and $script:CurrentStep -eq "welcome") { $script:CurrentStep = "email" }
@@ -680,10 +712,10 @@ function Invoke-WinFormsWizard {
     }
 
     $hdrTitle = New-BrandLabel -Text $ProductName -Location (New-Object Drawing.Point(80, 12)) -Width 500 -Height 28 -Title
-    $hdrTitle.ForeColor = [Drawing.Color]::White
+    $hdrTitle.ForeColor = [System.Drawing.Color]::White
     $header.Controls.Add($hdrTitle)
     $hdrSub = New-BrandLabel -Text "First-run setup — profile: $ProfId" -Location (New-Object Drawing.Point(80, 40)) -Width 500 -Height 22 -Muted
-    $hdrSub.ForeColor = [Drawing.Color]::FromArgb(255, 220, 220)
+    $hdrSub.ForeColor = [System.Drawing.Color]::FromArgb(255, 220, 220)
     $header.Controls.Add($hdrSub)
 
     $statusStrip = New-Object Windows.Forms.Panel
@@ -809,7 +841,7 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
         $lnk.Text = "Open Google App Passwords"
         $lnk.Location = New-Object Drawing.Point(450, 44)
         $lnk.AutoSize = $true
-        $lnk.LinkColor = [Drawing.Color]::FromArgb(255, 180, 180)
+        $lnk.LinkColor = [System.Drawing.Color]::FromArgb(255, 180, 180)
         $lnk.Add_Click({ try { Start-Process "https://myaccount.google.com/apppasswords" } catch {} })
         $content.Controls.Add($lnk)
 

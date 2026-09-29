@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate that a normal Dragon AI Agent start is wired to show UI.
+"""Validate Dragon AI Agent launch is wired to show Hermes UI (or a blocking error).
 
 No secrets. Safe to run on Linux CI or a Windows checkout without Docker.
 Optionally invokes pwsh/powershell -Smoke when a host is present.
@@ -14,6 +14,9 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 LAUNCHER = ROOT / "scripts" / "airmaze" / "start-embedded.ps1"
+FINDER = ROOT / "scripts" / "airmaze" / "Find-HermesDesktop.ps1"
+WIZARD = ROOT / "scripts" / "airmaze" / "Onboard-Wizard.ps1"
+COMPOSE = ROOT / "docker-compose.embedded.yml"
 INSTALLERS = (
     ROOT / "scripts" / "airmaze" / "install.ps1",
     ROOT / "installer" / "DragonAIAgentSetup.ps1",
@@ -21,17 +24,40 @@ INSTALLERS = (
 
 REQUIRED_LAUNCHER = (
     "Show-DragonDialog",
-    "Open-Dashboard",
+    "Find-HermesDesktopExe",
+    "Start-AgentDesktopOrThrow",
+    "win-unpacked",
+    "hermes-airmaze-gw is not running",
+    "error during connect",
     "New-LaunchStatusForm",
-    "Start-AgentDesktopIfPresent",
-    "http://127.0.0.1:9119",
-    "param(",
     "Smoke",
+)
+
+REQUIRED_FINDER = (
+    "win-unpacked\\Hermes.exe",
+    "Find-HermesDesktopExe",
+    "Save-DragonAIDesktopPointer",
+    "Start-HermesDesktopClient",
+)
+
+REQUIRED_WIZARD = (
+    "Test-DictHasKey",
+    "Initialize-WizardWinForms",
+    "[System.Drawing.Color]",
+    "OrderedDictionary",
+)
+
+REQUIRED_COMPOSE = (
+    "HERMES_DASHBOARD_BASIC_AUTH_USERNAME",
+    "API_SERVER_ENABLED",
+    "API_SERVER_HOST",
+    "API_SERVER_KEY",
 )
 
 REQUIRED_INSTALLER = (
     '-STA -NoProfile -ExecutionPolicy Bypass -File `"$startScript`"',
-    "start gateway and open the dashboard",
+    "start gateway and open Hermes desktop",
+    "win-unpacked",
 )
 
 
@@ -40,31 +66,48 @@ def fail(msg: str) -> None:
     raise SystemExit(1)
 
 
-def check_launcher() -> None:
-    if not LAUNCHER.is_file():
-        fail(f"missing {LAUNCHER}")
-    text = LAUNCHER.read_text(encoding="utf-8")
-    for token in REQUIRED_LAUNCHER:
+def require_tokens(path: pathlib.Path, tokens: tuple[str, ...], label: str) -> None:
+    if not path.is_file():
+        fail(f"missing {path}")
+    text = path.read_text(encoding="utf-8")
+    for token in tokens:
         if token not in text:
-            fail(f"{LAUNCHER.name} missing required token: {token}")
-    if "throw" in text and "Show-DragonDialog" not in text:
+            fail(f"{path.name} missing required {label} token: {token}")
+    print(f"OK  {label}: {path.relative_to(ROOT)}")
+
+
+def check_launcher() -> None:
+    require_tokens(LAUNCHER, REQUIRED_LAUNCHER, "launcher")
+    text = LAUNCHER.read_text(encoding="utf-8")
+    if "Start-AgentDesktopIfPresent" in text:
+        fail("launcher still treats a missing Hermes client as optional")
+    if "Show-DragonDialog" not in text:
         fail("launcher throws without a user-visible dialog helper")
-    print(f"OK  launcher contract: {LAUNCHER.relative_to(ROOT)}")
 
 
 def check_shortcuts() -> None:
     for path in INSTALLERS:
-        if not path.is_file():
-            fail(f"missing {path}")
+        require_tokens(path, REQUIRED_INSTALLER, "shortcut")
         text = path.read_text(encoding="utf-8")
-        for token in REQUIRED_INSTALLER:
-            if token not in text:
-                fail(f"{path.name} missing shortcut token: {token}")
-        if "-WindowStyle Hidden" in text and "Dragon AI Agent" in text:
-            # Hidden PowerShell + a failed WinForms load is the original no-UI bug.
-            if "Do not use -WindowStyle Hidden" not in text and path.name == "install.ps1":
+        if "-WindowStyle Hidden" in text and path.name == "install.ps1":
+            if "Do not use -WindowStyle Hidden" not in text:
                 fail(f"{path.name} hides the host window without a documented fallback")
-        print(f"OK  shortcut contract: {path.relative_to(ROOT)}")
+
+
+def check_compose_auth() -> None:
+    require_tokens(COMPOSE, REQUIRED_COMPOSE, "compose")
+    text = COMPOSE.read_text(encoding="utf-8")
+    if "HERMES_DASHBOARD_BASIC_AUTH_USER:" in text and "USERNAME" not in text:
+        fail("compose still uses BASIC_AUTH_USER (image wants USERNAME)")
+
+
+def check_wizard() -> None:
+    require_tokens(WIZARD, REQUIRED_WIZARD, "wizard")
+    text = WIZARD.read_text(encoding="utf-8")
+    if "$steps.ContainsKey(" in text or "$ns.ContainsKey(" in text:
+        fail("wizard still calls ContainsKey on OrderedDictionary/IDictionary")
+    if "$script:BrandBack = [System.Drawing.Color]::FromArgb" in text.split("function Initialize-WizardWinForms")[0]:
+        fail("wizard still initializes Drawing.Color before Add-Type System.Drawing")
 
 
 def run_host_smoke() -> None:
@@ -85,10 +128,13 @@ def run_host_smoke() -> None:
 
 
 def main() -> int:
+    require_tokens(FINDER, REQUIRED_FINDER, "finder")
     check_launcher()
     check_shortcuts()
+    check_compose_auth()
+    check_wizard()
     run_host_smoke()
-    print("SMOKE OK: opening Dragon AI Agent is wired to show UI or an error dialog.")
+    print("SMOKE OK: opening Dragon AI Agent is wired to Hermes desktop or a blocking error.")
     return 0
 
 
