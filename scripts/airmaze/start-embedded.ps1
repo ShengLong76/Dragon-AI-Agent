@@ -11,9 +11,10 @@
   missing client) show a MessageBox / popup and exit non-zero.
 
   The installed Desktop / Start Menu shortcut runs Start-DragonAI.vbs (wscript)
-  so no PowerShell console flashes. Use this .ps1 directly for debugging.
-  Use -GatewayOnly for CLI-only compose. Use -OpenDashboard to open :9119.
-  Use -Smoke to validate the launch plan without touching Docker (no secrets).
+  so no PowerShell console flashes. Use this .ps1 directly for debugging
+  (-DebugConsole keeps the console). Use -GatewayOnly for CLI-only compose.
+  Use -OpenDashboard to open :9119. Use -Smoke to validate the launch plan
+  without touching Docker (no secrets).
 
 .NOTES
   Fixes PATH for Docker Desktop CLI under common install locations.
@@ -29,6 +30,7 @@ param(
     [switch]$NoBrowser,
     [switch]$OpenDashboard,
     [switch]$SilentHost,
+    [switch]$DebugConsole,
     [switch]$NoWizard,
     [switch]$Smoke
 )
@@ -45,6 +47,7 @@ if ([string]::IsNullOrWhiteSpace($InstallRoot)) {
 }
 
 $script:LaunchLog = Join-Path $InstallRoot "launch.log"
+$script:Windowless = $false
 $script:WinFormsOk = $false
 $script:LaunchForm = $null
 $script:LaunchStatus = $null
@@ -120,6 +123,8 @@ function Show-DragonDialog {
         $sh.Popup($Message, 0, $Title, $iconCode) | Out-Null
         return
     } catch {}
+    # Installed shortcut is windowless — never block on a hidden console.
+    if ($script:Windowless) { return }
     Write-Host ""
     Write-Host $Message
     if ([Environment]::UserInteractive) {
@@ -213,9 +218,10 @@ function New-LaunchStatusForm {
         $btnSetup.Add_Click({
             $wiz = Join-Path $rootForUi "scripts\airmaze\Onboard-Wizard.ps1"
             if (Test-Path -LiteralPath $wiz) {
-                Start-Process -FilePath (Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe") `
-                    -WindowStyle Hidden `
-                    -ArgumentList @("-STA", "-NoProfile", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-File", $wiz, "-InstallRoot", $rootForUi)
+                Start-HiddenPowerShell -ArgumentList @(
+                    "-STA", "-NoProfile", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass",
+                    "-File", $wiz, "-InstallRoot", $rootForUi
+                )
             } else {
                 Show-DragonDialog -Message "Onboard-Wizard.ps1 was not found. Re-run DragonAIAgentSetup." -Kind Warn
             }
@@ -247,6 +253,17 @@ function New-LaunchStatusForm {
     }
 }
 
+function Test-LaunchedFromShortcut {
+    try {
+        $me = Get-CimInstance Win32_Process -Filter "ProcessId=$PID" -ErrorAction Stop
+        $parent = Get-CimInstance Win32_Process -Filter "ProcessId=$($me.ParentProcessId)" -ErrorAction Stop
+        $name = [IO.Path]::GetFileNameWithoutExtension([string]$parent.Name).ToLowerInvariant()
+        return ($name -in @("explorer", "wscript", "cscript"))
+    } catch {
+        return $false
+    }
+}
+
 function Hide-ConsoleWindow {
     try {
         if (-not ("DragonAINative" -as [type])) {
@@ -264,6 +281,90 @@ public class DragonAINative {
             [DragonAINative]::ShowWindow($hwnd, 0) | Out-Null
         }
     } catch {}
+}
+
+function Start-HiddenPowerShell {
+    param([string[]]$ArgumentList)
+    $ps = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
+    $quoted = foreach ($a in $ArgumentList) {
+        if ($null -eq $a) { continue }
+        $s = [string]$a
+        if ($s -match '[\s"]') { '"' + ($s -replace '"', '\"') + '"' } else { $s }
+    }
+    $si = New-Object System.Diagnostics.ProcessStartInfo
+    $si.FileName = $ps
+    $si.Arguments = [string]::Join(' ', $quoted)
+    $si.UseShellExecute = $false
+    $si.CreateNoWindow = $true
+    $si.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
+    [void][System.Diagnostics.Process]::Start($si)
+}
+
+function Repair-DragonAIProductShortcuts {
+    <#
+      Rewrite Desktop / Start Menu "Dragon AI Agent" to wscript + VBS if an older
+      install still points at powershell.exe (that shortcut flashes a console).
+    #>
+    $vbs = Join-Path $InstallRoot "scripts\airmaze\Start-DragonAI.vbs"
+    if (-not (Test-Path -LiteralPath $vbs)) {
+        $vbs = Join-Path $PSScriptRoot "Start-DragonAI.vbs"
+    }
+    if (-not (Test-Path -LiteralPath $vbs)) { return }
+    $wscript = Join-Path $env:SystemRoot "System32\wscript.exe"
+    if (-not (Test-Path -LiteralPath $wscript)) { return }
+    $ico = Join-Path $InstallRoot "branding\dragon-ai-agent-logo.ico"
+    if (-not (Test-Path -LiteralPath $ico)) { $ico = Join-Path $InstallRoot "dragon-ai-agent-logo.ico" }
+    $startArgs = "//nologo `"$vbs`""
+    $paths = @(
+        (Join-Path ([Environment]::GetFolderPath("Desktop")) "Dragon AI Agent.lnk"),
+        (Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Dragon AI Agent\Dragon AI Agent.lnk")
+    )
+    try {
+        $wsh = New-Object -ComObject WScript.Shell
+        foreach ($p in $paths) {
+            $existing = $null
+            if (Test-Path -LiteralPath $p) {
+                $existing = $wsh.CreateShortcut($p)
+                if ($existing.TargetPath -like "*wscript.exe" -and $existing.Arguments -like "*Start-DragonAI.vbs*") {
+                    continue
+                }
+            }
+            $dir = Split-Path -Parent $p
+            if ($dir -and -not (Test-Path -LiteralPath $dir)) {
+                New-Item -ItemType Directory -Force -Path $dir | Out-Null
+            }
+            $sc = $wsh.CreateShortcut($p)
+            $sc.TargetPath = $wscript
+            $sc.Arguments = $startArgs
+            $sc.WorkingDirectory = $InstallRoot
+            $sc.Description = "Dragon AI Agent — start the gateway and open the app"
+            $sc.WindowStyle = 1
+            if (Test-Path -LiteralPath $ico) { $sc.IconLocation = "$ico,0" }
+            $sc.Save()
+            Write-LaunchLog "Repaired product shortcut: $p"
+        }
+    } catch {
+        Write-LaunchLog "Shortcut repair skipped: $($_.Exception.Message)" "WARN"
+    }
+}
+
+function Invoke-NativeDocker {
+    <#
+      Docker CLI writes progress ("Container … Running") to stderr. With
+      $ErrorActionPreference=Stop, 2>&1 turns those records into a terminating
+      error and a healthy launch exits 1. Temporarily Continue and stringify.
+    #>
+    param([Parameter(Mandatory = $true)][string[]]$DockerArgs)
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $lines = & docker @DockerArgs 2>&1 | ForEach-Object { "$_" }
+        $code = $LASTEXITCODE
+        $output = if ($null -ne $lines) { ($lines -join "`n") } else { "" }
+        return [pscustomobject]@{ ExitCode = $code; Output = $output }
+    } finally {
+        $ErrorActionPreference = $prev
+    }
 }
 
 function Fix-DockerPath {
@@ -293,8 +394,9 @@ function Get-DockerDesktopExe {
 
 function Test-DockerEngine {
     try {
-        $null = & docker info 2>$null
-        return ($LASTEXITCODE -eq 0)
+        if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { return $false }
+        $r = Invoke-NativeDocker -DockerArgs @("info")
+        return ($r.ExitCode -eq 0)
     } catch {
         return $false
     }
@@ -328,9 +430,13 @@ function Start-DockerIfNeeded {
     }
     Update-LaunchStatus "Starting Docker Desktop (system tray). This can take a minute..."
     try {
-        Start-Process -FilePath $exe -WindowStyle Minimized -ErrorAction Stop
+        Start-Process -FilePath $exe -WindowStyle Hidden -ErrorAction Stop
     } catch {
-        Start-Process -FilePath $exe -ErrorAction SilentlyContinue
+        try {
+            Start-Process -FilePath $exe -WindowStyle Minimized -ErrorAction Stop
+        } catch {
+            Start-Process -FilePath $exe -ErrorAction SilentlyContinue
+        }
     }
     $deadline = (Get-Date).AddMinutes(3)
     while ((Get-Date) -lt $deadline) {
@@ -352,16 +458,15 @@ function Test-DockerCliFailureText {
 
 function Invoke-DockerCompose {
     param([string[]]$ComposeArgs)
-    $output = & docker compose -f docker-compose.embedded.yml @ComposeArgs 2>&1 | Out-String
-    $code = $LASTEXITCODE
-    if ($output) { Write-LaunchLog ($output.Trim()) }
-    if ($code -ne 0) {
-        throw "docker compose $($ComposeArgs -join ' ') failed (exit $code). $output"
+    $r = Invoke-NativeDocker -DockerArgs (@("compose", "-f", "docker-compose.embedded.yml") + $ComposeArgs)
+    if ($r.Output) { Write-LaunchLog ($r.Output.Trim()) }
+    if ($r.ExitCode -ne 0) {
+        throw "docker compose $($ComposeArgs -join ' ') failed (exit $($r.ExitCode)). $($r.Output)"
     }
-    if (Test-DockerCliFailureText $output) {
-        throw "Docker engine is not running (compose printed a connect/pipe error but did not fail closed). Start Docker Desktop from the tray and try again. $output"
+    if (Test-DockerCliFailureText $r.Output) {
+        throw "Docker engine is not running (compose printed a connect/pipe error but did not fail closed). Start Docker Desktop from the tray and try again. $($r.Output)"
     }
-    return $output
+    return $r.Output
 }
 
 function Start-GatewayContainer {
@@ -391,8 +496,8 @@ function Start-GatewayContainer {
 
     $running = $false
     try {
-        $state = & docker inspect -f "{{.State.Running}}" hermes-airmaze-gw 2>&1 | Out-String
-        $running = ($LASTEXITCODE -eq 0 -and $state.Trim() -eq "true")
+        $insp = Invoke-NativeDocker -DockerArgs @("inspect", "-f", "{{.State.Running}}", "hermes-airmaze-gw")
+        $running = ($insp.ExitCode -eq 0 -and $insp.Output.Trim() -eq "true")
     } catch {
         $running = $false
     }
@@ -500,8 +605,7 @@ function Start-OnboardingIfNeeded {
     $wiz = Join-Path $InstallRoot "scripts\airmaze\Onboard-Wizard.ps1"
     if (-not (Test-Path -LiteralPath $wiz)) { return }
     Update-LaunchStatus "Opening first-run setup wizard..."
-    $ps = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
-    Start-Process -FilePath $ps -WindowStyle Hidden -ArgumentList @(
+    Start-HiddenPowerShell -ArgumentList @(
         "-STA", "-NoProfile", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass",
         "-File", $wiz, "-InstallRoot", $InstallRoot
     )
@@ -522,7 +626,8 @@ function Get-LaunchPlan {
             "blocking error dialog on failure (never a raw console)",
             "require desktop client (win-unpacked Hermes.exe on disk)",
             "launch Dragon AI Agent desktop only (not $DashboardUrl)",
-            "first-run Onboard-Wizard if welcome is still pending"
+            "first-run Onboard-Wizard if welcome is still pending",
+            "docker CLI stderr progress is not a terminating error"
         )
     }
 }
@@ -549,7 +654,11 @@ function Invoke-Smoke {
         "Start-DragonAI.vbs",
         "SilentHost",
         "OpenDashboard",
+        "DebugConsole",
         "New-LaunchStatusForm",
+        "Invoke-NativeDocker",
+        "Repair-DragonAIProductShortcuts",
+        "CreateNoWindow",
         "hermes-airmaze-gw is not running"
     )
     foreach ($token in $required) {
@@ -569,16 +678,25 @@ if ($Smoke) {
 }
 
 $script:WinFormsOk = Test-WinFormsAvailable
+$script:Windowless = $false
 $showUi = -not $GatewayOnly
 if ($SilentHost) {
     $NoBrowser = $true
+}
+# Hide the console for the installed shortcut (wscript / old explorer .lnk).
+# Keep it when a human launched this .ps1 from a terminal, or passed -DebugConsole.
+if ($DebugConsole) {
+    $script:Windowless = $false
+} elseif ($SilentHost -or (Test-LaunchedFromShortcut)) {
+    $script:Windowless = $true
     Hide-ConsoleWindow
 }
 
 try {
+    Repair-DragonAIProductShortcuts
     if ($showUi) {
         New-LaunchStatusForm | Out-Null
-        Hide-ConsoleWindow
+        if ($script:Windowless) { Hide-ConsoleWindow }
     }
 
     $compose = Join-Path $InstallRoot "docker-compose.embedded.yml"

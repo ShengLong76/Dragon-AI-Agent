@@ -33,6 +33,11 @@ REQUIRED_LAUNCHER = (
     "New-LaunchStatusForm",
     "SilentHost",
     "OpenDashboard",
+    "DebugConsole",
+    "Invoke-NativeDocker",
+    "Repair-DragonAIProductShortcuts",
+    "CreateNoWindow",
+    "Test-LaunchedFromShortcut",
     "Dragon AI Agent launched",
     "Smoke",
 )
@@ -73,6 +78,7 @@ REQUIRED_VBS = (
     "start-embedded.ps1",
     "-WindowStyle Hidden",
     "-SilentHost",
+    "-NonInteractive",
     "MsgBox",
 )
 
@@ -101,6 +107,10 @@ def check_launcher() -> None:
         fail("launcher still opens the dashboard without -OpenDashboard")
     if "Show-DragonDialog" not in text:
         fail("launcher throws without a user-visible dialog helper")
+    if '$ErrorActionPreference = "Continue"' not in text:
+        fail("launcher missing Continue around Docker CLI (stderr progress must not terminate)")
+    if "$output = & docker compose" in text or "& docker inspect" in text or "& docker info" in text:
+        fail("launcher still calls docker compose/inspect/info without Invoke-NativeDocker")
 
 
 def check_shortcuts() -> None:
@@ -118,6 +128,8 @@ def check_vbs() -> None:
     text = VBS.read_text(encoding="utf-8", errors="replace")
     if "cscript" in text.lower() and "not cscript" not in text.lower():
         fail("VBS host must use wscript (cscript flashes a console)")
+    if "sh.Run cmd, 0, False" not in text:
+        fail("VBS host must Run powershell hidden (window style 0)")
 
 
 def check_compose_auth() -> None:

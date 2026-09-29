@@ -24,7 +24,8 @@ If Not fso.FileExists(psExe) Then
     WScript.Quit 1
 End If
 
-' 0 = hide the host window. -SilentHost skips the 9119 dashboard and hides any leftover console.
-cmd = """" & psExe & """ -STA -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass" & _
-      " -File """ & ps1 & """ -InstallRoot """ & installRoot & """ -SilentHost"
+' 0 = hide the host window from process create (avoids the powershell.exe flash).
+' -SilentHost skips the 9119 dashboard and hides any leftover console.
+cmd = """" & psExe & """ -STA -NoProfile -NoLogo -NonInteractive -WindowStyle Hidden" & _
+      " -ExecutionPolicy Bypass -File """ & ps1 & """ -InstallRoot """ & installRoot & """ -SilentHost"
 sh.Run cmd, 0, False

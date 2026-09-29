@@ -321,6 +321,8 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\Select-Profile.ps1",
         "scripts\airmaze\Import-Profile.ps1",
         "scripts\airmaze\Find-HermesDesktop.ps1",
+        "scripts\airmaze\Onboard-Wizard.ps1",
+        "scripts\airmaze\DragonAI-SecureStore.ps1",
         "scripts\airmaze\Start-DragonAI.vbs",
         "templates\profiles\personal-assistant\SOUL.md",
         "templates\profiles\personal-assistant\profile.yaml",

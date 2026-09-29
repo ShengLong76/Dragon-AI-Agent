@@ -440,18 +440,20 @@ function Install-Shortcuts {
             $sc4Path = Join-Path $StartMenuDir "Dragon AI Agent Setup.lnk"
             $sc4 = $wsh.CreateShortcut($sc4Path)
             $sc4.TargetPath = $targetPs
-            $sc4.Arguments = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$onboardScript`" -InstallRoot `"$InstallRoot`" -PayloadRoot `"$InstallRoot`""
+            $sc4.Arguments = "-STA -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$onboardScript`" -InstallRoot `"$InstallRoot`" -PayloadRoot `"$InstallRoot`""
             $sc4.WorkingDirectory = $InstallRoot
             $sc4.Description = "Dragon AI Agent — first-run onboarding wizard"
+            $sc4.WindowStyle = 7
             if ($iconLocation -and (Test-Path $iconLocation)) { $sc4.IconLocation = "$iconLocation,0" }
             $sc4.Save()
 
             $sc5Path = Join-Path $desktop "Dragon AI Agent Setup.lnk"
             $sc5 = $wsh.CreateShortcut($sc5Path)
             $sc5.TargetPath = $targetPs
-            $sc5.Arguments = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$onboardScript`" -InstallRoot `"$InstallRoot`" -PayloadRoot `"$InstallRoot`""
+            $sc5.Arguments = "-STA -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$onboardScript`" -InstallRoot `"$InstallRoot`" -PayloadRoot `"$InstallRoot`""
             $sc5.WorkingDirectory = $InstallRoot
             $sc5.Description = "Dragon AI Agent — first-run onboarding wizard"
+            $sc5.WindowStyle = 7
             if ($iconLocation -and (Test-Path $iconLocation)) { $sc5.IconLocation = "$iconLocation,0" }
             $sc5.Save()
             Write-Log "Setup shortcuts: $sc4Path ; $sc5Path"

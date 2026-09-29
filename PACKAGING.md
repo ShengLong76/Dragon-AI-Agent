@@ -68,5 +68,5 @@ The **Dragon AI Agent** shortcut targets `wscript.exe` + `scripts/airmaze/Start-
 ## Limitations
 
 - Quiet Docker/WSL install may still need reboot or UAC/UI clicks.
-- Agent desktop client is not bundled; the packaged visible UI on open is the localhost dashboard plus the launcher window.
+- Agent desktop client is not bundled; the packaged visible UI on open is the on-disk desktop client (`Hermes.exe`). Dashboard `:9119` is optional (Start Menu), not the primary launch surface.
 - Dashboard basic auth defaults remain the compose local-only values (see `THIRD_PARTY_NOTICES.md` / `EMBEDDED_GATEWAY.md`).

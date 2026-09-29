@@ -13,7 +13,8 @@ All notable changes to Dragon AI Agent (packaging/distribution) are documented h
   - Shortcuts: PowerShell `-STA`. Daily start skips image pull (`-Pull` to update). Log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`.
   - Smoke: `python3 scripts/airmaze/Test-LaunchSmoke.py` or `start-embedded.ps1 -Smoke`.
 - **Customer-facing branding is Dragon AI Agent** (not Hermes/AirMaze as the product). Shortcuts, wizard, installer resources, dashboard login (`dragon` / `dragon-local`), and profile labels updated. Window title is wrapped after launch. Tray / About / `productName` still need a rebuilt Electron binary — see `docs/airmaze/BRANDING.md`. Logo: `branding/dragon-ai-agent-logo.*`.
-- **Clean launch (no PowerShell console).** Desktop / Start Menu **Dragon AI Agent** targets `wscript.exe` + `Start-DragonAI.vbs`, which runs `start-embedded.ps1` hidden. Failures are MessageBox / WinForms only. The :9119 dashboard is not opened on start (Start Menu **Dragon AI Agent Dashboard** is optional). `start-embedded.ps1` remains for debug.
+- **Clean launch (no PowerShell console).** Desktop / Start Menu **Dragon AI Agent** targets `wscript.exe` + `Start-DragonAI.vbs`, which runs `start-embedded.ps1` hidden (`-NoLogo -NonInteractive -WindowStyle Hidden -SilentHost`). Failures are MessageBox / WinForms only — never `Read-Host` on a hidden console. The :9119 dashboard is not opened on start (Start Menu **Dragon AI Agent Dashboard** is optional). `start-embedded.ps1` remains for debug (`-DebugConsole`). Old powershell.exe product shortcuts are rewritten to the windowless host on the next launch.
+- **Healthy compose no longer exits 1.** Docker CLI progress on stderr (`Container … Running`) was treated as terminating under `$ErrorActionPreference=Stop`. `Invoke-NativeDocker` sets Continue and stringifies stderr for compose / inspect / info.
 
 ## [0.1.0] — 2026-09-28
 
