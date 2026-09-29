@@ -350,13 +350,19 @@ function Repair-DragonAIProductShortcuts {
 
 function Invoke-NativeDocker {
     <#
-      Docker CLI writes progress ("Container … Running") to stderr. With
-      $ErrorActionPreference=Stop, 2>&1 turns those records into a terminating
-      error and a healthy launch exits 1. Temporarily Continue and stringify.
+      UltraDragon: Docker CLI writes progress ("Container … Running") to stderr.
+      With $ErrorActionPreference=Stop, 2>&1 turns those ErrorRecords into a
+      terminating error and a healthy launch exits 1. Same workaround as the
+      machine-only patch: Continue around the native call, stringify stderr.
     #>
     param([Parameter(Mandatory = $true)][string[]]$DockerArgs)
     $prev = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
+    $prevNative = $null
+    if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -Scope Global -ErrorAction SilentlyContinue) {
+        $prevNative = $PSNativeCommandUseErrorActionPreference
+        $PSNativeCommandUseErrorActionPreference = $false
+    }
     try {
         $lines = & docker @DockerArgs 2>&1 | ForEach-Object { "$_" }
         $code = $LASTEXITCODE
@@ -364,6 +370,9 @@ function Invoke-NativeDocker {
         return [pscustomobject]@{ ExitCode = $code; Output = $output }
     } finally {
         $ErrorActionPreference = $prev
+        if ($null -ne $prevNative) {
+            $PSNativeCommandUseErrorActionPreference = $prevNative
+        }
     }
 }
 
@@ -458,15 +467,21 @@ function Test-DockerCliFailureText {
 
 function Invoke-DockerCompose {
     param([string[]]$ComposeArgs)
-    $r = Invoke-NativeDocker -DockerArgs (@("compose", "-f", "docker-compose.embedded.yml") + $ComposeArgs)
-    if ($r.Output) { Write-LaunchLog ($r.Output.Trim()) }
-    if ($r.ExitCode -ne 0) {
-        throw "docker compose $($ComposeArgs -join ' ') failed (exit $($r.ExitCode)). $($r.Output)"
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $r = Invoke-NativeDocker -DockerArgs (@("compose", "-f", "docker-compose.embedded.yml") + $ComposeArgs)
+        if ($r.Output) { Write-LaunchLog ($r.Output.Trim()) }
+        if ($r.ExitCode -ne 0) {
+            throw "docker compose $($ComposeArgs -join ' ') failed (exit $($r.ExitCode)). $($r.Output)"
+        }
+        if (Test-DockerCliFailureText $r.Output) {
+            throw "Docker engine is not running (compose printed a connect/pipe error but did not fail closed). Start Docker Desktop from the tray and try again. $($r.Output)"
+        }
+        return $r.Output
+    } finally {
+        $ErrorActionPreference = $prev
     }
-    if (Test-DockerCliFailureText $r.Output) {
-        throw "Docker engine is not running (compose printed a connect/pipe error but did not fail closed). Start Docker Desktop from the tray and try again. $($r.Output)"
-    }
-    return $r.Output
 }
 
 function Start-GatewayContainer {
@@ -495,11 +510,15 @@ function Start-GatewayContainer {
     }
 
     $running = $false
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     try {
         $insp = Invoke-NativeDocker -DockerArgs @("inspect", "-f", "{{.State.Running}}", "hermes-airmaze-gw")
         $running = ($insp.ExitCode -eq 0 -and $insp.Output.Trim() -eq "true")
     } catch {
         $running = $false
+    } finally {
+        $ErrorActionPreference = $prev
     }
     if (-not $running) {
         throw "Container hermes-airmaze-gw is not running. Docker compose did not bring the gateway up. See launch.log and: docker logs hermes-airmaze-gw"
