@@ -66,8 +66,12 @@ def test_table() -> dict:
         if token not in table.get("protected", []):
             fail(f"table must list protected token {token}")
     font = table.get("font") or {}
-    if font.get("family") != "Outfit" or "OFL" not in str(font.get("license")):
-        fail("table must name Outfit (OFL) as the UI face")
+    if font.get("family") != "Syne" or "OFL" not in str(font.get("license")):
+        fail("table must name Syne (OFL) as the UI face")
+    if font.get("weight") != 700:
+        fail("table must use Syne weight 700 on the wordmark")
+    if "font-family: 'Collapse', var(--font-sans)" not in by_from:
+        fail("table must rewrite the upstream Collapse wordmark family")
     print("OK  desktop_branding.json surfaces")
     return table
 
@@ -115,6 +119,11 @@ const protocol = 'hermes://copilot-key/start';
             "<!doctype html><html><head><title>Hermes</title></head><body><div id='root'></div></body></html>\n",
             encoding="utf-8",
         )
+        (dist / "assets").mkdir(parents=True, exist_ok=True)
+        (dist / "assets" / "index.css").write_text(
+            ".wordmark{font-family:'Collapse',var(--font-sans);font-weight:700;text-transform:uppercase}\n",
+            encoding="utf-8",
+        )
         # Attribution / license must stay Hermes.
         (unpacked / "resources" / "app.asar.unpacked" / "LICENSE").write_text(
             "MIT Copyright (c) 2025 Nous Research. Hermes Agent.\n",
@@ -144,28 +153,43 @@ const protocol = 'hermes://copilot-key/start';
         if not stamp.is_file():
             fail("missing branding stamp")
         pack_dir = dist / "dragon-ai-branding"
-        vf = pack_dir / "outfit-latin-wght-normal.woff2"
+        vf = pack_dir / "syne-latin-wght-normal.woff2"
+        bold = pack_dir / "syne-latin-700-normal.woff2"
         css = pack_dir / "dragon-ui.css"
         if not vf.is_file() or vf.read_bytes()[:4] != b"wOF2":
-            fail("Outfit woff2 was not copied into the unpacked renderer")
+            fail("Syne variable woff2 was not copied into the unpacked renderer")
+        if not bold.is_file() or bold.read_bytes()[:4] != b"wOF2":
+            fail("Syne 700 woff2 was not copied into the unpacked renderer")
         css_txt = css.read_text(encoding="utf-8")
-        if "@font-face" not in css_txt or "Outfit" not in css_txt or ".wordmark" not in css_txt:
-            fail("injected CSS missing Outfit wordmark rules")
+        if "@font-face" not in css_txt or "Syne" not in css_txt or ".wordmark" not in css_txt:
+            fail("injected CSS missing Syne wordmark rules")
+        if "font-weight: 700" not in css_txt:
+            fail("wordmark CSS must set Syne at weight 700")
+        bundled = (dist / "assets" / "index.css").read_text(encoding="utf-8")
+        live_rule = bundled.split("/*", 1)[0]
+        if "font-family:'Collapse'" in live_rule or "font-family: 'Collapse'" in live_rule:
+            fail("unpacked .wordmark still names Collapse")
+        if ".wordmark{font-family:'Syne'" not in live_rule:
+            fail("unpacked .wordmark was not rewritten to Syne")
+        if "dragon-ai-ui-face" not in bundled:
+            fail("Syne rules were not appended to the renderer CSS")
+        if 'url("../dragon-ai-branding/syne-latin-wght-normal.woff2")' not in bundled:
+            fail("appended @font-face urls must resolve from assets/ to the Syne pack")
         html = (dist / "index.html").read_text(encoding="utf-8")
-        if 'data-dragon-ai-branding="outfit"' not in html:
-            fail("index.html was not linked to the bundled Outfit stylesheet")
+        if 'data-dragon-ai-branding="ui-face"' not in html:
+            fail("index.html was not linked to the bundled wordmark stylesheet")
         if html.count("dragon-ui.css") != 1:
             fail("font stylesheet linked more than once")
         font_info = summary.get("font") or {}
-        if font_info.get("fontFamily") != "Outfit":
-            fail(f"overlay did not report Outfit: {font_info}")
+        if font_info.get("fontFamily") != "Syne":
+            fail(f"overlay did not report Syne: {font_info}")
         # Idempotent second pass.
         summary2 = db.apply_to_exe(exe)
         if summary2["replacementsApplied"] != 0:
             fail(f"second pass not idempotent: {summary2}")
         html2 = (dist / "index.html").read_text(encoding="utf-8")
-        if html2.count('data-dragon-ai-branding="outfit"') != 1:
-            fail("second pass duplicated the Outfit stylesheet link")
+        if html2.count('data-dragon-ai-branding="ui-face"') != 1:
+            fail("second pass duplicated the wordmark stylesheet link")
         print("OK  fake win-unpacked overlay")
 
 
@@ -191,26 +215,30 @@ def test_packaging_not_regressed() -> None:
     apply_ps = read(APPLY)
     if "app.asar.unpacked" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must target unpacked renderer files")
-    if "Install-DragonAIDesktopFontPack" not in apply_ps or "Outfit" not in apply_ps:
-        fail("Apply-DesktopBranding.ps1 must install the bundled Outfit pack")
+    if "Install-DragonAIDesktopFontPack" not in apply_ps or "Syne" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must install the bundled Syne pack")
     for path in INSTALLERS:
         text = read(path)
         if "Apply-DesktopBranding.ps1" not in text or "desktop_branding.py" not in text:
             fail(f"{path.name} must install the UI overlay scripts")
         if "branding\\fonts" not in text and "branding/fonts" not in text:
-            fail(f"{path.name} must copy branding/fonts for the Outfit overlay")
+            fail(f"{path.name} must copy branding/fonts for the wordmark overlay")
     branding = read(BRANDING)
     if "HERMES AGENT" not in branding and "empty state" not in branding.lower():
         fail("BRANDING.md must document the in-app overlay and leftovers")
     if "app.asar" not in branding:
         fail("BRANDING.md must say what still needs an Electron rebuild")
-    if "Outfit" not in branding or "OFL" not in branding:
-        fail("BRANDING.md must name Outfit and why (OFL geometric sans)")
+    if "Syne" not in branding or "OFL" not in branding:
+        fail("BRANDING.md must name Syne and why (OFL, weight 700)")
+    if "Collapse" not in branding:
+        fail("BRANDING.md must name the upstream Collapse wordmark face")
     if "Universal Sans" not in branding:
         fail("BRANDING.md must say Universal Sans is proprietary and not shipped")
-    outfit = ROOT / "branding" / "fonts" / "outfit"
-    if not (outfit / "OFL.txt").is_file() or not (outfit / "outfit-latin-wght-normal.woff2").is_file():
-        fail("branding/fonts/outfit must bundle OFL.txt and the Outfit woff2 files")
+    pack = ROOT / "branding" / "fonts" / "syne"
+    if not (pack / "OFL.txt").is_file() or not (pack / "syne-latin-wght-normal.woff2").is_file():
+        fail("branding/fonts/syne must bundle OFL.txt and the Syne woff2 files")
+    if not (pack / "syne-latin-700-normal.woff2").is_file():
+        fail("branding/fonts/syne must include the 700 cut for the wordmark")
     print("OK  packaging Bot Screen / installer wiring")
 
 

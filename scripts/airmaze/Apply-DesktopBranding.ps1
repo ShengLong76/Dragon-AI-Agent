@@ -59,7 +59,11 @@ function Get-DragonAIDesktopFontPack {
         $here = Split-Path -Parent $MyInvocation.MyCommand.Path
     }
     $candidates = @(
+        (Join-Path (Split-Path -Parent (Split-Path -Parent $here)) "branding\fonts\syne"),
+        (Join-Path (Split-Path -Parent (Split-Path -Parent $here)) "branding\fonts\league-spartan"),
         (Join-Path (Split-Path -Parent (Split-Path -Parent $here)) "branding\fonts\outfit"),
+        (Join-Path $here "fonts\syne"),
+        (Join-Path $here "fonts\league-spartan"),
         (Join-Path $here "fonts\outfit")
     )
     foreach ($c in $candidates) {
@@ -76,7 +80,7 @@ function Install-DragonAIDesktopFontPack {
     if (-not $pack) { return @{ fontFamily = $null; copied = $false; htmlPatched = 0 } }
     $htmlPatched = 0
     $targets = 0
-    $link = '<link rel="stylesheet" href="./dragon-ai-branding/dragon-ui.css" data-dragon-ai-branding="outfit" />'
+    $link = '<link rel="stylesheet" href="./dragon-ai-branding/dragon-ui.css" data-dragon-ai-branding="ui-face" />'
     $utf8 = New-Object System.Text.UTF8Encoding $false
     foreach ($root in $Roots) {
         if (-not $root -or -not (Test-Path -LiteralPath $root -PathType Container)) { continue }
@@ -94,9 +98,31 @@ function Install-DragonAIDesktopFontPack {
             Get-ChildItem -LiteralPath $pack -File -ErrorAction SilentlyContinue |
                 Where-Object { $_.Extension -in @(".woff2", ".css", ".txt", ".md") } |
                 ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $dest $_.Name) -Force }
+            $sheetPath = Join-Path $dest "dragon-ui.css"
+            $cssMark = "/* dragon-ai-ui-face */"
+            if (Test-Path -LiteralPath $sheetPath) {
+                $sheet = [System.IO.File]::ReadAllText($sheetPath)
+                $cssFiles = @(Get-ChildItem -LiteralPath $cand -Filter "*.css" -File -ErrorAction SilentlyContinue)
+                $assetsDir = Join-Path $cand "assets"
+                if (Test-Path -LiteralPath $assetsDir) {
+                    $cssFiles += @(Get-ChildItem -LiteralPath $assetsDir -Filter "*.css" -File -ErrorAction SilentlyContinue)
+                }
+                foreach ($cssFile in $cssFiles) {
+                    if ($cssFile.FullName -like "*dragon-ai-branding*") { continue }
+                    $existing = [System.IO.File]::ReadAllText($cssFile.FullName)
+                    if ($existing.Contains($cssMark)) { continue }
+                    $cssDir = Split-Path -Parent $cssFile.FullName
+                    $prefix = "./dragon-ai-branding"
+                    if ([System.IO.Path]::GetFullPath($cssDir).TrimEnd('\') -ne [System.IO.Path]::GetFullPath($cand).TrimEnd('\')) {
+                        $prefix = "../dragon-ai-branding"
+                    }
+                    $rewritten = $sheet.Replace('url("./', ('url("' + $prefix + '/'))
+                    [System.IO.File]::WriteAllText($cssFile.FullName, ($existing.TrimEnd() + "`n" + $cssMark + "`n" + $rewritten + "`n"), $utf8)
+                }
+            }
             foreach ($html in $hasHtml) {
                 $text = [System.IO.File]::ReadAllText($html.FullName)
-                if ($text.Contains('data-dragon-ai-branding="outfit"')) { continue }
+                if ($text.Contains('data-dragon-ai-branding="ui-face"') -or $text.Contains('data-dragon-ai-branding="outfit"')) { continue }
                 $out = $null
                 $lower = $text.ToLowerInvariant()
                 $idx = $lower.IndexOf("</head>")
@@ -110,7 +136,7 @@ function Install-DragonAIDesktopFontPack {
             }
         }
     }
-    return @{ fontFamily = "Outfit"; copied = ($targets -gt 0); htmlPatched = $htmlPatched; targets = $targets }
+    return @{ fontFamily = "Syne"; copied = ($targets -gt 0); htmlPatched = $htmlPatched; targets = $targets }
 }
 
 function Test-DragonAISkipBrandingFile {
@@ -219,7 +245,7 @@ function Invoke-DragonAIDesktopBrandingOverlay {
             $stamp = [ordered]@{
                 version              = $table.version
                 product              = $table.product
-                fontFamily           = "Outfit"
+                fontFamily           = "Syne"
                 filesChanged         = $filesChanged
                 replacementsApplied  = $replacementsApplied
             }

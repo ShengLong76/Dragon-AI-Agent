@@ -321,7 +321,7 @@ function Install-PackageFiles([string]$Root) {
         $fontsDstParent = Join-Path $InstallRoot "branding"
         Ensure-Dir $fontsDstParent
         Copy-Item -Path $fontsSrc -Destination $fontsDstParent -Recurse -Force
-        Write-Log "Copied branding/fonts (Outfit UI face)"
+        Write-Log "Copied branding/fonts (Syne wordmark face)"
     }
 
     foreach ($rel in @(

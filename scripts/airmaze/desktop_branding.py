@@ -23,8 +23,10 @@ from typing import Any
 HERE = Path(__file__).resolve().parent
 TABLE_PATH = HERE / "desktop_branding.json"
 BRAND_DIR_NAME = "dragon-ai-branding"
-HTML_MARK = 'data-dragon-ai-branding="outfit"'
+HTML_MARK = 'data-dragon-ai-branding="ui-face"'
+OLD_HTML_MARKS = ('data-dragon-ai-branding="outfit"',)
 STYLESHEET_NAME = "dragon-ui.css"
+CSS_APPEND_MARK = "/* dragon-ai-ui-face */"
 
 TEXT_EXTENSIONS = {
     ".js",
@@ -183,13 +185,31 @@ def overlay_roots(roots: list[Path], table: dict[str, Any]) -> dict[str, Any]:
 
 def font_pack_dir() -> Path | None:
     candidates = (
+        HERE.parents[1] / "branding" / "fonts" / "syne",
+        HERE.parents[1] / "branding" / "fonts" / "league-spartan",
         HERE.parents[1] / "branding" / "fonts" / "outfit",
+        HERE / "fonts" / "syne",
+        HERE / "fonts" / "league-spartan",
         HERE / "fonts" / "outfit",
     )
     for path in candidates:
         if (path / STYLESHEET_NAME).is_file() and any(path.glob("*.woff2")):
             return path
     return None
+
+
+def sheet_for_css_file(sheet: str, css_path: Path, dest_root: Path) -> str:
+    """Rewrite url(\"./file.woff2\") so it still hits the pack from this CSS file."""
+    try:
+        rel_dir = css_path.parent.resolve().relative_to(dest_root.resolve())
+    except ValueError:
+        prefix = f"./{BRAND_DIR_NAME}"
+    else:
+        if rel_dir == Path("."):
+            prefix = f"./{BRAND_DIR_NAME}"
+        else:
+            prefix = f"{'/'.join(['..'] * len(rel_dir.parts))}/{BRAND_DIR_NAME}"
+    return sheet.replace('url("./', f'url("{prefix}/')
 
 
 def font_install_targets(roots: list[Path]) -> list[Path]:
@@ -225,14 +245,29 @@ def inject_font_link(html: str) -> tuple[str, bool]:
     if HTML_MARK in html:
         return html, False
     link = _link_tag()
-    lower = html.lower()
+    changed = False
+    out = html
+    for old in OLD_HTML_MARKS:
+        if old in out:
+            out = out.replace(old, HTML_MARK.split("=")[0] + '="ui-face"')
+            changed = True
+    if HTML_MARK in out:
+        return out, changed
+    lower = out.lower()
     idx = lower.find("</head>")
     if idx != -1:
-        return html[:idx] + link + "\n" + html[idx:], True
+        return out[:idx] + link + "\n" + out[idx:], True
     idx = lower.find("<body")
     if idx != -1:
-        return html[:idx] + link + "\n" + html[idx:], True
-    return link + "\n" + html, True
+        return out[:idx] + link + "\n" + out[idx:], True
+    return link + "\n" + out, True
+
+
+def append_font_css(css_text: str, sheet: str) -> tuple[str, bool]:
+    if CSS_APPEND_MARK in css_text:
+        return css_text, False
+    block = "\n" + CSS_APPEND_MARK + "\n" + sheet.rstrip() + "\n"
+    return css_text.rstrip() + block, True
 
 
 def install_font_pack(roots: list[Path]) -> dict[str, Any]:
@@ -251,6 +286,18 @@ def install_font_pack(roots: list[Path]) -> dict[str, Any]:
         dest.mkdir(parents=True, exist_ok=True)
         for src in files:
             (dest / src.name).write_bytes(src.read_bytes())
+        sheet = (dest / STYLESHEET_NAME).read_text(encoding="utf-8")
+        css_targets = list(dest_root.glob("*.css")) + list((dest_root / "assets").glob("*.css") if (dest_root / "assets").is_dir() else [])
+        for css_path in css_targets:
+            if BRAND_DIR_NAME in css_path.parts:
+                continue
+            text = read_text_file(css_path)
+            if text is None:
+                continue
+            rewritten = sheet_for_css_file(sheet, css_path, dest_root)
+            out, changed = append_font_css(text, rewritten)
+            if changed:
+                css_path.write_bytes(out.encode("utf-8"))
         for html_path in dest_root.glob("*.html"):
             text = read_text_file(html_path)
             if text is None:
@@ -260,7 +307,7 @@ def install_font_pack(roots: list[Path]) -> dict[str, Any]:
                 html_path.write_bytes(out.encode("utf-8"))
                 html_patched += 1
     return {
-        "fontFamily": "Outfit",
+        "fontFamily": "Syne",
         "targets": len(targets),
         "htmlPatched": html_patched,
         "copied": bool(targets),
@@ -349,19 +396,36 @@ def self_test() -> int:
         print(f"FAIL: overlay not idempotent hits2={hits2}", file=sys.stderr)
         return 1
     pack = font_pack_dir()
-    if pack is None:
-        print("FAIL: Outfit font pack missing (branding/fonts/outfit)", file=sys.stderr)
+    if pack is None or pack.name != "syne":
+        print("FAIL: Syne font pack missing (branding/fonts/syne)", file=sys.stderr)
         return 1
     css = (pack / STYLESHEET_NAME).read_text(encoding="utf-8")
-    if "@font-face" not in css or "Outfit" not in css or ".wordmark" not in css:
-        print("FAIL: dragon-ui.css must @font-face Outfit onto the wordmark", file=sys.stderr)
+    if "@font-face" not in css or "Syne" not in css or ".wordmark" not in css:
+        print("FAIL: dragon-ui.css must @font-face Syne onto the wordmark", file=sys.stderr)
         return 1
-    if "Universal Sans" in css or "Tesla" in css:
-        print("FAIL: CSS must not claim Tesla / Universal Sans", file=sys.stderr)
+    if "font-weight: 700" not in css:
+        print("FAIL: wordmark must use Syne at weight 700", file=sys.stderr)
+        return 1
+    if "font-family: \"Collapse\"" not in css and "font-family: 'Collapse'" not in css:
+        print("FAIL: CSS must also register as Collapse so leftover wordmark rules switch face", file=sys.stderr)
+        return 1
+    if "Universal Sans" in css or "Tesla" in css or "Gotham" in css:
+        print("FAIL: CSS must not claim Tesla / Universal Sans / Gotham", file=sys.stderr)
         return 1
     meta = table.get("font") or {}
-    if meta.get("family") != "Outfit":
-        print("FAIL: table font.family must be Outfit", file=sys.stderr)
+    if meta.get("family") != "Syne":
+        print("FAIL: table font.family must be Syne", file=sys.stderr)
+        return 1
+    collapse_sample = ".wordmark{font-family:'Collapse',var(--font-sans);font-weight:700}"
+    collapse_out, _ = apply_text(collapse_sample, replacements)
+    if "Collapse" in collapse_out or "Syne" not in collapse_out:
+        print(f"FAIL: Collapse wordmark family not rewritten: {collapse_out}", file=sys.stderr)
+        return 1
+    fake_root = Path("/tmp/dragon-font-rel")
+    fake_css = fake_root / "assets" / "index.css"
+    rewritten = sheet_for_css_file('src: url("./syne-latin-700-normal.woff2")', fake_css, fake_root)
+    if 'url("../dragon-ai-branding/syne-latin-700-normal.woff2")' not in rewritten:
+        print(f"FAIL: appended CSS font urls must resolve from assets/: {rewritten}", file=sys.stderr)
         return 1
     html = "<html><head><title>t</title></head><body></body></html>"
     once, changed = inject_font_link(html)

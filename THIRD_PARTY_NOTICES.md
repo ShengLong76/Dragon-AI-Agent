@@ -27,18 +27,18 @@ Change these before exposing anything beyond `127.0.0.1`.
 
 Container name `hermes-airmaze-gw`, compose project/env vars (`HERMES_*`), and data dir `%USERPROFILE%\.hermes-airmaze-embedded` are technical identifiers kept for compatibility. User-facing product name is **Dragon AI Agent**; install dir is `%LOCALAPPDATA%\DragonAIAgent`.
 
-## Outfit (in-window UI font)
+## Syne (in-window wordmark font)
 
-Bundled under `branding/fonts/outfit/` and copied into the unpacked Electron renderer by the launch overlay.
+Bundled under `branding/fonts/syne/` and copied into the unpacked Electron renderer by the launch overlay.
 
 | Item | Value |
 |------|--------|
-| Family | Outfit |
+| Family | Syne |
 | License | SIL Open Font License 1.1 |
-| Authors | The Outfit Project Authors |
-| Upstream | https://github.com/Outfitio/Outfit-Fonts |
+| Authors | The Syne Project Authors |
+| Upstream | https://gitlab.com/bonjour-monde/fonderie/syne-typeface |
 
-This is **not** Tesla Universal Sans (proprietary). Outfit is a free geometric grotesque used as the product UI face.
+This is **not** Universal Sans, Gotham, or any proprietary Tesla face. Syne (weight 700 on the wordmark) replaces the upstream Hermes **Collapse** display face.
 
 ## Bot Screen documentation
 
