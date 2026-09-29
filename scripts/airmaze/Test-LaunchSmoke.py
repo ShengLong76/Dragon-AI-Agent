@@ -14,6 +14,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 LAUNCHER = ROOT / "scripts" / "airmaze" / "start-embedded.ps1"
+VBS = ROOT / "scripts" / "airmaze" / "Start-DragonAI.vbs"
 FINDER = ROOT / "scripts" / "airmaze" / "Find-HermesDesktop.ps1"
 WIZARD = ROOT / "scripts" / "airmaze" / "Onboard-Wizard.ps1"
 COMPOSE = ROOT / "docker-compose.embedded.yml"
@@ -30,6 +31,8 @@ REQUIRED_LAUNCHER = (
     "hermes-airmaze-gw is not running",
     "error during connect",
     "New-LaunchStatusForm",
+    "SilentHost",
+    "OpenDashboard",
     "Dragon AI Agent launched",
     "Smoke",
 )
@@ -59,9 +62,18 @@ REQUIRED_COMPOSE = (
 )
 
 REQUIRED_INSTALLER = (
-    '-STA -NoProfile -ExecutionPolicy Bypass -File `"$startScript`"',
+    "Start-DragonAI.vbs",
+    "wscript.exe",
     "start the gateway and open the app",
     "win-unpacked",
+)
+
+REQUIRED_VBS = (
+    "wscript",
+    "start-embedded.ps1",
+    "-WindowStyle Hidden",
+    "-SilentHost",
+    "MsgBox",
 )
 
 
@@ -85,6 +97,8 @@ def check_launcher() -> None:
     text = LAUNCHER.read_text(encoding="utf-8")
     if "Start-AgentDesktopIfPresent" in text:
         fail("launcher still treats a missing Hermes client as optional")
+    if "Open-Dashboard" in text and 'if ($OpenDashboard' not in text:
+        fail("launcher still opens the dashboard without -OpenDashboard")
     if "Show-DragonDialog" not in text:
         fail("launcher throws without a user-visible dialog helper")
 
@@ -93,9 +107,17 @@ def check_shortcuts() -> None:
     for path in INSTALLERS:
         require_tokens(path, REQUIRED_INSTALLER, "shortcut")
         text = path.read_text(encoding="utf-8")
-        if "-WindowStyle Hidden" in text and path.name == "install.ps1":
-            if "Do not use -WindowStyle Hidden" not in text:
-                fail(f"{path.name} hides the host window without a documented fallback")
+        if "$sc1.TargetPath = $targetPs" in text:
+            fail(f"{path.name} still points Dragon AI Agent.lnk at powershell.exe")
+        if "Start-DragonAI.vbs" not in text:
+            fail(f"{path.name} missing windowless Start-DragonAI.vbs host")
+
+
+def check_vbs() -> None:
+    require_tokens(VBS, REQUIRED_VBS, "vbs")
+    text = VBS.read_text(encoding="utf-8", errors="replace")
+    if "cscript" in text.lower() and "not cscript" not in text.lower():
+        fail("VBS host must use wscript (cscript flashes a console)")
 
 
 def check_compose_auth() -> None:
@@ -135,6 +157,7 @@ def run_host_smoke() -> None:
 
 def main() -> int:
     require_tokens(FINDER, REQUIRED_FINDER, "finder")
+    check_vbs()
     check_launcher()
     check_shortcuts()
     check_compose_auth()

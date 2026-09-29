@@ -168,7 +168,7 @@ If the Screen pane says packages missing, you are on a slim tag — switch compo
 
 - [ ] `docker version` shows Server (Linux engine)
 - [ ] `docker pull nousresearch/hermes-agent:latest-desktop` succeeds
-- [ ] **Open Dragon AI Agent** (Desktop / Start Menu): a window titled **Dragon AI Agent** (packaging wrap of `win-unpacked\Hermes.exe`). Docker down or a missing client must show an error dialog and a **non-zero** exit. Log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`.
+- [ ] **Open Dragon AI Agent** (Desktop / Start Menu): **no PowerShell console**. Desktop client window only. Docker down or a missing client → MessageBox, not a console. Dashboard `:9119` must **not** auto-open (use Start Menu **Dragon AI Agent Dashboard**). Log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`.
 - [ ] From Windows: `http://127.0.0.1:8642/` does not connection-close (Bearer `dragon-local` if asked). `http://127.0.0.1:9119/` serves the dashboard login (user `dragon`).
 - [ ] Offline wiring check (no secrets): `python3 scripts/airmaze/Test-LaunchSmoke.py` or `powershell -File scripts\airmaze\start-embedded.ps1 -Smoke`
 - [ ] `curl http://127.0.0.1:9119/` or gateway health from Desktop connects

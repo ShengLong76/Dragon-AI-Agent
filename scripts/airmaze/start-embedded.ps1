@@ -10,7 +10,9 @@
   desktop (on-disk Hermes.exe). Failures (Docker down, compose errors,
   missing client) show a MessageBox / popup and exit non-zero.
 
-  Use -GatewayOnly for the old CLI-only compose behavior (no browser / form).
+  The installed Desktop / Start Menu shortcut runs Start-DragonAI.vbs (wscript)
+  so no PowerShell console flashes. Use this .ps1 directly for debugging.
+  Use -GatewayOnly for CLI-only compose. Use -OpenDashboard to open :9119.
   Use -Smoke to validate the launch plan without touching Docker (no secrets).
 
 .NOTES
@@ -25,6 +27,8 @@ param(
     [switch]$SkipPull,
     [switch]$GatewayOnly,
     [switch]$NoBrowser,
+    [switch]$OpenDashboard,
+    [switch]$SilentHost,
     [switch]$NoWizard,
     [switch]$Smoke
 )
@@ -210,7 +214,8 @@ function New-LaunchStatusForm {
             $wiz = Join-Path $rootForUi "scripts\airmaze\Onboard-Wizard.ps1"
             if (Test-Path -LiteralPath $wiz) {
                 Start-Process -FilePath (Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe") `
-                    -ArgumentList @("-STA", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $wiz, "-InstallRoot", $rootForUi)
+                    -WindowStyle Hidden `
+                    -ArgumentList @("-STA", "-NoProfile", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-File", $wiz, "-InstallRoot", $rootForUi)
             } else {
                 Show-DragonDialog -Message "Onboard-Wizard.ps1 was not found. Re-run DragonAIAgentSetup." -Kind Warn
             }
@@ -496,8 +501,8 @@ function Start-OnboardingIfNeeded {
     if (-not (Test-Path -LiteralPath $wiz)) { return }
     Update-LaunchStatus "Opening first-run setup wizard..."
     $ps = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
-    Start-Process -FilePath $ps -ArgumentList @(
-        "-STA", "-NoProfile", "-ExecutionPolicy", "Bypass",
+    Start-Process -FilePath $ps -WindowStyle Hidden -ArgumentList @(
+        "-STA", "-NoProfile", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass",
         "-File", $wiz, "-InstallRoot", $InstallRoot
     )
 }
@@ -513,10 +518,10 @@ function Get-LaunchPlan {
         api           = "${ApiHost}:${ApiPort}"
         log           = $script:LaunchLog
         ui            = @(
-            "status window (WinForms) or blocking error dialog",
+            "windowless host: Start-DragonAI.vbs / wscript.exe (no console)",
+            "blocking error dialog on failure (never a raw console)",
             "require desktop client (win-unpacked Hermes.exe on disk)",
-            "launch Dragon AI Agent window wired to 127.0.0.1:8642",
-            "open $DashboardUrl only after the API is reachable",
+            "launch Dragon AI Agent desktop only (not $DashboardUrl)",
             "first-run Onboard-Wizard if welcome is still pending"
         )
     }
@@ -541,7 +546,9 @@ function Invoke-Smoke {
         "Find-HermesDesktopExe",
         "Start-AgentDesktopOrThrow",
         "win-unpacked",
-        "http://127.0.0.1:9119",
+        "Start-DragonAI.vbs",
+        "SilentHost",
+        "OpenDashboard",
         "New-LaunchStatusForm",
         "hermes-airmaze-gw is not running"
     )
@@ -563,13 +570,15 @@ if ($Smoke) {
 
 $script:WinFormsOk = Test-WinFormsAvailable
 $showUi = -not $GatewayOnly
+if ($SilentHost) {
+    $NoBrowser = $true
+    Hide-ConsoleWindow
+}
 
 try {
     if ($showUi) {
         New-LaunchStatusForm | Out-Null
-        if ($script:LaunchForm) {
-            Hide-ConsoleWindow
-        }
+        Hide-ConsoleWindow
     }
 
     $compose = Join-Path $InstallRoot "docker-compose.embedded.yml"
@@ -592,10 +601,10 @@ try {
     if ($showUi) {
         Start-OnboardingIfNeeded
         $exe = Start-AgentDesktopOrThrow
-        if (-not $NoBrowser) {
+        if ($OpenDashboard -and -not $NoBrowser) {
             try { Open-Dashboard } catch { Write-LaunchLog "Dashboard open skipped: $($_.Exception.Message)" "WARN" }
         }
-        $msg = "Dragon AI Agent launched.`nGateway API: http://${ApiHost}:${ApiPort}/`nDashboard: $DashboardUrl"
+        $msg = "Dragon AI Agent launched.`nGateway API: http://${ApiHost}:${ApiPort}/"
         Update-LaunchStatus $msg
         if ($script:LaunchDashButton) { $script:LaunchDashButton.Enabled = $true }
         if ($script:LaunchForm -and -not $script:LaunchForm.IsDisposed) {

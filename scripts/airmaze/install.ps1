@@ -323,6 +323,7 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\Onboard-Wizard.ps1",
         "scripts\airmaze\DragonAI-SecureStore.ps1",
         "scripts\airmaze\Find-HermesDesktop.ps1",
+        "scripts\airmaze\Start-DragonAI.vbs",
         "templates\profiles\personal-assistant\SOUL.md",
         "templates\profiles\personal-assistant\profile.yaml",
         "docs\airmaze\SETUP_GUIDE.md",
@@ -383,9 +384,10 @@ function Install-Shortcuts {
     $iconLocation = $ico
     if (-not (Test-Path $iconLocation)) { $iconLocation = $png }
 
-    $startScript = Join-Path $InstallRoot "scripts\airmaze\start-embedded.ps1"
+    $startVbs = Join-Path $InstallRoot "scripts\airmaze\Start-DragonAI.vbs"
     $selectScript = Join-Path $InstallRoot "scripts\airmaze\Select-Profile.ps1"
     $targetPs = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
+    $targetWscript = Join-Path $env:SystemRoot "System32\wscript.exe"
 
     Ensure-Dir $StartMenuDir
     $desktop = [Environment]::GetFolderPath("Desktop")
@@ -393,13 +395,12 @@ function Install-Shortcuts {
     try {
         $wsh = New-Object -ComObject WScript.Shell
 
-        # -STA is required for the WinForms status window. Do not use -WindowStyle Hidden:
-        # if WinForms is unavailable the launcher still needs a console fallback.
-        $startArgs = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$startScript`" -InstallRoot `"$InstallRoot`""
+        # Product shortcut: wscript host — no PowerShell console flash.
+        $startArgs = "//nologo `"$startVbs`""
 
         $sc1Path = Join-Path $desktop "Dragon AI Agent.lnk"
         $sc1 = $wsh.CreateShortcut($sc1Path)
-        $sc1.TargetPath = $targetPs
+        $sc1.TargetPath = $targetWscript
         $sc1.Arguments = $startArgs
         $sc1.WorkingDirectory = $InstallRoot
         $sc1.Description = "Dragon AI Agent — start the gateway and open the app"
@@ -410,13 +411,20 @@ function Install-Shortcuts {
 
         $sc2Path = Join-Path $StartMenuDir "Dragon AI Agent.lnk"
         $sc2 = $wsh.CreateShortcut($sc2Path)
-        $sc2.TargetPath = $targetPs
+        $sc2.TargetPath = $targetWscript
         $sc2.Arguments = $startArgs
         $sc2.WorkingDirectory = $InstallRoot
         $sc2.Description = "Dragon AI Agent — start the gateway and open the app"
         $sc2.WindowStyle = 1
         if ($iconLocation -and (Test-Path $iconLocation)) { $sc2.IconLocation = "$iconLocation,0" }
         $sc2.Save()
+
+        $scDashPath = Join-Path $StartMenuDir "Dragon AI Agent Dashboard.lnk"
+        $scDash = $wsh.CreateShortcut($scDashPath)
+        $scDash.TargetPath = "http://127.0.0.1:9119/"
+        $scDash.Description = "Dragon AI Agent — web dashboard (optional)"
+        if ($iconLocation -and (Test-Path $iconLocation)) { $scDash.IconLocation = "$iconLocation,0" }
+        $scDash.Save()
 
         $sc3Path = Join-Path $StartMenuDir "Dragon AI Agent Profiles.lnk"
         $sc3 = $wsh.CreateShortcut($sc3Path)
