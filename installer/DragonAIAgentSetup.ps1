@@ -382,7 +382,7 @@ function Install-Shortcuts {
         $sc1.TargetPath = $targetPs
         $sc1.Arguments = $startArgs
         $sc1.WorkingDirectory = $InstallRoot
-        $sc1.Description = "Dragon AI Agent — start gateway and open Hermes desktop"
+        $sc1.Description = "Dragon AI Agent — start the gateway and open the app"
         $sc1.WindowStyle = 1
         if ($iconLocation -and (Test-Path $iconLocation)) { $sc1.IconLocation = "$iconLocation,0" }
         $sc1.Save()
@@ -393,7 +393,7 @@ function Install-Shortcuts {
         $sc2.TargetPath = $targetPs
         $sc2.Arguments = $startArgs
         $sc2.WorkingDirectory = $InstallRoot
-        $sc2.Description = "Dragon AI Agent — start gateway and open Hermes desktop"
+        $sc2.Description = "Dragon AI Agent — start the gateway and open the app"
         $sc2.WindowStyle = 1
         if ($iconLocation -and (Test-Path $iconLocation)) { $sc2.IconLocation = "$iconLocation,0" }
         $sc2.Save()
@@ -500,10 +500,10 @@ function Start-AgentDesktop {
     }
     $hint = Join-Path $env:LOCALAPPDATA "hermes\hermes-agent\apps\desktop\release\win-unpacked\Hermes.exe"
     Write-Host ""
-    Write-Host "Agent desktop client was not found (checked unpacked Hermes.exe)."
+    Write-Host "Dragon AI Agent desktop was not found (on-disk name Hermes.exe)."
     Write-Host "  Expected: $hint"
     Write-Host "Next steps:"
-    Write-Host "  1. Install or build the Hermes desktop client (win-unpacked Hermes.exe)."
+    Write-Host "  1. Install the Dragon AI Agent desktop client (win-unpacked Hermes.exe on disk)."
     Write-Host "  2. Add Remote gateway: host 127.0.0.1, API port 8642 / dashboard http://127.0.0.1:9119"
     Write-Host "     Local dashboard credentials are in THIRD_PARTY_NOTICES.md / EMBEDDED_GATEWAY.md"
     Write-Host "  3. Open Profiles, select a bot from your applied Dragon AI Agent profile, then open Bot Screen."

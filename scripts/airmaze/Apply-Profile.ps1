@@ -127,7 +127,7 @@ $active = [ordered]@{
 }
 ($active | ConvertTo-Json -Depth 5) | Set-Content -LiteralPath (Join-Path $InstallRoot "active-profile.json") -Encoding UTF8
 
-Write-Dragon "Active profile recorded. Bot Screen picker: open the agent desktop client, select a bot profile under Profiles (ids: $(($bots | ForEach-Object { $_.id }) -join ', '))."
+Write-Dragon "Active profile recorded. In Dragon AI Agent, open Profiles and pick a bot (ids: $(($bots | ForEach-Object { $_.id }) -join ', '))."
 Write-Dragon "Remote gateway (if prompted): http://127.0.0.1:9119  API 127.0.0.1:8642"
 
 # Initialize bot readiness (real-estate-* -> needs_setup until onboarding completes)

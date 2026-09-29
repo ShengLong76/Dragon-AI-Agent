@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Dragon AI Agent launch is wired to show Hermes UI (or a blocking error).
+"""Validate Dragon AI Agent launch is wired to show branded UI (or a blocking error).
 
 No secrets. Safe to run on Linux CI or a Windows checkout without Docker.
 Optionally invokes pwsh/powershell -Smoke when a host is present.
@@ -30,6 +30,7 @@ REQUIRED_LAUNCHER = (
     "hermes-airmaze-gw is not running",
     "error during connect",
     "New-LaunchStatusForm",
+    "Dragon AI Agent launched",
     "Smoke",
 )
 
@@ -38,6 +39,8 @@ REQUIRED_FINDER = (
     "Find-HermesDesktopExe",
     "Save-DragonAIDesktopPointer",
     "Start-HermesDesktopClient",
+    "Set-DragonAIMainWindowTitle",
+    "Dragon AI Agent Client.lnk",
 )
 
 REQUIRED_WIZARD = (
@@ -52,11 +55,12 @@ REQUIRED_COMPOSE = (
     "API_SERVER_ENABLED",
     "API_SERVER_HOST",
     "API_SERVER_KEY",
+    'HERMES_DASHBOARD_BASIC_AUTH_USERNAME: "dragon"',
 )
 
 REQUIRED_INSTALLER = (
     '-STA -NoProfile -ExecutionPolicy Bypass -File `"$startScript`"',
-    "start gateway and open Hermes desktop",
+    "start the gateway and open the app",
     "win-unpacked",
 )
 
@@ -99,6 +103,8 @@ def check_compose_auth() -> None:
     text = COMPOSE.read_text(encoding="utf-8")
     if "HERMES_DASHBOARD_BASIC_AUTH_USER:" in text and "USERNAME" not in text:
         fail("compose still uses BASIC_AUTH_USER (image wants USERNAME)")
+    if 'HERMES_DASHBOARD_BASIC_AUTH_USERNAME: "airmaze"' in text:
+        fail("dashboard login username is still airmaze (customer-facing)")
 
 
 def check_wizard() -> None:
@@ -133,8 +139,15 @@ def main() -> int:
     check_shortcuts()
     check_compose_auth()
     check_wizard()
+    branding = ROOT / "docs" / "airmaze" / "BRANDING.md"
+    if not branding.is_file():
+        fail("missing docs/airmaze/BRANDING.md")
+    btxt = branding.read_text(encoding="utf-8")
+    if "rebuilt Electron" not in btxt:
+        fail("BRANDING.md must say what still needs a rebuilt Electron binary")
+    print(f"OK  branding: {branding.relative_to(ROOT)}")
     run_host_smoke()
-    print("SMOKE OK: opening Dragon AI Agent is wired to Hermes desktop or a blocking error.")
+    print("SMOKE OK: opening Dragon AI Agent is wired to branded UI or a blocking error.")
     return 0
 
 

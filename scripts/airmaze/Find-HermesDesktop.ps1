@@ -100,18 +100,18 @@ function Save-DragonAIDesktopPointer {
         exe              = $ExePath
         workingDirectory = $wd
         updatedAt        = (Get-Date).ToString("o")
-        notes            = "Do not copy Hermes.exe out of win-unpacked; Electron needs sibling resources."
+        notes            = "On-disk filename stays Hermes.exe (Electron resources). Display name is Dragon AI Agent."
     }
     $pointer = Get-DragonAIDesktopPointerPath -InstallRoot $InstallRoot
     ($obj | ConvertTo-Json) | Set-Content -LiteralPath $pointer -Encoding UTF8
 
     try {
         $wsh = New-Object -ComObject WScript.Shell
-        $lnkPath = Join-Path $InstallRoot "Hermes Desktop.lnk"
+        $lnkPath = Join-Path $InstallRoot "Dragon AI Agent Client.lnk"
         $sc = $wsh.CreateShortcut($lnkPath)
         $sc.TargetPath = $ExePath
         $sc.WorkingDirectory = $wd
-        $sc.Description = "Hermes desktop client (Dragon AI Agent)"
+        $sc.Description = "Dragon AI Agent desktop"
         $sc.WindowStyle = 1
         $ico = Join-Path $InstallRoot "branding\dragon-ai-agent-logo.ico"
         if (-not (Test-Path -LiteralPath $ico)) { $ico = Join-Path $InstallRoot "dragon-ai-agent-logo.ico" }
@@ -122,11 +122,52 @@ function Save-DragonAIDesktopPointer {
     return $pointer
 }
 
+function Set-DragonAIMainWindowTitle {
+    <#
+    .SYNOPSIS
+      Rename the unpacked Electron window to Dragon AI Agent (packaging wrap).
+      Taskbar AppUserModelID / About / tray still need a rebuilt client binary.
+    #>
+    param(
+        [string]$Title = "Dragon AI Agent",
+        [int]$TimeoutSec = 25
+    )
+    try {
+        if (-not ("DragonAIWinTitle" -as [type])) {
+            Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class DragonAIWinTitle {
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern bool SetWindowText(IntPtr hWnd, string lpString);
+}
+"@
+        }
+    } catch {
+        return $false
+    }
+    $deadline = (Get-Date).AddSeconds($TimeoutSec)
+    while ((Get-Date) -lt $deadline) {
+        $procs = @(Get-Process -Name "Hermes" -ErrorAction SilentlyContinue)
+        foreach ($p in $procs) {
+            if ($p.MainWindowHandle -ne [IntPtr]::Zero) {
+                try {
+                    [DragonAIWinTitle]::SetWindowText($p.MainWindowHandle, $Title) | Out-Null
+                    return $true
+                } catch {}
+            }
+        }
+        Start-Sleep -Milliseconds 400
+    }
+    return $false
+}
+
 function Start-HermesDesktopClient {
     param(
         [Parameter(Mandatory = $true)][string]$ExePath
     )
     $wd = Split-Path -Parent $ExePath
     Start-Process -FilePath $ExePath -WorkingDirectory $wd -ErrorAction Stop
+    Set-DragonAIMainWindowTitle -Title "Dragon AI Agent" | Out-Null
     return $true
 }

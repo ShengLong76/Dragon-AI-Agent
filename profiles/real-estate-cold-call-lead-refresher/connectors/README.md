@@ -8,7 +8,7 @@ They are **not** live credentials. After install they are copied to:
 | File | Purpose |
 |------|---------|
 | `crm.json` | Vtiger / CRM — leads, TCPA consent fields, Do Not Call |
-| `email.json` | Email Warmer — SMTP/ESP or Hermes email skill |
+| `email.json` | Email Warmer — SMTP/ESP or Dragon AI Agent email skill |
 | `consent-form.json` | Hosted TCPA consent form endpoint |
 | `dialer.json` | Outbound dialer after consent gate |
 | `property-data.json` | Lead enrichment |

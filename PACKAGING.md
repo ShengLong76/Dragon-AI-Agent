@@ -63,7 +63,7 @@ Built-in catalog + import/select scripts are copied into `%LOCALAPPDATA%\DragonA
 
 ## Launch UI
 
-The **Dragon AI Agent** shortcut must show the Hermes desktop window: `start-embedded.ps1` starts Docker + the gateway, treats compose/pipe errors as fatal, waits for host HTTP on `127.0.0.1:8642`, then launches `Hermes.exe` (including `hermes-agent\apps\desktop\release\win-unpacked\Hermes.exe`). Missing Docker or client is a blocking dialog. Shortcuts pass `-STA`. Verify with `python3 scripts/airmaze/Test-LaunchSmoke.py` (no secrets).
+The **Dragon AI Agent** shortcut must show a Dragon AI Agent window: `start-embedded.ps1` starts Docker + the gateway, treats compose/pipe errors as fatal, waits for host HTTP on `127.0.0.1:8642`, then launches on-disk `Hermes.exe` and sets the window title. Missing Docker or client is a blocking dialog. Shortcuts pass `-STA`. See `docs/airmaze/BRANDING.md`. Verify with `python3 scripts/airmaze/Test-LaunchSmoke.py` (no secrets).
 
 ## Limitations
 

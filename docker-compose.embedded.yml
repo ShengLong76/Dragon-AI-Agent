@@ -27,16 +27,16 @@ services:
       HERMES_DASHBOARD_PORT: "9119"
       # Upstream June 2026 gate: non-loopback dashboard bind requires a registered
       # provider. The image reads USERNAME (not USER) + PASSWORD or password_hash.
-      HERMES_DASHBOARD_BASIC_AUTH_USERNAME: "airmaze"
-      HERMES_DASHBOARD_BASIC_AUTH_PASSWORD: "airmaze-local"
-      HERMES_DASHBOARD_BASIC_AUTH_SECRET: "airmaze-local-dashboard-session-secret"
+      HERMES_DASHBOARD_BASIC_AUTH_USERNAME: "dragon"
+      HERMES_DASHBOARD_BASIC_AUTH_PASSWORD: "dragon-local"
+      HERMES_DASHBOARD_BASIC_AUTH_SECRET: "dragon-local-dashboard-session-secret"
       # API defaults to 127.0.0.1 inside the container — docker-proxy then
       # publishes a host port that connection-closes. Bind all interfaces in
       # the container; host publish stays 127.0.0.1 only.
       API_SERVER_ENABLED: "true"
       API_SERVER_HOST: "0.0.0.0"
       API_SERVER_PORT: "8642"
-      API_SERVER_KEY: "airmaze-local"
+      API_SERVER_KEY: "dragon-local"
       API_SERVER_CORS_ORIGINS: "*"
     deploy:
       resources:

@@ -97,7 +97,7 @@ The summary shows **connected / skipped / failed** only — no secret values. Fi
 
 ## After setup — open the app
 
-Desktop / Start Menu **Dragon AI Agent** starts the gateway and opens **Hermes.exe** (the Electron desktop). If Docker, the gateway API, or the desktop client is missing you get an error dialog, not a silent close. Launch log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`.
+Desktop / Start Menu **Dragon AI Agent** starts the gateway and opens the **Dragon AI Agent** window (on-disk client may still be `Hermes.exe`). If Docker, the gateway API, or the desktop client is missing you get an error dialog, not a silent close. Launch log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`.
 
 ## Re-run / resume
 

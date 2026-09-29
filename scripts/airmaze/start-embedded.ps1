@@ -6,9 +6,9 @@
 .DESCRIPTION
   This is the Desktop / Start Menu "Dragon AI Agent" entrypoint.
   It starts Docker if needed, brings the gateway up, waits until the API
-  is reachable on the Windows host, then launches the Hermes/Electron
-  desktop client. Failures (Docker down, compose errors, missing client)
-  show a MessageBox / popup and exit non-zero — never a silent flash.
+  is reachable on the Windows host, then launches the Dragon AI Agent
+  desktop (on-disk Hermes.exe). Failures (Docker down, compose errors,
+  missing client) show a MessageBox / popup and exit non-zero.
 
   Use -GatewayOnly for the old CLI-only compose behavior (no browser / form).
   Use -Smoke to validate the launch plan without touching Docker (no secrets).
@@ -46,7 +46,7 @@ $script:LaunchForm = $null
 $script:LaunchStatus = $null
 $script:LaunchDashButton = $null
 $script:DashboardUrl = $DashboardUrl
-$script:ApiKey = "airmaze-local"
+$script:ApiKey = "dragon-local"
 
 $finder = Join-Path $PSScriptRoot "Find-HermesDesktop.ps1"
 if (-not (Test-Path -LiteralPath $finder)) {
@@ -155,10 +155,25 @@ function New-LaunchStatusForm {
         $header.BackColor = [System.Drawing.Color]::FromArgb(196, 30, 58)
         $form.Controls.Add($header)
 
+        $logoPath = Join-Path $InstallRoot "branding\dragon-ai-agent-logo.png"
+        if (-not (Test-Path -LiteralPath $logoPath)) { $logoPath = Join-Path $InstallRoot "dragon-ai-agent-logo.png" }
+        $titleX = 16
+        if (Test-Path -LiteralPath $logoPath) {
+            try {
+                $pic = New-Object Windows.Forms.PictureBox
+                $pic.Image = [System.Drawing.Image]::FromFile($logoPath)
+                $pic.SizeMode = [Windows.Forms.PictureBoxSizeMode]::Zoom
+                $pic.Location = New-Object Drawing.Point(10, 6)
+                $pic.Size = New-Object Drawing.Size(44, 44)
+                $header.Controls.Add($pic)
+                $titleX = 62
+            } catch {}
+        }
+
         $title = New-Object Windows.Forms.Label
         $title.Text = $ProductName
-        $title.Location = New-Object Drawing.Point(16, 14)
-        $title.Size = New-Object Drawing.Size(520, 28)
+        $title.Location = New-Object Drawing.Point($titleX, 14)
+        $title.Size = New-Object Drawing.Size(480, 28)
         $title.ForeColor = [System.Drawing.Color]::White
         $title.Font = New-Object Drawing.Font("Segoe UI", 14, [Drawing.FontStyle]::Bold)
         $header.Controls.Add($title)
@@ -440,16 +455,16 @@ function Start-AgentDesktopOrThrow {
     if (-not $exe) {
         $hint = Join-Path $env:LOCALAPPDATA "hermes\hermes-agent\apps\desktop\release\win-unpacked\Hermes.exe"
         throw @"
-Hermes desktop client was not found, so Dragon AI Agent has no window to show.
+Dragon AI Agent desktop was not found, so there is no app window to show.
 
-Expected (UltraDragon unpacked build):
+Expected on-disk client (internal filename Hermes.exe):
   $hint
 
-Install or build the Hermes desktop client, then open Dragon AI Agent again.
-A stable shortcut is written to %LOCALAPPDATA%\DragonAIAgent\Hermes Desktop.lnk once the exe is found.
+Install the desktop client, then open Dragon AI Agent again.
+A branded shortcut is written to %LOCALAPPDATA%\DragonAIAgent\Dragon AI Agent Client.lnk once it is found.
 "@
     }
-    Write-LaunchLog "Launching Hermes desktop: $exe"
+    Write-LaunchLog "Launching Dragon AI Agent desktop: $exe"
     Save-DragonAIDesktopPointer -ExePath $exe -InstallRoot $InstallRoot | Out-Null
     Start-HermesDesktopClient -ExePath $exe
     return $exe
@@ -499,8 +514,8 @@ function Get-LaunchPlan {
         log           = $script:LaunchLog
         ui            = @(
             "status window (WinForms) or blocking error dialog",
-            "require Hermes.exe (including win-unpacked path)",
-            "launch Hermes desktop wired to 127.0.0.1:8642",
+            "require desktop client (win-unpacked Hermes.exe on disk)",
+            "launch Dragon AI Agent window wired to 127.0.0.1:8642",
             "open $DashboardUrl only after the API is reachable",
             "first-run Onboard-Wizard if welcome is still pending"
         )
@@ -535,7 +550,7 @@ function Invoke-Smoke {
             throw "Smoke: launcher is missing required symbol '$token'"
         }
     }
-    Write-Host "SMOKE OK: a normal start launches Hermes desktop or a blocking error dialog. No secrets required."
+    Write-Host "SMOKE OK: a normal start launches Dragon AI Agent or a blocking error dialog. No secrets required."
     return 0
 }
 
@@ -580,7 +595,7 @@ try {
         if (-not $NoBrowser) {
             try { Open-Dashboard } catch { Write-LaunchLog "Dashboard open skipped: $($_.Exception.Message)" "WARN" }
         }
-        $msg = "Hermes desktop launched: $exe`nGateway API: http://${ApiHost}:${ApiPort}/`nDashboard: $DashboardUrl"
+        $msg = "Dragon AI Agent launched.`nGateway API: http://${ApiHost}:${ApiPort}/`nDashboard: $DashboardUrl"
         Update-LaunchStatus $msg
         if ($script:LaunchDashButton) { $script:LaunchDashButton.Enabled = $true }
         if ($script:LaunchForm -and -not $script:LaunchForm.IsDisposed) {

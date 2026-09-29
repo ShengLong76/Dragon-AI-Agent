@@ -714,7 +714,7 @@ function Invoke-WinFormsWizard {
     $hdrTitle = New-BrandLabel -Text $ProductName -Location (New-Object Drawing.Point(80, 12)) -Width 500 -Height 28 -Title
     $hdrTitle.ForeColor = [System.Drawing.Color]::White
     $header.Controls.Add($hdrTitle)
-    $hdrSub = New-BrandLabel -Text "First-run setup — profile: $ProfId" -Location (New-Object Drawing.Point(80, 40)) -Width 500 -Height 22 -Muted
+    $hdrSub = New-BrandLabel -Text "Dragon AI Agent first-run setup — profile: $ProfId" -Location (New-Object Drawing.Point(80, 40)) -Width 500 -Height 22 -Muted
     $hdrSub.ForeColor = [System.Drawing.Color]::FromArgb(255, 220, 220)
     $header.Controls.Add($hdrSub)
 
@@ -746,7 +746,7 @@ function Invoke-WinFormsWizard {
         Update-StatusStrip $statusStrip $Progress
         $content.Controls.Add((New-BrandLabel -Text "Welcome to Dragon AI Agent" -Location (New-Object Drawing.Point(40, 24)) -Width 600 -Height 32 -Title))
         $pitch = @"
-Run business-ready AI bots on your Windows PC with an embedded gateway.
+Dragon AI Agent runs business-ready bots on this Windows PC with an embedded gateway.
 
 Real Estate flow: Lead Sourcer → Email Warmer → consent gate → calling.
 Secrets stay on this machine (Windows DPAPI). This software is not legal advice.

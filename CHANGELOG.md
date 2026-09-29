@@ -7,11 +7,12 @@ All notable changes to Dragon AI Agent (packaging/distribution) are documented h
 ### Fixed
 - **Windows launch showed no UI (UltraDragon repro).** The Desktop / Start Menu shortcut ran `start-embedded.ps1` only (`docker compose pull && up -d`, no `-NoExit`). Compose connect/pipe errors were not fatal (exit 0 + success URLs). `Start-AgentDesktop` missed the real client at `%LOCALAPPDATA%\hermes\hermes-agent\apps\desktop\release\win-unpacked\Hermes.exe`. Dashboard `9119` crash-looped (wrong basic-auth env names). Gateway `8642` was healthy inside the container but connection-closed from Windows (`API_SERVER_HOST` default loopback). Setup wizard WinForms died on `OrderedDictionary.ContainsKey` and `[Drawing.Color]` before `Add-Type`.
   - Launcher starts Docker, treats compose/pipe/container failures as **fatal** (dialog + exit 1), waits for host HTTP on `127.0.0.1:8642`, then launches **Hermes.exe** (or a blocking “client not found” dialog).
-  - Discovery includes the unpacked Electron path; writes `%LOCALAPPDATA%\DragonAIAgent\desktop-client.json` + `Hermes Desktop.lnk` (do not copy the exe out of `win-unpacked`).
-  - Compose: `HERMES_DASHBOARD_BASIC_AUTH_USERNAME` + password/secret; `API_SERVER_ENABLED=true`, `API_SERVER_HOST=0.0.0.0`, local-only `API_SERVER_KEY=airmaze-local` (host publish stays `127.0.0.1`).
+  - Discovery includes the unpacked Electron path; writes `%LOCALAPPDATA%\DragonAIAgent\desktop-client.json` + `Dragon AI Agent Client.lnk` (do not copy the exe out of `win-unpacked`).
+  - Compose: `HERMES_DASHBOARD_BASIC_AUTH_USERNAME` + password/secret; `API_SERVER_ENABLED=true`, `API_SERVER_HOST=0.0.0.0`, local-only `API_SERVER_KEY=dragon-local` (host publish stays `127.0.0.1`).
   - Wizard: load System.Drawing first; IDictionary uses `.Contains()`.
   - Shortcuts: PowerShell `-STA`. Daily start skips image pull (`-Pull` to update). Log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`.
   - Smoke: `python3 scripts/airmaze/Test-LaunchSmoke.py` or `start-embedded.ps1 -Smoke`.
+- **Customer-facing branding is Dragon AI Agent** (not Hermes/AirMaze as the product). Shortcuts, wizard, installer resources, dashboard login (`dragon` / `dragon-local`), and profile labels updated. Window title is wrapped after launch. Tray / About / `productName` still need a rebuilt Electron binary — see `docs/airmaze/BRANDING.md`. Logo: `branding/dragon-ai-agent-logo.*`.
 
 ## [0.1.0] — 2026-09-28
 
