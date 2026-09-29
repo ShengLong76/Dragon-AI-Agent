@@ -162,6 +162,8 @@ If the Screen pane says packages missing, you are on a slim tag — switch compo
 
 - [ ] `docker version` shows Server (Linux engine)
 - [ ] `docker pull nousresearch/hermes-agent:latest-desktop` succeeds
+- [ ] **Open Dragon AI Agent** (Desktop / Start Menu): a status window appears, then the dashboard browser tab (`http://127.0.0.1:9119/`). A missing Docker engine or a dead gateway must show an error dialog — not a silent exit. Log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`.
+- [ ] Offline wiring check (no secrets): `python3 scripts/airmaze/Test-LaunchSmoke.py` or `powershell -File scripts\airmaze\start-embedded.ps1 -Smoke`
 - [ ] `curl http://127.0.0.1:9119/` or gateway health from Desktop connects
 - [ ] Screen pane offers Start (not “not offered on this host” — that message is for when gateway **is** Windows; embedded Linux must be the gateway)
 - [ ] `hermes computer-use screen status` (in container) → installed / running

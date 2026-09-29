@@ -61,8 +61,12 @@ Built-in catalog + import/select scripts are copied into `%LOCALAPPDATA%\DragonA
 
 `/workspace/airmaze-agent-dist/release/Dragon-AI-Agent-v0.1.0-windows.zip` and unpacked folder beside it. Also `dragon-ai-agent-logo.png` at release root for GitHub assets. Source tree zip: `airmaze-agent-source.zip`.
 
+## Launch UI
+
+The **Dragon AI Agent** shortcut must show a window: `start-embedded.ps1` starts the gateway, waits for `127.0.0.1:9119` / `:8642`, opens the dashboard, and shows a WinForms status form (or a MessageBox / `WScript.Shell.Popup` if WinForms is unavailable). Hard failures are dialogs, not a silent PowerShell exit. Shortcuts pass `-STA`. Verify with `python3 scripts/airmaze/Test-LaunchSmoke.py` (no secrets).
+
 ## Limitations
 
 - Quiet Docker/WSL install may still need reboot or UAC/UI clicks.
-- Agent desktop client is not bundled.
+- Agent desktop client is not bundled; the packaged visible UI on open is the localhost dashboard plus the launcher window.
 - Dashboard basic auth defaults remain the compose local-only values (see `THIRD_PARTY_NOTICES.md` / `EMBEDDED_GATEWAY.md`).

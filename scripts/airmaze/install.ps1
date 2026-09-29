@@ -392,12 +392,16 @@ function Install-Shortcuts {
     try {
         $wsh = New-Object -ComObject WScript.Shell
 
+        # -STA is required for the WinForms status window. Do not use -WindowStyle Hidden:
+        # if WinForms is unavailable the launcher still needs a console fallback.
+        $startArgs = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$startScript`" -InstallRoot `"$InstallRoot`""
+
         $sc1Path = Join-Path $desktop "Dragon AI Agent.lnk"
         $sc1 = $wsh.CreateShortcut($sc1Path)
         $sc1.TargetPath = $targetPs
-        $sc1.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$startScript`""
+        $sc1.Arguments = $startArgs
         $sc1.WorkingDirectory = $InstallRoot
-        $sc1.Description = "Dragon AI Agent — start embedded gateway"
+        $sc1.Description = "Dragon AI Agent — start gateway and open the dashboard"
         $sc1.WindowStyle = 1
         if ($iconLocation -and (Test-Path $iconLocation)) { $sc1.IconLocation = "$iconLocation,0" }
         $sc1.Save()
@@ -406,9 +410,10 @@ function Install-Shortcuts {
         $sc2Path = Join-Path $StartMenuDir "Dragon AI Agent.lnk"
         $sc2 = $wsh.CreateShortcut($sc2Path)
         $sc2.TargetPath = $targetPs
-        $sc2.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$startScript`""
+        $sc2.Arguments = $startArgs
         $sc2.WorkingDirectory = $InstallRoot
-        $sc2.Description = "Dragon AI Agent — start embedded gateway"
+        $sc2.Description = "Dragon AI Agent — start gateway and open the dashboard"
+        $sc2.WindowStyle = 1
         if ($iconLocation -and (Test-Path $iconLocation)) { $sc2.IconLocation = "$iconLocation,0" }
         $sc2.Save()
 
@@ -426,7 +431,7 @@ function Install-Shortcuts {
             $sc4Path = Join-Path $StartMenuDir "Dragon AI Agent Setup.lnk"
             $sc4 = $wsh.CreateShortcut($sc4Path)
             $sc4.TargetPath = $targetPs
-            $sc4.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$onboardScript`" -InstallRoot `"$InstallRoot`" -PayloadRoot `"$InstallRoot`""
+            $sc4.Arguments = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$onboardScript`" -InstallRoot `"$InstallRoot`" -PayloadRoot `"$InstallRoot`""
             $sc4.WorkingDirectory = $InstallRoot
             $sc4.Description = "Dragon AI Agent — first-run onboarding wizard"
             if ($iconLocation -and (Test-Path $iconLocation)) { $sc4.IconLocation = "$iconLocation,0" }
@@ -435,7 +440,7 @@ function Install-Shortcuts {
             $sc5Path = Join-Path $desktop "Dragon AI Agent Setup.lnk"
             $sc5 = $wsh.CreateShortcut($sc5Path)
             $sc5.TargetPath = $targetPs
-            $sc5.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$onboardScript`" -InstallRoot `"$InstallRoot`" -PayloadRoot `"$InstallRoot`""
+            $sc5.Arguments = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$onboardScript`" -InstallRoot `"$InstallRoot`" -PayloadRoot `"$InstallRoot`""
             $sc5.WorkingDirectory = $InstallRoot
             $sc5.Description = "Dragon AI Agent — first-run onboarding wizard"
             if ($iconLocation -and (Test-Path $iconLocation)) { $sc5.IconLocation = "$iconLocation,0" }

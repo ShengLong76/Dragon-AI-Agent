@@ -95,11 +95,15 @@ The summary shows **connected / skipped / failed** only — no secret values. Fi
 
 ---
 
+## After setup — open the app
+
+Desktop / Start Menu **Dragon AI Agent** starts the gateway and opens the dashboard (`http://127.0.0.1:9119/`) in a status window. If Docker or the gateway is missing you get an error dialog, not a silent close. Launch log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`.
+
 ## Re-run / resume
 
 ```powershell
 cd %LOCALAPPDATA%\DragonAIAgent
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\airmaze\Onboard-Wizard.ps1
+powershell -STA -NoProfile -ExecutionPolicy Bypass -File .\scripts\airmaze\Onboard-Wizard.ps1
 ```
 
 - Resume starts at the first incomplete step.  

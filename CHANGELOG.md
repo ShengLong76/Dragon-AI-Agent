@@ -2,6 +2,17 @@
 
 All notable changes to Dragon AI Agent (packaging/distribution) are documented here.
 
+## [Unreleased]
+
+### Fixed
+- **Windows launch showed no UI.** The Desktop / Start Menu **Dragon AI Agent** shortcut ran `start-embedded.ps1`, which only did `docker compose pull && up -d` and then exited. PowerShell `-File` closes that console, Docker is tray-only by design, and the dashboard / agent desktop were never opened — so a normal open looked like nothing happened.
+  - Launcher now shows a status window (or a MessageBox / popup on failure).
+  - After the gateway is reachable it opens `http://127.0.0.1:9119/` and the agent desktop client when installed.
+  - Missing Docker / compose / a dead gateway is an explicit dialog, not a silent exit.
+  - Shortcuts start PowerShell `-STA` (needed for WinForms). First-run wizard still opens when welcome is pending.
+  - Daily start skips an image pull (`-Pull` to update). Log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`.
+  - Smoke: `python3 scripts/airmaze/Test-LaunchSmoke.py` or `start-embedded.ps1 -Smoke`.
+
 ## [0.1.0] — 2026-09-28
 
 ### Added
