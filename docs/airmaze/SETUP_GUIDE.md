@@ -1,7 +1,7 @@
 # Dragon AI Agent — Setup Guide
 
 **Product:** Dragon AI Agent v0.1.0  
-**Audience:** First-run users (especially the **Real Estate Cold Call Lead Refresher** profile)
+**Audience:** First-run users (especially the **Real Estate Cold Call Lead Refresher** bot group)
 
 This guide mirrors the **Dragon AI Agent Setup** wizard (`scripts/airmaze/Onboard-Wizard.ps1`). Prefer the wizard when possible; use this doc if you configure connectors manually.
 
@@ -16,7 +16,7 @@ This guide mirrors the **Dragon AI Agent Setup** wizard (`scripts/airmaze/Onboar
 - Progress and bot readiness are non-secret JSON under:
   - `%LOCALAPPDATA%\DragonAIAgent\onboarding\progress.json`
   - `%LOCALAPPDATA%\DragonAIAgent\onboarding\bots-status.json`
-- Connector placeholders under `%LOCALAPPDATA%\DragonAIAgent\connectors\<profile>\` hold **non-secret** fields only (URLs, from-address, SID display values). **Never** put secrets in those JSON files.
+- Connector placeholders under `%LOCALAPPDATA%\DragonAIAgent\connectors\<bot-group>\` hold **non-secret** fields only (URLs, from-address, SID display values). **Never** put secrets in those JSON files.
 
 ---
 
@@ -91,7 +91,7 @@ The summary shows **connected / skipped / failed** only — no secret values. Fi
 
 - Required incomplete → all Real Estate bots = `needs_setup`  
 - Required complete → bots = `ready`  
-- **Personal Assistant** profile → no critical connectors; bots marked ready  
+- **Personal Assistant** bot group → no critical connectors; bots marked ready  
 
 ---
 
@@ -116,4 +116,4 @@ powershell -STA -NoProfile -ExecutionPolicy Bypass -File .\scripts\airmaze\Onboa
 
 - `ARCHITECTURE.md` — embedded gateway on Windows via Docker  
 - `EMBEDDED_GATEWAY.md` — ports and desktop wiring  
-- Profile README under `profiles/real-estate-cold-call-lead-refresher/`
+- Bot group README under `bot-groups/real-estate-cold-call-lead-refresher/`

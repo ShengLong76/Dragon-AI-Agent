@@ -222,7 +222,7 @@ function Test-DragonAIRequiredStepsComplete {
 function Update-DragonAIBotsFromProgress {
     <#
     .SYNOPSIS
-      Set all profile bots to ready or needs_setup based on required onboarding steps.
+      Set all bot-group bots to ready or needs_setup based on required onboarding steps.
       Real-estate required: email + crm + telephony (welcome optional; property-data/dialer optional).
       Personal-assistant: mark ready (no critical connectors).
     #>
@@ -240,6 +240,13 @@ function Update-DragonAIBotsFromProgress {
         $ProfileId = [string]$Progress.profileId
     }
     if ([string]::IsNullOrWhiteSpace($ProfileId)) {
+        $activeGroup = Join-Path $env:LOCALAPPDATA "DragonAIAgent\active-bot-group.json"
+        if ([string]::IsNullOrWhiteSpace($ProfileId) -and (Test-Path -LiteralPath $activeGroup)) {
+            try {
+                $active = Get-Content -LiteralPath $activeGroup -Raw -Encoding UTF8 | ConvertFrom-Json
+                $ProfileId = [string]$active.botGroupId
+            } catch {}
+        }
         $activePath = Join-Path $env:LOCALAPPDATA "DragonAIAgent\active-profile.json"
         if (Test-Path -LiteralPath $activePath) {
             try {
@@ -276,7 +283,7 @@ function Update-DragonAIBotsFromProgress {
         updatedAt = (Get-Date).ToString("o")
         bots      = $botsMap
         reason    = if ($ready) {
-            "Required onboarding steps complete (or personal-assistant profile)."
+            "Required onboarding steps complete (or personal-assistant bot group)."
         } else {
             "Required steps incomplete (email + crm + telephony) or wizard skipped; bots stay needs_setup."
         }
@@ -288,7 +295,7 @@ function Update-DragonAIBotsFromProgress {
 function Initialize-DragonAIBotsNeedsSetup {
     <#
     .SYNOPSIS
-      Initialize bots-status.json to needs_setup for a profile (used by Apply-Profile).
+      Initialize bots-status.json to needs_setup for a bot group (used by Deploy-BotGroup).
     #>
     [CmdletBinding()]
     param(
@@ -313,9 +320,9 @@ function Initialize-DragonAIBotsNeedsSetup {
         updatedAt = (Get-Date).ToString("o")
         bots      = $botsMap
         reason    = if ($state -eq "ready") {
-            "Personal assistant profile — no critical connectors required."
+            "Personal Assistant bot group — no critical connectors required."
         } else {
-            "Profile applied; run Dragon AI Agent Setup wizard before bots are ready."
+            "Bot group applied; run Dragon AI Agent Setup wizard before bots are ready."
         }
     }
     Set-DragonAIBotStatus -Status $status

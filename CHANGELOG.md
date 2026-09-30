@@ -5,6 +5,7 @@ All notable changes to Dragon AI Agent (packaging/distribution) are documented h
 ## [Unreleased]
 
 ### Added
+- **Bot groups replace profiles.** Department-level packs (name + job + bots with title, description, tools) live in `bot-groups/` on this GitHub repo. The UI dropdown fetches that catalog and deploys a group with no manual file handling. Export writes a re-importable group file. Singular bot import/export is a toggle, off by default. Overlay paths survive an upstream desktop-agent sync. Check: `python3 scripts/airmaze/Test-BotGroups.py`. Design: `docs/airmaze/BOT_GROUPS.md`.
 - **Understand-Anything (MIT) Cursor skill + plugin pointer** so agents can map this repo later. Slash commands: `/understand`, `/understand-dashboard`. Graph output is `.ua/` and gitignored; no generated knowledge graph is committed. First scan is token-heavy and was not run. Check: `python3 scripts/airmaze/Test-UnderstandAnything.py`. See `docs/airmaze/UNDERSTAND_ANYTHING.md`.
 
 ### Changed

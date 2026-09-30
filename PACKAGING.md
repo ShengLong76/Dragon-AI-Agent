@@ -38,7 +38,7 @@ Dragon-AI-Agent-v0.1.0-windows/
     install.ps1
     docker-compose.embedded.yml
     README.md
-    profiles/...
+    bot-groups/...
     scripts/airmaze/...
     templates/profiles/personal-assistant/...
     branding/...
@@ -53,9 +53,9 @@ Installer patches:
 
 Setting keys include `openUIOnStartupDisabled` / `OpenUIOnStartupDisabled` = true, plus `startMinimized` / `minimizeToTray` / `openAtLogin`. Docker is started via `com.docker.service` when possible, then `Docker Desktop.exe` minimized — **not** a force-open dashboard flag.
 
-## Profiles
+## Bot groups
 
-Built-in catalog + import/select scripts are copied into `%LOCALAPPDATA%\DragonAIAgent\`. Bots are applied to `%LOCALAPPDATA%\hermes\profiles\<bot-id>\` for the agent desktop Bot Screen picker (internal path).
+`bot-groups/` plus `bot_groups.py` / `Select-BotGroup.ps1` are copied into `%LOCALAPPDATA%\DragonAIAgent\`. The dropdown lists groups from this GitHub repo. Bots are applied to `%LOCALAPPDATA%\hermes\profiles\<bot-id>\` for the agent desktop Bot Screen picker (upstream path, not renamed).
 
 ## Outputs
 

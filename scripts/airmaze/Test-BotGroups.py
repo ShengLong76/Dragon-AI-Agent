@@ -444,7 +444,7 @@ def test_singular_toggle(bg) -> None:
         if data.get("tools") != ["email", "crm", "consent-form"]:
             fail("one-bot export must include tools")
         other = tmp_path / "singular-in"
-        bg.import_bundle(exported, install_root=tmp_path / "install-s", desktop_profiles_root=other)
+        bg.import_bundle(exported, install_root=install, desktop_profiles_root=other)
         if not (other / "email-warmer" / "SOUL.md").is_file():
             fail("one-bot import must install that bot when the toggle is on")
     print("OK  singular toggle off by default; one-bot file differs")

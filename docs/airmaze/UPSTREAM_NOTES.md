@@ -139,4 +139,14 @@ On UltraDragon after bootstrap:
 2. Desktop Remote must target the packaged `:8650` serve proxy, not `:8642`.
 3. Re-read these paths after `git pull` on UltraDragon; upstream moves quickly.
 
+## Bot group overlay (do not wipe on sync)
+
+Bot groups live beside this desktop-agent base, not inside Bot Screen:
+
+- `bot-groups/` — GitHub catalog
+- `scripts/airmaze/bot_groups.py`, `Select-BotGroup.ps1`, `Test-BotGroups.py`
+- `docs/airmaze/BOT_GROUPS.md`
+
+A sync of the upstream desktop / hermes-agent tree does not contain those paths. Keep them. Deploy still writes `%LOCALAPPDATA%\hermes\profiles\<bot-id>\` so the picker and Bot Screen keep working.
+
 License: MIT, Copyright (c) 2025 Nous Research.

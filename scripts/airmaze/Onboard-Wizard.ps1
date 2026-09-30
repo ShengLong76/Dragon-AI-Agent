@@ -11,6 +11,7 @@
 param(
     [string]$InstallRoot = "",
     [string]$PayloadRoot = "",
+    [string]$BotGroupId = "",
     [string]$ProfileId = "",
     [switch]$SkipWelcome,
     [switch]$Force
@@ -50,11 +51,20 @@ function Write-WizardLog {
 }
 
 function Resolve-WizardProfileId {
+    if (-not [string]::IsNullOrWhiteSpace($BotGroupId)) { return $BotGroupId }
     if (-not [string]::IsNullOrWhiteSpace($ProfileId)) { return $ProfileId }
+    $activeGroup = Join-Path $InstallRoot "active-bot-group.json"
+    if (Test-Path -LiteralPath $activeGroup) {
+        try {
+            $a = Get-Content -LiteralPath $activeGroup -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ($a.botGroupId) { return [string]$a.botGroupId }
+        } catch {}
+    }
     $activePath = Join-Path $InstallRoot "active-profile.json"
     if (Test-Path -LiteralPath $activePath) {
         try {
             $a = Get-Content -LiteralPath $activePath -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ($a.botGroupId) { return [string]$a.botGroupId }
             if ($a.profileId) { return [string]$a.profileId }
         } catch {}
     }
@@ -360,7 +370,7 @@ function Invoke-ConsoleWizard {
     Write-Host "========================================"
     Write-Host " $ProductName Setup"
     Write-Host "========================================"
-    Write-Host " Profile: $ProfId"
+    Write-Host " Bot group: $ProfId"
     Write-Host " Secrets: DPAPI under %LOCALAPPDATA%\DragonAIAgent\onboarding\secrets\"
     Write-Host ""
 
@@ -716,7 +726,7 @@ function Invoke-WinFormsWizard {
     $hdrTitle = New-BrandLabel -Text $ProductName -Location (New-Object Drawing.Point(80, 12)) -Width 500 -Height 28 -Title
     $hdrTitle.ForeColor = [System.Drawing.Color]::White
     $header.Controls.Add($hdrTitle)
-    $hdrSub = New-BrandLabel -Text "Dragon AI Agent first-run setup — profile: $ProfId" -Location (New-Object Drawing.Point(80, 40)) -Width 500 -Height 22 -Muted
+    $hdrSub = New-BrandLabel -Text "Dragon AI Agent first-run setup — bot group: $ProfId" -Location (New-Object Drawing.Point(80, 40)) -Width 500 -Height 22 -Muted
     $hdrSub.ForeColor = [System.Drawing.Color]::FromArgb(255, 220, 220)
     $header.Controls.Add($hdrSub)
 
