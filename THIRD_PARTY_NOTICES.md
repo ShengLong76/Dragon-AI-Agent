@@ -54,3 +54,16 @@ Installed for Cursor at `.cursor/skills/ui-ux-pro-max` via `npx ui-ux-pro-max-cl
 
 Upstream feature documentation (public):  
 https://hermes-agent.nousresearch.com/docs/user-guide/features/bot-screen
+
+## Understand Anything (Cursor skill / plugin pointer)
+
+Vendored under `.cursor/skills/understand-anything/` and `.cursor-plugin/plugin.json` so Cursor and cloud agents can map this repo later. This packaging tree does **not** ship a generated knowledge graph (`.ua/` is gitignored) and does not vendor paid extras.
+
+| Item | Value |
+|------|--------|
+| Project | https://github.com/Egonex-AI/Understand-Anything |
+| License | MIT © 2026 Yuxiang Lin and Infinite Universe, Inc. |
+| Commands | `/understand`, `/understand-dashboard` |
+| Graph dir | `.ua/` (gitignored) |
+
+How to run the first scan later: `docs/airmaze/UNDERSTAND_ANYTHING.md`.

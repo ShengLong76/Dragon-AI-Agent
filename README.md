@@ -191,6 +191,9 @@ LICENSE
 THIRD_PARTY_NOTICES.md
 CHANGELOG.md
 PACKAGING.md
+.cursor/skills/ui-ux-pro-max/
+.cursor/skills/understand-anything/
+.cursor-plugin/plugin.json
 docs/airmaze/
 docker-compose.embedded.yml
 profiles/
@@ -208,6 +211,7 @@ scripts/airmaze/
   Test-DesktopBranding.py
   Test-LaunchSmoke.py
   Test-DesktopServeAdapter.py
+  Test-UnderstandAnything.py
   desktop-loopback-proxy.py
   start-desktop-serve.sh
   start-desktop-proxy.sh
@@ -225,7 +229,6 @@ installer/
   build-exe.go
 branding/   (release: dragon-ai-agent-logo.png / .svg / .ico — James’s navy coiled mark; fonts/syne — OFL wordmark face)
 design-system/dragon-ai-agent/   (UI UX Pro Max MASTER + desktop-client override)
-.cursor/skills/ui-ux-pro-max/    (open-source Cursor skill)
 ```
 
 ---
@@ -239,7 +242,8 @@ design-system/dragon-ai-agent/   (UI UX Pro Max MASTER + desktop-client override
 5. `docs/airmaze/SETUP_GUIDE.md` — first-run onboarding (email / CRM / telephony) + Real Estate flow
 6. `docs/airmaze/BRANDING.md` — Dragon AI Agent vs Hermes (window wrap + unpacked UI overlay vs Electron rebuild)
 7. `docs/airmaze/DESIGN.md` — UI UX Pro Max design system applied to overlay chrome (Syne, dark + crimson)
-8. `PACKAGING.md` — how this release was built
+8. `docs/airmaze/UNDERSTAND_ANYTHING.md` — MIT Understand-Anything skill (`/understand`, `/understand-dashboard`); first scan later; `.ua/` gitignored
+9. `PACKAGING.md` — how this release was built
 
 ---
 

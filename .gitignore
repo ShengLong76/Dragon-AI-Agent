@@ -1,2 +1,6 @@
 __pycache__/
 *.pyc
+
+# Understand-Anything knowledge graph (do not commit generated graphs)
+.ua/
+.understand-anything/

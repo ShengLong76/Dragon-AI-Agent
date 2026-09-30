@@ -4,6 +4,9 @@ All notable changes to Dragon AI Agent (packaging/distribution) are documented h
 
 ## [Unreleased]
 
+### Added
+- **Understand-Anything (MIT) Cursor skill + plugin pointer** so agents can map this repo later. Slash commands: `/understand`, `/understand-dashboard`. Graph output is `.ua/` and gitignored; no generated knowledge graph is committed. First scan is token-heavy and was not run. Check: `python3 scripts/airmaze/Test-UnderstandAnything.py`. See `docs/airmaze/UNDERSTAND_ANYTHING.md`.
+
 ### Changed
 - **Product mark is James’s navy low-poly dragon.** Front-facing, coiled neck, few large facets, horns the same navy as the body, red eyes. No gold horns, no copper ring, not a side profile. PNG cropped from the attached mark; overlay pins it on the empty-state intro. Syne 700 and Bot Screen `:8650` / `dragon-local` unchanged.
 - **Desktop chrome follows a UI UX Pro Max design system.** The open-source Cursor skill is in-repo (`.cursor/skills/ui-ux-pro-max`). Generator note: `design-system/dragon-ai-agent/MASTER.md`; applied override: `pages/desktop-client.md` and `docs/airmaze/DESIGN.md`. Overlay CSS now ships AI-Native tokens (dark `#1C1C20`, crimson `#C41E3A`), a visible composer focus ring, and `prefers-reduced-motion`. **Syne 700** stays the wordmark. Catalog Inter / AI purple and paid brand/logo extras are not shipped. Bot Screen `:8650` / `dragon-local` unchanged.
