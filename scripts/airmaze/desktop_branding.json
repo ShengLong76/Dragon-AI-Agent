@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 6,
   "product": "Dragon AI Agent",
   "note": "User-visible product chrome only. Do not rename process names, Docker tags, tokens, ports, protocols, or license attribution.",
   "designSystem": {
@@ -33,7 +33,15 @@
     "facing": "front",
     "body": "#314A73",
     "eyes": "#C41E3A",
-    "why": "James's mark: front-facing navy low-poly dragon, coiled neck, horns the same navy, red eyes. No gold, no copper ring, not a side profile."
+    "why": "James's mark: front-facing navy low-poly dragon, coiled neck, horns the same navy, red eyes. No gold, no copper ring, not a side profile.",
+    "boxed": false,
+    "emptyStateSize": "22rem",
+    "stack": "wordmark-in-front"
+  },
+  "sidebar": {
+    "userFacingBots": ["Personal Assistant"],
+    "hideDefaultHermes": true,
+    "why": "Embedded Linux roster must not list the built-in default Hermes agent alongside Personal Assistant."
   },
   "replacements": [
     {
@@ -180,14 +188,29 @@
       "from": "appName:\"Hermes\"",
       "to": "appName:\"Dragon AI Agent\"",
       "surface": "settings-app-name"
+    },
+    {
+      "from": "return 'Hermes'",
+      "to": "return ''",
+      "surface": "sidebar-default-bot"
+    },
+    {
+      "from": "return \"Hermes\"",
+      "to": "return \"\"",
+      "surface": "sidebar-default-bot"
+    },
+    {
+      "from": "return\"Hermes\"",
+      "to": "return\"\"",
+      "surface": "sidebar-default-bot"
     }
   ],
   "source_only": [
     {
       "path_suffix": "plugins/hermes-bots/labels.ts",
       "from": "return 'Hermes'",
-      "to": "return 'Dragon AI'",
-      "surface": "default-bot-label"
+      "to": "return ''",
+      "surface": "sidebar-default-bot"
     }
   ],
   "protected": [

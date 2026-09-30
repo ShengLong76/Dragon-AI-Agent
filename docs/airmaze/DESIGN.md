@@ -18,7 +18,7 @@ Query: `AI chatbot platform desktop agent dark` (variance 4, motion 2, density 6
 
 Dark, quiet chrome. Composer focus uses crimson `#C41E3A`. Type is **Syne** (OFL). Wordmark stays weight **700**. Composer and settings use the same family. Focus rings are visible. Motion is optional and off under `prefers-reduced-motion`. No Universal Sans, Gotham, Tesla faces, Inter webfont, or new UI framework.
 
-**Mark:** James’s navy low-poly dragon — front-facing, coiled neck, few large facets, horns the same navy as the body (`#314A73`), red eyes (`#C41E3A`). No gold horns, no copper ring, not a side profile. Source image cropped to `branding/dragon-ai-agent-logo.png`; SVG companion is `branding/dragon-ai-agent-logo.svg`. The overlay pins the PNG on the empty-state intro; wizard and shortcuts use the PNG/ICO.
+**Mark:** James’s navy low-poly dragon — front-facing, coiled neck, few large facets, horns the same navy as the body (`#314A73`), red eyes (`#C41E3A`). No gold horns, no copper ring, not a side profile, **no boxed black plate**. Source image cropped to `branding/dragon-ai-agent-logo.png` with the field punched so the mark sits on the dark window; SVG companion is `branding/dragon-ai-agent-logo.svg`. The overlay pins a **larger** PNG behind the empty-state intro; the **DRAGON AI AGENT** wordmark sits in front of that mark. Wizard and shortcuts use the same unboxed PNG/ICO.
 
 | Token | Value |
 |-------|--------|
@@ -33,11 +33,12 @@ Full token table and skill-vs-override notes: `design-system/dragon-ai-agent/` (
 
 ## What changes for James
 
-- Empty-state **DRAGON AI AGENT** still Syne 700, now on the shared tokens (foreground, tracking).
+- Empty-state **DRAGON AI AGENT** still Syne 700, now on the shared tokens (foreground, tracking), **in front of** a larger unboxed navy dragon.
 - Composer **Give Dragon AI a task** keeps the copy; focus-visible uses the crimson ring.
 - Settings / About stay **Dragon AI Agent**.
 - Setup wizard colors stay the same RGB values, now named as this system.
-- Product mark is James’s front-facing navy low-poly dragon (coiled neck, same-color horns, red eyes) on empty state, wizard, and shortcuts.
+- Product mark is James’s front-facing navy low-poly dragon (coiled neck, same-color horns, red eyes, no boxed background) on empty state, wizard, and shortcuts.
+- Sidebar under Embedded Linux lists **Personal Assistant** only. The built-in default Hermes agent is hidden (not renamed).
 
 ## What does not change
 

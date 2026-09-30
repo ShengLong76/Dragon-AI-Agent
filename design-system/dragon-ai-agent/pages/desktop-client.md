@@ -45,7 +45,9 @@ Text on `#1C1C20`: `#F0F0F5` and `#A0A0AA` both clear 4.5:1.
 
 ## Mark
 
-James’s front-facing navy low-poly dragon (both eyes to the viewer, coiled neck). Large flat navy facets `#314A73` (horns the same navy); red eyes `#C41E3A`; black field. No gold, no copper ring, not a side profile. PNG is cropped from the attached mark; SVG is the facet companion. Overlay copies both into `dragon-ai-branding/` and shows the PNG on `[data-slot="aui_intro"]`.
+James’s front-facing navy low-poly dragon (both eyes to the viewer, coiled neck). Large flat navy facets `#314A73` (horns the same navy); red eyes `#C41E3A`. **No boxed black plate** — the mark sits on the dark window. No gold, no copper ring, not a side profile. PNG is cropped from the attached mark with the field punched; SVG is the facet companion without a `<rect>` plate. Overlay copies both into `dragon-ai-branding/` and shows a **larger** PNG **behind** the empty-state wordmark (`z-index` so **DRAGON AI AGENT** is in front).
+
+The Bots rail must not list the built-in default Hermes agent next to Personal Assistant. Overlay CSS hides `[data-roster-key$="::default"]`; the string overlay blanks `return 'Hermes'`. **Personal Assistant** stays.
 
 ## Surfaces this overlay may style
 

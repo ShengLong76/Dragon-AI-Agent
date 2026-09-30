@@ -105,18 +105,44 @@ body,
   color: var(--color-foreground);
 }
 
+/* Empty-state mark: large navy dragon behind the Syne wordmark, no plate. */
+[data-slot="aui_intro"] {
+  position: relative;
+  isolation: isolate;
+}
+
 [data-slot="aui_intro"]::before {
   content: "";
-  display: block;
-  width: 72px;
-  height: 72px;
-  margin: 0 auto var(--space-md);
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 50%;
+  width: min(22rem, 72vw);
+  height: min(22rem, 72vw);
+  transform: translate(-50%, -52%);
   background: url("./dragon-ai-agent-logo.png") center / contain no-repeat;
+  background-color: transparent;
+  pointer-events: none;
+}
+
+[data-slot="aui_intro"] > *,
+[data-slot="aui_intro"] .wordmark,
+[data-slot="aui_intro"] .fit-text.wordmark,
+.wordmark {
+  position: relative;
+  z-index: 1;
 }
 
 [data-slot="aui_intro"] p:not(.wordmark) {
   font-family: var(--dragon-ui-font);
   color: var(--color-muted-foreground);
+}
+
+/* Default Hermes agent is not a user-facing sidebar bot. Keep Personal Assistant. */
+[data-roster-key="default"],
+[data-roster-key$="::default"],
+[aria-label^="Hermes ·"] {
+  display: none !important;
 }
 
 textarea,

@@ -370,7 +370,13 @@ def self_test() -> int:
     table = load_table()
     replacements = sorted_replacements(table)
     surfaces = {r["surface"] for r in replacements}
-    required = {"empty-state-wordmark", "composer-placeholder", "product-name", "settings-about"}
+    required = {
+        "empty-state-wordmark",
+        "composer-placeholder",
+        "product-name",
+        "settings-about",
+        "sidebar-default-bot",
+    }
     missing = required - surfaces
     if missing:
         print(f"FAIL: table missing surfaces {sorted(missing)}", file=sys.stderr)
@@ -382,6 +388,8 @@ def self_test() -> int:
         "title:'About Hermes Desktop';\n"
         "name:'Hermes Agent';\n"
         "appName:'Hermes';\n"
+        "function defaultBotLabel(){return 'Hermes'}\n"
+        "const sidebar=['Hermes','Personal Assistant'];\n"
         + "".join(f"protected:{token};\n" for token in table.get("protected") or [])
     )
     out, hits = apply_text(sample, replacements)
@@ -391,6 +399,12 @@ def self_test() -> int:
         return 1
     if "Give Dragon AI a task" not in out or "DRAGON AI AGENT" not in out:
         print("FAIL: expected Dragon copy missing", file=sys.stderr)
+        return 1
+    if "return 'Hermes'" in out or 'return "Hermes"' in out or 'return"Hermes"' in out:
+        print("FAIL: default sidebar bot still labeled Hermes", file=sys.stderr)
+        return 1
+    if "Personal Assistant" not in out:
+        print("FAIL: Personal Assistant must remain the user-facing sidebar bot", file=sys.stderr)
         return 1
     if "About Dragon AI Agent" not in out:
         print("FAIL: settings about still unbranded", file=sys.stderr)
@@ -433,6 +447,18 @@ def self_test() -> int:
     if "dragon-ai-agent-logo.png" not in css and "dragon-ai-agent-logo.svg" not in css:
         print("FAIL: overlay CSS must pin the front-facing dragon mark", file=sys.stderr)
         return 1
+    if "22rem" not in css or "z-index: 1" not in css or "z-index: 0" not in css:
+        print("FAIL: empty-state mark must be large and sit behind the wordmark", file=sys.stderr)
+        return 1
+    if "background-color: transparent" not in css:
+        print("FAIL: empty-state mark must not paint a boxed plate", file=sys.stderr)
+        return 1
+    if '[data-roster-key$="::default"]' not in css:
+        print("FAIL: overlay CSS must hide the default Hermes sidebar bot", file=sys.stderr)
+        return 1
+    if "Personal Assistant" not in css and "sidebar" not in css.lower():
+        print("FAIL: overlay CSS must keep Personal Assistant as the visible bot", file=sys.stderr)
+        return 1
     logos = {p.name: p for p in logo_files()}
     if "dragon-ai-agent-logo.svg" not in logos or "dragon-ai-agent-logo.png" not in logos:
         print("FAIL: branding must ship SVG + PNG dragon mark", file=sys.stderr)
@@ -452,12 +478,25 @@ def self_test() -> int:
     if 'viewBox="0 0 256 256"' not in svg or npoly < 6 or npoly > 20:
         print(f"FAIL: mark must stay a few large facets (got {npoly} polygons)", file=sys.stderr)
         return 1
+    if "<rect" in svg.lower() or "#0a0a0a" in svg.lower():
+        print("FAIL: mark SVG must not include a boxed black plate", file=sys.stderr)
+        return 1
     logo_meta = table.get("logo") or {}
     if logo_meta.get("facing") != "front":
         print("FAIL: table logo.facing must stay front (not a side profile)", file=sys.stderr)
         return 1
     if logo_meta.get("body") != "#314A73" or logo_meta.get("eyes") != "#C41E3A":
         print("FAIL: table must record navy body and red eyes", file=sys.stderr)
+        return 1
+    if logo_meta.get("boxed") is not False or logo_meta.get("stack") != "wordmark-in-front":
+        print("FAIL: table must record an unboxed mark with the wordmark in front", file=sys.stderr)
+        return 1
+    sidebar = table.get("sidebar") or {}
+    if sidebar.get("hideDefaultHermes") is not True:
+        print("FAIL: table must hide the default Hermes sidebar bot", file=sys.stderr)
+        return 1
+    if sidebar.get("userFacingBots") != ["Personal Assistant"]:
+        print("FAIL: table sidebar must list only Personal Assistant", file=sys.stderr)
         return 1
     if "prefers-reduced-motion" not in css or "focus-visible" not in css:
         print("FAIL: overlay CSS must keep visible focus and reduced-motion", file=sys.stderr)
