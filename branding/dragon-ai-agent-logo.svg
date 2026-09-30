@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Dragon AI Agent">
+  <circle cx="128" cy="128" r="124" fill="#1C1C20"/>
+  <circle cx="128" cy="128" r="120" fill="none" stroke="#C4A574" stroke-width="6"/>
+  <polygon fill="#8E1528" points="186,28 237,88 199,102 166,62"/>
+  <polygon fill="#C41E3A" points="237,88 237,168 199,154 199,102"/>
+  <polygon fill="#E23A54" points="237,168 168,237 154,199 199,154"/>
+  <polygon fill="#C41E3A" points="168,237 79,233 96,197 154,199"/>
+  <polygon fill="#8E1528" points="79,233 19,168 57,154 96,197"/>
+  <polygon fill="#C41E3A" points="19,168 19,88 57,102 57,154"/>
+  <polygon fill="#E23A54" points="19,88 61,33 84,66 57,102"/>
+  <polygon fill="#E8C36A" points="54,28 96,84 50,80"/>
+  <polygon fill="#B8863A" points="50,80 96,84 74,96"/>
+  <polygon fill="#E8C36A" points="86,14 118,80 78,82"/>
+  <polygon fill="#B8863A" points="78,82 118,80 102,94"/>
+  <polygon fill="#E8C36A" points="170,14 178,82 138,80"/>
+  <polygon fill="#B8863A" points="138,80 178,82 154,94"/>
+  <polygon fill="#E8C36A" points="202,28 206,80 160,84"/>
+  <polygon fill="#B8863A" points="160,84 206,80 182,96"/>
+  <polygon fill="#C41E3A" points="84,88 118,76 138,76 172,88 182,118 168,150 88,150 74,118"/>
+  <polygon fill="#E23A54" points="118,76 128,68 138,76 146,108 110,108"/>
+  <polygon fill="#8E1528" points="88,150 168,150 154,172 102,172"/>
+  <polygon fill="#E23A54" points="108,142 128,178 148,142"/>
+  <polygon fill="#8E1528" points="108,142 128,156 148,142"/>
+  <polygon fill="#8E1528" points="74,118 88,150 98,140 82,108"/>
+  <polygon fill="#8E1528" points="182,118 174,108 158,140 168,150"/>
+  <polygon fill="#8E1528" points="90,98 118,106 100,116 80,106"/>
+  <polygon fill="#8E1528" points="166,98 176,106 156,116 138,106"/>
+  <polygon fill="#F5C14A" points="96,110 114,120 98,130 82,120"/>
+  <polygon fill="#F5C14A" points="160,110 174,120 158,130 142,120"/>
+</svg>

@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "product": "Dragon AI Agent",
   "note": "User-visible product chrome only. Do not rename process names, Docker tags, tokens, ports, protocols, or license attribution.",
   "designSystem": {
@@ -24,6 +24,14 @@
     "card": "#282830",
     "mutedForeground": "#A0A0AA",
     "ring": "#C41E3A"
+  },
+  "logo": {
+    "svg": "branding/dragon-ai-agent-logo.svg",
+    "png": "branding/dragon-ai-agent-logo.png",
+    "png256": "branding/dragon-ai-agent-logo-256.png",
+    "ico": "branding/dragon-ai-agent-logo.ico",
+    "facing": "front",
+    "why": "Front-facing low-poly dragon (both eyes to the viewer), red facets, gold horns, copper ring. Same facing as the existing product logo. Not a side profile."
   },
   "replacements": [
     {

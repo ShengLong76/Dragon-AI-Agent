@@ -43,9 +43,13 @@ Text on `#1C1C20`: `#F0F0F5` and `#A0A0AA` both clear 4.5:1.
 - Composer / settings chrome the overlay already touches: same family, weight 400–600
 - Register the files as `Collapse` as well so leftover upstream wordmark rules cannot reload Collapse-Bold
 
+## Mark
+
+Front-facing low-poly dragon (both eyes to the viewer). Red facets `#C41E3A`, gold horns `#E8C36A`, copper ring `#C4A574`, dark disc `#1C1C20`. Not a side profile. Source: `branding/dragon-ai-agent-logo.svg` (PNG/ICO rendered beside it). Overlay copies the SVG into `dragon-ai-branding/` and shows it on `[data-slot="aui_intro"]`.
+
 ## Surfaces this overlay may style
 
-- Empty-state wordmark and intro subtitle
+- Empty-state wordmark, intro subtitle, and the front-facing dragon mark
 - Composer placeholder + `:focus-visible` ring (`2px` solid `--color-ring`, offset `2px`)
 - Settings / About product copy (strings already in `desktop_branding.json`)
 - Shared CSS variables so a later branded Electron build can reuse them

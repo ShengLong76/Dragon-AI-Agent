@@ -105,6 +105,15 @@ body,
   color: var(--color-foreground);
 }
 
+[data-slot="aui_intro"]::before {
+  content: "";
+  display: block;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto var(--space-md);
+  background: url("./dragon-ai-agent-logo.svg") center / contain no-repeat;
+}
+
 [data-slot="aui_intro"] p:not(.wordmark) {
   font-family: var(--dragon-ui-font);
   color: var(--color-muted-foreground);

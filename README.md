@@ -223,7 +223,7 @@ templates/profiles/personal-assistant/
 installer/
   DragonAIAgentSetup.ps1
   build-exe.go
-branding/   (release: dragon-ai-agent-logo.png / .ico; fonts/syne — OFL wordmark face)
+branding/   (release: dragon-ai-agent-logo.svg / .png / .ico — front-facing low-poly mark; fonts/syne — OFL wordmark face)
 design-system/dragon-ai-agent/   (UI UX Pro Max MASTER + desktop-client override)
 .cursor/skills/ui-ux-pro-max/    (open-source Cursor skill)
 ```
