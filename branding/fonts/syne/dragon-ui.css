@@ -3,8 +3,7 @@
    These faces replace that slot.
 
    Tokens: design-system/dragon-ai-agent/pages/desktop-client.md
-   (AI-Native UI, dark surfaces, crimson accent). Do not vendor
-   Universal Sans, Gotham, Tesla faces, or Inter. */
+   (AI-Native UI, dark surfaces, crimson accent). Syne only. */
 
 @font-face {
   font-family: "Syne";
