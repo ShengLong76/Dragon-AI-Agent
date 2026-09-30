@@ -40,6 +40,16 @@ Bundled under `branding/fonts/syne/` and copied into the unpacked Electron rende
 
 This is **not** Universal Sans, Gotham, or any proprietary Tesla face. Syne (weight 700 on the wordmark) replaces the upstream Hermes **Collapse** display face.
 
+## UI UX Pro Max (design skill, open-source)
+
+Installed for Cursor at `.cursor/skills/ui-ux-pro-max` via `npx ui-ux-pro-max-cli init --ai cursor`. Used to generate the Dragon AI Agent design system. Paid brand/logo extras from the CLI are **not** vendored.
+
+| Item | Value |
+|------|--------|
+| Project | https://github.com/nextlevelbuilder/ui-ux-pro-max-skill |
+| License | MIT |
+| Package | `ui-ux-pro-max-cli` |
+
 ## Bot Screen documentation
 
 Upstream feature documentation (public):  

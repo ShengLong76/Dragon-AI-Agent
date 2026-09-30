@@ -412,6 +412,23 @@ def self_test() -> int:
     if "Universal Sans" in css or "Tesla" in css or "Gotham" in css:
         print("FAIL: CSS must not claim Tesla / Universal Sans / Gotham", file=sys.stderr)
         return 1
+    if "fonts.googleapis.com" in css or "family=Inter" in css or "Universal Sans" in css:
+        print("FAIL: CSS must not load Inter or a second webfont", file=sys.stderr)
+        return 1
+    if "--color-primary: #c41e3a" not in css or "--color-ring: #c41e3a" not in css:
+        print("FAIL: overlay CSS must ship applied crimson design tokens", file=sys.stderr)
+        return 1
+    if "prefers-reduced-motion" not in css or "focus-visible" not in css:
+        print("FAIL: overlay CSS must keep visible focus and reduced-motion", file=sys.stderr)
+        return 1
+    design = table.get("designSystem") or {}
+    if design.get("style") != "AI-Native UI":
+        print("FAIL: table must record the UI UX Pro Max style", file=sys.stderr)
+        return 1
+    tokens = table.get("tokens") or {}
+    if tokens.get("primary") != "#C41E3A":
+        print("FAIL: table tokens.primary must stay dragon crimson", file=sys.stderr)
+        return 1
     meta = table.get("font") or {}
     if meta.get("family") != "Syne":
         print("FAIL: table font.family must be Syne", file=sys.stderr)

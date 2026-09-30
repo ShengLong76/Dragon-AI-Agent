@@ -48,6 +48,12 @@ Icon fonts keep their own `font-family`. UltraDragon does not need the font inst
 
 This is the smallest durable path that actually changes what the user sees without forking or rebuilding Electron. Re-applying after a Hermes.exe update puts the Dragon copy back.
 
+### Design system (UI UX Pro Max, open-source)
+
+The Cursor skill is installed in-repo at `.cursor/skills/ui-ux-pro-max` (`npx ui-ux-pro-max-cli init --ai cursor`; paid brand/logo extras are not kept). Generator output: `design-system/dragon-ai-agent/MASTER.md`. Applied chrome: `pages/desktop-client.md` and `docs/airmaze/DESIGN.md`.
+
+Style is **AI-Native UI** (minimal chrome, single accent). Catalog Inter and AI purple are not shipped. Overlay tokens match the existing wizard: dark `#1C1C20` / `#282830`, crimson `#C41E3A`, Syne 700 on the wordmark, visible `:focus-visible`, `prefers-reduced-motion`. No new UI framework.
+
 ## What still requires a rebuilt Electron binary
 
 Until someone builds a branded client (`productName`, `appId`, icons, tray, About):

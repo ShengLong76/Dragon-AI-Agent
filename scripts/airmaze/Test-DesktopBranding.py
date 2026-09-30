@@ -72,6 +72,14 @@ def test_table() -> dict:
         fail("table must use Syne weight 700 on the wordmark")
     if "font-family: 'Collapse', var(--font-sans)" not in by_from:
         fail("table must rewrite the upstream Collapse wordmark family")
+    design = table.get("designSystem") or {}
+    if "ui-ux-pro-max" not in str(design.get("skill")):
+        fail("table must point at the in-repo UI UX Pro Max skill")
+    if design.get("style") != "AI-Native UI":
+        fail("table must record AI-Native UI as the applied style")
+    tokens = table.get("tokens") or {}
+    if tokens.get("primary") != "#C41E3A" or tokens.get("background") != "#1C1C20":
+        fail("table tokens must keep dragon crimson on dark surfaces")
     print("OK  desktop_branding.json surfaces")
     return table
 
@@ -234,11 +242,33 @@ def test_packaging_not_regressed() -> None:
         fail("BRANDING.md must name the upstream Collapse wordmark face")
     if "Universal Sans" not in branding:
         fail("BRANDING.md must say Universal Sans is proprietary and not shipped")
+    if "UI UX Pro Max" not in branding and "ui-ux-pro-max" not in branding:
+        fail("BRANDING.md must name the UI UX Pro Max design system")
     pack = ROOT / "branding" / "fonts" / "syne"
     if not (pack / "OFL.txt").is_file() or not (pack / "syne-latin-wght-normal.woff2").is_file():
         fail("branding/fonts/syne must bundle OFL.txt and the Syne woff2 files")
     if not (pack / "syne-latin-700-normal.woff2").is_file():
         fail("branding/fonts/syne must include the 700 cut for the wordmark")
+    css = read(pack / "dragon-ui.css")
+    if "--color-primary: #c41e3a" not in css or "prefers-reduced-motion" not in css:
+        fail("dragon-ui.css must ship applied tokens and reduced-motion")
+    if "fonts.googleapis.com" in css or "family=Inter" in css:
+        fail("dragon-ui.css must not load Inter")
+    skill = ROOT / ".cursor" / "skills" / "ui-ux-pro-max" / "SKILL.md"
+    if not skill.is_file():
+        fail("UI UX Pro Max skill must be installed at .cursor/skills/ui-ux-pro-max")
+    for paid in ("brand", "banner-design", "design"):
+        if (ROOT / ".cursor" / "skills" / paid).exists():
+            fail(f"paid brand/logo skill {paid} must not be vendored")
+    master = ROOT / "design-system" / "dragon-ai-agent" / "MASTER.md"
+    override = ROOT / "design-system" / "dragon-ai-agent" / "pages" / "desktop-client.md"
+    design_note = ROOT / "docs" / "airmaze" / "DESIGN.md"
+    if not master.is_file() or "AI-Native UI" not in read(master):
+        fail("design-system/dragon-ai-agent/MASTER.md must exist from UI UX Pro Max")
+    if not override.is_file() or "Syne" not in read(override) or "#C41E3A" not in read(override):
+        fail("desktop-client override must keep Syne and crimson tokens")
+    if not design_note.is_file() or "Syne" not in read(design_note):
+        fail("docs/airmaze/DESIGN.md must exist and keep Syne")
     print("OK  packaging Bot Screen / installer wiring")
 
 
