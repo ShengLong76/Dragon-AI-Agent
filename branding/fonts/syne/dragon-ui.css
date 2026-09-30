@@ -1,6 +1,9 @@
 /* Dragon AI Agent wordmark + chrome — Syne (SIL OFL 1.1).
    Upstream .wordmark loads Collapse-Bold (high-contrast display).
-   These faces replace that slot. */
+   These faces replace that slot.
+
+   Tokens: design-system/dragon-ai-agent/pages/desktop-client.md
+   (AI-Native UI, dark surfaces, crimson accent). Syne only. */
 
 @font-face {
   font-family: "Syne";
@@ -56,6 +59,30 @@
   --dragon-ui-font: "Syne", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Syne", ui-sans-serif, system-ui, sans-serif;
   --font-family-sans: "Syne", ui-sans-serif, system-ui, sans-serif;
+
+  --color-primary: #c41e3a;
+  --color-on-primary: #ffffff;
+  --color-secondary: #c4a574;
+  --color-on-secondary: #1c1c20;
+  --color-accent: #c41e3a;
+  --color-on-accent: #ffffff;
+  --color-background: #1c1c20;
+  --color-foreground: #f0f0f5;
+  --color-card: #282830;
+  --color-card-foreground: #f0f0f5;
+  --color-muted: #32323a;
+  --color-muted-foreground: #a0a0aa;
+  --color-border: #50505a;
+  --color-destructive: #dc4646;
+  --color-on-destructive: #ffffff;
+  --color-ring: #c41e3a;
+  --color-ok: #3cb45a;
+  --color-pending: #c8a028;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
 }
 
 html,
@@ -75,10 +102,21 @@ body,
   font-weight: 700 !important;
   font-synthesis: none;
   letter-spacing: 0.04em;
+  color: var(--color-foreground);
+}
+
+[data-slot="aui_intro"]::before {
+  content: "";
+  display: block;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto var(--space-md);
+  background: url("./dragon-ai-agent-logo.png") center / contain no-repeat;
 }
 
 [data-slot="aui_intro"] p:not(.wordmark) {
   font-family: var(--dragon-ui-font);
+  color: var(--color-muted-foreground);
 }
 
 textarea,
@@ -86,4 +124,32 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="
 [contenteditable="true"],
 [role="textbox"] {
   font-family: var(--dragon-ui-font);
+}
+
+textarea::placeholder,
+input::placeholder {
+  color: var(--color-muted-foreground);
+  opacity: 1;
+}
+
+textarea:focus-visible,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus-visible,
+[contenteditable="true"]:focus-visible,
+[role="textbox"]:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

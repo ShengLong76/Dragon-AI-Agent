@@ -98,6 +98,17 @@ function Install-DragonAIDesktopFontPack {
             Get-ChildItem -LiteralPath $pack -File -ErrorAction SilentlyContinue |
                 Where-Object { $_.Extension -in @(".woff2", ".css", ".txt", ".md") } |
                 ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $dest $_.Name) -Force }
+            $scriptDir = $PSScriptRoot
+            if ([string]::IsNullOrWhiteSpace($scriptDir)) {
+                $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+            }
+            $brandRoot = Join-Path (Split-Path -Parent (Split-Path -Parent $scriptDir)) "branding"
+            foreach ($logoName in @("dragon-ai-agent-logo.svg", "dragon-ai-agent-logo.png")) {
+                $logoSrc = Join-Path $brandRoot $logoName
+                if (Test-Path -LiteralPath $logoSrc) {
+                    Copy-Item -LiteralPath $logoSrc -Destination (Join-Path $dest $logoName) -Force
+                }
+            }
             $sheetPath = Join-Path $dest "dragon-ui.css"
             $cssMark = "/* dragon-ai-ui-face */"
             if (Test-Path -LiteralPath $sheetPath) {

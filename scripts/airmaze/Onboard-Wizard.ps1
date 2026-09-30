@@ -317,14 +317,16 @@ function Initialize-WizardWinForms {
     try {
         Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop | Out-Null
         Add-Type -AssemblyName System.Drawing -ErrorAction Stop | Out-Null
-        $script:BrandBack = [System.Drawing.Color]::FromArgb(28, 28, 32)
-        $script:BrandPanel = [System.Drawing.Color]::FromArgb(40, 40, 48)
-        $script:BrandRed = [System.Drawing.Color]::FromArgb(196, 30, 58)
-        $script:BrandText = [System.Drawing.Color]::FromArgb(240, 240, 245)
-        $script:BrandMuted = [System.Drawing.Color]::FromArgb(160, 160, 170)
-        $script:BrandOk = [System.Drawing.Color]::FromArgb(60, 180, 90)
-        $script:BrandFail = [System.Drawing.Color]::FromArgb(220, 70, 70)
-        $script:BrandPend = [System.Drawing.Color]::FromArgb(200, 160, 40)
+        # Tokens from design-system/dragon-ai-agent/pages/desktop-client.md
+        # (same RGB as before; named so the overlay CSS and wizard stay aligned).
+        $script:BrandBack = [System.Drawing.Color]::FromArgb(28, 28, 32)      # #1C1C20
+        $script:BrandPanel = [System.Drawing.Color]::FromArgb(40, 40, 48)     # #282830
+        $script:BrandRed = [System.Drawing.Color]::FromArgb(196, 30, 58)      # #C41E3A
+        $script:BrandText = [System.Drawing.Color]::FromArgb(240, 240, 245)    # #F0F0F5
+        $script:BrandMuted = [System.Drawing.Color]::FromArgb(160, 160, 170)   # #A0A0AA
+        $script:BrandOk = [System.Drawing.Color]::FromArgb(60, 180, 90)       # #3CB45A
+        $script:BrandFail = [System.Drawing.Color]::FromArgb(220, 70, 70)     # #DC4646
+        $script:BrandPend = [System.Drawing.Color]::FromArgb(200, 160, 40)    # #C8A028
         $script:WinFormsReady = $true
         return $true
     } catch {

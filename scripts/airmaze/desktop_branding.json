@@ -1,13 +1,39 @@
 {
-  "version": 3,
+  "version": 5,
   "product": "Dragon AI Agent",
   "note": "User-visible product chrome only. Do not rename process names, Docker tags, tokens, ports, protocols, or license attribution.",
+  "designSystem": {
+    "skill": ".cursor/skills/ui-ux-pro-max",
+    "master": "design-system/dragon-ai-agent/MASTER.md",
+    "override": "design-system/dragon-ai-agent/pages/desktop-client.md",
+    "note": "docs/airmaze/DESIGN.md",
+    "style": "AI-Native UI",
+    "why": "Open-source UI UX Pro Max generator. Catalog Inter / AI purple are not shipped; overlay uses Syne + existing dragon crimson on dark surfaces."
+  },
   "font": {
     "family": "Syne",
     "license": "OFL-1.1",
     "pack": "branding/fonts/syne",
     "weight": 700,
     "why": "James picked Syne (OFL, variable, wordmark at ~700). Replaces upstream Collapse-Bold on .wordmark. Universal Sans / Gotham / Tesla faces are proprietary and are not shipped."
+  },
+  "tokens": {
+    "primary": "#C41E3A",
+    "background": "#1C1C20",
+    "foreground": "#F0F0F5",
+    "card": "#282830",
+    "mutedForeground": "#A0A0AA",
+    "ring": "#C41E3A"
+  },
+  "logo": {
+    "svg": "branding/dragon-ai-agent-logo.svg",
+    "png": "branding/dragon-ai-agent-logo.png",
+    "png256": "branding/dragon-ai-agent-logo-256.png",
+    "ico": "branding/dragon-ai-agent-logo.ico",
+    "facing": "front",
+    "body": "#314A73",
+    "eyes": "#C41E3A",
+    "why": "James's mark: front-facing navy low-poly dragon, coiled neck, horns the same navy, red eyes. No gold, no copper ring, not a side profile."
   },
   "replacements": [
     {

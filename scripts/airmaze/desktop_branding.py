@@ -27,6 +27,7 @@ HTML_MARK = 'data-dragon-ai-branding="ui-face"'
 OLD_HTML_MARKS = ('data-dragon-ai-branding="outfit"',)
 STYLESHEET_NAME = "dragon-ui.css"
 CSS_APPEND_MARK = "/* dragon-ai-ui-face */"
+LOGO_NAMES = ("dragon-ai-agent-logo.svg", "dragon-ai-agent-logo.png")
 
 TEXT_EXTENSIONS = {
     ".js",
@@ -183,6 +184,15 @@ def overlay_roots(roots: list[Path], table: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def branding_dir() -> Path:
+    return HERE.parents[1] / "branding"
+
+
+def logo_files() -> list[Path]:
+    brand = branding_dir()
+    return [brand / name for name in LOGO_NAMES if (brand / name).is_file()]
+
+
 def font_pack_dir() -> Path | None:
     candidates = (
         HERE.parents[1] / "branding" / "fonts" / "syne",
@@ -285,6 +295,8 @@ def install_font_pack(roots: list[Path]) -> dict[str, Any]:
         dest = dest_root / BRAND_DIR_NAME
         dest.mkdir(parents=True, exist_ok=True)
         for src in files:
+            (dest / src.name).write_bytes(src.read_bytes())
+        for src in logo_files():
             (dest / src.name).write_bytes(src.read_bytes())
         sheet = (dest / STYLESHEET_NAME).read_text(encoding="utf-8")
         css_targets = list(dest_root.glob("*.css")) + list((dest_root / "assets").glob("*.css") if (dest_root / "assets").is_dir() else [])
@@ -411,6 +423,52 @@ def self_test() -> int:
         return 1
     if "Universal Sans" in css or "Tesla" in css or "Gotham" in css:
         print("FAIL: CSS must not claim Tesla / Universal Sans / Gotham", file=sys.stderr)
+        return 1
+    if "fonts.googleapis.com" in css or "family=Inter" in css or "Universal Sans" in css:
+        print("FAIL: CSS must not load Inter or a second webfont", file=sys.stderr)
+        return 1
+    if "--color-primary: #c41e3a" not in css or "--color-ring: #c41e3a" not in css:
+        print("FAIL: overlay CSS must ship applied crimson design tokens", file=sys.stderr)
+        return 1
+    if "dragon-ai-agent-logo.png" not in css and "dragon-ai-agent-logo.svg" not in css:
+        print("FAIL: overlay CSS must pin the front-facing dragon mark", file=sys.stderr)
+        return 1
+    logos = {p.name: p for p in logo_files()}
+    if "dragon-ai-agent-logo.svg" not in logos or "dragon-ai-agent-logo.png" not in logos:
+        print("FAIL: branding must ship SVG + PNG dragon mark", file=sys.stderr)
+        return 1
+    svg = logos["dragon-ai-agent-logo.svg"].read_text(encoding="utf-8")
+    if "#314a73" not in svg.lower():
+        print("FAIL: mark body must be navy #314A73", file=sys.stderr)
+        return 1
+    if "#c41e3a" not in svg.lower():
+        print("FAIL: mark eyes must be red #C41E3A", file=sys.stderr)
+        return 1
+    for banned in ("#C4A574", "#E8C36A", "#F5C14A", "#B8863A"):
+        if banned.lower() in svg.lower():
+            print(f"FAIL: mark must not use gold/copper {banned}", file=sys.stderr)
+            return 1
+    npoly = svg.count("<polygon")
+    if 'viewBox="0 0 256 256"' not in svg or npoly < 6 or npoly > 20:
+        print(f"FAIL: mark must stay a few large facets (got {npoly} polygons)", file=sys.stderr)
+        return 1
+    logo_meta = table.get("logo") or {}
+    if logo_meta.get("facing") != "front":
+        print("FAIL: table logo.facing must stay front (not a side profile)", file=sys.stderr)
+        return 1
+    if logo_meta.get("body") != "#314A73" or logo_meta.get("eyes") != "#C41E3A":
+        print("FAIL: table must record navy body and red eyes", file=sys.stderr)
+        return 1
+    if "prefers-reduced-motion" not in css or "focus-visible" not in css:
+        print("FAIL: overlay CSS must keep visible focus and reduced-motion", file=sys.stderr)
+        return 1
+    design = table.get("designSystem") or {}
+    if design.get("style") != "AI-Native UI":
+        print("FAIL: table must record the UI UX Pro Max style", file=sys.stderr)
+        return 1
+    tokens = table.get("tokens") or {}
+    if tokens.get("primary") != "#C41E3A":
+        print("FAIL: table tokens.primary must stay dragon crimson", file=sys.stderr)
         return 1
     meta = table.get("font") or {}
     if meta.get("family") != "Syne":
