@@ -103,12 +103,16 @@ body,
   font-synthesis: none;
   letter-spacing: 0.04em;
   color: var(--color-foreground);
+  text-shadow: 0 1px 2px #1c1c20, 0 0 16px #1c1c20;
 }
 
-/* Empty-state mark: large navy dragon behind the Syne wordmark, no plate. */
+/* Empty-state mark: large navy dragon behind the Syne wordmark, no plate.
+   Size against the intro pane (not the full window, which includes the sidebar).
+   overflow:visible so a parent clip cannot crop the mark back into a box. */
 [data-slot="aui_intro"] {
   position: relative;
   isolation: isolate;
+  overflow: visible;
 }
 
 [data-slot="aui_intro"]::before {
@@ -116,10 +120,10 @@ body,
   position: absolute;
   z-index: 0;
   left: 50%;
-  top: 50%;
-  width: min(22rem, 72vw);
-  height: min(22rem, 72vw);
-  transform: translate(-50%, -52%);
+  top: 0;
+  width: min(22rem, 70%);
+  height: min(22rem, 70%);
+  transform: translate(-50%, -18%);
   background: url("./dragon-ai-agent-logo.png") center / contain no-repeat;
   background-color: transparent;
   pointer-events: none;

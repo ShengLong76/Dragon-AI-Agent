@@ -229,6 +229,8 @@ const protocol = 'hermes://copilot-key/start';
             fail("injected CSS must pin the dragon mark")
         if "22rem" not in css_txt or "z-index: 0" not in css_txt or "z-index: 1" not in css_txt:
             fail("empty-state mark must be larger and sit behind the Dragon AI Agent title")
+        if "overflow: visible" not in css_txt or "72vw" in css_txt:
+            fail("empty-state mark must size to the intro pane and stay unclipped")
         if "background-color: transparent" not in css_txt:
             fail("empty-state mark must not keep a boxed background")
         if '[data-roster-key$="::default"]' not in css_txt:
@@ -304,6 +306,8 @@ def test_packaging_not_regressed() -> None:
         fail("dragon-ui.css must show the front-facing dragon mark")
     if "22rem" not in css or "z-index: 1" not in css:
         fail("dragon-ui.css must put a larger mark behind the wordmark")
+    if "overflow: visible" not in css or "72vw" in css:
+        fail("dragon-ui.css must not clip the mark or size it with viewport width")
     if "background-color: transparent" not in css:
         fail("dragon-ui.css must not box the empty-state mark")
     if '[data-roster-key$="::default"]' not in css:

@@ -18,7 +18,7 @@ Query: `AI chatbot platform desktop agent dark` (variance 4, motion 2, density 6
 
 Dark, quiet chrome. Composer focus uses crimson `#C41E3A`. Type is **Syne** (OFL). Wordmark stays weight **700**. Composer and settings use the same family. Focus rings are visible. Motion is optional and off under `prefers-reduced-motion`. No Universal Sans, Gotham, Tesla faces, Inter webfont, or new UI framework.
 
-**Mark:** James’s navy low-poly dragon — front-facing, coiled neck, few large facets, horns the same navy as the body (`#314A73`), red eyes (`#C41E3A`). No gold horns, no copper ring, not a side profile, **no boxed black plate**. Source image cropped to `branding/dragon-ai-agent-logo.png` with the field punched so the mark sits on the dark window; SVG companion is `branding/dragon-ai-agent-logo.svg`. The overlay pins a **larger** PNG behind the empty-state intro; the **DRAGON AI AGENT** wordmark sits in front of that mark. Wizard and shortcuts use the same unboxed PNG/ICO.
+**Mark:** James’s navy low-poly dragon — front-facing, coiled neck, few large facets, horns the same navy as the body (`#314A73`), red eyes (`#C41E3A`). No gold horns, no copper ring, not a side profile, **no boxed black plate**. Source image cropped to `branding/dragon-ai-agent-logo.png` with the field punched so the mark sits on the dark window; SVG companion is `branding/dragon-ai-agent-logo.svg`. The overlay pins a **larger** PNG behind the empty-state wordmark (`min(22rem, 70%)` of the intro pane, `overflow: visible` so a parent clip cannot crop it back into a box); the **DRAGON AI AGENT** wordmark sits in front of that mark. Wizard and shortcuts use the same unboxed PNG/ICO.
 
 | Token | Value |
 |-------|--------|

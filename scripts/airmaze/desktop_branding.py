@@ -450,6 +450,9 @@ def self_test() -> int:
     if "22rem" not in css or "z-index: 1" not in css or "z-index: 0" not in css:
         print("FAIL: empty-state mark must be large and sit behind the wordmark", file=sys.stderr)
         return 1
+    if "overflow: visible" not in css or "72vw" in css:
+        print("FAIL: mark must size to the intro pane and not clip into a box", file=sys.stderr)
+        return 1
     if "background-color: transparent" not in css:
         print("FAIL: empty-state mark must not paint a boxed plate", file=sys.stderr)
         return 1
