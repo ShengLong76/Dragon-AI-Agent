@@ -453,6 +453,9 @@ def self_test() -> int:
     if "overflow: visible" not in css or "72vw" in css:
         print("FAIL: mark must size to the intro pane and not clip into a box", file=sys.stderr)
         return 1
+    if "calc(-50% + 5.9%)" not in css:
+        print("FAIL: empty-state mark must shift right so the dragon artwork centers on the wordmark", file=sys.stderr)
+        return 1
     if "background-color: transparent" not in css:
         print("FAIL: empty-state mark must not paint a boxed plate", file=sys.stderr)
         return 1

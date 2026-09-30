@@ -231,6 +231,8 @@ const protocol = 'hermes://copilot-key/start';
             fail("empty-state mark must be larger and sit behind the Dragon AI Agent title")
         if "overflow: visible" not in css_txt or "72vw" in css_txt:
             fail("empty-state mark must size to the intro pane and stay unclipped")
+        if "calc(-50% + 5.9%)" not in css_txt:
+            fail("empty-state mark must shift right so the dragon artwork centers on the wordmark")
         if "background-color: transparent" not in css_txt:
             fail("empty-state mark must not keep a boxed background")
         if '[data-roster-key$="::default"]' not in css_txt:
@@ -308,6 +310,8 @@ def test_packaging_not_regressed() -> None:
         fail("dragon-ui.css must put a larger mark behind the wordmark")
     if "overflow: visible" not in css or "72vw" in css:
         fail("dragon-ui.css must not clip the mark or size it with viewport width")
+    if "calc(-50% + 5.9%)" not in css:
+        fail("dragon-ui.css must shift the empty-state mark so the dragon, not the PNG box, centers on the wordmark")
     if "background-color: transparent" not in css:
         fail("dragon-ui.css must not box the empty-state mark")
     if '[data-roster-key$="::default"]' not in css:

@@ -123,7 +123,9 @@ body,
   top: 0;
   width: min(22rem, 70%);
   height: min(22rem, 70%);
-  transform: translate(-50%, -18%);
+  /* PNG artwork sits left of the file center (opaque bbox ~117..786 on 1024).
+     Shift the box so the dragon, not the PNG midpoint, lands on the wordmark. */
+  transform: translate(calc(-50% + 5.9%), -18%);
   background: url("./dragon-ai-agent-logo.png") center / contain no-repeat;
   background-color: transparent;
   pointer-events: none;
