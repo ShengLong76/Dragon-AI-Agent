@@ -12,13 +12,13 @@ Query: `AI chatbot platform desktop agent dark` (variance 4, motion 2, density 6
 
 - **Style:** AI-Native UI — conversational, ambient, **minimal chrome**, single accent.
 - **Not applied as a landing page:** the skill’s “Product Demo + Features” pattern is for marketing sites. This is an existing desktop chat client.
-- **Not applied as catalog purple / Inter:** the skill’s AI/Chatbot row is lavender + Inter. That fights the dragon logo (crimson + bronze on black), the existing dark wizard, and the locked **Syne** wordmark. The same skill’s AI-Native style says *neutral + single accent*; its developer-tool / OLED rows say dark surfaces.
+- **Not applied as catalog purple / Inter:** the skill’s AI/Chatbot row is lavender + Inter. That fights the locked **Syne** wordmark and the existing dark wizard. The same skill’s AI-Native style says *neutral + single accent*; its developer-tool / OLED rows say dark surfaces.
 
 ## Applied look
 
-Dark, quiet chrome. One accent: the logo crimson `#C41E3A`. Type is **Syne** (OFL). Wordmark stays weight **700**. Composer and settings use the same family. Focus rings are visible. Motion is optional and off under `prefers-reduced-motion`. No Universal Sans, Gotham, Tesla faces, Inter webfont, or new UI framework.
+Dark, quiet chrome. Composer focus uses crimson `#C41E3A`. Type is **Syne** (OFL). Wordmark stays weight **700**. Composer and settings use the same family. Focus rings are visible. Motion is optional and off under `prefers-reduced-motion`. No Universal Sans, Gotham, Tesla faces, Inter webfont, or new UI framework.
 
-**Mark:** front-facing low-poly dragon — both eyes toward the viewer, large flat blue facets, horns the same blue as the body, red eyes. No gold horns, no copper ring, not a side profile. Flat SVG (`branding/dragon-ai-agent-logo.svg`) so it still reads at sidebar / empty-state / About sizes. The overlay pins it on the empty-state intro; wizard and shortcuts use the PNG/ICO. Chrome accent stays crimson `#C41E3A`.
+**Mark:** front-facing low-poly dragon — both eyes toward the viewer, few large flat blue facets (`#2563EB`), horns the same blue as the body, red eyes (`#C41E3A`). No gold horns, no copper ring, not a side profile. Flat SVG (`branding/dragon-ai-agent-logo.svg`) so it still reads at sidebar / empty-state / About sizes. The overlay pins it on the empty-state intro; wizard and shortcuts use the PNG/ICO.
 
 | Token | Value |
 |-------|--------|

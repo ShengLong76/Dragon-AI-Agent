@@ -9,7 +9,7 @@ UI UX Pro Max (`--design-system`, query `AI chatbot platform desktop agent dark`
 | Skill output | Why it is not applied as-is |
 |--------------|-----------------------------|
 | Style **AI-Native UI** | Keep. Conversational, minimal chrome, single accent. |
-| Catalog palette **AI purple + lavender light** | Generic “AI slop” look. Clashes with the existing dragon logo (crimson + bronze on black) and the wizard’s dark chrome. Skill **AI-Native UI** itself says *neutral + single accent*. |
+| Catalog palette **AI purple + lavender light** | Generic “AI slop” look. Clashes with the blue dragon mark and the wizard’s dark chrome. Skill **AI-Native UI** itself says *neutral + single accent*. |
 | Typography **Inter** | Locked product face is **Syne** (OFL, wordmark 700), already bundled. Do not vendor Inter, Universal Sans, Gotham, or any Tesla face. |
 | Pattern **Product Demo + Features** | Landing-page pattern. This repo overlays an existing desktop agent, not a marketing site. |
 | Motion **GSAP scroll reveal** | No new framework. Overlay is CSS only. Honor `prefers-reduced-motion`. |
@@ -24,7 +24,7 @@ Reuse the wizard colors already in `Onboard-Wizard.ps1` so packaging chrome and 
 |------|-----|--------------|----------|
 | Primary / accent | `#C41E3A` | `--color-primary`, `--color-accent`, `--color-ring` | `196, 30, 58` |
 | On primary | `#FFFFFF` | `--color-on-primary`, `--color-on-accent` | White |
-| Secondary (logo bronze) | `#C4A574` | `--color-secondary` | header subtitle `255, 220, 220` stays on crimson |
+| Secondary | `#C4A574` | `--color-secondary` | wizard header subtitle only; not used on the mark |
 | Background | `#1C1C20` | `--color-background` | `28, 28, 32` |
 | Foreground | `#F0F0F5` | `--color-foreground` | `240, 240, 245` |
 | Card / panel | `#282830` | `--color-card` | `40, 40, 48` |
