@@ -4,13 +4,15 @@
 Front-facing navy low-poly dragon, coiled neck, horns the same navy,
 red eyes. No gold, no copper ring, not a side profile.
 
-PNG/ICO come from the attached reference (cropped to a square). SVG is
-the same silhouette in a few large facets. Pillow for raster/ICO only.
+PNG/ICO come from the attached reference (cropped to a square, black plate
+punched so the mark sits on the window). SVG is the same silhouette in a
+few large facets with no boxed field. Pillow for raster/ICO only.
 """
 
 from __future__ import annotations
 
 import io
+from collections import deque
 from pathlib import Path
 
 from PIL import Image, ImageDraw
@@ -21,8 +23,7 @@ REF_CANDIDATES = (
     HERE / "james-dragon-mark.jpg",
 )
 
-# Navy sampled from the attached mark (not bright #2563EB, not gold/copper).
-BG = "#0A0A0A"
+# Plate is not painted. The empty-state mark sits on the dark window.
 NAVY = "#314A73"
 NAVY_DARK = "#132847"
 NAVY_LIGHT = "#33547F"
@@ -54,7 +55,6 @@ def _svg() -> str:
     parts = [
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Dragon AI Agent">',
-        f'  <rect width="256" height="256" rx="28" fill="{BG}"/>',
     ]
     for color, pts in POLYS:
         d = " ".join(f"{x},{y}" for x, y in pts)
@@ -62,6 +62,36 @@ def _svg() -> str:
     parts.append("</svg>")
     parts.append("")
     return "\n".join(parts)
+
+
+def _is_plate_pixel(r: int, g: int, b: int) -> bool:
+    """Near-black, low-chroma field — not navy facets."""
+    return max(r, g, b) <= 24 and max(abs(r - g), abs(g - b), abs(r - b)) <= 12
+
+
+def _punch_plate(im: Image.Image) -> Image.Image:
+    """Drop the connected black plate from the edges. Keep dark interior facets."""
+    im = im.convert("RGBA")
+    px = im.load()
+    w, h = im.size
+    seen = bytearray(w * h)
+    q: deque[tuple[int, int]] = deque()
+    for start in ((0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)):
+        q.append(start)
+    while q:
+        x, y = q.popleft()
+        if x < 0 or y < 0 or x >= w or y >= h:
+            continue
+        i = y * w + x
+        if seen[i]:
+            continue
+        seen[i] = 1
+        r, g, b, _a = px[x, y]
+        if not _is_plate_pixel(r, g, b):
+            continue
+        px[x, y] = (r, g, b, 0)
+        q.extend(((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)))
+    return im
 
 
 def _find_ref() -> Path | None:
@@ -89,13 +119,13 @@ def _crop_reference(src: Path, size: int) -> Image.Image:
     top = max(0, top - pad)
     right = min(w, right + pad)
     bottom = min(h, bottom + pad)
-    crop = im.crop((left, top, right, bottom))
+    crop = im.crop((left, top, right, bottom)).convert("RGBA")
     side = max(crop.size)
-    square = Image.new("RGB", (side, side), (10, 10, 10))
+    square = Image.new("RGBA", (side, side), (0, 0, 0, 0))
     ox = (side - crop.size[0]) // 2
     oy = (side - crop.size[1]) // 2
-    square.paste(crop, (ox, oy))
-    return square.resize((size, size), Image.Resampling.LANCZOS)
+    square.paste(crop, (ox, oy), crop)
+    return _punch_plate(square.resize((size, size), Image.Resampling.LANCZOS))
 
 
 def _paint_svg(size: int) -> Image.Image:
@@ -103,8 +133,6 @@ def _paint_svg(size: int) -> Image.Image:
     src = 256 * scale
     im = Image.new("RGBA", (src, src), (0, 0, 0, 0))
     dr = ImageDraw.Draw(im)
-    rad = 28 * scale
-    dr.rounded_rectangle((0, 0, src - 1, src - 1), radius=rad, fill=BG)
     for color, pts in POLYS:
         dr.polygon([(x * scale, y * scale) for x, y in pts], fill=color)
     return im.resize((size, size), Image.Resampling.LANCZOS)
@@ -118,9 +146,11 @@ def main() -> int:
         mid = _crop_reference(ref, 256)
         print(f"rasters from {ref}")
     else:
-        big = _paint_svg(1024).convert("RGB")
-        mid = _paint_svg(256).convert("RGB")
+        big = _paint_svg(1024)
+        mid = _paint_svg(256)
         print("rasters from SVG facets (reference image not found)")
+    big = _punch_plate(big)
+    mid = _punch_plate(mid)
     big.save(HERE / "dragon-ai-agent-logo.png")
     mid.save(HERE / "dragon-ai-agent-logo-256.png")
     buf = io.BytesIO()

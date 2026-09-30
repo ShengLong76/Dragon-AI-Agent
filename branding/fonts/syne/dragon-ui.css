@@ -103,20 +103,52 @@ body,
   font-synthesis: none;
   letter-spacing: 0.04em;
   color: var(--color-foreground);
+  text-shadow: 0 1px 2px #1c1c20, 0 0 16px #1c1c20;
+}
+
+/* Empty-state mark: large navy dragon behind the Syne wordmark, no plate.
+   Size against the intro pane (not the full window, which includes the sidebar).
+   overflow:visible so a parent clip cannot crop the mark back into a box. */
+[data-slot="aui_intro"] {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
 }
 
 [data-slot="aui_intro"]::before {
   content: "";
-  display: block;
-  width: 72px;
-  height: 72px;
-  margin: 0 auto var(--space-md);
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 0;
+  width: min(22rem, 70%);
+  height: min(22rem, 70%);
+  /* PNG artwork sits left of the file center (opaque bbox ~117..786 on 1024).
+     Shift the box so the dragon, not the PNG midpoint, lands on the wordmark. */
+  transform: translate(calc(-50% + 5.9%), -18%);
   background: url("./dragon-ai-agent-logo.png") center / contain no-repeat;
+  background-color: transparent;
+  pointer-events: none;
+}
+
+[data-slot="aui_intro"] > *,
+[data-slot="aui_intro"] .wordmark,
+[data-slot="aui_intro"] .fit-text.wordmark,
+.wordmark {
+  position: relative;
+  z-index: 1;
 }
 
 [data-slot="aui_intro"] p:not(.wordmark) {
   font-family: var(--dragon-ui-font);
   color: var(--color-muted-foreground);
+}
+
+/* Default Hermes agent is not a user-facing sidebar bot. Keep Personal Assistant. */
+[data-roster-key="default"],
+[data-roster-key$="::default"],
+[aria-label^="Hermes ·"] {
+  display: none !important;
 }
 
 textarea,

@@ -85,6 +85,15 @@ def test_table() -> dict:
         fail("table must record a front-facing SVG dragon mark")
     if logo.get("body") != "#314A73" or logo.get("eyes") != "#C41E3A":
         fail("table must record a navy body and red eyes")
+    if logo.get("boxed") is not False or logo.get("stack") != "wordmark-in-front":
+        fail("table must record an unboxed mark with the wordmark in front")
+    sidebar = table.get("sidebar") or {}
+    if sidebar.get("hideDefaultHermes") is not True:
+        fail("table must hide the default Hermes sidebar bot")
+    if sidebar.get("userFacingBots") != ["Personal Assistant"]:
+        fail("table sidebar must list only Personal Assistant")
+    if by_from.get("return 'Hermes'") != "return ''":
+        fail("table must stop presenting Hermes as a sidebar bot label")
     print("OK  desktop_branding.json surfaces")
     return table
 
@@ -110,6 +119,13 @@ export const copy = {
   settings: 'Loading Hermes settings',
   ready: 'Hermes Desktop is ready'
 };
+function defaultBotLabel(bot) {
+  if ((bot.name || '').trim().toLowerCase() === 'default' && !bot.title) {
+    return 'Hermes';
+  }
+  return 'Personal Assistant';
+}
+const roster = [{name:'default', label: defaultBotLabel({name:'default'})}, {name:'personal-assistant', label:'Personal Assistant'}];
 // Bot Screen / Remote wiring must survive the overlay:
 const token = 'X-Hermes-Session-Token';
 const serve = 'http://127.0.0.1:8650';
@@ -156,6 +172,12 @@ const protocol = 'hermes://copilot-key/start';
             fail("renderer missing Dragon product name")
         if "About Dragon AI Agent" not in branded:
             fail("settings about still unbranded")
+        if "return 'Hermes'" in branded or 'return "Hermes"' in branded:
+            fail("sidebar still presents Hermes as a user-facing bot")
+        if "Personal Assistant" not in branded:
+            fail("sidebar lost Personal Assistant")
+        if branded.count("Personal Assistant") < 1:
+            fail("Personal Assistant must remain the visible sidebar bot")
         for token in PROTECTED:
             if token not in branded:
                 fail(f"overlay ate protected token {token}")
@@ -205,6 +227,20 @@ const protocol = 'hermes://copilot-key/start';
             fail("James's dragon PNG was not copied into the unpacked renderer")
         if "dragon-ai-agent-logo.png" not in css_txt and "dragon-ai-agent-logo.svg" not in css_txt:
             fail("injected CSS must pin the dragon mark")
+        if "22rem" not in css_txt or "z-index: 0" not in css_txt or "z-index: 1" not in css_txt:
+            fail("empty-state mark must be larger and sit behind the Dragon AI Agent title")
+        if "overflow: visible" not in css_txt or "72vw" in css_txt:
+            fail("empty-state mark must size to the intro pane and stay unclipped")
+        if "calc(-50% + 5.9%)" not in css_txt:
+            fail("empty-state mark must shift right so the dragon artwork centers on the wordmark")
+        if "background-color: transparent" not in css_txt:
+            fail("empty-state mark must not keep a boxed background")
+        if '[data-roster-key$="::default"]' not in css_txt:
+            fail("injected CSS must hide the default Hermes sidebar bot")
+        if "<rect" in mark_txt.lower() or "#0a0a0a" in mark_txt.lower():
+            fail("copied SVG mark must not include a boxed black plate")
+        if png_mark.is_file() and png_mark.read_bytes()[25] != 6:
+            fail("copied PNG mark must be RGBA (no boxed plate)")
         # Idempotent second pass.
         summary2 = db.apply_to_exe(exe)
         if summary2["replacementsApplied"] != 0:
@@ -270,6 +306,18 @@ def test_packaging_not_regressed() -> None:
         fail("dragon-ui.css must not load Inter")
     if "dragon-ai-agent-logo.png" not in css and "dragon-ai-agent-logo.svg" not in css:
         fail("dragon-ui.css must show the front-facing dragon mark")
+    if "22rem" not in css or "z-index: 1" not in css:
+        fail("dragon-ui.css must put a larger mark behind the wordmark")
+    if "overflow: visible" not in css or "72vw" in css:
+        fail("dragon-ui.css must not clip the mark or size it with viewport width")
+    if "calc(-50% + 5.9%)" not in css:
+        fail("dragon-ui.css must shift the empty-state mark so the dragon, not the PNG box, centers on the wordmark")
+    if "background-color: transparent" not in css:
+        fail("dragon-ui.css must not box the empty-state mark")
+    if '[data-roster-key$="::default"]' not in css:
+        fail("dragon-ui.css must hide the default Hermes sidebar bot")
+    if "Personal Assistant" not in css:
+        fail("dragon-ui.css must keep Personal Assistant as the visible sidebar bot")
     if "dragon-ai-agent-logo.png" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must copy the dragon PNG into the overlay pack")
     mark = ROOT / "branding" / "dragon-ai-agent-logo.svg"
@@ -282,13 +330,18 @@ def test_packaging_not_regressed() -> None:
         fail("mark must not be a side-profile dragon")
     if "#314a73" not in svg.lower() or "#c41e3a" not in svg.lower():
         fail("mark must be a navy body with red eyes")
+    if "<rect" in svg.lower() or "#0a0a0a" in svg.lower():
+        fail("mark must not include a boxed black plate")
     for banned in ("#C4A574", "#E8C36A", "#F5C14A", "#B8863A"):
         if banned.lower() in svg.lower():
             fail(f"mark must not use gold/copper {banned}")
     if svg.count("<polygon") > 20:
         fail("mark must stay a few large facets, not a dense mesh")
-    if png.read_bytes()[:8] != b"\x89PNG\r\n\x1a\n":
+    png_bytes = png.read_bytes()
+    if png_bytes[:8] != b"\x89PNG\r\n\x1a\n":
         fail("dragon-ai-agent-logo.png must be a PNG")
+    if png_bytes[25] != 6:
+        fail("dragon-ai-agent-logo.png must be RGBA so the empty-state mark has no boxed plate")
     if ico.read_bytes()[:4] != b"\x00\x00\x01\x00":
         fail("dragon-ai-agent-logo.ico must be an ICO")
     skill = ROOT / ".cursor" / "skills" / "ui-ux-pro-max" / "SKILL.md"
@@ -311,6 +364,14 @@ def test_packaging_not_regressed() -> None:
         fail("DESIGN.md must record the front-facing dragon mark")
     if "navy" not in design_txt.lower() or "red eyes" not in design_txt.lower():
         fail("DESIGN.md must record the navy body and red eyes")
+    if "wordmark" not in design_txt.lower() or "in front" not in design_txt.lower():
+        fail("DESIGN.md must put the Dragon AI Agent title in front of the mark")
+    if "no boxed" not in design_txt.lower() and "unboxed" not in design_txt.lower() and "no plate" not in design_txt.lower():
+        fail("DESIGN.md must say the empty-state mark has no boxed background")
+    if "Personal Assistant" not in design_txt:
+        fail("DESIGN.md must say the sidebar shows Personal Assistant, not Hermes")
+    if "hidden" not in design_txt.lower():
+        fail("DESIGN.md must say the default Hermes sidebar bot is hidden")
     print("OK  packaging Bot Screen / installer wiring")
 
 
@@ -320,7 +381,7 @@ def main() -> int:
     test_engine_self()
     test_fake_unpacked_tree()
     test_packaging_not_regressed()
-    print("SMOKE OK: empty state, composer, and settings product copy overlay Dragon AI Agent.")
+    print("SMOKE OK: Personal Assistant only in the bot list; unboxed navy mark behind Dragon AI Agent.")
     return 0
 
 

@@ -16,7 +16,9 @@ Internal protocol, image, and path names stay Hermes/AirMaze where changing them
 | Launch status / error dialogs | **Dragon AI Agent** |
 | Install-root pointer | `Dragon AI Agent Client.lnk` + `desktop-client.json` (target is still `Hermes.exe`) |
 | Electron **window title** | Packaging wrap: all visible Hermes windows → **Dragon AI Agent** (`SetTitleForPids`) |
-| Empty state heading | Overlay: **DRAGON AI AGENT** (was `HERMES AGENT` in `apps/desktop/src/components/chat/intro.tsx`) |
+| Empty state heading | Overlay: **DRAGON AI AGENT** (was `HERMES AGENT` in `apps/desktop/src/components/chat/intro.tsx`), Syne 700, **in front of** a larger unboxed navy dragon |
+| Empty state mark | Overlay: James’s navy PNG with the black plate punched; no boxed background |
+| Bots sidebar | Overlay: hide the built-in default **Hermes** agent (`data-roster-key` `::default`). **Personal Assistant** stays |
 | Composer placeholder | Overlay: **Give Dragon AI a task** (was `Give Hermes a task`) |
 | Settings / About / setup product copy | Overlay: **Dragon AI Agent** wherever the renderer said **Hermes Agent** (and About / appName chrome) |
 | In-window UI font | Overlay: **Syne** (SIL OFL 1.1, weight **700** on the wordmark) replacing upstream **Collapse** / Collapse-Bold, then composer and settings chrome |
@@ -66,7 +68,7 @@ Until someone builds a branded client (`productName`, `appId`, icons, tray, Abou
 | `app.asar` extras (icons, some package metadata) | Integrity-protected; overlay will not touch them |
 | Hermes Cloud / catalog / protocol `hermes://` | Upstream service and wire names — leave them |
 | License / NOTICE files next to the exe | Attribution stays **Hermes Agent** / Nous Research |
-| Default bot **id** `hermes` on disk | Do not rename; only display chrome is overlaid when the string is product copy |
+| Default bot **id** `default` / `hermes` on disk | Do not rename the id; the sidebar row is hidden so James only sees Personal Assistant |
 | Window title after the client resets it | May revert to Hermes until wrap re-applies or a branded build ships |
 
 To ship a true Dragon AI Agent binary, rebuild the desktop app with e.g. `productName: "Dragon AI Agent"`, a new `appId`, and the `branding/dragon-ai-agent-logo.*` icons — then point `Find-HermesDesktop.ps1` at that exe (or keep the current path if the file is still named `Hermes.exe`).
