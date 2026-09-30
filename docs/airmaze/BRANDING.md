@@ -1,7 +1,7 @@
 # Dragon AI Agent branding
 
 Customer-facing product name is **Dragon AI Agent** (Dragon's Den / dragonsden.work).  
-Logo assets in this repo: `branding/dragon-ai-agent-logo.svg` (source mark), `dragon-ai-agent-logo.png`, `dragon-ai-agent-logo-256.png`, `dragon-ai-agent-logo.ico`. Front-facing low-poly dragon — both eyes to the viewer, large flat blue facets, horns the same blue as the body, red eyes. No gold, no copper ring, not a side profile. Rebuild rasters with `python3 branding/render_logo.py`.
+Logo assets in this repo: `branding/dragon-ai-agent-logo.png` (James’s navy coiled mark, cropped), `dragon-ai-agent-logo.svg` (facet companion), `dragon-ai-agent-logo-256.png`, `dragon-ai-agent-logo.ico`. Front-facing low-poly dragon — coiled neck, horns the same navy as the body, red eyes. No gold, no copper ring, not a side profile. Rebuild with `python3 branding/render_logo.py`.
 
 Internal protocol, image, and path names stay Hermes/AirMaze where changing them would break Docker, volumes, or the Electron client on disk.
 

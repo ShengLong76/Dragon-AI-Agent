@@ -31,9 +31,9 @@
     "png256": "branding/dragon-ai-agent-logo-256.png",
     "ico": "branding/dragon-ai-agent-logo.ico",
     "facing": "front",
-    "body": "#2563EB",
+    "body": "#314A73",
     "eyes": "#C41E3A",
-    "why": "Front-facing low-poly dragon (both eyes to the viewer). Large flat blue facets; horns the same blue as the body; red eyes. No gold, no copper ring, not a side profile."
+    "why": "James's mark: front-facing navy low-poly dragon, coiled neck, horns the same navy, red eyes. No gold, no copper ring, not a side profile."
   },
   "replacements": [
     {

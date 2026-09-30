@@ -9,7 +9,7 @@ UI UX Pro Max (`--design-system`, query `AI chatbot platform desktop agent dark`
 | Skill output | Why it is not applied as-is |
 |--------------|-----------------------------|
 | Style **AI-Native UI** | Keep. Conversational, minimal chrome, single accent. |
-| Catalog palette **AI purple + lavender light** | Generic “AI slop” look. Clashes with the blue dragon mark and the wizard’s dark chrome. Skill **AI-Native UI** itself says *neutral + single accent*. |
+| Catalog palette **AI purple + lavender light** | Generic “AI slop” look. Clashes with the navy dragon mark and the wizard’s dark chrome. Skill **AI-Native UI** itself says *neutral + single accent*. |
 | Typography **Inter** | Locked product face is **Syne** (OFL, wordmark 700), already bundled. Do not vendor Inter, Universal Sans, Gotham, or any Tesla face. |
 | Pattern **Product Demo + Features** | Landing-page pattern. This repo overlays an existing desktop agent, not a marketing site. |
 | Motion **GSAP scroll reveal** | No new framework. Overlay is CSS only. Honor `prefers-reduced-motion`. |
@@ -45,7 +45,7 @@ Text on `#1C1C20`: `#F0F0F5` and `#A0A0AA` both clear 4.5:1.
 
 ## Mark
 
-Front-facing low-poly dragon (both eyes to the viewer). Large flat blue facets `#2563EB` (horns the same blue); red eyes `#C41E3A`; dark disc `#1C1C20`. No gold, no copper ring, not a side profile. Source: `branding/dragon-ai-agent-logo.svg` (PNG/ICO rendered beside it). Overlay copies the SVG into `dragon-ai-branding/` and shows it on `[data-slot="aui_intro"]`.
+James’s front-facing navy low-poly dragon (both eyes to the viewer, coiled neck). Large flat navy facets `#314A73` (horns the same navy); red eyes `#C41E3A`; black field. No gold, no copper ring, not a side profile. PNG is cropped from the attached mark; SVG is the facet companion. Overlay copies both into `dragon-ai-branding/` and shows the PNG on `[data-slot="aui_intro"]`.
 
 ## Surfaces this overlay may style
 

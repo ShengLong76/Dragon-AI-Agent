@@ -83,8 +83,8 @@ def test_table() -> dict:
     logo = table.get("logo") or {}
     if logo.get("facing") != "front" or "dragon-ai-agent-logo.svg" not in str(logo.get("svg")):
         fail("table must record a front-facing SVG dragon mark")
-    if logo.get("body") != "#2563EB" or logo.get("eyes") != "#C41E3A":
-        fail("table must record a blue body and red eyes")
+    if logo.get("body") != "#314A73" or logo.get("eyes") != "#C41E3A":
+        fail("table must record a navy body and red eyes")
     print("OK  desktop_branding.json surfaces")
     return table
 
@@ -197,10 +197,13 @@ const protocol = 'hermes://copilot-key/start';
         if font_info.get("fontFamily") != "Syne":
             fail(f"overlay did not report Syne: {font_info}")
         mark = pack_dir / "dragon-ai-agent-logo.svg"
+        png_mark = pack_dir / "dragon-ai-agent-logo.png"
         mark_txt = mark.read_text(encoding="utf-8") if mark.is_file() else ""
-        if not mark.is_file() or "#2563EB" not in mark_txt or "#C41E3A" not in mark_txt:
-            fail("front-facing blue dragon SVG was not copied into the unpacked renderer")
-        if "dragon-ai-agent-logo.svg" not in css_txt:
+        if not mark.is_file() or "#314A73" not in mark_txt or "#C41E3A" not in mark_txt:
+            fail("front-facing navy dragon SVG was not copied into the unpacked renderer")
+        if not png_mark.is_file() or png_mark.read_bytes()[:8] != b"\x89PNG\r\n\x1a\n":
+            fail("James's dragon PNG was not copied into the unpacked renderer")
+        if "dragon-ai-agent-logo.png" not in css_txt and "dragon-ai-agent-logo.svg" not in css_txt:
             fail("injected CSS must pin the dragon mark")
         # Idempotent second pass.
         summary2 = db.apply_to_exe(exe)
@@ -265,10 +268,10 @@ def test_packaging_not_regressed() -> None:
         fail("dragon-ui.css must ship applied tokens and reduced-motion")
     if "fonts.googleapis.com" in css or "family=Inter" in css:
         fail("dragon-ui.css must not load Inter")
-    if "dragon-ai-agent-logo.svg" not in css:
+    if "dragon-ai-agent-logo.png" not in css and "dragon-ai-agent-logo.svg" not in css:
         fail("dragon-ui.css must show the front-facing dragon mark")
-    if "dragon-ai-agent-logo.svg" not in apply_ps:
-        fail("Apply-DesktopBranding.ps1 must copy the dragon SVG into the overlay pack")
+    if "dragon-ai-agent-logo.png" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must copy the dragon PNG into the overlay pack")
     mark = ROOT / "branding" / "dragon-ai-agent-logo.svg"
     png = ROOT / "branding" / "dragon-ai-agent-logo.png"
     ico = ROOT / "branding" / "dragon-ai-agent-logo.ico"
@@ -277,12 +280,12 @@ def test_packaging_not_regressed() -> None:
     svg = read(mark)
     if "side-profile" in svg or "side profile" in svg:
         fail("mark must not be a side-profile dragon")
-    if "#2563eb" not in svg.lower() or "#c41e3a" not in svg.lower():
-        fail("mark must be a blue body with red eyes")
+    if "#314a73" not in svg.lower() or "#c41e3a" not in svg.lower():
+        fail("mark must be a navy body with red eyes")
     for banned in ("#C4A574", "#E8C36A", "#F5C14A", "#B8863A"):
         if banned.lower() in svg.lower():
             fail(f"mark must not use gold/copper {banned}")
-    if svg.count("<polygon") > 14:
+    if svg.count("<polygon") > 20:
         fail("mark must stay a few large facets, not a dense mesh")
     if png.read_bytes()[:8] != b"\x89PNG\r\n\x1a\n":
         fail("dragon-ai-agent-logo.png must be a PNG")
@@ -306,8 +309,8 @@ def test_packaging_not_regressed() -> None:
     design_txt = read(design_note)
     if "front-facing" not in design_txt.lower() and "front facing" not in design_txt.lower():
         fail("DESIGN.md must record the front-facing dragon mark")
-    if "blue" not in design_txt.lower() or "red eyes" not in design_txt.lower():
-        fail("DESIGN.md must record the blue body and red eyes")
+    if "navy" not in design_txt.lower() or "red eyes" not in design_txt.lower():
+        fail("DESIGN.md must record the navy body and red eyes")
     print("OK  packaging Bot Screen / installer wiring")
 
 

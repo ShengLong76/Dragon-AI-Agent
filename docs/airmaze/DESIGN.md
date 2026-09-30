@@ -18,7 +18,7 @@ Query: `AI chatbot platform desktop agent dark` (variance 4, motion 2, density 6
 
 Dark, quiet chrome. Composer focus uses crimson `#C41E3A`. Type is **Syne** (OFL). Wordmark stays weight **700**. Composer and settings use the same family. Focus rings are visible. Motion is optional and off under `prefers-reduced-motion`. No Universal Sans, Gotham, Tesla faces, Inter webfont, or new UI framework.
 
-**Mark:** front-facing low-poly dragon — both eyes toward the viewer, few large flat blue facets (`#2563EB`), horns the same blue as the body, red eyes (`#C41E3A`). No gold horns, no copper ring, not a side profile. Flat SVG (`branding/dragon-ai-agent-logo.svg`) so it still reads at sidebar / empty-state / About sizes. The overlay pins it on the empty-state intro; wizard and shortcuts use the PNG/ICO.
+**Mark:** James’s navy low-poly dragon — front-facing, coiled neck, few large facets, horns the same navy as the body (`#314A73`), red eyes (`#C41E3A`). No gold horns, no copper ring, not a side profile. Source image cropped to `branding/dragon-ai-agent-logo.png`; SVG companion is `branding/dragon-ai-agent-logo.svg`. The overlay pins the PNG on the empty-state intro; wizard and shortcuts use the PNG/ICO.
 
 | Token | Value |
 |-------|--------|
@@ -37,7 +37,7 @@ Full token table and skill-vs-override notes: `design-system/dragon-ai-agent/` (
 - Composer **Give Dragon AI a task** keeps the copy; focus-visible uses the crimson ring.
 - Settings / About stay **Dragon AI Agent**.
 - Setup wizard colors stay the same RGB values, now named as this system.
-- Product mark is the front-facing blue low-poly dragon (same-color horns, red eyes) on empty state, wizard, and shortcuts.
+- Product mark is James’s front-facing navy low-poly dragon (coiled neck, same-color horns, red eyes) on empty state, wizard, and shortcuts.
 
 ## What does not change
 
