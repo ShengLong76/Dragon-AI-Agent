@@ -1,0 +1,20 @@
+{
+  "name": "understand-anything",
+  "displayName": "Understand Anything",
+  "description": "MIT codebase knowledge-graph pointer for Cursor. Slash commands: /understand, /understand-dashboard. Graph output is .ua/ (gitignored). Do not auto-run the first scan.",
+  "version": "2.9.7",
+  "author": {
+    "name": "Egonex"
+  },
+  "homepage": "https://github.com/Egonex-AI/Understand-Anything",
+  "repository": "https://github.com/Egonex-AI/Understand-Anything",
+  "license": "MIT",
+  "keywords": [
+    "codebase-analysis",
+    "knowledge-graph",
+    "architecture",
+    "onboarding",
+    "dashboard"
+  ],
+  "skills": "./.cursor/skills/understand-anything/"
+}
