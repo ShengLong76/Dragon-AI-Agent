@@ -1,9 +1,9 @@
 # Dragon AI Agent
 
 **Version:** 0.1.0  
-**Product:** Dragon AI Agent — Windows packaging that provisions an embedded Linux gateway (Bot Screen capable) via Docker Desktop, plus a **profile catalog** (import or select) with multi-bot business packs.
+**Product:** Dragon AI Agent — Windows packaging that provisions an embedded Linux gateway (Bot Screen capable) via Docker Desktop, plus **bot groups** (department-level sets of bots) fetched from this GitHub repo.
 
-Compatible with the open-source agent desktop stack (separate desktop client). This tree ships compose, Windows bootstrap, docs, profile bundles, and connector placeholders — not a full upstream agent source fork.
+Compatible with the open-source agent desktop stack (separate desktop client). This tree ships compose, Windows bootstrap, docs, bot groups, and connector placeholders — not a full upstream agent source fork. Bot groups are a customization layer; an upstream sync of the desktop agent must not wipe `bot-groups/`.
 
 ---
 
@@ -15,7 +15,7 @@ Compatible with the open-source agent desktop stack (separate desktop client). T
 | Docker Desktop | Detect; quiet install when possible; else open download page. Configured to **start minimized to the system tray** (no dashboard window on launch). |
 | Embedded gateway | `docker compose` pull + `up -d` for the packaged embedded gateway image (see `THIRD_PARTY_NOTICES.md`). |
 | Ports | `127.0.0.1:8650` (Desktop Remote / Bot Screen), `127.0.0.1:8642` (OpenAI API), `127.0.0.1:9119` (browser dashboard). Local credentials: see `docs/airmaze/EMBEDDED_GATEWAY.md`. |
-| **Profiles** | First-run menu: **select** a built-in catalog profile **or import** a zip/folder/JSON bundle. Applies bots into the local agent profiles dir and installs connector placeholders. |
+| **Bot groups** | First-run **dropdown** lists groups from this GitHub repo (`bot-groups/`) and **deploys** one with no manual file handling. Export writes a re-importable group file. Singular bot import/export is an optional toggle, off by default. |
 | **Onboarding** | First-run **Dragon AI Agent Setup** wizard (email / CRM / telephony + optional integrations). Secrets via Windows DPAPI. Markdown guide: `docs/airmaze/SETUP_GUIDE.md`. Real Estate bots stay `needs_setup` until required steps succeed. |
 | Agent desktop | Discovers on-disk `Hermes.exe` (including `%LOCALAPPDATA%\hermes\hermes-agent\apps\desktop\release\win-unpacked\Hermes.exe`) and shows it as **Dragon AI Agent**. Launch overlays unpacked renderer chrome (empty state **DRAGON AI AGENT**, **Give Dragon AI a task**, settings product name, **Syne** wordmark, UI UX Pro Max tokens) then opens the window (or a blocking error if Docker/client is missing). Dashboard login: `dragon` / `dragon-local`. |
 
@@ -39,7 +39,7 @@ Install log: `%LOCALAPPDATA%\DragonAIAgent\install.log`
 Package files land in: `%LOCALAPPDATA%\DragonAIAgent\`  
 Gateway data: `%USERPROFILE%\.hermes-airmaze-embedded` (internal)
 
-Desktop / Start Menu shortcuts: **Dragon AI Agent**, **Dragon AI Agent Profiles**, and **Dragon AI Agent Setup** (onboarding wizard).
+Desktop / Start Menu shortcuts: **Dragon AI Agent**, **Dragon AI Agent Bot Groups**, and **Dragon AI Agent Setup** (onboarding wizard).
 
 Opening **Dragon AI Agent** uses a windowless host (`Start-DragonAI.vbs` / `wscript.exe`) — no PowerShell console. It starts the gateway **and** the Desktop-compatible Linux `hermes serve` (published at `http://127.0.0.1:8650`), writes the Remote connection, and opens the **desktop client** (not the :9119 dashboard). Docker must already be running (fail-closed; `-StartDocker` to opt in). Failures are a MessageBox. **This device** Screen is Linux-only by upstream design — use the Embedded Linux Remote. Dashboard: Start Menu **Dragon AI Agent Dashboard**. Debug: run `start-embedded.ps1` in a console. Launch log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`. Branding: [`docs/airmaze/BRANDING.md`](docs/airmaze/BRANDING.md). Design: [`docs/airmaze/DESIGN.md`](docs/airmaze/DESIGN.md).
 
@@ -53,93 +53,50 @@ python3 scripts/airmaze/Test-LaunchSmoke.py
 
 ---
 
-## Profiles (select or import)
+## Bot groups (dropdown from this GitHub repo)
 
-A **profile** is a packaged bundle with:
+A **bot group** is a department-level set of bots (a security team, a research team, a real-estate team). Each bot has a **title**, **description**, and **tools**. Bots exist because a group defines them — there is no Grokbot-style create-a-bot path. Design: [`docs/airmaze/BOT_GROUPS.md`](docs/airmaze/BOT_GROUPS.md).
 
-- a group of **bots** (each: name, description, `SOUL.md` / instructions, `bot.yaml`)
-- a set of **connectors** (integration placeholders: API key templates, MCP server stubs) for a business type
+The dropdown fetches `bot-groups/catalog.json` from https://github.com/ShengLong76/airmaze-agent. It does not hard-code the list. Choosing a group deploys its bots. When GitHub is unreachable, the last cache then the bundled catalog is used.
 
-### Built-in catalog (`profiles/catalog.json`)
+### Catalog (`bot-groups/catalog.json`)
 
-| Id | Display name | Bots |
-|----|--------------|------|
-| `personal-assistant` | Personal Assistant | 1 — general PA |
+| Id | Name | Bots |
+|----|------|------|
+| `personal-assistant` | Personal Assistant | 1 — general PA (sidebar default) |
 | `real-estate-cold-call-lead-refresher` | Real Estate Cold Call Lead Refresher | 4 — Lead Sourcer, Email Warmer, Cold Call Script Writer, Follow-up Sequencer |
 
-### First-run / Profiles menu
-
-```text
-[1] Personal Assistant
-[2] Real Estate Cold Call Lead Refresher
-[3] Import from file (zip or profile folder/JSON)
-[Enter] default = Personal Assistant
-```
-
-Scripts:
+### Scripts
 
 ```powershell
-# Catalog select
-.\scripts\airmaze\Select-Profile.ps1 -ProfileId real-estate-cold-call-lead-refresher
+# Dropdown (lists from GitHub)
+.\scripts\airmaze\Select-BotGroup.ps1
 
-# Import
-.\scripts\airmaze\Import-Profile.ps1 -SourcePath C:\path\to\my-profile.zip
+# Deploy one group with no manual file handling
+.\scripts\airmaze\Deploy-BotGroup.ps1 -BotGroupId real-estate-cold-call-lead-refresher
 
-# Apply a folder that already has profile.json
-.\scripts\airmaze\Apply-Profile.ps1 -ProfilePath C:\path\to\profile-folder
+# Export (same format the repo stores; re-importable)
+.\scripts\airmaze\Export-BotGroup.ps1 -BotGroupId real-estate-cold-call-lead-refresher -Destination C:\export\re
+
+# Re-import an exported group file
+.\scripts\airmaze\Import-BotGroup.ps1 -SourcePath C:\export\re.zip
 ```
 
-### Profile bundle format
-
-```text
-my-profile/
-  profile.json          # manifest
-  bots/
-    <bot-id>/
-      SOUL.md
-      bot.yaml
-  connectors/
-    *.json              # optional placeholders
+```bash
+python3 scripts/airmaze/Test-BotGroups.py
 ```
 
-Minimal `profile.json`:
+**On deploy:** each bot is copied to `%LOCALAPPDATA%\hermes\profiles\<bot-id>\` (upstream desktop / Bot Screen picker path — not renamed). Connector JSON lands under `%LOCALAPPDATA%\DragonAIAgent\connectors\<group-id>\`. Active selection is `%LOCALAPPDATA%\DragonAIAgent\active-bot-group.json`.
 
-```json
-{
-  "id": "my-profile",
-  "displayName": "My Profile",
-  "description": "What this pack does",
-  "version": "1.0.0",
-  "bots": [
-    {
-      "id": "my-bot",
-      "displayName": "My Bot",
-      "description": "Short description",
-      "soul": "bots/my-bot/SOUL.md",
-      "config": "bots/my-bot/bot.yaml"
-    }
-  ],
-  "connectors": [
-    {
-      "id": "crm",
-      "type": "api_key",
-      "displayName": "CRM",
-      "description": "Optional",
-      "configTemplate": "connectors/crm.json"
-    }
-  ]
-}
-```
+An old `profile.json` still loads once (`displayName` → name/title). There is no Profiles UI.
 
-**On apply:** each bot is copied to `%LOCALAPPDATA%\hermes\profiles\<bot-id>\` (path used by the agent desktop profile / Bot Screen picker). Connector JSON lands under `%LOCALAPPDATA%\DragonAIAgent\connectors\<profile-id>\`. Active selection is recorded in `%LOCALAPPDATA%\DragonAIAgent\active-profile.json`.
-
-Zip the profile folder and import with `Import-Profile.ps1`, or place it under `profiles/` and add an entry to `catalog.json`.
+Singular import/export of one bot is an optional toggle (`allowSingularBotImportExport`), **off by default**.
 
 ---
 
 ## Onboarding wizard + setup guide
 
-After profile selection, the installer launches **Dragon AI Agent Setup** (`Onboard-Wizard.ps1`):
+After bot group deploy, the installer launches **Dragon AI Agent Setup** (`Onboard-Wizard.ps1`):
 
 1. Welcome  
 2. Connect email (Gmail / Outlook / SMTP + verify)  
@@ -179,7 +136,7 @@ It starts the Docker engine in a headless-friendly way (service / `Docker Deskto
 | Slug | `personal-assistant` |
 | Role | General-purpose PA: research, drafting, scheduling, reminders, computer-use on a virtualized desktop. Neutral; no business-specific instructions. |
 
-Also see `profiles/personal-assistant/` and legacy `templates/profiles/personal-assistant/`.
+Also see `bot-groups/personal-assistant/`. The leftover `templates/profiles/personal-assistant/` files are not a UI.
 
 ---
 
@@ -196,7 +153,7 @@ PACKAGING.md
 .cursor-plugin/plugin.json
 docs/airmaze/
 docker-compose.embedded.yml
-profiles/
+bot-groups/
   catalog.json
   personal-assistant/
   real-estate-cold-call-lead-refresher/
@@ -212,15 +169,18 @@ scripts/airmaze/
   Test-LaunchSmoke.py
   Test-DesktopServeAdapter.py
   Test-UnderstandAnything.py
+  Test-BotGroups.py
+  bot_groups.py
+  Select-BotGroup.ps1
+  Deploy-BotGroup.ps1
+  Export-BotGroup.ps1
+  Import-BotGroup.ps1
+  apply-default-bot-group.ps1
   desktop-loopback-proxy.py
   start-desktop-serve.sh
   start-desktop-proxy.sh
   embedded_desktop_connection.py
   Set-EmbeddedDesktopConnection.ps1
-  apply-default-profile.ps1
-  Apply-Profile.ps1
-  Select-Profile.ps1
-  Import-Profile.ps1
   Onboard-Wizard.ps1
   DragonAI-SecureStore.ps1
 templates/profiles/personal-assistant/
@@ -240,10 +200,11 @@ design-system/dragon-ai-agent/   (UI UX Pro Max MASTER + desktop-client override
 3. `docs/airmaze/EMBEDDED_GATEWAY.md` — ports (`:8650` Desktop serve), compose, UltraDragon re-smoke
 4. `docs/airmaze/UPSTREAM_NOTES.md` — Linux-gateway-only + Desktop token/WS vs `gateway run`
 5. `docs/airmaze/SETUP_GUIDE.md` — first-run onboarding (email / CRM / telephony) + Real Estate flow
-6. `docs/airmaze/BRANDING.md` — Dragon AI Agent vs Hermes (window wrap + unpacked UI overlay vs Electron rebuild)
-7. `docs/airmaze/DESIGN.md` — UI UX Pro Max design system applied to overlay chrome (Syne, dark + crimson)
-8. `docs/airmaze/UNDERSTAND_ANYTHING.md` — MIT Understand-Anything skill (`/understand`, `/understand-dashboard`); first scan later; `.ua/` gitignored
-9. `PACKAGING.md` — how this release was built
+6. `docs/airmaze/BOT_GROUPS.md` — bot groups (data model, GitHub dropdown, export, singular toggle)
+7. `docs/airmaze/BRANDING.md` — Dragon AI Agent vs Hermes (window wrap + unpacked UI overlay vs Electron rebuild)
+8. `docs/airmaze/DESIGN.md` — UI UX Pro Max design system applied to overlay chrome (Syne, dark + crimson)
+9. `docs/airmaze/UNDERSTAND_ANYTHING.md` — MIT Understand-Anything skill (`/understand`, `/understand-dashboard`); first scan later; `.ua/` gitignored
+10. `PACKAGING.md` — how this release was built
 
 ---
 

@@ -9,7 +9,7 @@ Internal protocol, image, and path names stay Hermes/AirMaze where changing them
 
 | Surface | What James sees |
 |---------|-----------------|
-| Desktop / Start Menu shortcuts | **Dragon AI Agent** → `wscript.exe` + `Start-DragonAI.vbs` (no console). Also Profiles, Setup, optional Dashboard |
+| Desktop / Start Menu shortcuts | **Dragon AI Agent** → `wscript.exe` + `Start-DragonAI.vbs` (no console). Also Bot Groups, Setup, optional Dashboard |
 | Shortcut descriptions | “start the gateway and open the app” |
 | Installer exe | `DragonAIAgentSetup.exe` — ProductName / FileDescription **Dragon AI Agent** (`installer/winres/winres.json`) |
 | Onboarding wizard | Window title **Dragon AI Agent Setup**; welcome copy; dragon logo in the header |
@@ -21,7 +21,7 @@ Internal protocol, image, and path names stay Hermes/AirMaze where changing them
 | Settings / About / setup product copy | Overlay: **Dragon AI Agent** wherever the renderer said **Hermes Agent** (and About / appName chrome) |
 | In-window UI font | Overlay: **Syne** (SIL OFL 1.1, weight **700** on the wordmark) replacing upstream **Collapse** / Collapse-Bold, then composer and settings chrome |
 | Dashboard login | Username `dragon` / password `dragon-local` (loopback only). Page chrome/title inside the image is still upstream until a branded build or image exists. |
-| Profile catalog / Real Estate labels | Dragon AI Agent (not AirMaze/Hermes as the product) |
+| Bot group catalog / Real Estate labels | Dragon AI Agent (not AirMaze/Hermes as the product) |
 
 ## In-app overlay (no Electron rebuild)
 

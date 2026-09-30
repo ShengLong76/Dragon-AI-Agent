@@ -1,6 +1,6 @@
 # Real Estate Cold Call Lead Refresher
 
-Four-bot outbound pack for Dragon AI Agent.
+Four-bot outbound **bot group** for Dragon AI Agent. Department-level job: refresh stale leads, warm them, write scripts, follow up.
 
 ## Flow
 

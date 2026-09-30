@@ -6,8 +6,8 @@ Updated: 2026-09-29 (Electron UI product overlay)
 
 - Distribution package built under Cos box `/workspace/airmaze-agent-dist/`
 - Product name: **Dragon AI Agent** (`DragonAIAgentSetup.exe`, install dir `%LOCALAPPDATA%\DragonAIAgent`)
-- Windows installer provisions WSL2 (best-effort), Docker Desktop (tray-minimized, no dashboard popup), embedded gateway, **profile select/import**
-- Catalog includes Personal Assistant and Real Estate Cold Call Lead Refresher
+- Windows installer provisions WSL2 (best-effort), Docker Desktop (tray-minimized, no dashboard popup), embedded gateway, **bot group dropdown / deploy**
+- Catalog includes Personal Assistant and Real Estate Cold Call Lead Refresher bot groups
 - Agent desktop client remains a separate installer when not already present
 - Does **not** clone upstream agent source onto Cos; does **not** push remotes in this packaging step
 

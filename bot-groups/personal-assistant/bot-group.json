@@ -1,0 +1,21 @@
+{
+  "kind": "bot-group",
+  "schemaVersion": 1,
+  "id": "personal-assistant",
+  "name": "Personal Assistant",
+  "departmentJob": "General-purpose personal assistant for research, drafting, scheduling, reminders, and computer-use on a virtualized desktop. Neutral tone; no business-specific instructions.",
+  "version": "1.0.0",
+  "bots": [
+    {
+      "id": "personal-assistant",
+      "title": "Personal Assistant",
+      "description": "General-purpose PA: research, drafting, scheduling, reminders, computer-use.",
+      "tools": [
+        "computer-use",
+        "browser"
+      ],
+      "soul": "bots/personal-assistant/SOUL.md",
+      "config": "bots/personal-assistant/bot.yaml"
+    }
+  ]
+}

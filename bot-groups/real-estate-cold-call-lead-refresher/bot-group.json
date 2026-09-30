@@ -1,34 +1,55 @@
 {
+  "kind": "bot-group",
+  "schemaVersion": 1,
   "id": "real-estate-cold-call-lead-refresher",
-  "displayName": "Real Estate Cold Call Lead Refresher",
-  "description": "Outbound real-estate agent team that refreshes stale leads, warms them with CAN-SPAM email toward a TCPA consent form, writes cold-call scripts, and sequences follow-ups. Ships four bots plus connector placeholders for CRM, email, consent form, dialer, and property data.",
+  "name": "Real Estate Cold Call Lead Refresher",
+  "departmentJob": "Outbound real-estate department that refreshes stale leads, warms them with CAN-SPAM email toward a TCPA consent form, writes cold-call scripts, and sequences follow-ups.",
   "version": "1.1.0",
   "bots": [
     {
       "id": "lead-sourcer",
-      "displayName": "Lead Sourcer",
+      "title": "Lead Sourcer",
       "description": "Finds and refreshes outbound real-estate leads from lists, CRM exports, and property data sources.",
+      "tools": [
+        "crm",
+        "property-data",
+        "mcp-local-files"
+      ],
       "soul": "bots/lead-sourcer/SOUL.md",
       "config": "bots/lead-sourcer/bot.yaml"
     },
     {
       "id": "email-warmer",
-      "displayName": "Email Warmer",
+      "title": "Email Warmer",
       "description": "CAN-SPAM email sequences for stale / post-EBR leads that link to a TCPA phone-consent form; hands dial-ready leads only after consent gate.",
+      "tools": [
+        "email",
+        "crm",
+        "consent-form"
+      ],
       "soul": "bots/email-warmer/SOUL.md",
       "config": "bots/email-warmer/bot.yaml"
     },
     {
       "id": "cold-call-script-writer",
-      "displayName": "Cold Call Script Writer",
+      "title": "Cold Call Script Writer",
       "description": "Writes and iterates cold-call openers, objection handlers, and talk tracks for outbound agents.",
+      "tools": [
+        "crm",
+        "dialer"
+      ],
       "soul": "bots/cold-call-script-writer/SOUL.md",
       "config": "bots/cold-call-script-writer/bot.yaml"
     },
     {
       "id": "follow-up-sequencer",
-      "displayName": "Follow-up Sequencer",
+      "title": "Follow-up Sequencer",
       "description": "Plans multi-touch SMS/email/call follow-up sequences after cold outreach.",
+      "tools": [
+        "crm",
+        "email",
+        "dialer"
+      ],
       "soul": "bots/follow-up-sequencer/SOUL.md",
       "config": "bots/follow-up-sequencer/bot.yaml"
     }

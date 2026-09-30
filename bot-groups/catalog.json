@@ -1,0 +1,36 @@
+{
+  "kind": "bot-group-catalog",
+  "schemaVersion": 1,
+  "product": "Dragon AI Agent",
+  "repository": {
+    "owner": "ShengLong76",
+    "name": "airmaze-agent",
+    "ref": "main",
+    "path": "bot-groups"
+  },
+  "groups": [
+    {
+      "id": "personal-assistant",
+      "name": "Personal Assistant",
+      "departmentJob": "General-purpose personal assistant for research, drafting, scheduling, reminders, and computer-use on a virtualized desktop. Neutral; no business-specific instructions.",
+      "path": "personal-assistant",
+      "tags": [
+        "general",
+        "minimal",
+        "default"
+      ]
+    },
+    {
+      "id": "real-estate-cold-call-lead-refresher",
+      "name": "Real Estate Cold Call Lead Refresher",
+      "departmentJob": "Outbound real-estate department: refresh stale leads, warm them with CAN-SPAM email toward a TCPA consent form, write cold-call scripts, and sequence follow-ups.",
+      "path": "real-estate-cold-call-lead-refresher",
+      "tags": [
+        "real-estate",
+        "outbound",
+        "multi-bot",
+        "example"
+      ]
+    }
+  ]
+}

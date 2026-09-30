@@ -1,23 +1,15 @@
 #requires -Version 5.1
 <#
 .SYNOPSIS
-  Apply the default Personal Assistant catalog profile (wrapper).
+  Compatibility shim. Default Personal Assistant bot group.
 #>
-
 [CmdletBinding()]
 param(
     [string]$InstallRoot = ""
 )
 
-$ErrorActionPreference = "Stop"
-
-if ([string]::IsNullOrWhiteSpace($InstallRoot)) {
-    $InstallRoot = Join-Path $env:LOCALAPPDATA "DragonAIAgent"
+$next = Join-Path $PSScriptRoot "apply-default-bot-group.ps1"
+if (-not (Test-Path -LiteralPath $next)) {
+    $next = Join-Path $InstallRoot "scripts\airmaze\apply-default-bot-group.ps1"
 }
-
-$select = Join-Path $PSScriptRoot "Select-Profile.ps1"
-if (-not (Test-Path $select)) {
-    $select = Join-Path $InstallRoot "scripts\airmaze\Select-Profile.ps1"
-}
-& $select -InstallRoot $InstallRoot -PayloadRoot $InstallRoot -ProfileId "personal-assistant" -NonInteractive
-Write-Host "[Dragon AI Agent] Default Personal Assistant profile applied."
+& $next -InstallRoot $InstallRoot

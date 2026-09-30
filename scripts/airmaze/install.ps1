@@ -5,7 +5,7 @@
 
 .DESCRIPTION
   Best-effort provision of WSL2, Docker Desktop (tray-minimized, no dashboard popup),
-  embedded gateway, profile catalog selection / import, and agent desktop launch attempt.
+  embedded gateway, bot group dropdown (GitHub deploy), and agent desktop launch attempt.
 
 .NOTES
   Log: %LOCALAPPDATA%\DragonAIAgent\install.log
@@ -16,8 +16,11 @@
 [CmdletBinding()]
 param(
     [string]$PayloadRoot = "",
+    [string]$BotGroupId = "",
     [string]$ProfileId = "",
+    [string]$ImportBotGroup = "",
     [string]$ImportProfile = "",
+    [switch]$SkipBotGroupPrompt,
     [switch]$SkipProfilePrompt
 )
 
@@ -287,7 +290,7 @@ function Install-PackageFiles([string]$Root) {
     Ensure-Dir (Join-Path $InstallRoot "scripts\airmaze")
     Ensure-Dir (Join-Path $InstallRoot "templates\profiles\personal-assistant")
     Ensure-Dir (Join-Path $InstallRoot "docs\airmaze")
-    Ensure-Dir (Join-Path $InstallRoot "profiles")
+    Ensure-Dir (Join-Path $InstallRoot "bot-groups")
     Ensure-Dir (Join-Path $InstallRoot "branding")
 
     $composeSrc = Join-Path $Root "docker-compose.embedded.yml"
@@ -295,11 +298,11 @@ function Install-PackageFiles([string]$Root) {
         Copy-Item -LiteralPath $composeSrc -Destination (Join-Path $InstallRoot "docker-compose.embedded.yml") -Force
     }
 
-    # Copy profiles catalog tree
-    $profilesSrc = Join-Path $Root "profiles"
-    if (Test-Path $profilesSrc) {
-        Copy-Item -Path $profilesSrc -Destination (Join-Path $InstallRoot "profiles") -Recurse -Force
-        Write-Log "Copied profiles catalog"
+    # Copy bot-groups catalog tree (GitHub overlay; survives an upstream desktop-agent sync)
+    $groupsSrc = Join-Path $Root "bot-groups"
+    if (Test-Path $groupsSrc) {
+        Copy-Item -Path $groupsSrc -Destination (Join-Path $InstallRoot "bot-groups") -Recurse -Force
+        Write-Log "Copied bot-groups catalog"
     }
 
     # Branding / logo
@@ -326,11 +329,19 @@ function Install-PackageFiles([string]$Root) {
 
     foreach ($rel in @(
         "scripts\airmaze\start-embedded.ps1",
+        "scripts\airmaze\apply-default-bot-group.ps1",
         "scripts\airmaze\apply-default-profile.ps1",
         "scripts\airmaze\install.ps1",
+        "scripts\airmaze\bot_groups.py",
+        "scripts\airmaze\Test-BotGroups.py",
+        "scripts\airmaze\Select-BotGroup.ps1",
+        "scripts\airmaze\Deploy-BotGroup.ps1",
+        "scripts\airmaze\Export-BotGroup.ps1",
+        "scripts\airmaze\Import-BotGroup.ps1",
         "scripts\airmaze\Apply-Profile.ps1",
         "scripts\airmaze\Select-Profile.ps1",
         "scripts\airmaze\Import-Profile.ps1",
+        "docs\airmaze\BOT_GROUPS.md",
         "scripts\airmaze\Onboard-Wizard.ps1",
         "scripts\airmaze\DragonAI-SecureStore.ps1",
         "scripts\airmaze\Find-HermesDesktop.ps1",
@@ -407,7 +418,7 @@ function Install-Shortcuts {
     if (-not (Test-Path $iconLocation)) { $iconLocation = $png }
 
     $startVbs = Join-Path $InstallRoot "scripts\airmaze\Start-DragonAI.vbs"
-    $selectScript = Join-Path $InstallRoot "scripts\airmaze\Select-Profile.ps1"
+    $selectScript = Join-Path $InstallRoot "scripts\airmaze\Select-BotGroup.ps1"
     $targetPs = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
     $targetWscript = Join-Path $env:SystemRoot "System32\wscript.exe"
 
@@ -448,12 +459,12 @@ function Install-Shortcuts {
         if ($iconLocation -and (Test-Path $iconLocation)) { $scDash.IconLocation = "$iconLocation,0" }
         $scDash.Save()
 
-        $sc3Path = Join-Path $StartMenuDir "Dragon AI Agent Profiles.lnk"
+        $sc3Path = Join-Path $StartMenuDir "Dragon AI Agent Bot Groups.lnk"
         $sc3 = $wsh.CreateShortcut($sc3Path)
         $sc3.TargetPath = $targetPs
-        $sc3.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$selectScript`" -InstallRoot `"$InstallRoot`" -PayloadRoot `"$InstallRoot`""
+        $sc3.Arguments = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$selectScript`" -InstallRoot `"$InstallRoot`" -PayloadRoot `"$InstallRoot`""
         $sc3.WorkingDirectory = $InstallRoot
-        $sc3.Description = "Dragon AI Agent — select or import a profile"
+        $sc3.Description = "Dragon AI Agent — deploy a bot group from GitHub"
         if ($iconLocation -and (Test-Path $iconLocation)) { $sc3.IconLocation = "$iconLocation,0" }
         $sc3.Save()
 
@@ -514,40 +525,43 @@ function Start-EmbeddedGateway {
     }
 }
 
-function Invoke-ProfileSetup([string]$Root) {
-    $select = Join-Path $InstallRoot "scripts\airmaze\Select-Profile.ps1"
+function Invoke-BotGroupSetup([string]$Root) {
+    $select = Join-Path $InstallRoot "scripts\airmaze\Select-BotGroup.ps1"
     if (-not (Test-Path $select)) {
-        $select = Join-Path $Root "scripts\airmaze\Select-Profile.ps1"
+        $select = Join-Path $Root "scripts\airmaze\Select-BotGroup.ps1"
     }
-    $import = Join-Path $InstallRoot "scripts\airmaze\Import-Profile.ps1"
+    $import = Join-Path $InstallRoot "scripts\airmaze\Import-BotGroup.ps1"
     if (-not (Test-Path $import)) {
-        $import = Join-Path $Root "scripts\airmaze\Import-Profile.ps1"
+        $import = Join-Path $Root "scripts\airmaze\Import-BotGroup.ps1"
     }
 
-    if (-not [string]::IsNullOrWhiteSpace($ImportProfile)) {
-        Write-Log "Importing profile from $ImportProfile"
-        & $import -SourcePath $ImportProfile -InstallRoot $InstallRoot -PayloadRoot $Root
+    $importPath = if ($ImportBotGroup) { $ImportBotGroup } else { $ImportProfile }
+    $groupId = if ($BotGroupId) { $BotGroupId } else { $ProfileId }
+    $skipPrompt = $SkipBotGroupPrompt -or $SkipProfilePrompt
+
+    if (-not [string]::IsNullOrWhiteSpace($importPath)) {
+        Write-Log "Importing bot group from $importPath"
+        & $import -SourcePath $importPath -InstallRoot $InstallRoot -PayloadRoot $Root
         return
     }
 
-    if (-not [string]::IsNullOrWhiteSpace($ProfileId)) {
-        Write-Log "Selecting catalog profile id=$ProfileId"
-        & $select -PayloadRoot $Root -InstallRoot $InstallRoot -ProfileId $ProfileId -NonInteractive
+    if (-not [string]::IsNullOrWhiteSpace($groupId)) {
+        Write-Log "Deploying catalog bot group id=$groupId"
+        & $select -PayloadRoot $Root -InstallRoot $InstallRoot -BotGroupId $groupId -NonInteractive
         return
     }
 
-    if ($SkipProfilePrompt) {
-        Write-Log "SkipProfilePrompt: defaulting to personal-assistant"
-        & $select -PayloadRoot $Root -InstallRoot $InstallRoot -ProfileId "personal-assistant" -NonInteractive
+    if ($skipPrompt) {
+        Write-Log "SkipBotGroupPrompt: defaulting to personal-assistant"
+        & $select -PayloadRoot $Root -InstallRoot $InstallRoot -BotGroupId "personal-assistant" -NonInteractive
         return
     }
 
-    # Interactive menu (also offers import)
     try {
         & $select -PayloadRoot $Root -InstallRoot $InstallRoot
     } catch {
-        Write-Log "Profile selection failed ($($_.Exception.Message)); applying Personal Assistant" "WARN"
-        & $select -PayloadRoot $Root -InstallRoot $InstallRoot -ProfileId "personal-assistant" -NonInteractive
+        Write-Log "Bot group selection failed ($($_.Exception.Message)); applying Personal Assistant" "WARN"
+        & $select -PayloadRoot $Root -InstallRoot $InstallRoot -BotGroupId "personal-assistant" -NonInteractive
     }
 }
 
@@ -581,7 +595,7 @@ function Start-AgentDesktop {
     Write-Host "  1. Install the Dragon AI Agent desktop client (win-unpacked Hermes.exe on disk)."
     Write-Host "  2. Add Remote gateway: http://127.0.0.1:8650 with session token dragon-local (not :8642)"
     Write-Host "     Local dashboard credentials are in THIRD_PARTY_NOTICES.md / EMBEDDED_GATEWAY.md"
-    Write-Host "  3. Open Profiles, select a bot from your applied Dragon AI Agent profile, then open Bot Screen."
+    Write-Host "  3. Open Bot Groups, deploy a group, pick one of its bots, then open Bot Screen."
     Write-Host ""
     Write-Log "Agent desktop client not found; printed next steps" "WARN"
     return $false
@@ -622,7 +636,7 @@ if ($dockerOk -and (Test-DockerEngine)) {
     Write-Log "Skipping compose up until Docker engine is running. Re-run installer or: scripts\airmaze\start-embedded.ps1" "WARN"
 }
 
-Invoke-ProfileSetup -Root $root
+Invoke-BotGroupSetup -Root $root
 
 # First-run onboarding wizard (do not fail entire install if wizard errors)
 try {
@@ -631,21 +645,29 @@ try {
         $wizard = Join-Path $root "scripts\airmaze\Onboard-Wizard.ps1"
     }
     if (Test-Path -LiteralPath $wizard) {
-        $wizProfile = $ProfileId
-        $activePath = Join-Path $InstallRoot "active-profile.json"
-        if ([string]::IsNullOrWhiteSpace($wizProfile) -and (Test-Path -LiteralPath $activePath)) {
+        $wizGroup = if ($BotGroupId) { $BotGroupId } else { $ProfileId }
+        $activeGroup = Join-Path $InstallRoot "active-bot-group.json"
+        if ([string]::IsNullOrWhiteSpace($wizGroup) -and (Test-Path -LiteralPath $activeGroup)) {
             try {
-                $active = Get-Content -LiteralPath $activePath -Raw -Encoding UTF8 | ConvertFrom-Json
-                $wizProfile = [string]$active.profileId
+                $active = Get-Content -LiteralPath $activeGroup -Raw -Encoding UTF8 | ConvertFrom-Json
+                $wizGroup = [string]$active.botGroupId
             } catch {}
         }
-        Write-Log "Launching onboarding wizard (profile=$wizProfile)..."
+        $activePath = Join-Path $InstallRoot "active-profile.json"
+        if ([string]::IsNullOrWhiteSpace($wizGroup) -and (Test-Path -LiteralPath $activePath)) {
+            try {
+                $active = Get-Content -LiteralPath $activePath -Raw -Encoding UTF8 | ConvertFrom-Json
+                $wizGroup = [string]$active.botGroupId
+                if (-not $wizGroup) { $wizGroup = [string]$active.profileId }
+            } catch {}
+        }
+        Write-Log "Launching onboarding wizard (bot group=$wizGroup)..."
         $wizArgs = @{
             InstallRoot = $InstallRoot
             PayloadRoot = $InstallRoot
         }
-        if (-not [string]::IsNullOrWhiteSpace($wizProfile)) {
-            $wizArgs["ProfileId"] = $wizProfile
+        if (-not [string]::IsNullOrWhiteSpace($wizGroup)) {
+            $wizArgs["BotGroupId"] = $wizGroup
         }
         & $wizard @wizArgs
         Write-Log "Onboarding wizard finished (exit $LASTEXITCODE)"
@@ -668,7 +690,7 @@ Write-Host "  Log:          $LogPath"
 Write-Host "  Desktop Screen: http://127.0.0.1:8650  (Remote token dragon-local)"
 Write-Host "  Gateway API:    127.0.0.1:8642  dashboard: http://127.0.0.1:9119"
 Write-Host "  Docker UI:    tray-only (dashboard suppressed on startup)"
-Write-Host "  Profiles:     Start Menu > Dragon AI Agent > Dragon AI Agent Profiles"
+Write-Host "  Bot groups:   Start Menu > Dragon AI Agent > Dragon AI Agent Bot Groups"
 Write-Host "  Setup wizard: Start Menu / Desktop > Dragon AI Agent Setup"
 Write-Host "  Setup guide:  $setupGuide"
 Write-Host ""
