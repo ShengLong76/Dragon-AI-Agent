@@ -83,6 +83,8 @@ def test_table() -> dict:
     logo = table.get("logo") or {}
     if logo.get("facing") != "front" or "dragon-ai-agent-logo.svg" not in str(logo.get("svg")):
         fail("table must record a front-facing SVG dragon mark")
+    if logo.get("body") != "#2563EB" or logo.get("eyes") != "#C41E3A":
+        fail("table must record a blue body and red eyes")
     print("OK  desktop_branding.json surfaces")
     return table
 
@@ -195,8 +197,9 @@ const protocol = 'hermes://copilot-key/start';
         if font_info.get("fontFamily") != "Syne":
             fail(f"overlay did not report Syne: {font_info}")
         mark = pack_dir / "dragon-ai-agent-logo.svg"
-        if not mark.is_file() or "#C41E3A" not in mark.read_text(encoding="utf-8"):
-            fail("front-facing dragon SVG was not copied into the unpacked renderer")
+        mark_txt = mark.read_text(encoding="utf-8") if mark.is_file() else ""
+        if not mark.is_file() or "#2563EB" not in mark_txt or "#C41E3A" not in mark_txt:
+            fail("front-facing blue dragon SVG was not copied into the unpacked renderer")
         if "dragon-ai-agent-logo.svg" not in css_txt:
             fail("injected CSS must pin the dragon mark")
         # Idempotent second pass.
@@ -274,9 +277,13 @@ def test_packaging_not_regressed() -> None:
     svg = read(mark)
     if "side-profile" in svg or "side profile" in svg:
         fail("mark must not be a side-profile dragon")
-    for needle in ("#C41E3A", "#C4A574", "#E8C36A"):
-        if needle.lower() not in svg.lower():
-            fail(f"mark must keep {needle}")
+    if "#2563eb" not in svg.lower() or "#c41e3a" not in svg.lower():
+        fail("mark must be a blue body with red eyes")
+    for banned in ("#C4A574", "#E8C36A", "#F5C14A", "#B8863A"):
+        if banned.lower() in svg.lower():
+            fail(f"mark must not use gold/copper {banned}")
+    if svg.count("<polygon") > 14:
+        fail("mark must stay a few large facets, not a dense mesh")
     if png.read_bytes()[:8] != b"\x89PNG\r\n\x1a\n":
         fail("dragon-ai-agent-logo.png must be a PNG")
     if ico.read_bytes()[:4] != b"\x00\x00\x01\x00":
@@ -296,8 +303,11 @@ def test_packaging_not_regressed() -> None:
         fail("desktop-client override must keep Syne and crimson tokens")
     if not design_note.is_file() or "Syne" not in read(design_note):
         fail("docs/airmaze/DESIGN.md must exist and keep Syne")
-    if "front-facing" not in read(design_note).lower() and "front facing" not in read(design_note).lower():
+    design_txt = read(design_note)
+    if "front-facing" not in design_txt.lower() and "front facing" not in design_txt.lower():
         fail("DESIGN.md must record the front-facing dragon mark")
+    if "blue" not in design_txt.lower() or "red eyes" not in design_txt.lower():
+        fail("DESIGN.md must record the blue body and red eyes")
     print("OK  packaging Bot Screen / installer wiring")
 
 

@@ -31,7 +31,9 @@
     "png256": "branding/dragon-ai-agent-logo-256.png",
     "ico": "branding/dragon-ai-agent-logo.ico",
     "facing": "front",
-    "why": "Front-facing low-poly dragon (both eyes to the viewer), red facets, gold horns, copper ring. Same facing as the existing product logo. Not a side profile."
+    "body": "#2563EB",
+    "eyes": "#C41E3A",
+    "why": "Front-facing low-poly dragon (both eyes to the viewer). Large flat blue facets; horns the same blue as the body; red eyes. No gold, no copper ring, not a side profile."
   },
   "replacements": [
     {

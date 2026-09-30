@@ -45,7 +45,7 @@ Text on `#1C1C20`: `#F0F0F5` and `#A0A0AA` both clear 4.5:1.
 
 ## Mark
 
-Front-facing low-poly dragon (both eyes to the viewer). Red facets `#C41E3A`, gold horns `#E8C36A`, copper ring `#C4A574`, dark disc `#1C1C20`. Not a side profile. Source: `branding/dragon-ai-agent-logo.svg` (PNG/ICO rendered beside it). Overlay copies the SVG into `dragon-ai-branding/` and shows it on `[data-slot="aui_intro"]`.
+Front-facing low-poly dragon (both eyes to the viewer). Large flat blue facets `#2563EB` (horns the same blue); red eyes `#C41E3A`; dark disc `#1C1C20`. No gold, no copper ring, not a side profile. Source: `branding/dragon-ai-agent-logo.svg` (PNG/ICO rendered beside it). Overlay copies the SVG into `dragon-ai-branding/` and shows it on `[data-slot="aui_intro"]`.
 
 ## Surfaces this overlay may style
 

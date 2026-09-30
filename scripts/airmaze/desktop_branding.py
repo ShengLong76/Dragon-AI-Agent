@@ -438,16 +438,26 @@ def self_test() -> int:
         print("FAIL: branding/dragon-ai-agent-logo.svg missing", file=sys.stderr)
         return 1
     svg = logos[0].read_text(encoding="utf-8")
-    for needle in ("#C41E3A", "#C4A574", "#E8C36A"):
-        if needle.lower() not in svg.lower():
-            print(f"FAIL: mark must keep {needle} (crimson / copper / gold)", file=sys.stderr)
+    if "#2563eb" not in svg.lower():
+        print("FAIL: mark body must be blue #2563EB", file=sys.stderr)
+        return 1
+    if "#c41e3a" not in svg.lower():
+        print("FAIL: mark eyes must be red #C41E3A", file=sys.stderr)
+        return 1
+    for banned in ("#C4A574", "#E8C36A", "#F5C14A", "#B8863A"):
+        if banned.lower() in svg.lower():
+            print(f"FAIL: mark must not use gold/copper {banned}", file=sys.stderr)
             return 1
-    if 'viewBox="0 0 256 256"' not in svg or svg.count("<polygon") < 8:
-        print("FAIL: mark must stay a flat low-poly SVG", file=sys.stderr)
+    npoly = svg.count("<polygon")
+    if 'viewBox="0 0 256 256"' not in svg or npoly < 6 or npoly > 14:
+        print(f"FAIL: mark must stay a few large facets (got {npoly} polygons)", file=sys.stderr)
         return 1
     logo_meta = table.get("logo") or {}
     if logo_meta.get("facing") != "front":
         print("FAIL: table logo.facing must stay front (not a side profile)", file=sys.stderr)
+        return 1
+    if logo_meta.get("body") != "#2563EB" or logo_meta.get("eyes") != "#C41E3A":
+        print("FAIL: table must record blue body and red eyes", file=sys.stderr)
         return 1
     if "prefers-reduced-motion" not in css or "focus-visible" not in css:
         print("FAIL: overlay CSS must keep visible focus and reduced-motion", file=sys.stderr)
