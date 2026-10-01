@@ -147,7 +147,7 @@ function Invoke-ApplyGatewayModels {
     }
     $home = Get-EmbeddedHermesHome
     $applyArgs = @("-Home", $home, "-Chat", $Chat, "-Image", $Image)
-    if ($IfMissing) { $applyArgs += "-IfMissing" }
+    if ($IfMissing) { $applyArgs += "-IfMissing" } else { $applyArgs += "-RestartGateway" }
     try {
         & $apply @applyArgs | Out-Null
         Write-WizardLog "Applied gateway models chat=$Chat image=$Image ifMissing=$IfMissing home=$home"
@@ -728,7 +728,7 @@ function Update-StatusStrip {
         @{ n = "Property"; k = "property_data" },
         @{ n = "Dialer"; k = "dialer" }
     )
-    $x = 8
+    $x = 6
     foreach ($it in $items) {
         $st = Get-StepValue $Progress $it.k
         $color = switch ($st) {
@@ -744,7 +744,7 @@ function Update-StatusStrip {
         $lbl.ForeColor = $color
         $lbl.Font = New-Object Drawing.Font("Segoe UI", 8, [Drawing.FontStyle]::Bold)
         $Panel.Controls.Add($lbl)
-        $x += 100
+        $x += 86
     }
 }
 
