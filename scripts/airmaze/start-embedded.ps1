@@ -930,6 +930,9 @@ try {
 
     Update-LaunchStatus "Checking Docker..."
     Fix-DockerPath
+    if ($StartDocker) {
+        Write-LaunchLog "StartDocker is the default launch path; starting Docker in the tray if needed"
+    }
     if (-not (Start-DockerIfNeeded)) {
         throw "Docker Desktop did not become ready. Start it from the system tray, wait until it is ready, then open Dragon AI Agent again."
     }
