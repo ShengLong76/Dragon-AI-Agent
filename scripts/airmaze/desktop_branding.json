@@ -41,7 +41,8 @@
     "emptyStateSize": "22rem",
     "stack": "wordmark-in-front",
     "trayFit": "contain-max",
-    "trayWhy": "Windows owns the tray/taskbar slot. Scale the dragon uniformly to the largest size that fits the cell (object-fit: contain). No crop, no stretch, no fixed pixel bump."
+    "traySource": "sidebar-mark",
+    "trayWhy": "Windows owns the tray/taskbar slot. Scale the transparent sidebar mark uniformly to the largest size that fits the cell (object-fit: contain). Same ICO for taskbar and shortcuts. No crop, no stretch, no fixed pixel bump."
   },
   "voice": {
     "options": ["gpt", "grok"],

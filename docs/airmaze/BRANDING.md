@@ -21,7 +21,7 @@ Internal protocol, image, and path names stay Hermes/AirMaze where changing them
 | Sidebar header | Overlay: navy dragon + **Dragon AI** + **Teams Marketplace**. Column hosts first; else body `[data-dragon-ai-sidebar-fixed]` in a clearance spacer above Sessions / Bots (do not cover those tabs). Sidebar and middle session names share 16px (`docs/airmaze/SIDEBAR_HOST.md`) |
 | Bots sidebar | **Exclude** the built-in default **Hermes** agent (purge `profiles\\hermes` / `default`; CSS hide of `data-roster-key` `::default` is the backstop). **Personal Assistant** stays |
 | Bot groups in BOTS | Deploy/import stamps `sectionId` / `sectionName` so the pack sits in a named section (not UNASSIGNED) |
-| Running app / taskbar icon | Contain-max Dragon ICO (dragon fills the Windows slot; no pixel bump) copied over `resources/icon.ico`; stamp `Hermes.exe` when a PE stamper is available. Design: `docs/airmaze/TRAY_ICON.md` |
+| Running app / taskbar icon | Contain-max sidebar-mark ICO (navy low-poly, no copper rim) copied over Hermes `resources/icon.ico` and sibling `icon.ico` paths; stamp `Hermes.exe` when `rcedit` is on PATH. Shortcuts use the same ICO. Design: `docs/airmaze/TRAY_ICON.md` |
 | Composer placeholder | Overlay: **Give Dragon AI a task** (was `Give Hermes a task`) |
 | Voice chat provider | Overlay: **GPT** and **Grok** as two selectable options. GPT (Hermes `gpt-live`) stays. **Talk with Grok** hosts official xAI full duplex (`grok-voice-latest`). Helper `127.0.0.1:8654`. See `docs/airmaze/VOICE.md` |
 | Settings / About / setup product copy | Overlay: **Dragon AI Agent** wherever the renderer said **Hermes Agent** (and About / appName chrome) |

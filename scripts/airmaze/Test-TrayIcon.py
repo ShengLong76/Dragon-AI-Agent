@@ -288,13 +288,12 @@ def test_apply_copies_hermes_icon_paths() -> None:
     winres_at = apply_ps.find("installer\\winres\\icon.ico")
     if winres_at >= 0 and brand_at > winres_at:
         fail("Apply-DesktopBranding.ps1 must prefer the sidebar branding ICO over winres")
-    for needle in (
-        "app.asar.unpacked",
-        "resources\\icon.ico",
-        "icon.ico",
-    ):
-        if needle not in apply_ps:
-            fail(f"Apply-DesktopBranding.ps1 must copy the ICO onto Hermes path {needle}")
+    if "app.asar.unpacked" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must copy the ICO onto app.asar.unpacked when that folder exists")
+    if "icon.ico" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must copy icon.ico")
+    if 'Join-Path $resourcesDir "icon.ico"' not in apply_ps and "resources\\icon.ico" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must copy the ICO to Hermes resources\\icon.ico")
     print("OK  apply copies ICO onto Hermes resource paths")
 
 

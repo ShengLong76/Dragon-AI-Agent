@@ -18,6 +18,8 @@ import argparse
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -513,9 +515,10 @@ def write_stamp(exe_path: Path, summary: dict[str, Any], table: dict[str, Any]) 
 
 
 def icon_source() -> Path | None:
+    """Prefer the sidebar-mark ICO the installer already ships."""
     candidates = (
-        HERE.parents[1] / "installer" / "winres" / "icon.ico",
         branding_dir() / "dragon-ai-agent-logo.ico",
+        HERE.parents[1] / "installer" / "winres" / "icon.ico",
     )
     for path in candidates:
         if path.is_file():
@@ -523,24 +526,79 @@ def icon_source() -> Path | None:
     return None
 
 
+def icon_destinations(exe_path: Path) -> list[Path]:
+    """Hermes / electron-builder icon.ico locations next to the live exe."""
+    exe_dir = exe_path.resolve().parent
+    resources = exe_dir / "resources"
+    dests: list[Path] = []
+    seen: set[Path] = set()
+
+    def add(path: Path) -> None:
+        key = path
+        try:
+            key = path.resolve()
+        except OSError:
+            key = path
+        if key in seen:
+            return
+        seen.add(key)
+        dests.append(path)
+
+    add(resources / "icon.ico")
+    add(exe_dir / "icon.ico")
+    for parent in (resources / "app", resources / "app.asar.unpacked"):
+        if parent.is_dir():
+            add(parent / "icon.ico")
+    if resources.is_dir():
+        for hit in resources.rglob("icon.ico"):
+            if "node_modules" in hit.parts:
+                continue
+            add(hit)
+    return dests
+
+
+def try_stamp_pe_icon(exe_path: Path, ico: Path) -> dict[str, Any]:
+    """Best-effort Hermes.exe PE icon via rcedit. Never blocks launch."""
+    for name in ("rcedit", "rcedit-x64", "rcedit.exe"):
+        tool = shutil.which(name)
+        if not tool:
+            continue
+        try:
+            proc = subprocess.run(
+                [tool, str(exe_path), "--set-icon", str(ico)],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if proc.returncode == 0:
+                return {"stamped": True, "tool": name}
+            return {"stamped": False, "reason": proc.stderr.strip() or proc.stdout.strip() or "rcedit-failed"}
+        except (OSError, subprocess.SubprocessError) as exc:
+            return {"stamped": False, "reason": str(exc)}
+    return {"stamped": False, "reason": "no-rcedit"}
+
+
 def stamp_app_icon(exe_path: Path) -> dict[str, Any]:
-    """Copy the Dragon ICO over resources/icon.ico. PE stamp is best-effort."""
+    """Copy the sidebar-mark ICO over every Hermes icon.ico. PE stamp is best-effort."""
     src = icon_source()
     if src is None:
         return {"copied": False, "reason": "no-ico"}
     exe = exe_path.resolve()
-    resources = exe.parent / "resources"
-    resources.mkdir(parents=True, exist_ok=True)
-    dest = resources / "icon.ico"
-    dest.write_bytes(src.read_bytes())
-    beside = exe.parent / "icon.ico"
-    if beside != dest:
-        beside.write_bytes(src.read_bytes())
+    payload = src.read_bytes()
+    written: list[str] = []
+    for dest in icon_destinations(exe):
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(payload)
+        written.append(str(dest))
+    pe = try_stamp_pe_icon(exe, src)
     return {
         "copied": True,
-        "path": str(dest),
+        "path": written[0] if written else "",
+        "paths": written,
         "source": src.name,
         "appUserModelId": APP_USER_MODEL_ID,
+        "pe": pe,
     }
 
 

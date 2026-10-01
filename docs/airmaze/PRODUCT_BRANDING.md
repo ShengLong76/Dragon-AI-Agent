@@ -15,7 +15,7 @@ PR #3 / #7 already overlay empty-state copy, Syne, the navy mark, and a CSS hide
 ## Mark and name
 
 - **In-app mark:** the existing navy coiled dragon (`branding/dragon-ai-agent-logo.png`). No new logo. Empty-state and sidebar header stay navy / unboxed.
-- **Windows ICO:** the circular Dragon badge James attached (`installer/winres/icon-source.png` → contain-max `installer/winres/icon.ico`). That is the Setup.exe icon and the asset for taskbar / Start Menu / `Hermes.exe` stamp. Do not invent a third mark. Do not pick a fixed display pixel size — contain-max the dragon into the Windows slot (`docs/airmaze/TRAY_ICON.md`).
+- **Windows ICO:** the transparent sidebar mark (`branding/dragon-ai-agent-logo.png` → contain-max `installer/winres/icon.ico` and `branding/dragon-ai-agent-logo.ico`, same bytes). That is the Setup.exe icon and the asset for taskbar / Start Menu / `Hermes.exe` stamp. The circular copper badge reads smaller and leaves a rim; do not ship that as the live tray ICO. Do not invent a third mark. Do not pick a fixed display pixel size — contain-max the dragon into the Windows slot (`docs/airmaze/TRAY_ICON.md`).
 - **Name in the rail:** **Dragon AI** (fits the 16rem sidebar). Accessible name **Dragon AI Agent** (matches empty-state / settings copy).
 - **Type:** Syne 700, foreground `#F0F0F5` on `#1C1C20` (≥4.5:1). Sidebar / chat / Teams Marketplace overlay type matches Grok Bot: **16px** body, **14px** chrome, muted `#C4C4CE` (not Hermes 13px / 54% grey). Logo beside the name is decorative (`aria-hidden="true"`), the transparent SVG mark (no red border, no plate), height matched to the Teams Marketplace button (fixed 32px). The Marketplace control sits under the logo. Host fallback: `docs/airmaze/SIDEBAR_HOST.md`.
 
@@ -35,7 +35,7 @@ Do not cover SESSIONS / BOTS. Do not restyle Bot Screen.
 
 **Do (every launch, idempotent):**
 
-1. Copy `dragon-ai-agent-logo.ico` over `resources/icon.ico` next to the exe (and any other unpacked `icon.ico` beside it).
+1. Copy `dragon-ai-agent-logo.ico` over `{exeDir}\resources\icon.ico`, `{exeDir}\icon.ico`, and any other Hermes `icon.ico` under `resources\` (including `app.asar.unpacked` when that folder exists).
 2. Stamp `Hermes.exe` PE icon resources with that ICO when a stamper is available (`rcedit` on PATH, or a small Python/PE helper). Failure is non-fatal (log + continue) so a missing stamper never blocks boot.
 3. Keep Desktop / Start Menu **Dragon AI Agent** `.lnk` `IconLocation` on the Dragon ICO.
 4. Set `System.AppUserModel.ID` on `Dragon AI Agent Client.lnk` to the upstream id `com.nousresearch.hermes` so Windows can show the shortcut icon for that process when the PE stamp does not stick.
