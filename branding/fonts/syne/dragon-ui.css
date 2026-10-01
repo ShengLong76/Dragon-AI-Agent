@@ -190,7 +190,8 @@ body,
   display: none !important;
 }
 
-/* Sidebar header lockup above SESSIONS / BOTS.
+/* dragon-ai-lockup-wrap:1
+   Sidebar header lockup above SESSIONS / BOTS.
    Logo stays a fixed 32px transparent SVG (no plate / no red border) and
    matches the Teams button height at full width. When the column shrinks,
    the row wraps so Teams drops below the logo — the mark does not shrink
@@ -221,7 +222,8 @@ body,
   border: 0;
 }
 
-[data-dragon-ai-sidebar-brand] {
+[data-dragon-ai-sidebar-brand],
+[data-dragon-ai-sidebar-brand][style] {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -231,10 +233,14 @@ body,
   min-height: var(--dragon-sidebar-control-height);
   padding: 0;
   color: var(--color-foreground);
-  background: transparent;
-  background-color: transparent;
-  border: 0;
-  box-shadow: none;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 [data-dragon-ai-sidebar-brand] img,

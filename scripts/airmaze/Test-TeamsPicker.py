@@ -165,11 +165,12 @@ def test_apply_files_named_section(tp) -> None:
 
 def test_overlay_and_launch_wired() -> None:
     branding = read(BRANDING_PY)
+    picker_js = read(ROOT / "branding" / "fonts" / "syne" / "teams-picker.js")
     if "teams-picker" not in branding and "dragon-ai-teams" not in branding:
         fail("desktop overlay must inject the Teams picker into the desktop client")
-    if "Personal Assistant is already installed" not in branding:
+    if "Personal Assistant is already installed" not in picker_js:
         fail("Teams dialog must say Personal Assistant is already installed")
-    if "finishApply" not in branding or "location.reload" not in branding:
+    if "finishApply" not in picker_js or "location.reload" not in picker_js:
         fail("after apply the Teams dialog must close and reload the bot roster")
     css = read(CSS)
     if "[data-dragon-ai-teams-panel]" not in css or "Teams" not in css:
