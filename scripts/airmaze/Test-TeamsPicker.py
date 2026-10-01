@@ -193,11 +193,29 @@ def test_overlay_and_launch_wired() -> None:
         fail("desktop overlay must inject the Teams picker into the desktop client")
     if "Personal Assistant is already installed" not in branding:
         fail("Teams dialog must say Personal Assistant is already installed")
+    if 'textContent="Teams Marketplace"' not in branding:
+        fail("sidebar control must be labeled Teams Marketplace")
+    if 'aria-label="Teams Marketplace"' not in branding and 'setAttribute("aria-label","Teams Marketplace")' not in branding:
+        fail("Teams dialog aria-label must be Teams Marketplace")
+    if "<h2>Teams Marketplace</h2>" not in branding:
+        fail("Teams dialog title must be Teams Marketplace")
+    if "data-dragon-ai-teams-visible" not in branding:
+        fail("open/close must toggle data-dragon-ai-teams-visible (not hidden-only)")
+    if "setTimeout" not in branding:
+        fail("close must finish with a timeout, not transitionend-only")
     if "finishApply" not in branding or "location.reload" not in branding:
         fail("after apply the Teams dialog must close and reload the bot roster")
     css = read(CSS)
-    if "[data-dragon-ai-teams-panel]" not in css or "Teams" not in css:
-        fail("dragon-ui.css must style the in-app Teams screen")
+    if "[data-dragon-ai-teams-panel]" not in css or "Teams Marketplace" not in css:
+        fail("dragon-ui.css must style the in-app Teams Marketplace screen")
+    if "flex-direction: column" not in css:
+        fail("Teams Marketplace control must sit under the logo")
+    if "background: #000" not in css.split("[data-dragon-ai-teams-panel] {", 1)[-1].split("}", 1)[0]:
+        fail("marketplace panel must use a black background")
+    if "opacity" not in css.split("[data-dragon-ai-teams-panel] {", 1)[-1]:
+        fail("marketplace open/close must fade")
+    if "translateY" not in css or "scale(" not in css:
+        fail("marketplace open/close must fade + slight slide/scale")
     launcher = read(LAUNCHER)
     if "teams_picker" not in launcher:
         fail("start-embedded.ps1 must start the Teams picker helper")
@@ -258,6 +276,9 @@ def test_overlay_and_launch_wired() -> None:
     seat_card = css.split("[data-dragon-ai-team-seats] li {", 1)
     if len(seat_card) < 2 or "box-shadow:" not in seat_card[1].split("}", 1)[0]:
         fail("seat cards must have a box-shadow")
+    seat_shadow = seat_card[1].split("}", 1)[0]
+    if seat_shadow.count(",") < 3:
+        fail("seat cards must use layered shadows for elevation")
     if "border-radius: 12px" not in css:
         fail("seat/team cards must share a 12px corner radius")
     if "data-dragon-ai-seat-icon" not in branding:
@@ -303,7 +324,7 @@ def test_overlay_and_launch_wired() -> None:
     if "branding" not in apply_ps or "teams" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must copy branding/teams icons")
     design = read(DESIGN)
-    for needle in ("descriptionDetail", "seoagent.com", "six", "hover", "4-column", "icon"):
+    for needle in ("descriptionDetail", "seoagent.com", "six", "hover", "4-column", "icon", "Teams Marketplace"):
         if needle not in design:
             fail(f"TEAMS_SEAT_DESCRIPTIONS.md must document {needle!r}")
     groups_doc = read(BOT_GROUPS_DOC)

@@ -17,7 +17,7 @@ PR #3 / #7 already overlay empty-state copy, Syne, the navy mark, and a CSS hide
 - **In-app mark:** the existing navy coiled dragon (`branding/dragon-ai-agent-logo.png`). No new logo. Empty-state and sidebar header stay navy / unboxed.
 - **Windows ICO:** the circular Dragon badge James attached (same bytes as `installer/winres/icon.ico`). That is the Setup.exe icon and the asset for taskbar / Start Menu / `Hermes.exe` stamp. Do not invent a third mark.
 - **Name in the rail:** **Dragon AI** (fits the 16rem sidebar). Accessible name **Dragon AI Agent** (matches empty-state / settings copy).
-- **Type:** Syne 700, foreground `#F0F0F5` on `#1C1C20` (≥4.5:1). Logo beside the name is decorative (`aria-hidden="true"`), the transparent SVG mark (no red border, no plate), height matched to the Teams button (fixed 32px) at full width. When the sidebar column shrinks, the logo stays that size and the Teams button wraps onto the next row (no clip, no logo shrink).
+- **Type:** Syne 700, foreground `#F0F0F5` on `#1C1C20` (≥4.5:1). Logo beside the name is decorative (`aria-hidden="true"`), the transparent SVG mark (no red border, no plate), height matched to the Teams Marketplace button (fixed 32px) at full width. The Marketplace control sits under the logo; the mark does not shrink.
 
 UI UX Pro Max: decorative-beside-text (`aria-hidden`); Color Contrast (High). No verified “sidebar brand lockup” row — general guidance only: keep the lockup out of the SESSIONS / BOTS tab hit targets.
 
@@ -81,17 +81,17 @@ Singular one-bot import (toggle on) does **not** invent a department section —
 
 Do not restyle the BOTS pane. Do not invent a second groups UI. The upstream section chrome is the product surface.
 
-## 5) In-app Teams picker (not PowerShell-only)
+## 5) In-app Teams Marketplace (not PowerShell-only)
 
 James: pick a bot team from the **Dragon AI UI** (sidebar / first-run / settings-adjacent), not only `Import-Profile.ps1`.
 
-Built-in Teams picker (one click): **Real Estate Lead Gen**, **Marketing Team**, **Trading Team** — multi-bot packs only. **Personal Assistant** is the default single-bot profile (preinstalled); it is not a team. Apply files those bots under that display name — not Unassigned. Each seat shows `description` under the name; `descriptionDetail` pops on hover/focus (Marketing seats ship both; SEO Specialist is the seoagent.com write-up). **Import from file** stays for custom zip/JSON. Design: `docs/airmaze/TEAMS_SEAT_DESCRIPTIONS.md`.
+Built-in Teams Marketplace (one click): **Real Estate Lead Gen**, **Marketing Team**, **Trading Team** — multi-bot packs only. **Personal Assistant** is the default single-bot profile (preinstalled); it is not a team. Apply files those bots under that display name — not Unassigned. Each seat shows `description` under the name; `descriptionDetail` pops on hover/focus (Marketing seats ship both; SEO Specialist is the seoagent.com write-up). **Import from file** stays for custom zip/JSON. Design: `docs/airmaze/TEAMS_SEAT_DESCRIPTIONS.md`.
 
 **Do (packaging overlay; no Electron rebuild):**
 
-1. Inject a **Teams** button + dialog into the unpacked desktop client (`desktop_branding.py` / `dragon-ui.css`).
+1. Inject a **Teams Marketplace** button + dialog into the unpacked desktop client (`desktop_branding.py` / `dragon-ui.css`). The control sits under the 32px logo; the panel is black and opens with a fade + slight slide/scale.
 2. Loopback helper `teams_picker.py` on `127.0.0.1:8653` (`GET /api/teams`, `POST /api/teams/apply`, `POST /api/teams/import`). Not Bot Screen `:8650`.
-3. Launch starts the helper (`start-embedded.ps1`). First-run wizard has **Choose a Team**. `Select-BotGroup.ps1` window title is **Teams**; Import file remains.
+3. Launch starts the helper (`start-embedded.ps1`). First-run wizard has **Choose a Team**. `Select-BotGroup.ps1` window title is **Teams Marketplace**; Import file remains.
 4. Helper always unions the bundled catalog so Marketing / Trading show even if GitHub is stale.
 
 Do not add a Hermes team. Do not restyle Bot Screen.

@@ -1,6 +1,6 @@
-# Teams picker — seat brief + hover detail
+# Teams Marketplace — seat brief + hover detail
 
-James: under each bot/seat name in the **Teams** dialog, show a **brief** line; on **hover** (and keyboard focus), show a **detailed** write-up. SEO Specialist copy is the seoagent.com seat, not a seventh teammate.
+James: under each bot/seat name in the **Teams Marketplace** dialog, show a **brief** line; on **hover** (and keyboard focus), show a **detailed** write-up. SEO Specialist copy is the seoagent.com seat, not a seventh teammate.
 
 This is packaging overlay only. No `Hermes.exe` rebuild. Bot Screen stays `127.0.0.1:8650` / `dragon-local`. Marketing stays **six** Cos seats.
 
@@ -13,7 +13,7 @@ This is packaging overlay only. No `Hermes.exe` rebuild. Bot Screen stays `127.0
 
 Apply is still the **team** row. Seats are informational. Clicking a seat must not apply a one-bot pack.
 
-The Teams helper (`GET /api/teams` on `127.0.0.1:8653`) already listed team `displayName` + `departmentJob`. It did **not** ship seat rows or a hover field. `description` existed on the group file for deploy/`bot.meta.json`. There was no `descriptionDetail` and no seat list in the overlay. This change extends that schema + UI; it does not invent a second Teams product.
+The Teams helper (`GET /api/teams` on `127.0.0.1:8653`) already listed team `displayName` + `departmentJob`. It did **not** ship seat rows or a hover field. `description` existed on the group file for deploy/`bot.meta.json`. There was no `descriptionDetail` and no seat list in the overlay. This change extends that schema + UI; it does not invent a second Teams product. User-facing chrome is **Teams Marketplace**; `data-dragon-ai-teams-*` ids stay.
 
 ## SEO Specialist (seoagent.com)
 
@@ -51,7 +51,13 @@ Card text wraps (`min-width: 0`; no nowrap clamp on the brief).
 
 ## Seat icons (James, 2026-10-01)
 
-Each seat card shows a **left icon** beside the title + brief (Grok Bot marketplace layout — icon does not replace the card). Assets are committed SVGs under `branding/teams/<seat-id>.svg` (low-poly navy `#314A73` + crimson `#C41E3A`, transparent). Overlay copies them to `dragon-ai-branding/teams/`. Decorative next to visible text (`aria-hidden`). Unknown imported seats fall back to `seat.svg`. No runtime LLM call when Teams opens.
+Each seat card shows a **left icon** beside the title + brief (Grok Bot marketplace layout — icon does not replace the card). Assets are committed SVGs under `branding/teams/<seat-id>.svg` (low-poly navy `#314A73` + crimson `#C41E3A`, transparent). Overlay copies them to `dragon-ai-branding/teams/`. Decorative next to visible text (`aria-hidden`). Unknown imported seats fall back to `seat.svg`. No runtime LLM call when Teams Marketplace opens.
+
+## Marketplace chrome (James, 2026-10-01)
+
+User-facing label is **Teams Marketplace** (sidebar button, dialog title, `aria-label`). Internal `data-dragon-ai-teams-*` ids stay.
+
+The control sits **under** the 32px dragon logo (column lockup; mark size does not change). The panel opens from that control with a fade + slight slide/scale. Do not set required state from `transitionend`. `prefers-reduced-motion` already shortens motion. Panel background is **black** (`#000`). Seat cards keep the 4-column grid, 12px radius, left icon, brief + hover, and use layered shadows for elevation.
 
 ## Out of scope
 

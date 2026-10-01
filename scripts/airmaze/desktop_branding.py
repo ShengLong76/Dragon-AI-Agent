@@ -377,18 +377,23 @@ def teams_picker_script() -> str:
         'var root=document.createElement("div");'
         'root.setAttribute("data-dragon-ai-teams-root","true");'
         'var open=document.createElement("button");'
-        'open.type="button";open.textContent="Teams";'
+        'open.type="button";open.textContent="Teams Marketplace";'
         'open.setAttribute("data-dragon-ai-teams-open","true");'
         'open.setAttribute("aria-haspopup","dialog");'
+        'open.setAttribute("aria-expanded","false");'
         'var panel=document.createElement("div");'
         'panel.setAttribute("data-dragon-ai-teams-panel","true");'
         'panel.setAttribute("role","dialog");'
-        'panel.setAttribute("aria-label","Teams");'
+        'panel.setAttribute("aria-label","Teams Marketplace");'
+        'panel.setAttribute("aria-hidden","true");'
         "panel.hidden=true;"
-        'panel.innerHTML=\'<header><h2>Teams</h2><p>Apply a multi-bot team. Personal Assistant is already installed. Bots file under that team name, not Unassigned. Each seat shows a brief; hover or focus a seat for details.</p></header><div data-dragon-ai-teams-list></div><label>Import custom zip or JSON<input type="file" accept=".zip,.json,application/json,application/zip" data-dragon-ai-teams-import></label><p data-dragon-ai-teams-status role="status"></p><button type="button" data-dragon-ai-teams-close>Close</button>\';'
+        'panel.innerHTML=\'<header><h2>Teams Marketplace</h2><p>Apply a multi-bot team. Personal Assistant is already installed. Bots file under that team name, not Unassigned. Each seat shows a brief; hover or focus a seat for details.</p></header><div data-dragon-ai-teams-list></div><label>Import custom zip or JSON<input type="file" accept=".zip,.json,application/json,application/zip" data-dragon-ai-teams-import></label><p data-dragon-ai-teams-status role="status"></p><button type="button" data-dragon-ai-teams-close>Close</button>\';'
         "function setStatus(t){var s=$('[data-dragon-ai-teams-status]',panel);if(s)s.textContent=t||'';}"
-        "function show(){panel.hidden=false;panel.removeAttribute('hidden');load();}"
-        "function hide(){panel.hidden=true;panel.setAttribute('hidden','');}"
+        "var hideTimer=0;"
+        "function reducedMotion(){try{return !!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);}catch(e){return false;}}"
+        "function placePanel(){var logo=document.querySelector('[data-dragon-ai-sidebar-brand]')||document.querySelector('[data-dragon-ai-sidebar-logo]');var r=(logo||open).getBoundingClientRect();var top=Math.max(12,Math.round(r.bottom+8));panel.style.top=top+'px';panel.style.left='12px';}"
+        "function show(){if(hideTimer){clearTimeout(hideTimer);hideTimer=0;}panel.hidden=false;panel.removeAttribute('hidden');panel.setAttribute('aria-hidden','false');open.setAttribute('aria-expanded','true');placePanel();load();requestAnimationFrame(function(){requestAnimationFrame(function(){panel.setAttribute('data-dragon-ai-teams-visible','true');});});}"
+        "function hide(){panel.removeAttribute('data-dragon-ai-teams-visible');panel.setAttribute('aria-hidden','true');open.setAttribute('aria-expanded','false');if(hideTimer)clearTimeout(hideTimer);hideTimer=setTimeout(function(){hideTimer=0;if(panel.getAttribute('data-dragon-ai-teams-visible')==='true')return;panel.hidden=true;panel.setAttribute('hidden','');},reducedMotion()?0:220);}"
         "function reloadRoster(){hide();try{location.reload();}catch(e){try{window.location.href=window.location.href;}catch(e2){}}}"
         "function finishApply(){hide();reloadRoster();}"
         "function card(team){"
@@ -471,6 +476,7 @@ def teams_picker_script() -> str:
         "}"
         "open.addEventListener('click',show);"
         '$("[data-dragon-ai-teams-close]",panel).addEventListener("click",hide);'
+        "try{window.addEventListener('resize',function(){if(panel.getAttribute('data-dragon-ai-teams-visible')==='true')placePanel();});}catch(e){}"
         'var inp=$("[data-dragon-ai-teams-import]",panel);'
         "if(inp)inp.addEventListener('change',function(){importFile(inp.files&&inp.files[0]);});"
         "root.appendChild(open);if(document.body){document.body.appendChild(panel);}else{root.appendChild(panel);}"

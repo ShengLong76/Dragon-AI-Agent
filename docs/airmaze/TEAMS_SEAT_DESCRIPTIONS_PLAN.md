@@ -1,4 +1,4 @@
-# Plan — Teams picker seat descriptions
+# Plan — Teams Marketplace seat descriptions
 
 After `docs/airmaze/TEAMS_SEAT_DESCRIPTIONS.md`. Tests first. No Electron rebuild. James merges.
 
@@ -14,7 +14,7 @@ After `docs/airmaze/TEAMS_SEAT_DESCRIPTIONS.md`. Tests first. No Electron rebuil
    - Seat cards use `repeat(4, 1fr)`, `box-shadow`, and a shared `12px` radius.
 3. **Schema** — optional `bots[].descriptionDetail`. Pass through `normalize_manifest`, canonical roster fill, and `present_team`.
 4. **Copy** — Marketing `bot-group.json` (+ SEO `bot.yaml` brief). Six seats.
-5. **UI** — `desktop_branding.py` Teams inject + `dragon-ui.css`.
+5. **UI** — `desktop_branding.py` Teams Marketplace inject + `dragon-ui.css`. User chrome: **Teams Marketplace** under the 32px logo; fade + slight slide/scale; black panel; layered card shadows.
 6. **Self-review + PR** against `main`. Do not merge from the agent.
 
 ## Verify (Linux CI)

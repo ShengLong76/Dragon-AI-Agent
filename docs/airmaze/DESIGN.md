@@ -39,11 +39,11 @@ Full token table and skill-vs-override notes: `design-system/dragon-ai-agent/` (
 - Setup wizard colors stay the same RGB values, now named as this system.
 - Product mark is James’s front-facing navy low-poly dragon (coiled neck, same-color horns, red eyes, no boxed background) on empty state, wizard, and shortcuts.
 - Sidebar under Embedded Linux lists **Personal Assistant** only on a fresh install. The built-in default Hermes agent is **excluded** from the product (purged from `hermes\\profiles\\default` and `hermes`, never redeployed). CSS hide of `[data-roster-key$="::default"]` stays as a backstop so a leftover reserved row stays hidden. Real Estate / Marketing / Trading arrive only when chosen from Teams (or import).
-- Sidebar header above SESSIONS / BOTS shows the navy dragon + **Dragon AI** (accessible name **Dragon AI Agent**). The mark is a fixed 32px transparent SVG (no plate / no red border), matched to the Teams button height. Narrowing the rail wraps Teams below the logo instead of shrinking or clipping the lockup.
+- Sidebar header above SESSIONS / BOTS shows the navy dragon + **Dragon AI** (accessible name **Dragon AI Agent**). The mark is a fixed 32px transparent SVG (no plate / no red border), matched to the Teams Marketplace button height. The Marketplace control sits under the logo; the mark does not shrink.
 - Imported / deployed bot groups file into a named BOTS section labeled with the pack display name. They are not left under UNASSIGNED.
 - First-run setup has a **Models** step (after Welcome) for default chat LLM + default image LLM. Product defaults are Grok (xAI) + Grok Imagine. Design: `docs/airmaze/FIRST_RUN_MODELS.md`.
 - Opening Dragon AI Agent starts Docker Desktop in the **tray** when the engine is down (no Containers dashboard). Design: `docs/airmaze/DOCKER_LAUNCH.md`.
-- Teams picker lists each pack’s seats as 4-column cards under the team name, with a left-side icon, a brief line, and hover/focus detail. Marketing SEO Specialist copy is seoagent.com. Design: `docs/airmaze/TEAMS_SEAT_DESCRIPTIONS.md`.
+- Teams Marketplace lists each pack’s seats as 4-column cards under the team name, with a left-side icon, a brief line, and hover/focus detail. Marketing SEO Specialist copy is seoagent.com. Design: `docs/airmaze/TEAMS_SEAT_DESCRIPTIONS.md`.
 
 ## What does not change
 

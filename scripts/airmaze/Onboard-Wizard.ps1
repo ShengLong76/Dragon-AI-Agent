@@ -833,7 +833,7 @@ Real Estate flow: Lead Sourcer → Email Warmer → consent gate → calling.
 Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
 "@
         $content.Controls.Add((New-BrandLabel -Text $pitch -Location (New-Object Drawing.Point(40, 70)) -Width 620 -Height 80 -Muted))
-        $content.Controls.Add((New-BrandLabel -Text "Choose a Team anytime from the Dragon AI sidebar (or Bot Groups / Teams). Applied bots file under that team name, not Unassigned." -Location (New-Object Drawing.Point(40, 150)) -Width 620 -Height 36 -Muted))
+        $content.Controls.Add((New-BrandLabel -Text "Choose a Team anytime from Teams Marketplace in the Dragon AI sidebar (or Bot Groups). Applied bots file under that team name, not Unassigned." -Location (New-Object Drawing.Point(40, 150)) -Width 620 -Height 36 -Muted))
 
         $btnContinue = New-BrandButton -Text "Continue" -Location (New-Object Drawing.Point(40, 200)) -Size (New-Object Drawing.Size(140, 36)) -Primary
         $btnSkip = New-BrandButton -Text "Skip wizard" -Location (New-Object Drawing.Point(200, 200)) -Size (New-Object Drawing.Size(140, 36))
