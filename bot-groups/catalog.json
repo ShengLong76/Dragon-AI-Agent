@@ -23,6 +23,7 @@
     {
       "id": "real-estate-cold-call-lead-refresher",
       "name": "Real Estate Cold Call Lead Refresher",
+      "displayName": "Real Estate Lead Gen",
       "departmentJob": "Outbound real-estate department: refresh stale leads, warm them with CAN-SPAM email toward a TCPA consent form, write cold-call scripts, and sequence follow-ups.",
       "path": "real-estate-cold-call-lead-refresher",
       "tags": [
@@ -30,6 +31,30 @@
         "outbound",
         "multi-bot",
         "example"
+      ]
+    },
+    {
+      "id": "marketing-team",
+      "name": "Marketing Team",
+      "displayName": "Marketing Team",
+      "departmentJob": "Campaign copy, landing-page drafts, and follow-up sequences for a marketing desk.",
+      "path": "marketing-team",
+      "tags": [
+        "marketing",
+        "copy",
+        "multi-bot"
+      ]
+    },
+    {
+      "id": "trading-team",
+      "name": "Trading Team",
+      "displayName": "Trading Team",
+      "departmentJob": "Market research notes and a trade journal for a discretionary desk. Not brokerage, not auto-trading.",
+      "path": "trading-team",
+      "tags": [
+        "trading",
+        "research",
+        "multi-bot"
       ]
     }
   ]

@@ -46,6 +46,9 @@ REQUIRED_LAUNCHER = (
     "X-Hermes-Session-Token",
     "8650",
     "Apply-DragonAIDesktopUiBranding",
+    "Exclude-DragonAIHermesBots",
+    "teams_picker",
+    "8653",
 )
 
 REQUIRED_FINDER = (
@@ -217,6 +220,16 @@ def main() -> int:
         proc = subprocess.run([sys.executable, str(bot_groups_test)], cwd=str(ROOT))
         if proc.returncode != 0:
             fail("Test-BotGroups.py failed")
+    exclude_test = ROOT / "scripts" / "airmaze" / "Test-ExcludeHermesBot.py"
+    if exclude_test.is_file():
+        proc = subprocess.run([sys.executable, str(exclude_test)], cwd=str(ROOT))
+        if proc.returncode != 0:
+            fail("Test-ExcludeHermesBot.py failed")
+    teams_test = ROOT / "scripts" / "airmaze" / "Test-TeamsPicker.py"
+    if teams_test.is_file():
+        proc = subprocess.run([sys.executable, str(teams_test)], cwd=str(ROOT))
+        if proc.returncode != 0:
+            fail("Test-TeamsPicker.py failed")
     run_host_smoke()
     print("SMOKE OK: opening Dragon AI Agent is wired to branded UI or a blocking error.")
     return 0

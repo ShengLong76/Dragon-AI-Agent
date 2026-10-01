@@ -1,0 +1,33 @@
+{
+  "kind": "bot-group",
+  "schemaVersion": 1,
+  "id": "marketing-team",
+  "name": "Marketing Team",
+  "displayName": "Marketing Team",
+  "departmentJob": "Campaign copy, landing-page drafts, and follow-up sequences for a marketing desk.",
+  "version": "1.0.0",
+  "bots": [
+    {
+      "id": "copywriter",
+      "title": "Copywriter",
+      "description": "Writes campaign copy, subject lines, and landing-page drafts.",
+      "tools": [
+        "computer-use",
+        "browser"
+      ],
+      "soul": "bots/copywriter/SOUL.md",
+      "config": "bots/copywriter/bot.yaml"
+    },
+    {
+      "id": "campaign-sequencer",
+      "title": "Campaign Sequencer",
+      "description": "Plans multi-touch email and social follow-up sequences after a campaign launch.",
+      "tools": [
+        "computer-use",
+        "browser"
+      ],
+      "soul": "bots/campaign-sequencer/SOUL.md",
+      "config": "bots/campaign-sequencer/bot.yaml"
+    }
+  ]
+}

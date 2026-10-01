@@ -145,7 +145,7 @@ function Show-BotGroupDropdown {
     $singularOn = [bool]$settings.allowSingularBotImportExport
 
     $form = New-Object System.Windows.Forms.Form
-    $form.Text = "Dragon AI Agent — Bot Groups"
+    $form.Text = "Dragon AI Agent — Teams"
     $form.Size = New-Object System.Drawing.Size(640, 420)
     $form.StartPosition = "CenterScreen"
     $form.BackColor = $script:BrandBack
@@ -164,7 +164,7 @@ function Show-BotGroupDropdown {
     $title.Location = New-Object System.Drawing.Point(20, 10)
     $title.AutoSize = $true
     $sub = New-Object System.Windows.Forms.Label
-    $sub.Text = "Deploy a bot group from github.com/ShengLong76/airmaze-agent"
+    $sub.Text = "Pick a team (Personal Assistant, Real Estate Lead Gen, Marketing Team, Trading Team). Import file still works."
     $sub.ForeColor = [System.Drawing.Color]::FromArgb(255, 220, 220)
     $sub.Location = New-Object System.Drawing.Point(20, 40)
     $sub.AutoSize = $true
@@ -173,7 +173,7 @@ function Show-BotGroupDropdown {
     $form.Controls.Add($header)
 
     $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Text = "Bot group"
+    $lbl.Text = "Team"
     $lbl.ForeColor = $script:BrandMuted
     $lbl.Location = New-Object System.Drawing.Point(24, 92)
     $lbl.AutoSize = $true

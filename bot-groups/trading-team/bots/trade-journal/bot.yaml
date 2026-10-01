@@ -1,0 +1,7 @@
+slug: trade-journal
+display_name: Trade Journal
+description: >
+  Logs discretionary trades and post-mortems the operator records. Not a broker.
+
+browser:
+  headed: true

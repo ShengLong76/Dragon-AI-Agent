@@ -74,14 +74,14 @@ Catalog (repo root of the overlay): `bot-groups/catalog.json`
 }
 ```
 
-The client does **not** hard-code that `groups` list. The file in GitHub is the list.
+The client does **not** hard-code that `groups` list. The file in GitHub is the list. The in-app Teams picker also unions the bundled catalog so Personal Assistant, Real Estate Lead Gen, Marketing Team, and Trading Team stay visible when GitHub is stale.
 
 ## How the client lists and deploys from GitHub
 
 **Repo:** https://github.com/ShengLong76/airmaze-agent  
 **Path:** `bot-groups/` on `main`  
 **Engine:** `scripts/airmaze/bot_groups.py` (Dragon overlay; Linux-safe)  
-**UI:** `scripts/airmaze/Select-BotGroup.ps1` — WinForms **dropdown** (ComboBox), same crimson / dark chrome as the setup wizard. Not a restyle.
+**UI:** in-app **Teams** dialog in the Dragon AI desktop (sidebar button, overlay + `teams_picker.py` on `127.0.0.1:8653`). First-run wizard has **Choose a Team**. `Select-BotGroup.ps1` remains the WinForms **dropdown** (ComboBox) fallback, same crimson / dark chrome. Import from file stays. Not a restyle.
 
 On open, the dropdown calls `list_groups`:
 
@@ -103,14 +103,28 @@ To stay current, every open refetches. A successful fetch replaces the cache. Ad
 1. User picks a group in the dropdown and clicks **Deploy**
 2. Client fetches that group's `bot-group.json` and each bot's `SOUL.md` / `bot.yaml` from the same GitHub tree (or cache/bundle)
 3. Each bot is written to the **existing desktop picker path** `%LOCALAPPDATA%\hermes\profiles\<bot-id>\` (title, description, tools in `bot.meta.json`; soul + yaml as today)
-4. Mirror into `%USERPROFILE%\.hermes-airmaze-embedded\profiles\` so Bot Screen / Remote serve still sees them
-5. Record `%LOCALAPPDATA%\DragonAIAgent\active-bot-group.json`
+4. File every bot in that pack into a **named BOTS section** labeled with the group display name (see below). They must not land under UNASSIGNED.
+5. Mirror into `%USERPROFILE%\.hermes-airmaze-embedded\profiles\` so Bot Screen / Remote serve still sees them
+6. Record `%LOCALAPPDATA%\DragonAIAgent\active-bot-group.json`
 
 That destination folder name (`hermes\profiles\<bot-id>`) is the upstream desktop / Bot Screen picker. It is **not** renamed. Only Dragon's catalog and UI say "bot group".
 
 ### If those bots already exist
 
-Deploy is idempotent. Group-owned files (`SOUL.md`, `bot.yaml`, `profile.yaml`, `bot.meta.json`) are overwritten from the group. Extra files the user added in that bot folder are left alone. The result reports `created` vs `updated`. Onboarding secrets and `bots-status.json` are not wiped.
+Deploy is idempotent. Group-owned files (`SOUL.md`, `bot.yaml`, `profile.yaml`, `bot.meta.json`) are overwritten from the group. Extra files the user added in that bot folder are left alone. The result reports `created` vs `updated`. Onboarding secrets and `bots-status.json` are not wiped. Re-apply also re-stamps the named UI section so an older install that left those bots under UNASSIGNED is corrected.
+
+## Named UI section (not UNASSIGNED)
+
+The Dragon AI BOTS pane is the upstream user-section chrome (`user-sections.ts`). Membership is **on the bot**: `profile.yaml` `ui_meta.hermes-bots.sectionId` + `sectionName`. Bots missing those fields, or pointing at a section the desktop does not know, draw last under **UNASSIGNED**.
+
+Import (`Import-BotGroup`, and the Apply-Profile / Import-Profile shims) and deploy do this:
+
+1. Stable id `sec-dragon-<group-id>` so a second apply updates the same folder
+2. Label = group `name` (or leftover profile `displayName`) — e.g. "Marketing Team", "Real Estate Cold Call Lead Refresher"
+3. Write `sectionId` and `sectionName` on every bot in the pack (`profile.yaml` + `bot.meta.json`)
+4. The desktop's `adoptBotSectionsFromMeta` rebuilds the section from those two fields. Dragon does not click "New section" in the UI.
+
+Singular one-bot import (toggle on) does not invent a department section.
 
 ## Export
 
@@ -188,7 +202,7 @@ This repo's base is the Dragon AI **desktop agent** packaging (gateway, Bot Scre
 ## Desktop agent and sidebar
 
 - Gateway, Bot Screen, and the desktop client keep working. Bot groups only add catalog/deploy/export.
-- Sidebar keeps **Personal Assistant** (the default group). Do not add a Hermes bot back.
+- Sidebar keeps **Personal Assistant** (the default group). Do not add a Hermes bot back. Deployed packs appear under a named section, not UNASSIGNED.
 - No restyle: Syne 700, crimson `#C41E3A`, navy dragon mark stay as they are.
 
 ## Tests
@@ -197,4 +211,4 @@ This repo's base is the Dragon AI **desktop agent** packaging (gateway, Bot Scre
 python3 scripts/airmaze/Test-BotGroups.py
 ```
 
-Covers: rename (no Profiles UI), dropdown reads the repo, deploy one group, export re-imports, singular toggle off by default, old `profile.json` still loads once, Bot Screen tokens untouched.
+Covers: rename (no Profiles UI), dropdown reads the repo, deploy one group, export re-imports, singular toggle off by default, old `profile.json` still loads once, imported bots file into a named UI section (not UNASSIGNED), Bot Screen tokens untouched.

@@ -90,6 +90,10 @@ def test_table() -> dict:
     sidebar = table.get("sidebar") or {}
     if sidebar.get("hideDefaultHermes") is not True:
         fail("table must hide the default Hermes sidebar bot")
+    if sidebar.get("excludeHermes") is not True:
+        fail("table must exclude Hermes (not hide-only)")
+    if sidebar.get("headerTitle") != "Dragon AI":
+        fail("table sidebar header must be Dragon AI")
     if sidebar.get("userFacingBots") != ["Personal Assistant"]:
         fail("table sidebar must list only Personal Assistant")
     if by_from.get("return 'Hermes'") != "return ''":
@@ -215,6 +219,16 @@ const protocol = 'hermes://copilot-key/start';
             fail("index.html was not linked to the bundled wordmark stylesheet")
         if html.count("dragon-ui.css") != 1:
             fail("font stylesheet linked more than once")
+        if 'data-dragon-ai-branding="sidebar-header"' not in html or "Dragon AI" not in html:
+            fail("index.html must inject the sidebar header lockup (Dragon AI)")
+        if 'data-dragon-ai-branding="teams-picker"' not in html or "Teams" not in html:
+            fail("index.html must inject the in-app Teams picker")
+        icon_dest = unpacked / "resources" / "icon.ico"
+        if not icon_dest.is_file() or icon_dest.read_bytes()[:4] != b"\x00\x00\x01\x00":
+            fail("apply must copy the Dragon ICO to resources/icon.ico")
+        icon_info = summary.get("icon") or {}
+        if icon_info.get("copied") is not True:
+            fail(f"overlay did not report icon copy: {icon_info}")
         font_info = summary.get("font") or {}
         if font_info.get("fontFamily") != "Syne":
             fail(f"overlay did not report Syne: {font_info}")
@@ -237,6 +251,8 @@ const protocol = 'hermes://copilot-key/start';
             fail("empty-state mark must not keep a boxed background")
         if '[data-roster-key$="::default"]' not in css_txt:
             fail("injected CSS must hide the default Hermes sidebar bot")
+        if "[data-dragon-ai-sidebar-brand]" not in css_txt or "Dragon AI" not in css_txt:
+            fail("injected CSS must style the sidebar header lockup")
         if "<rect" in mark_txt.lower() or "#0a0a0a" in mark_txt.lower():
             fail("copied SVG mark must not include a boxed black plate")
         if png_mark.is_file() and png_mark.read_bytes()[25] != 6:
@@ -316,6 +332,8 @@ def test_packaging_not_regressed() -> None:
         fail("dragon-ui.css must not box the empty-state mark")
     if '[data-roster-key$="::default"]' not in css:
         fail("dragon-ui.css must hide the default Hermes sidebar bot")
+    if "[data-dragon-ai-sidebar-brand]" not in css or "Dragon AI" not in css:
+        fail("dragon-ui.css must style the sidebar header lockup (Dragon AI)")
     if "Personal Assistant" not in css:
         fail("dragon-ui.css must keep Personal Assistant as the visible sidebar bot")
     if "dragon-ai-agent-logo.png" not in apply_ps:

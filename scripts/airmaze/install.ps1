@@ -349,6 +349,11 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\desktop_branding.py",
         "scripts\airmaze\desktop_branding.json",
         "scripts\airmaze\Test-DesktopBranding.py",
+        "scripts\airmaze\exclude_hermes_bot.py",
+        "scripts\airmaze\Test-ExcludeHermesBot.py",
+        "scripts\airmaze\teams_picker.py",
+        "scripts\airmaze\Test-TeamsPicker.py",
+        "docs\airmaze\PRODUCT_BRANDING.md",
         "scripts\airmaze\Start-DragonAI.vbs",
         "scripts\airmaze\desktop-loopback-proxy.py",
         "scripts\airmaze\start-desktop-serve.sh",
@@ -629,6 +634,26 @@ if ($dockerOk) {
 }
 
 Install-PackageFiles -Root $root
+
+function Exclude-DragonAIHermesBots {
+    $engine = Join-Path $InstallRoot "scripts\airmaze\exclude_hermes_bot.py"
+    if (-not (Test-Path -LiteralPath $engine)) {
+        $engine = Join-Path $PSScriptRoot "exclude_hermes_bot.py"
+    }
+    if (-not (Test-Path -LiteralPath $engine)) { return }
+    $desktop = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "hermes\profiles" } else { "" }
+    $embedded = if ($env:USERPROFILE) { Join-Path $env:USERPROFILE ".hermes-airmaze-embedded\profiles" } else { "" }
+    $py = Get-Command python3 -ErrorAction SilentlyContinue
+    if (-not $py) { $py = Get-Command python -ErrorAction SilentlyContinue }
+    if (-not $py) { return }
+    try {
+        & $py.Source $engine purge --desktop $desktop --embedded $embedded | Out-Null
+        Write-Log "Excluded leftover Hermes bot profiles (default/hermes)"
+    } catch {
+        Write-Log "Hermes exclude skipped: $($_.Exception.Message)" "WARN"
+    }
+}
+Exclude-DragonAIHermesBots
 
 if ($dockerOk -and (Test-DockerEngine)) {
     Start-EmbeddedGateway | Out-Null

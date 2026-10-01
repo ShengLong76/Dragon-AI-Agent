@@ -142,8 +142,8 @@ def sample_group() -> dict:
 
 def write_group_tree(root: pathlib.Path, group: dict) -> pathlib.Path:
     folder = root / group["id"]
-    (folder / "bots" / "email-warmer").mkdir(parents=True)
-    (folder / "bots" / "lead-sourcer").mkdir(parents=True)
+    (folder / "bots" / "email-warmer").mkdir(parents=True, exist_ok=True)
+    (folder / "bots" / "lead-sourcer").mkdir(parents=True, exist_ok=True)
     (folder / "bot-group.json").write_text(json.dumps(group, indent=2), encoding="utf-8")
     (folder / "bots" / "email-warmer" / "SOUL.md").write_text("# Email Warmer\nWarm leads.\n", encoding="utf-8")
     (folder / "bots" / "email-warmer" / "bot.yaml").write_text("slug: email-warmer\n", encoding="utf-8")
@@ -165,6 +165,9 @@ def test_design_doc() -> None:
         "bot-groups/",
         "upstream sync",
         "profile.json",
+        "UNASSIGNED",
+        "sectionId",
+        "sectionName",
     ):
         if needle not in text:
             fail(f"BOT_GROUPS.md must document {needle!r}")
@@ -328,6 +331,101 @@ def test_deploy_group(bg) -> None:
     print("OK  deploy one group (create + update existing)")
 
 
+def test_deploy_files_named_ui_section(bg) -> None:
+    with tempfile.TemporaryDirectory(prefix="dragon-bg-sec-") as tmp:
+        tmp_path = pathlib.Path(tmp)
+        payload = tmp_path / "payload" / "bot-groups"
+        install = tmp_path / "install"
+        desktop = tmp_path / "hermes-profiles"
+        payload.mkdir(parents=True)
+        (payload / "catalog.json").write_text(json.dumps(sample_catalog()), encoding="utf-8")
+        write_group_tree(payload, sample_group())
+        result = bg.deploy_group(
+            "real-estate-cold-call-lead-refresher",
+            payload_root=tmp_path / "payload",
+            install_root=install,
+            desktop_profiles_root=desktop,
+        )
+        section_id = "sec-dragon-real-estate-cold-call-lead-refresher"
+        section_name = "Real Estate Cold Call Lead Refresher"
+        if (result.get("uiSection") or {}).get("sectionId") != section_id:
+            fail(f"deploy must report uiSection {section_id}, got {result.get('uiSection')}")
+        for bot_id in ("email-warmer", "lead-sourcer"):
+            profile = (desktop / bot_id / "profile.yaml").read_text(encoding="utf-8")
+            if "sectionId:" not in profile or section_id not in profile:
+                fail(f"{bot_id} profile.yaml must stamp sectionId {section_id}")
+            if section_name not in profile:
+                fail(f"{bot_id} must be labeled {section_name!r}, not UNASSIGNED")
+            if "section:unassigned" in profile.lower():
+                fail(f"{bot_id} must not be filed under UNASSIGNED")
+            meta = json.loads((desktop / bot_id / "bot.meta.json").read_text(encoding="utf-8"))
+            if meta.get("sectionId") != section_id or meta.get("sectionName") != section_name:
+                fail(f"{bot_id} bot.meta.json missing UI section: {meta}")
+        marketing = {
+            "kind": "bot-group",
+            "schemaVersion": 1,
+            "id": "marketing-team",
+            "name": "Marketing Team",
+            "departmentJob": "Outbound marketing.",
+            "bots": [
+                {
+                    "id": "copywriter",
+                    "title": "Copywriter",
+                    "description": "Writes campaigns.",
+                    "tools": ["browser"],
+                    "soul": "bots/copywriter/SOUL.md",
+                    "config": "bots/copywriter/bot.yaml",
+                }
+            ],
+        }
+        mdir = payload / "marketing-team"
+        (mdir / "bots" / "copywriter").mkdir(parents=True)
+        (mdir / "bot-group.json").write_text(json.dumps(marketing), encoding="utf-8")
+        (mdir / "bots" / "copywriter" / "SOUL.md").write_text("# Copy\n", encoding="utf-8")
+        (mdir / "bots" / "copywriter" / "bot.yaml").write_text("slug: copywriter\n", encoding="utf-8")
+        bg.deploy_group(
+            "marketing-team",
+            payload_root=tmp_path / "payload",
+            install_root=install,
+            desktop_profiles_root=desktop,
+        )
+        mprofile = (desktop / "copywriter" / "profile.yaml").read_text(encoding="utf-8")
+        if "sec-dragon-marketing-team" not in mprofile or "Marketing Team" not in mprofile:
+            fail("Marketing Team import must create its own named UI section")
+        warmer_after = (desktop / "email-warmer" / "profile.yaml").read_text(encoding="utf-8")
+        if section_id not in warmer_after:
+            fail("a second group must not steal the Real Estate section id")
+        renamed = sample_group()
+        renamed["name"] = "Real Estate Lead Gen"
+        (payload / renamed["id"] / "bot-group.json").write_text(json.dumps(renamed, indent=2), encoding="utf-8")
+        bg.deploy_group(
+            "real-estate-cold-call-lead-refresher",
+            payload_root=tmp_path / "payload",
+            install_root=install,
+            desktop_profiles_root=desktop,
+        )
+        reapplied = (desktop / "email-warmer" / "profile.yaml").read_text(encoding="utf-8")
+        if section_id not in reapplied:
+            fail("re-apply must keep the stable section id")
+        if "Real Estate Lead Gen" not in reapplied:
+            fail("re-apply must update the section display name")
+        exported = pathlib.Path(bg.export_group("real-estate-cold-call-lead-refresher", tmp_path / "exported", install, tmp_path / "payload"))
+        imported_desktop = tmp_path / "imported-profiles"
+        imported = bg.import_bundle(exported, install_root=tmp_path / "install2", desktop_profiles_root=imported_desktop)
+        if (imported.get("uiSection") or {}).get("sectionName") != "Real Estate Lead Gen":
+            fail(f"import must file bots under the pack display name, got {imported.get('uiSection')}")
+        imported_profile = (imported_desktop / "email-warmer" / "profile.yaml").read_text(encoding="utf-8")
+        if section_id not in imported_profile or "Real Estate Lead Gen" not in imported_profile:
+            fail("Import-BotGroup path must stamp the named UI section")
+        apply_shim = SCRIPTS / "Apply-Profile.ps1"
+        import_shim = SCRIPTS / "Import-Profile.ps1"
+        if "Import-BotGroup" not in apply_shim.read_text(encoding="utf-8"):
+            fail("Apply-Profile must call Import-BotGroup so leftover profiles get a named section")
+        if "Import-BotGroup" not in import_shim.read_text(encoding="utf-8"):
+            fail("Import-Profile must call Import-BotGroup so leftover profiles get a named section")
+    print("OK  deploy/import files bots into a named UI section (not UNASSIGNED)")
+
+
 def test_export_reimport(bg) -> None:
     with tempfile.TemporaryDirectory(prefix="dragon-bg-ex-") as tmp:
         tmp_path = pathlib.Path(tmp)
@@ -462,6 +560,8 @@ def test_repo_catalog_converted() -> None:
         fail("catalog must keep Personal Assistant")
     if "real-estate-cold-call-lead-refresher" not in ids:
         fail("catalog must keep the Real Estate example")
+    if "marketing-team" not in ids or "trading-team" not in ids:
+        fail("catalog must list Marketing Team and Trading Team")
     if any(g.get("id") == "hermes" or "hermes" in str(g.get("name", "")).lower() for g in groups):
         fail("do not add a Hermes bot back")
     re_group = json.loads(read(REAL_ESTATE))
@@ -574,6 +674,7 @@ def main() -> int:
     test_list_from_github(bg)
     test_list_offline_cache_then_bundle(bg)
     test_deploy_group(bg)
+    test_deploy_files_named_ui_section(bg)
     test_export_reimport(bg)
     test_singular_toggle(bg)
     test_repo_catalog_converted()

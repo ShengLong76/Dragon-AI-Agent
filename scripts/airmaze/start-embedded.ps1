@@ -560,6 +560,7 @@ function Sync-EmbeddedGatewayProfiles {
     New-Item -ItemType Directory -Force -Path $destRoot | Out-Null
     $n = 0
     Get-ChildItem -LiteralPath $srcRoot -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+        if ($_.Name -in @("default", "hermes")) { return }
         $dest = Join-Path $destRoot $_.Name
         New-Item -ItemType Directory -Force -Path $dest | Out-Null
         foreach ($name in @("SOUL.md", "bot.yaml", "profile.yaml", "config.yaml", "bot.meta.json")) {
@@ -693,6 +694,59 @@ function Test-OnboardingNeedsUi {
     }
 }
 
+function Exclude-DragonAIHermesBots {
+    $engine = Join-Path $PSScriptRoot "exclude_hermes_bot.py"
+    if (-not (Test-Path -LiteralPath $engine)) {
+        $engine = Join-Path $InstallRoot "scripts\airmaze\exclude_hermes_bot.py"
+    }
+    if (-not (Test-Path -LiteralPath $engine)) { return }
+    $desktop = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "hermes\profiles" } else { "" }
+    $embedded = if ($env:USERPROFILE) { Join-Path $env:USERPROFILE ".hermes-airmaze-embedded\profiles" } else { "" }
+    $py = Get-Command python3 -ErrorAction SilentlyContinue
+    if (-not $py) { $py = Get-Command python -ErrorAction SilentlyContinue }
+    if (-not $py) { return }
+    try {
+        & $py.Source $engine purge --desktop $desktop --embedded $embedded | Out-Null
+        Write-LaunchLog "Excluded leftover Hermes bot profiles (default/hermes)"
+    } catch {
+        Write-LaunchLog "Hermes exclude skipped: $($_.Exception.Message)" "WARN"
+    }
+}
+
+function Start-DragonAITeamsPicker {
+    $engine = Join-Path $PSScriptRoot "teams_picker.py"
+    if (-not (Test-Path -LiteralPath $engine)) {
+        $engine = Join-Path $InstallRoot "scripts\airmaze\teams_picker.py"
+    }
+    if (-not (Test-Path -LiteralPath $engine)) { return }
+    $py = Get-Command python3 -ErrorAction SilentlyContinue
+    if (-not $py) { $py = Get-Command python -ErrorAction SilentlyContinue }
+    if (-not $py) { return }
+    $desktop = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "hermes\profiles" } else { Join-Path $InstallRoot "hermes-profiles" }
+    $embedded = if ($env:USERPROFILE) { Join-Path $env:USERPROFILE ".hermes-airmaze-embedded\profiles" } else { "" }
+    $payload = $InstallRoot
+    if (-not (Test-Path -LiteralPath (Join-Path $payload "bot-groups\catalog.json"))) {
+        $hint = Join-Path $PSScriptRoot "..\.."
+        if (Test-Path -LiteralPath (Join-Path $hint "bot-groups\catalog.json")) {
+            $payload = (Resolve-Path -LiteralPath $hint).Path
+        }
+    }
+    try {
+        Start-Process -FilePath $py.Source -ArgumentList @(
+            $engine, "serve",
+            "--payload", $payload,
+            "--install", $InstallRoot,
+            "--desktop", $desktop,
+            "--embedded", $embedded,
+            "--host", "127.0.0.1",
+            "--port", "8653"
+        ) -WindowStyle Hidden -ErrorAction SilentlyContinue | Out-Null
+        Write-LaunchLog "Teams picker helper on http://127.0.0.1:8653/api/teams"
+    } catch {
+        Write-LaunchLog "Teams picker helper skipped: $($_.Exception.Message)" "WARN"
+    }
+}
+
 function Start-OnboardingIfNeeded {
     if ($NoWizard) { return }
     if (-not (Test-OnboardingNeedsUi)) { return }
@@ -764,7 +818,10 @@ function Invoke-Smoke {
         "Set-EmbeddedDesktopRemoteConnection",
         "X-Hermes-Session-Token",
         "8650",
-        "Apply-DragonAIDesktopUiBranding"
+        "Apply-DragonAIDesktopUiBranding",
+        "Exclude-DragonAIHermesBots",
+        "teams_picker",
+        "8653"
     )
     foreach ($token in $required) {
         if ($text -notlike "*$token*") {
@@ -827,6 +884,8 @@ try {
     }
 
     Start-GatewayContainer -ComposePath $compose
+    Exclude-DragonAIHermesBots
+    Start-DragonAITeamsPicker
     try { Sync-EmbeddedGatewayProfiles | Out-Null } catch {
         Write-LaunchLog "Profile sync skipped: $($_.Exception.Message)" "WARN"
     }

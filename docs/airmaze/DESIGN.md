@@ -38,7 +38,9 @@ Full token table and skill-vs-override notes: `design-system/dragon-ai-agent/` (
 - Settings / About stay **Dragon AI Agent**.
 - Setup wizard colors stay the same RGB values, now named as this system.
 - Product mark is James’s front-facing navy low-poly dragon (coiled neck, same-color horns, red eyes, no boxed background) on empty state, wizard, and shortcuts.
-- Sidebar under Embedded Linux lists **Personal Assistant** only. The built-in default Hermes agent is hidden (not renamed).
+- Sidebar under Embedded Linux lists **Personal Assistant** only. The built-in default Hermes agent is **excluded** from the product (purged from `hermes\\profiles\\default` and `hermes`, never redeployed). CSS hide of `[data-roster-key$="::default"]` stays as a backstop so a leftover reserved row stays hidden.
+- Sidebar header above SESSIONS / BOTS shows the navy dragon + **Dragon AI** (accessible name **Dragon AI Agent**).
+- Imported / deployed bot groups file into a named BOTS section labeled with the pack display name. They are not left under UNASSIGNED.
 
 ## What does not change
 

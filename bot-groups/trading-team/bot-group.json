@@ -1,0 +1,33 @@
+{
+  "kind": "bot-group",
+  "schemaVersion": 1,
+  "id": "trading-team",
+  "name": "Trading Team",
+  "displayName": "Trading Team",
+  "departmentJob": "Market research notes and a trade journal for a discretionary desk. Not brokerage, not auto-trading.",
+  "version": "1.0.0",
+  "bots": [
+    {
+      "id": "market-researcher",
+      "title": "Market Researcher",
+      "description": "Summarizes public market context and writes research notes. Does not place orders.",
+      "tools": [
+        "computer-use",
+        "browser"
+      ],
+      "soul": "bots/market-researcher/SOUL.md",
+      "config": "bots/market-researcher/bot.yaml"
+    },
+    {
+      "id": "trade-journal",
+      "title": "Trade Journal",
+      "description": "Logs discretionary trades and post-mortems the operator records. Not a broker.",
+      "tools": [
+        "computer-use",
+        "browser"
+      ],
+      "soul": "bots/trade-journal/SOUL.md",
+      "config": "bots/trade-journal/bot.yaml"
+    }
+  ]
+}

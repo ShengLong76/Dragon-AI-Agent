@@ -151,6 +151,139 @@ body,
   display: none !important;
 }
 
+/* Sidebar header lockup above SESSIONS / BOTS. Decorative mark + Dragon AI. */
+[data-dragon-ai-sidebar-brand] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  min-height: 48px;
+  padding: 10px 12px 8px;
+  color: var(--color-foreground);
+}
+
+[data-dragon-ai-sidebar-brand] img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+[data-dragon-ai-sidebar-brand] span {
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  color: var(--color-foreground);
+  line-height: 1.2;
+}
+
+/* In-app Teams picker (sidebar button + dialog). */
+[data-dragon-ai-teams-root] {
+  padding: 0 12px 10px;
+}
+
+[data-dragon-ai-teams-open] {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-card);
+  color: var(--color-foreground);
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+[data-dragon-ai-teams-open]:focus-visible,
+[data-dragon-ai-teams-panel] button:focus-visible,
+[data-dragon-ai-teams-panel] input:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+[data-dragon-ai-teams-panel] {
+  position: fixed;
+  z-index: 80;
+  top: 12px;
+  left: 12px;
+  width: min(28rem, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  box-shadow: 0 16px 40px #00000080;
+}
+
+[data-dragon-ai-teams-panel] h2 {
+  margin: 0 0 6px;
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+[data-dragon-ai-teams-panel] header p,
+[data-dragon-ai-teams-status] {
+  color: var(--color-muted-foreground);
+  font-size: 0.875rem;
+}
+
+[data-dragon-ai-teams-list] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+[data-dragon-ai-teams-list] button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-card);
+  color: var(--color-foreground);
+  cursor: pointer;
+}
+
+[data-dragon-ai-teams-list] button strong {
+  display: block;
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+}
+
+[data-dragon-ai-teams-list] button span {
+  display: block;
+  color: var(--color-muted-foreground);
+  font-size: 0.8125rem;
+}
+
+[data-dragon-ai-teams-panel] label {
+  display: block;
+  margin: 8px 0;
+  color: var(--color-muted-foreground);
+  font-size: 0.875rem;
+}
+
+[data-dragon-ai-teams-close] {
+  margin-top: 8px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-weight: 700;
+  cursor: pointer;
+}
+
 textarea,
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
 [contenteditable="true"],

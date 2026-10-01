@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 7,
   "product": "Dragon AI Agent",
   "note": "User-visible product chrome only. Do not rename process names, Docker tags, tokens, ports, protocols, or license attribution.",
   "designSystem": {
@@ -41,7 +41,11 @@
   "sidebar": {
     "userFacingBots": ["Personal Assistant"],
     "hideDefaultHermes": true,
-    "why": "Embedded Linux roster must not list the built-in default Hermes agent alongside Personal Assistant."
+    "excludeHermes": true,
+    "excludedProfileIds": ["default", "hermes"],
+    "headerTitle": "Dragon AI",
+    "headerAccessibleName": "Dragon AI Agent",
+    "why": "Exclude the built-in default Hermes agent. Header lockup is Dragon AI above SESSIONS / BOTS. Personal Assistant stays."
   },
   "replacements": [
     {

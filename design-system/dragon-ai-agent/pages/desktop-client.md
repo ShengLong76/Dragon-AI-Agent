@@ -47,11 +47,14 @@ Text on `#1C1C20`: `#F0F0F5` and `#A0A0AA` both clear 4.5:1.
 
 James’s front-facing navy low-poly dragon (both eyes to the viewer, coiled neck). Large flat navy facets `#314A73` (horns the same navy); red eyes `#C41E3A`. **No boxed black plate** — the mark sits on the dark window. No gold, no copper ring, not a side profile. PNG is cropped from the attached mark with the field punched; SVG is the facet companion without a `<rect>` plate. Overlay copies both into `dragon-ai-branding/` and shows a **larger** PNG **behind** the empty-state wordmark (`min(22rem, 70%)` of the intro, `overflow: visible`, `z-index` so **DRAGON AI AGENT** is in front). Do not size the mark with `vw` (that includes the sidebar).
 
-The Bots rail must not list the built-in default Hermes agent next to Personal Assistant. Overlay CSS hides `[data-roster-key$="::default"]`; the string overlay blanks `return 'Hermes'`. **Personal Assistant** stays.
+The Bots rail must not list the built-in default Hermes agent next to Personal Assistant. The product **excludes** that bot (purge leftover `default` / `hermes` folders). Overlay CSS hides `[data-roster-key$="::default"]` as a backstop; the string overlay blanks `return 'Hermes'`. **Personal Assistant** stays. Imported bot groups file into a named section, not UNASSIGNED.
+
+The left-rail header above SESSIONS / BOTS is a brand lockup: decorative navy dragon (`aria-hidden`) + **Dragon AI** in Syne 700 (`#F0F0F5` on `#1C1C20`). Accessible name **Dragon AI Agent**. Do not cover the tab hit targets.
 
 ## Surfaces this overlay may style
 
 - Empty-state wordmark, intro subtitle, and the front-facing dragon mark
+- Sidebar header brand lockup (logo + Dragon AI)
 - Composer placeholder + `:focus-visible` ring (`2px` solid `--color-ring`, offset `2px`)
 - Settings / About product copy (strings already in `desktop_branding.json`)
 - Shared CSS variables so a later branded Electron build can reuse them
