@@ -207,6 +207,12 @@ This repo's base is the Dragon AI **desktop agent** packaging (gateway, Bot Scre
 - Sidebar keeps **Personal Assistant** (the default group). Do not add a Hermes bot back. Deployed packs appear under a named section, not UNASSIGNED.
 - No restyle: Syne 700, crimson `#C41E3A`, navy dragon mark stay as they are.
 
+## Marketing Team — SEOagent (SEO Specialist only)
+
+James locked [AgriciDaniel/claude-seo](https://github.com/AgriciDaniel/claude-seo) (MIT) as the SEO source. That is a **tool + thin skill pack** on **SEO Specialist**, not a seventh seat and not a Claude Code plugin install. Design: [`docs/airmaze/SEOAGENT.md`](SEOAGENT.md).
+
+Live data default is **DataForSEO** (`connectors/dataforseo.json` → `npx -y dataforseo-mcp-server`). Buffer / Brevo stay the locked defaults for Social / Lifecycle and are not wired here. Deploy copies `bots/seo-specialist/skills/` onto that profile only.
+
 ## Tests
 
 ```bash

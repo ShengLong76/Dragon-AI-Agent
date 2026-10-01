@@ -67,3 +67,19 @@ Vendored under `.cursor/skills/understand-anything/` and `.cursor-plugin/plugin.
 | Graph dir | `.ua/` (gitignored) |
 
 How to run the first scan later: `docs/airmaze/UNDERSTAND_ANYTHING.md`.
+
+## Claude SEO (adapted skill notes on SEO Specialist)
+
+Marketing Team **SEO Specialist** ships a thin Hermes skill pack adapted from AgriciDaniel/claude-seo. The Claude Code plugin, 19 agents, and Playwright installer are **not** vendored. DataForSEO MCP is the official `dataforseo-mcp-server` package (operator credentials stay local).
+
+| Item | Value |
+|------|--------|
+| Project | https://github.com/AgriciDaniel/claude-seo |
+| License | MIT © 2026 agricidaniel |
+| Adapted path | `bot-groups/marketing-team/bots/seo-specialist/skills/` |
+| Design | `docs/airmaze/SEOAGENT.md` |
+
+| Item | Value |
+|------|--------|
+| DataForSEO MCP | https://github.com/dataforseo/mcp-server-typescript |
+| Package | `dataforseo-mcp-server` |

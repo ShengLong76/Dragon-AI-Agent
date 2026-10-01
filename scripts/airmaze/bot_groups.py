@@ -69,6 +69,7 @@ CANONICAL_ROSTERS: dict[str, list[dict[str, Any]]] = {
                 "add DataForSEO MCP credentials in desktop MCP settings if you use that tool.\n\n"
                 "Buffer stays on Social Media Manager. Brevo stays on Lifecycle Marketer."
             ),
+            "tools": ["computer-use", "browser", "seoagent", "dataforseo"],
         },
         {
             "id": "social-media-manager",
@@ -791,6 +792,13 @@ def _copy_bot_files(group_dir: Path, bot: dict[str, Any], dest: Path) -> None:
     elif cfg_rel:
         (dest / "bot.yaml").write_text(str(cfg_rel), encoding="utf-8")
         (dest / "profile.yaml").write_text(str(cfg_rel), encoding="utf-8")
+    bot_id = str(bot.get("id") or "")
+    skills_src = group_dir / "bots" / bot_id / "skills"
+    if bot_id and skills_src.is_dir():
+        skills_dest = dest / "skills"
+        if skills_dest.exists():
+            shutil.rmtree(skills_dest)
+        shutil.copytree(skills_src, skills_dest)
 
 
 def _write_bot_meta(dest: Path, bot: dict[str, Any], group_id: str, section: dict[str, str] | None = None) -> None:

@@ -1,0 +1,17 @@
+{
+  "id": "dataforseo",
+  "type": "mcp_server",
+  "displayName": "DataForSEO",
+  "status": "placeholder",
+  "mcp": {
+    "name": "dataforseo",
+    "command": "npx",
+    "args": ["-y", "dataforseo-mcp-server"],
+    "env": {
+      "DATAFORSEO_USERNAME": "",
+      "DATAFORSEO_PASSWORD": "",
+      "ENABLED_MODULES": "SERP,KEYWORDS_DATA,ONPAGE,DATAFORSEO_LABS,BACKLINKS,DOMAIN_ANALYTICS,BUSINESS_DATA,CONTENT_ANALYSIS,AI_OPTIMIZATION"
+    }
+  },
+  "notes": "James-locked Marketing default for SEO Specialist. Official DataForSEO MCP (https://github.com/dataforseo/mcp-server-typescript). Set username/password locally. Do not put secrets in this file. Setup: docs/airmaze/SEOAGENT.md."
+}
