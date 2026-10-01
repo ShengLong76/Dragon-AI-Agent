@@ -26,6 +26,7 @@ BRAND_DIR_NAME = "dragon-ai-branding"
 HTML_MARK = 'data-dragon-ai-branding="ui-face"'
 SIDEBAR_SCRIPT_MARK = 'data-dragon-ai-branding="sidebar-header"'
 TEAMS_SCRIPT_MARK = 'data-dragon-ai-branding="teams-picker"'
+VOICE_SCRIPT_MARK = 'data-dragon-ai-branding="voice-provider"'
 OLD_HTML_MARKS = ('data-dragon-ai-branding="outfit"',)
 STYLESHEET_NAME = "dragon-ui.css"
 CSS_APPEND_MARK = "/* dragon-ai-ui-face */"
@@ -442,11 +443,29 @@ def inject_teams_picker_script(html: str) -> tuple[str, bool]:
     return upsert_marked_script(html, TEAMS_SCRIPT_MARK, teams_picker_script())
 
 
+def voice_selector_js_path() -> Path:
+    return branding_dir() / "voice" / "dragon-voice-selector.js"
+
+
+def voice_provider_script() -> str:
+    """GPT | Grok selector plus overlay Grok duplex client. GPT stays."""
+    path = voice_selector_js_path()
+    body = path.read_text(encoding="utf-8").strip()
+    if VOICE_SCRIPT_MARK in body:
+        raise ValueError("voice selector JS must not include its own script mark")
+    return f"<script {VOICE_SCRIPT_MARK}>\n{body}\n</script>"
+
+
+def inject_voice_provider_script(html: str) -> tuple[str, bool]:
+    return upsert_marked_script(html, VOICE_SCRIPT_MARK, voice_provider_script())
+
+
 def inject_html_branding(html: str) -> tuple[str, bool]:
     out, changed = inject_font_link(html)
     out2, changed2 = inject_sidebar_header_script(out)
     out3, changed3 = inject_teams_picker_script(out2)
-    return out3, changed or changed2 or changed3
+    out4, changed4 = inject_voice_provider_script(out3)
+    return out4, changed or changed2 or changed3 or changed4
 
 
 def append_font_css(css_text: str, sheet: str) -> tuple[str, bool]:
@@ -800,8 +819,30 @@ def self_test() -> int:
     if once.count(TEAMS_SCRIPT_MARK) != 1 or "Teams" not in once:
         print("FAIL: Teams picker script must inject into the desktop client", file=sys.stderr)
         return 1
+    if once.count(VOICE_SCRIPT_MARK) != 1 or "GPT" not in once or "Grok" not in once:
+        print("FAIL: voice selector must inject GPT and Grok (GPT stays)", file=sys.stderr)
+        return 1
+    if "Talk with Grok" not in once or "xai-client-secret." not in once:
+        print("FAIL: overlay must host Grok duplex (Talk + xai-client-secret)", file=sys.stderr)
+        return 1
+    if "input_audio_buffer.append" not in once or "grok-voice-latest" not in once:
+        print("FAIL: overlay must send official STS append events to grok-voice-latest", file=sys.stderr)
+        return 1
+    if not voice_selector_js_path().is_file():
+        print("FAIL: branding/voice/dragon-voice-selector.js missing", file=sys.stderr)
+        return 1
     if "[data-dragon-ai-teams-panel]" not in css:
         print("FAIL: overlay CSS must style the in-app Teams screen", file=sys.stderr)
+        return 1
+    if "[data-dragon-voice-provider]" not in css or "[aria-checked=" not in css:
+        print("FAIL: overlay CSS must style the GPT | Grok voice selector", file=sys.stderr)
+        return 1
+    if "[data-dragon-grok-talk]" not in css:
+        print("FAIL: overlay CSS must style Talk with Grok", file=sys.stderr)
+        return 1
+    voice_meta = table.get("voice") or {}
+    if voice_meta.get("options") != ["gpt", "grok"] or voice_meta.get("default") != "gpt":
+        print("FAIL: table voice.options must be gpt + grok with GPT as default", file=sys.stderr)
         return 1
     if icon_source() is None:
         print("FAIL: Dragon ICO missing for taskbar/resources/icon.ico", file=sys.stderr)

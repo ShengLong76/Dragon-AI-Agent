@@ -327,6 +327,17 @@ function Install-PackageFiles([string]$Root) {
         Write-Log "Copied branding/fonts (Syne wordmark face)"
     }
 
+    $voiceSrc = Join-Path $Root "branding\voice"
+    if (-not (Test-Path -LiteralPath $voiceSrc)) {
+        $voiceSrc = Join-Path $PSScriptRoot "..\..\branding\voice"
+    }
+    if (Test-Path -LiteralPath $voiceSrc) {
+        $voiceDstParent = Join-Path $InstallRoot "branding"
+        Ensure-Dir $voiceDstParent
+        Copy-Item -Path $voiceSrc -Destination $voiceDstParent -Recurse -Force
+        Write-Log "Copied branding/voice (Grok duplex overlay)"
+    }
+
     foreach ($rel in @(
         "scripts\airmaze\start-embedded.ps1",
         "scripts\airmaze\apply-default-bot-group.ps1",
@@ -347,6 +358,10 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\Apply-GatewayModels.ps1",
         "scripts\airmaze\Test-GatewayModels.py",
         "docs\airmaze\FIRST_RUN_MODELS.md",
+        "scripts\airmaze\voice_chat.py",
+        "scripts\airmaze\Apply-VoiceChat.ps1",
+        "scripts\airmaze\Test-VoiceChat.py",
+        "docs\airmaze\VOICE.md",
         "docs\airmaze\DOCKER_LAUNCH.md",
         "scripts\airmaze\DragonAI-SecureStore.ps1",
         "scripts\airmaze\Find-HermesDesktop.ps1",

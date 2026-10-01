@@ -802,6 +802,29 @@ function Start-DragonAITeamsPicker {
     }
 }
 
+function Start-DragonAIVoiceChat {
+    $engine = Join-Path $PSScriptRoot "voice_chat.py"
+    if (-not (Test-Path -LiteralPath $engine)) {
+        $engine = Join-Path $InstallRoot "scripts\airmaze\voice_chat.py"
+    }
+    if (-not (Test-Path -LiteralPath $engine)) { return }
+    $py = Get-Command python3 -ErrorAction SilentlyContinue
+    if (-not $py) { $py = Get-Command python -ErrorAction SilentlyContinue }
+    if (-not $py) { return }
+    $home = if ($env:USERPROFILE) { Join-Path $env:USERPROFILE ".hermes-airmaze-embedded" } else { Join-Path $InstallRoot "hermes-home" }
+    try {
+        Start-Process -FilePath $py.Source -ArgumentList @(
+            $engine, "serve",
+            "--home", $home,
+            "--host", "127.0.0.1",
+            "--port", "8654"
+        ) -WindowStyle Hidden -ErrorAction SilentlyContinue | Out-Null
+        Write-LaunchLog "Voice helper on http://127.0.0.1:8654/api/voice (GPT + Grok duplex)"
+    } catch {
+        Write-LaunchLog "Voice helper skipped: $($_.Exception.Message)" "WARN"
+    }
+}
+
 function Start-OnboardingIfNeeded {
     if ($NoWizard) { return }
     if (-not (Test-OnboardingNeedsUi)) { return }
@@ -879,7 +902,9 @@ function Invoke-Smoke {
         "Apply-DragonAIDesktopUiBranding",
         "Exclude-DragonAIHermesBots",
         "teams_picker",
-        "8653"
+        "8653",
+        "voice_chat",
+        "8654"
     )
     foreach ($token in $required) {
         if ($text -notlike "*$token*") {
@@ -940,6 +965,7 @@ try {
     Start-GatewayContainer -ComposePath $compose
     Exclude-DragonAIHermesBots
     Start-DragonAITeamsPicker
+    Start-DragonAIVoiceChat
     try { Sync-EmbeddedGatewayProfiles | Out-Null } catch {
         Write-LaunchLog "Profile sync skipped: $($_.Exception.Message)" "WARN"
     }

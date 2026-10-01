@@ -96,6 +96,9 @@ def test_table() -> dict:
         fail("table sidebar header must be Dragon AI")
     if sidebar.get("userFacingBots") != ["Personal Assistant"]:
         fail("table sidebar must list only Personal Assistant")
+    voice = table.get("voice") or {}
+    if voice.get("options") != ["gpt", "grok"] or voice.get("default") != "gpt":
+        fail("table voice.options must be gpt + grok with GPT as the default")
     if by_from.get("return 'Hermes'") != "return ''":
         fail("table must stop presenting Hermes as a sidebar bot label")
     print("OK  desktop_branding.json surfaces")
@@ -223,6 +226,12 @@ const protocol = 'hermes://copilot-key/start';
             fail("index.html must inject the sidebar header lockup (Dragon AI)")
         if 'data-dragon-ai-branding="teams-picker"' not in html or "Teams" not in html:
             fail("index.html must inject the in-app Teams picker")
+        if 'data-dragon-ai-branding="voice-provider"' not in html:
+            fail("index.html must inject the GPT | Grok voice selector")
+        if "GPT" not in html or "Grok" not in html:
+            fail("voice selector must list both GPT and Grok")
+        if "Talk with Grok" not in html or "xai-client-secret." not in html:
+            fail("index.html must inject the overlay Grok duplex client")
         icon_dest = unpacked / "resources" / "icon.ico"
         if not icon_dest.is_file() or icon_dest.read_bytes()[:4] != b"\x00\x00\x01\x00":
             fail("apply must copy the Dragon ICO to resources/icon.ico")
@@ -309,6 +318,8 @@ def test_packaging_not_regressed() -> None:
             fail(f"{path.name} must install the UI overlay scripts")
         if "branding\\fonts" not in text and "branding/fonts" not in text:
             fail(f"{path.name} must copy branding/fonts for the wordmark overlay")
+        if "branding\\voice" not in text and "branding/voice" not in text:
+            fail(f"{path.name} must copy branding/voice for the Grok duplex overlay")
     branding = read(BRANDING)
     if "HERMES AGENT" not in branding and "empty state" not in branding.lower():
         fail("BRANDING.md must document the in-app overlay and leftovers")
@@ -367,6 +378,13 @@ def test_packaging_not_regressed() -> None:
         fail("sidebar logo must be 32px square matching Teams at full width")
     if "Personal Assistant" not in css:
         fail("dragon-ui.css must keep Personal Assistant as the visible sidebar bot")
+    if "[data-dragon-voice-provider]" not in css:
+        fail("dragon-ui.css must style the GPT | Grok voice selector")
+    if "[data-dragon-grok-talk]" not in css:
+        fail("dragon-ui.css must style Talk with Grok")
+    voice_js = ROOT / "branding" / "voice" / "dragon-voice-selector.js"
+    if not voice_js.is_file():
+        fail("branding/voice/dragon-voice-selector.js must ship the duplex client")
     if "dragon-ai-agent-logo.png" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must copy the dragon PNG into the overlay pack")
     mark = ROOT / "branding" / "dragon-ai-agent-logo.svg"

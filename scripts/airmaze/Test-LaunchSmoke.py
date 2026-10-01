@@ -51,6 +51,8 @@ REQUIRED_LAUNCHER = (
     "Exclude-DragonAIHermesBots",
     "teams_picker",
     "8653",
+    "voice_chat",
+    "8654",
 )
 
 REQUIRED_FINDER = (

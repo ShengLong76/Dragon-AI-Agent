@@ -23,6 +23,7 @@ Internal protocol, image, and path names stay Hermes/AirMaze where changing them
 | Bot groups in BOTS | Deploy/import stamps `sectionId` / `sectionName` so the pack sits in a named section (not UNASSIGNED) |
 | Running app / taskbar icon | Copy the Dragon ICO over `resources/icon.ico` and stamp `Hermes.exe` when a PE stamper is available |
 | Composer placeholder | Overlay: **Give Dragon AI a task** (was `Give Hermes a task`) |
+| Voice chat provider | Overlay: **GPT** and **Grok** as two selectable options. GPT (Hermes `gpt-live`) stays. **Talk with Grok** hosts official xAI full duplex (`grok-voice-latest`). Helper `127.0.0.1:8654`. See `docs/airmaze/VOICE.md` |
 | Settings / About / setup product copy | Overlay: **Dragon AI Agent** wherever the renderer said **Hermes Agent** (and About / appName chrome) |
 | In-window UI font | Overlay: **Syne** (SIL OFL 1.1, weight **700** on the wordmark) replacing upstream **Collapse** / Collapse-Bold, then composer and settings chrome |
 | Dashboard login | Username `dragon` / password `dragon-local` (loopback only). Page chrome/title inside the image is still upstream until a branded build or image exists. |

@@ -340,6 +340,14 @@ function Start-HermesDesktopClient {
                 "--host", "127.0.0.1", "--port", "8653"
             ) -WindowStyle Hidden -ErrorAction SilentlyContinue | Out-Null
         }
+        $voice = Join-Path $PSScriptRoot "voice_chat.py"
+        $voiceHome = Join-Path $env:USERPROFILE ".hermes-airmaze-embedded"
+        if ($py -and (Test-Path -LiteralPath $voice)) {
+            Start-Process -FilePath $py.Source -ArgumentList @(
+                $voice, "serve", "--home", $voiceHome,
+                "--host", "127.0.0.1", "--port", "8654"
+            ) -WindowStyle Hidden -ErrorAction SilentlyContinue | Out-Null
+        }
     } catch {}
     Start-Process -FilePath $ExePath -WorkingDirectory $wd -ErrorAction Stop
     Set-DragonAIMainWindowTitle -Title "Dragon AI Agent" | Out-Null

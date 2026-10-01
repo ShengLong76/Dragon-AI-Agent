@@ -43,6 +43,7 @@ Full token table and skill-vs-override notes: `design-system/dragon-ai-agent/` (
 - Imported / deployed bot groups file into a named BOTS section labeled with the pack display name. They are not left under UNASSIGNED.
 - First-run setup has a **Models** step (after Welcome) for default chat LLM + default image LLM. Product defaults are Grok (xAI) + Grok Imagine. Design: `docs/airmaze/FIRST_RUN_MODELS.md`.
 - Opening Dragon AI Agent starts Docker Desktop in the **tray** when the engine is down (no Containers dashboard). Design: `docs/airmaze/DOCKER_LAUNCH.md`.
+- Voice chat shows **GPT** and **Grok** as two options. GPT voice is unchanged (`gpt-live`). Grok is additive overlay full duplex (`grok-voice-latest`). Design: `docs/airmaze/VOICE.md`.
 
 ## What does not change
 
