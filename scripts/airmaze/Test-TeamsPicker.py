@@ -260,8 +260,50 @@ def test_overlay_and_launch_wired() -> None:
         fail("seat cards must have a box-shadow")
     if "border-radius: 12px" not in css:
         fail("seat/team cards must share a 12px corner radius")
+    if "data-dragon-ai-seat-icon" not in branding:
+        fail("Teams overlay must place a seat icon beside the title/brief")
+    if "aria-hidden" not in branding:
+        fail("seat icons beside visible text must be aria-hidden")
+    if "dragon-ai-branding/teams/" not in branding:
+        fail("seat icons must load from the overlay branding pack")
+    if "[data-dragon-ai-seat-icon]" not in css:
+        fail("dragon-ui.css must size the seat icon beside the copy")
+    if "display: flex" not in seat_card[1].split("}", 1)[0]:
+        fail("seat cards must flex icon left of title/brief")
+    icons_dir = ROOT / "branding" / "teams"
+    if not (icons_dir / "seat.svg").is_file():
+        fail("branding/teams/seat.svg fallback must exist")
+    for seat_id in (
+        "content-strategist",
+        "seo-specialist",
+        "social-media-manager",
+        "paid-media-specialist",
+        "lifecycle-marketer",
+        "marketing-analyst",
+        "lead-sourcer",
+        "email-warmer",
+        "cold-call-script-writer",
+        "follow-up-sequencer",
+        "market-researcher",
+        "trade-journal",
+        "risk-analyst",
+        "news-scanner",
+    ):
+        icon = icons_dir / f"{seat_id}.svg"
+        if not icon.is_file():
+            fail(f"missing Teams seat icon {icon.name}")
+        svg = read(icon)
+        if 'xmlns="http://www.w3.org/2000/svg"' not in svg:
+            fail(f"{icon.name} must be an SVG")
+        if "#314A73" not in svg or "#C41E3A" not in svg:
+            fail(f"{icon.name} must use Dragon navy + crimson")
+        if "<rect" in svg.lower():
+            fail(f"{icon.name} must stay transparent (no boxed plate)")
+    apply_ps = read(SCRIPTS / "Apply-DesktopBranding.ps1")
+    if "branding" not in apply_ps or "teams" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must copy branding/teams icons")
     design = read(DESIGN)
-    for needle in ("descriptionDetail", "seoagent.com", "six", "hover", "4-column"):
+    for needle in ("descriptionDetail", "seoagent.com", "six", "hover", "4-column", "icon"):
         if needle not in design:
             fail(f"TEAMS_SEAT_DESCRIPTIONS.md must document {needle!r}")
     groups_doc = read(BOT_GROUPS_DOC)

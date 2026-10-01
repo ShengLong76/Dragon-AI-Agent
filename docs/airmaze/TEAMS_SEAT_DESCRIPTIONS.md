@@ -49,6 +49,10 @@ Each seat card (and the team Apply control) uses the same contemporary radius (`
 
 Card text wraps (`min-width: 0`; no nowrap clamp on the brief).
 
+## Seat icons (James, 2026-10-01)
+
+Each seat card shows a **left icon** beside the title + brief (Grok Bot marketplace layout — icon does not replace the card). Assets are committed SVGs under `branding/teams/<seat-id>.svg` (low-poly navy `#314A73` + crimson `#C41E3A`, transparent). Overlay copies them to `dragon-ai-branding/teams/`. Decorative next to visible text (`aria-hidden`). Unknown imported seats fall back to `seat.svg`. No runtime LLM call when Teams opens.
+
 ## Out of scope
 
 - A seventh Marketing bot

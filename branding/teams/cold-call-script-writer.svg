@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img">
+
+  <polygon fill="#314A73" points="20,6 36,6 40,14 40,34 16,34 16,14"/>
+  <polygon fill="#33547F" points="22,12 34,12 34,16 22,16"/>
+  <polygon fill="#132847" points="22,20 32,20 32,24 22,24"/>
+  <polygon fill="#314A73" points="28,34 38,46 32,56 18,48 20,38"/>
+  <polygon fill="#C41E3A" points="30,38 36,46 32,50 26,42"/>
+  <polygon fill="#C4A574" points="42,18 54,26 48,34 38,26"/>
+</svg>

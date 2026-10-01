@@ -109,6 +109,13 @@ function Install-DragonAIDesktopFontPack {
                     Copy-Item -LiteralPath $logoSrc -Destination (Join-Path $dest $logoName) -Force
                 }
             }
+            $teamsSrc = Join-Path $brandRoot "teams"
+            if (Test-Path -LiteralPath $teamsSrc) {
+                $teamsDest = Join-Path $dest "teams"
+                New-Item -ItemType Directory -Force -Path $teamsDest | Out-Null
+                Get-ChildItem -LiteralPath $teamsSrc -Filter "*.svg" -File -ErrorAction SilentlyContinue |
+                    ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $teamsDest $_.Name) -Force }
+            }
             $sheetPath = Join-Path $dest "dragon-ui.css"
             $cssMark = "/* dragon-ai-ui-face */"
             if (Test-Path -LiteralPath $sheetPath) {

@@ -196,6 +196,15 @@ def logo_files() -> list[Path]:
     return [brand / name for name in LOGO_NAMES if (brand / name).is_file()]
 
 
+def team_icon_files() -> list[Path]:
+    folder = branding_dir() / "teams"
+    if not folder.is_dir():
+        return []
+    return sorted(
+        p for p in folder.iterdir() if p.is_file() and p.suffix.lower() == ".svg"
+    )
+
+
 def font_pack_dir() -> Path | None:
     candidates = (
         HERE.parents[1] / "branding" / "fonts" / "syne",
@@ -397,11 +406,21 @@ def teams_picker_script() -> str:
         "(team.bots||[]).forEach(function(bot,i){"
         'var li=document.createElement("li");'
         'li.setAttribute("data-dragon-ai-seat-id",bot.id||"");'
+        'var icon=document.createElement("img");'
+        'icon.setAttribute("data-dragon-ai-seat-icon","true");'
+        'icon.setAttribute("aria-hidden","true");'
+        'icon.alt="";'
+        'var iconId=String(bot.id||"seat").replace(/[^a-z0-9-]/gi,"");'
+        'icon.src="./dragon-ai-branding/teams/"+(iconId||"seat")+".svg";'
+        'icon.addEventListener("error",function(){if(icon.dataset.fallback)return;icon.dataset.fallback="1";icon.src="./dragon-ai-branding/teams/seat.svg";});'
+        'var copy=document.createElement("div");'
+        'copy.setAttribute("data-dragon-ai-seat-copy","true");'
         'var name=document.createElement("strong");'
         "name.textContent=bot.title||bot.id||'';"
         'var brief=document.createElement("span");'
         "brief.textContent=bot.description||'';"
-        "li.appendChild(name);li.appendChild(brief);"
+        "copy.appendChild(name);copy.appendChild(brief);"
+        "li.appendChild(icon);li.appendChild(copy);"
         "if(bot.descriptionDetail){"
         'li.setAttribute("data-dragon-ai-seat-detail","true");'
         "li.tabIndex=0;"
@@ -501,6 +520,10 @@ def install_font_pack(roots: list[Path]) -> dict[str, Any]:
             (dest / src.name).write_bytes(src.read_bytes())
         for src in logo_files():
             (dest / src.name).write_bytes(src.read_bytes())
+        icons_dest = dest / "teams"
+        icons_dest.mkdir(parents=True, exist_ok=True)
+        for src in team_icon_files():
+            (icons_dest / src.name).write_bytes(src.read_bytes())
         sheet = (dest / STYLESHEET_NAME).read_text(encoding="utf-8")
         css_targets = list(dest_root.glob("*.css")) + list((dest_root / "assets").glob("*.css") if (dest_root / "assets").is_dir() else [])
         for css_path in css_targets:
@@ -829,6 +852,12 @@ def self_test() -> int:
         return 1
     if "data-dragon-ai-team-seats" not in once or "descriptionDetail" not in once:
         print("FAIL: Teams picker must list seats with brief + hover detail", file=sys.stderr)
+        return 1
+    if "data-dragon-ai-seat-icon" not in once or "dragon-ai-branding/teams/" not in once:
+        print("FAIL: Teams picker must load per-seat icons from the branding pack", file=sys.stderr)
+        return 1
+    if not any(p.name == "seo-specialist.svg" for p in team_icon_files()):
+        print("FAIL: branding/teams must ship SEO Specialist icon", file=sys.stderr)
         return 1
     if "[data-dragon-ai-teams-panel]" not in css:
         print("FAIL: overlay CSS must style the in-app Teams screen", file=sys.stderr)

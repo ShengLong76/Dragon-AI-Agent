@@ -327,6 +327,17 @@ function Install-PackageFiles([string]$Root) {
         Write-Log "Copied branding/fonts (Syne wordmark face)"
     }
 
+    $teamsSrc = Join-Path $Root "branding\teams"
+    if (-not (Test-Path -LiteralPath $teamsSrc)) {
+        $teamsSrc = Join-Path $PSScriptRoot "..\branding\teams"
+    }
+    if (Test-Path -LiteralPath $teamsSrc) {
+        $brandingDst = Join-Path $InstallRoot "branding"
+        Ensure-Dir $brandingDst
+        Copy-Item -Path $teamsSrc -Destination $brandingDst -Recurse -Force
+        Write-Log "Copied branding/teams seat icons"
+    }
+
     foreach ($rel in @(
         "scripts\airmaze\start-embedded.ps1",
         "scripts\airmaze\apply-default-bot-group.ps1",

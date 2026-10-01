@@ -237,6 +237,9 @@ const protocol = 'hermes://copilot-key/start';
         mark_txt = mark.read_text(encoding="utf-8") if mark.is_file() else ""
         if not mark.is_file() or "#314A73" not in mark_txt or "#C41E3A" not in mark_txt:
             fail("front-facing navy dragon SVG was not copied into the unpacked renderer")
+        seat_icon = pack_dir / "teams" / "seo-specialist.svg"
+        if not seat_icon.is_file() or "#314A73" not in seat_icon.read_text(encoding="utf-8"):
+            fail("overlay must copy Teams seat icons into dragon-ai-branding/teams/")
         if not png_mark.is_file() or png_mark.read_bytes()[:8] != b"\x89PNG\r\n\x1a\n":
             fail("James's dragon PNG was not copied into the unpacked renderer")
         if "dragon-ai-agent-logo.png" not in css_txt and "dragon-ai-agent-logo.svg" not in css_txt:
