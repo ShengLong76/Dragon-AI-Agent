@@ -51,6 +51,8 @@ Also listed: `grok-4.5`, `grok-4.3`, and Imagine quality variants `grok-imagine-
 
 Choices land in `%USERPROFILE%\.hermes-airmaze-embedded\config.yaml` (the Docker volume). This step does **not** ask for a new key — it reuses the xAI Grok login already on the PC (OAuth or `XAI_API_KEY`). After a change, restart the gateway if Edit profile → Generate still says no image model.
 
+The same xAI login is what **Grok voice** uses. Voice chat keeps **GPT** (needs `OPENAI_API_KEY` for GPT-Live) and adds **Grok** beside it (`XAI_API_KEY` / xAI OAuth). In the app, pick **GPT** or **Grok** on the composer. Details: [`VOICE.md`](VOICE.md).
+
 ---
 
 ## Step 3 — Connect email

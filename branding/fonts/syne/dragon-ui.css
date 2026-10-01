@@ -404,9 +404,57 @@ input::placeholder {
 textarea:focus-visible,
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus-visible,
 [contenteditable="true"]:focus-visible,
-[role="textbox"]:focus-visible {
+[role="textbox"]:focus-visible,
+[data-dragon-voice-option]:focus-visible {
   outline: 2px solid var(--color-ring);
   outline-offset: 2px;
+}
+
+/* GPT | Grok voice selector — Grok is additive; GPT stays. */
+[data-dragon-voice-provider] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 4px 0;
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-dragon-voice-legend] {
+  color: var(--color-muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+[data-dragon-voice-option] {
+  box-sizing: border-box;
+  min-width: 44px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-card);
+  color: var(--color-foreground);
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+[data-dragon-voice-option][aria-checked="true"] {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+[data-dragon-voice-status] {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--color-muted-foreground);
+  font-size: 0.75rem;
 }
 
 @media (prefers-reduced-motion: reduce) {

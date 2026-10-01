@@ -114,7 +114,7 @@ Re-run anytime from Start Menu **Dragon AI Agent Setup**, or:
 powershell -NoProfile -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\DragonAIAgent\scripts\airmaze\Onboard-Wizard.ps1"
 ```
 
-Human-readable steps: [`docs/airmaze/SETUP_GUIDE.md`](docs/airmaze/SETUP_GUIDE.md).
+Human-readable steps: [`docs/airmaze/SETUP_GUIDE.md`](docs/airmaze/SETUP_GUIDE.md). Voice chat: **GPT** stays; **Grok** is a second option (xAI STT/TTS). [`docs/airmaze/VOICE.md`](docs/airmaze/VOICE.md).
 
 ---
 

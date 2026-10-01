@@ -1,5 +1,5 @@
 {
-  "version": 7,
+  "version": 8,
   "product": "Dragon AI Agent",
   "note": "User-visible product chrome only. Do not rename process names, Docker tags, tokens, ports, protocols, or license attribution.",
   "designSystem": {
@@ -37,6 +37,12 @@
     "boxed": false,
     "emptyStateSize": "22rem",
     "stack": "wordmark-in-front"
+  },
+  "voice": {
+    "options": ["gpt", "grok"],
+    "default": "gpt",
+    "helper": "http://127.0.0.1:8654/api/voice",
+    "why": "Add Grok voice (xAI STT/TTS + grok-voice-latest) beside existing GPT-Live. Do not replace GPT."
   },
   "sidebar": {
     "userFacingBots": ["Personal Assistant"],
