@@ -1,0 +1,7 @@
+slug: lifecycle-marketer
+display_name: Lifecycle Marketer
+description: >
+  Nurture, onboarding, and retention sequences after a campaign or signup.
+
+browser:
+  headed: true

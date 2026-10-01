@@ -32,8 +32,32 @@ TEAMS_PORT = 8653
 MAX_IMPORT_BYTES = 20 * 1024 * 1024
 
 
+DEFAULT_PROFILE_IDS = frozenset({"personal-assistant"})
+
+
 def team_label(group: dict[str, Any]) -> str:
     return str(group.get("displayName") or group.get("name") or group.get("id") or "").strip()
+
+
+def is_default_profile(group_id: str) -> bool:
+    return str(group_id or "").strip().lower() in DEFAULT_PROFILE_IDS
+
+
+def is_picker_team(group: dict[str, Any]) -> bool:
+    """Teams picker is multi-bot packs only. PA is the default profile, not a team."""
+    if not isinstance(group, dict):
+        return False
+    if is_default_profile(str(group.get("id") or "")):
+        return False
+    if group.get("picker") is False:
+        return False
+    tags = group.get("tags") or []
+    if "default" in tags and "multi-bot" not in tags:
+        return False
+    bots = [b for b in (group.get("bots") or []) if isinstance(b, dict) and b.get("id")]
+    if "bots" in group:
+        return len(bots) >= 2
+    return True
 
 
 def present_team(group: dict[str, Any]) -> dict[str, Any]:
@@ -75,6 +99,8 @@ def list_teams(
             continue
         if bg.is_excluded_bot(str(entry.get("id") or ""), title=str(entry.get("name") or "")):
             continue
+        if is_default_profile(str(entry.get("id") or "")) or entry.get("picker") is False:
+            continue
         try:
             folder = bg.resolve_group_dir(
                 str(entry["id"]),
@@ -91,6 +117,8 @@ def list_teams(
                 "departmentJob": entry.get("departmentJob") or "",
                 "bots": [],
             }
+        if not is_picker_team(group):
+            continue
         teams.append(present_team(group))
     return {
         "kind": "dragon-teams",
@@ -110,6 +138,8 @@ def apply_team(
 ) -> dict[str, Any]:
     if bg.is_excluded_bot(team_id):
         raise ValueError("that team is excluded from Dragon AI Agent")
+    if is_default_profile(team_id):
+        raise ValueError("Personal Assistant is the default profile, not a Teams pack")
     result = bg.deploy_group(
         team_id,
         payload_root=payload_root,
@@ -288,6 +318,12 @@ def self_test() -> int:
         return 1
     if team_label({"name": "Long", "displayName": "Real Estate Lead Gen"}) != "Real Estate Lead Gen":
         print("FAIL: displayName must win the team label", file=sys.stderr)
+        return 1
+    if is_picker_team({"id": "personal-assistant", "bots": [{"id": "personal-assistant"}]}):
+        print("FAIL: Personal Assistant must not be a Teams picker entry", file=sys.stderr)
+        return 1
+    if not is_picker_team({"id": "marketing-team", "bots": [{"id": "a"}, {"id": "b"}]}):
+        print("FAIL: multi-bot packs must stay in the Teams picker", file=sys.stderr)
         return 1
     print("OK  teams_picker self-test")
     return 0

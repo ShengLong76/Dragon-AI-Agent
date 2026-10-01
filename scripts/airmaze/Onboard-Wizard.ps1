@@ -70,7 +70,7 @@ function Resolve-WizardProfileId {
     }
     $p = Get-DragonAIOnboardingProgress
     if ($p.profileId) { return [string]$p.profileId }
-    return "real-estate-cold-call-lead-refresher"
+    return "personal-assistant"
 }
 
 function Test-DictHasKey {

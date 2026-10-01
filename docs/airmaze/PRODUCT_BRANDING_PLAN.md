@@ -13,7 +13,7 @@ After `docs/airmaze/PRODUCT_BRANDING.md`. Tests first. No Electron rebuild.
 4. **Sidebar header** — `dragon-ui.css` + inject script/HTML in the overlay pack.
 5. **App icon** — copy circular ICO to unpacked `resources/icon.ico`; stamp `Hermes.exe` when possible; keep `.lnk` IconLocation; set Client.lnk AppUserModelID.
 6. **Named UI section on import** — deploy/import stamps `ui_meta.hermes-bots.sectionId` / `sectionName` so the BOTS pane files the pack under its display name, not UNASSIGNED. Re-apply updates the same `sec-dragon-<id>`. Cover Apply-Profile / Import-Profile shims (they already call Import-BotGroup).
-7. **In-app Teams picker** — overlay dialog + `127.0.0.1:8653` helper. Catalog: PA, Real Estate Lead Gen, Marketing Team, Trading Team. Import from file stays. First-run **Choose a Team**.
+7. **In-app Teams picker** — overlay dialog + `127.0.0.1:8653` helper. Catalog teams: Real Estate Lead Gen, Marketing Team, Trading Team. Personal Assistant is the default preinstall, not a team. Import from file stays. First-run **Choose a Team**.
 8. **Self-review + PR** against `main`. James merges.
 
 ## Verify (Linux CI)
@@ -34,5 +34,5 @@ python3 scripts/airmaze/Test-LaunchSmoke.py
 4. Taskbar / running window uses the Dragon ICO (not the purple Hermes square).
 5. BOTS list has no Hermes row. If an old box still has one: delete `%LOCALAPPDATA%\hermes\profiles\hermes` and `...\default` plus the same names under `%USERPROFILE%\.hermes-airmaze-embedded\profiles\`, then relaunch.
 6. Deploy or re-apply a bot group (e.g. Real Estate). Those bots sit under a named section matching the pack display name — not UNASSIGNED.
-7. Sidebar **Teams** lists Personal Assistant, Real Estate Lead Gen, Marketing Team, Trading Team. One click apply. Import from file still works.
+7. Sidebar **Teams** lists Real Estate Lead Gen, Marketing Team, Trading Team. Personal Assistant is already installed. One click apply. Import from file still works.
 8. Bot Screen Remote still Embedded Linux `http://127.0.0.1:8650`.

@@ -1,7 +1,0 @@
-slug: campaign-sequencer
-display_name: Campaign Sequencer
-description: >
-  Plans multi-touch email and social follow-up sequences after a campaign launch.
-
-browser:
-  headed: true

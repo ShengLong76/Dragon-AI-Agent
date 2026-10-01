@@ -268,6 +268,11 @@ def normalize_catalog(data: dict[str, Any]) -> dict[str, Any]:
         display = str(raw.get("displayName") or "").strip()
         if display:
             entry["displayName"] = display
+        if raw.get("picker") is False:
+            entry["picker"] = False
+        tags = raw.get("tags")
+        if isinstance(tags, list) and tags:
+            entry["tags"] = [str(t) for t in tags if t]
         groups.append(entry)
     return {
         "kind": KIND_CATALOG,
@@ -301,11 +306,126 @@ def _find_manifest(folder: Path) -> Path | None:
     return None
 
 
+def _title_from_id(bot_id: str) -> str:
+    special = {
+        "seo-specialist": "SEO Specialist",
+    }
+    if bot_id in special:
+        return special[bot_id]
+    return " ".join(part.capitalize() for part in str(bot_id).replace("_", "-").split("-") if part)
+
+
+def _disk_bot(folder: Path, bot_id: str) -> dict[str, Any]:
+    bot_dir = folder / "bots" / bot_id
+    soul = f"bots/{bot_id}/SOUL.md" if (bot_dir / "SOUL.md").is_file() else ""
+    config = f"bots/{bot_id}/bot.yaml" if (bot_dir / "bot.yaml").is_file() else ""
+    title = _title_from_id(bot_id)
+    description = ""
+    cfg = bot_dir / "bot.yaml"
+    if cfg.is_file():
+        for line in cfg.read_text(encoding="utf-8").splitlines():
+            if line.startswith("display_name:"):
+                title = line.split(":", 1)[1].strip().strip("'\"") or title
+            if line.startswith("description:"):
+                description = line.split(":", 1)[1].strip().strip(">'\"") or description
+    return {
+        "id": bot_id,
+        "title": title,
+        "description": description,
+        "tools": ["computer-use", "browser"],
+        "soul": soul,
+        "config": config,
+    }
+
+
+def _merge_disk_bots(folder: Path, group: dict[str, Any]) -> dict[str, Any]:
+    """Union bot-group.json with bots/ so a partial manifest cannot drop Cos's roster."""
+    bots_dir = folder / "bots"
+    by_id: dict[str, dict[str, Any]] = {}
+    for bot in group.get("bots") or []:
+        if isinstance(bot, dict) and bot.get("id"):
+            by_id[str(bot["id"])] = bot
+    if bots_dir.is_dir():
+        for child in sorted(bots_dir.iterdir()):
+            if not child.is_dir() or child.name.startswith("."):
+                continue
+            disk = _disk_bot(folder, child.name)
+            if child.name not in by_id:
+                by_id[child.name] = disk
+            else:
+                existing = by_id[child.name]
+                if not existing.get("soul"):
+                    existing["soul"] = disk["soul"]
+                if not existing.get("config"):
+                    existing["config"] = disk["config"]
+                if not existing.get("title"):
+                    existing["title"] = disk["title"]
+    ordered: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for bot in group.get("bots") or []:
+        bot_id = str(bot.get("id") or "")
+        if bot_id and bot_id in by_id and bot_id not in seen:
+            ordered.append(by_id[bot_id])
+            seen.add(bot_id)
+    for bot_id, bot in by_id.items():
+        if bot_id not in seen:
+            ordered.append(bot)
+    group["bots"] = ordered
+    return group
+
+
 def _load_group_folder(folder: Path) -> dict[str, Any]:
     manifest = _find_manifest(folder)
     if not manifest:
         raise FileNotFoundError(f"no {MANIFEST_NAME} in {folder}")
-    return normalize_manifest(_read_json(manifest))
+    return _merge_disk_bots(folder, normalize_manifest(_read_json(manifest)))
+
+
+def _profile_belongs_to_group(dest: Path, group_id: str, section: dict[str, str]) -> bool:
+    meta_path = dest / "bot.meta.json"
+    if meta_path.is_file():
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, TypeError):
+            meta = {}
+        if isinstance(meta, dict):
+            if str(meta.get("bot_group_id") or "") == group_id:
+                return True
+            if str(meta.get("sectionId") or "") == section.get("sectionId"):
+                return True
+    profile = dest / "profile.yaml"
+    if profile.is_file():
+        text = profile.read_text(encoding="utf-8")
+        section_id = section.get("sectionId") or ""
+        if section_id and section_id in text:
+            return True
+    return False
+
+
+def _clear_stale_group_bots(
+    desktop: Path,
+    embedded: Path | None,
+    group_id: str,
+    keep_ids: set[str],
+    section: dict[str, str],
+) -> list[str]:
+    """Drop leftover stubs (e.g. Copywriter) when re-applying Cos's roster."""
+    removed: list[str] = []
+    roots = [desktop]
+    if embedded is not None:
+        roots.append(Path(embedded))
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for dest in list(root.iterdir()):
+            if not dest.is_dir() or dest.name in keep_ids:
+                continue
+            if not _profile_belongs_to_group(dest, group_id, section):
+                continue
+            shutil.rmtree(dest)
+            if dest.name not in removed:
+                removed.append(dest.name)
+    return removed
 
 
 def list_groups(
@@ -551,6 +671,14 @@ def deploy_group(
         _write_bot_meta(dest, bot, group["id"], section)
         _mirror_embedded(desktop, bot_id, Path(embedded_profiles_root) if embedded_profiles_root else None)
         (updated if existed else created).append(bot_id)
+    keep_ids = {b["id"] for b in group["bots"] if b.get("id") and b["id"] not in skipped}
+    removed = _clear_stale_group_bots(
+        desktop,
+        Path(embedded_profiles_root) if embedded_profiles_root else None,
+        group["id"],
+        keep_ids,
+        section,
+    )
     _copy_connectors(group_dir, group, install)
     _keep_applied_copy(group_dir, group, install)
     _record_ui_section(install, section)
@@ -585,6 +713,7 @@ def deploy_group(
         "created": created,
         "updated": updated,
         "skipped": skipped,
+        "removed": removed,
         "uiSection": section,
         "bots": [b for b in group["bots"] if b.get("id") and b["id"] not in skipped],
     }

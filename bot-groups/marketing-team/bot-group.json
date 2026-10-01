@@ -4,30 +4,56 @@
   "id": "marketing-team",
   "name": "Marketing Team",
   "displayName": "Marketing Team",
-  "departmentJob": "Campaign copy, landing-page drafts, and follow-up sequences for a marketing desk.",
-  "version": "1.0.0",
+  "departmentJob": "Content, SEO, social, paid, lifecycle, and measurement for a marketing desk.",
+  "version": "2.0.0",
   "bots": [
     {
-      "id": "copywriter",
-      "title": "Copywriter",
-      "description": "Writes campaign copy, subject lines, and landing-page drafts.",
-      "tools": [
-        "computer-use",
-        "browser"
-      ],
-      "soul": "bots/copywriter/SOUL.md",
-      "config": "bots/copywriter/bot.yaml"
+      "id": "content-strategist",
+      "title": "Content Strategist",
+      "description": "Owns narrative, positioning, and campaign briefs for the marketing desk.",
+      "tools": ["computer-use", "browser"],
+      "soul": "bots/content-strategist/SOUL.md",
+      "config": "bots/content-strategist/bot.yaml"
     },
     {
-      "id": "campaign-sequencer",
-      "title": "Campaign Sequencer",
-      "description": "Plans multi-touch email and social follow-up sequences after a campaign launch.",
-      "tools": [
-        "computer-use",
-        "browser"
-      ],
-      "soul": "bots/campaign-sequencer/SOUL.md",
-      "config": "bots/campaign-sequencer/bot.yaml"
+      "id": "seo-specialist",
+      "title": "SEO Specialist",
+      "description": "Technical and on-page search work: briefs, audits, and keyword notes.",
+      "tools": ["computer-use", "browser"],
+      "soul": "bots/seo-specialist/SOUL.md",
+      "config": "bots/seo-specialist/bot.yaml"
+    },
+    {
+      "id": "social-media-manager",
+      "title": "Social Media Manager",
+      "description": "Channel calendar, posts, and community replies the operator approves.",
+      "tools": ["computer-use", "browser"],
+      "soul": "bots/social-media-manager/SOUL.md",
+      "config": "bots/social-media-manager/bot.yaml"
+    },
+    {
+      "id": "paid-media-specialist",
+      "title": "Paid Media Specialist",
+      "description": "Paid search and social plans. Does not spend real money without the operator.",
+      "tools": ["computer-use", "browser"],
+      "soul": "bots/paid-media-specialist/SOUL.md",
+      "config": "bots/paid-media-specialist/bot.yaml"
+    },
+    {
+      "id": "lifecycle-marketer",
+      "title": "Lifecycle Marketer",
+      "description": "Nurture, onboarding, and retention sequences after a campaign or signup.",
+      "tools": ["computer-use", "browser"],
+      "soul": "bots/lifecycle-marketer/SOUL.md",
+      "config": "bots/lifecycle-marketer/bot.yaml"
+    },
+    {
+      "id": "marketing-analyst",
+      "title": "Marketing Analyst",
+      "description": "Measures campaign performance from numbers the operator provides. Does not invent metrics.",
+      "tools": ["computer-use", "browser"],
+      "soul": "bots/marketing-analyst/SOUL.md",
+      "config": "bots/marketing-analyst/bot.yaml"
     }
   ]
 }

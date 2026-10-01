@@ -376,7 +376,7 @@ def teams_picker_script() -> str:
         'panel.setAttribute("role","dialog");'
         'panel.setAttribute("aria-label","Teams");'
         "panel.hidden=true;"
-        'panel.innerHTML=\'<header><h2>Teams</h2><p>Apply a built-in team. Bots file under that name, not Unassigned.</p></header><div data-dragon-ai-teams-list></div><label>Import custom zip or JSON<input type="file" accept=".zip,.json,application/json,application/zip" data-dragon-ai-teams-import></label><p data-dragon-ai-teams-status role="status"></p><button type="button" data-dragon-ai-teams-close>Close</button>\';'
+        'panel.innerHTML=\'<header><h2>Teams</h2><p>Apply a multi-bot team. Personal Assistant is already installed. Bots file under that team name, not Unassigned.</p></header><div data-dragon-ai-teams-list></div><label>Import custom zip or JSON<input type="file" accept=".zip,.json,application/json,application/zip" data-dragon-ai-teams-import></label><p data-dragon-ai-teams-status role="status"></p><button type="button" data-dragon-ai-teams-close>Close</button>\';'
         "function setStatus(t){var s=$('[data-dragon-ai-teams-status]',panel);if(s)s.textContent=t||'';}"
         "function show(){panel.hidden=false;load();}"
         "function hide(){panel.hidden=true;}"

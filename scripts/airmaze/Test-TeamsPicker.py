@@ -53,10 +53,13 @@ def test_catalog_has_teams() -> None:
     names = [str(g.get("displayName") or g.get("name") or "") for g in catalog.get("groups") or []]
     for required in ("personal-assistant", "real-estate-cold-call-lead-refresher", "marketing-team", "trading-team"):
         if required not in ids:
-            fail(f"catalog must include team {required}")
-    for label in ("Personal Assistant", "Real Estate Lead Gen", "Marketing Team", "Trading Team"):
+            fail(f"catalog must include {required}")
+    for label in ("Real Estate Lead Gen", "Marketing Team", "Trading Team"):
         if label not in names:
-            fail(f"catalog must show {label!r} as a selectable team name")
+            fail(f"catalog must show {label!r}")
+    pa = next((g for g in catalog.get("groups") or [] if g.get("id") == "personal-assistant"), None)
+    if pa is None or pa.get("picker") is not False:
+        fail("catalog must keep Personal Assistant as the default profile (picker: false), not a team")
     if any("hermes" in str(x).lower() for x in ids + names):
         fail("catalog must not add a Hermes team")
     print("OK  catalog lists PA + Real Estate Lead Gen + Marketing + Trading")
@@ -73,9 +76,20 @@ def test_apply_files_named_section(tp) -> None:
 
         listed = tp.list_teams(ROOT, install, fetcher=Offline())
         labels = [t.get("displayName") for t in listed.get("teams") or []]
-        for label in ("Personal Assistant", "Real Estate Lead Gen", "Marketing Team", "Trading Team"):
+        ids = [t.get("id") for t in listed.get("teams") or []]
+        for label in ("Real Estate Lead Gen", "Marketing Team", "Trading Team"):
             if label not in labels:
                 fail(f"list_teams missing {label!r}: {labels}")
+        if "Personal Assistant" in labels or "personal-assistant" in ids:
+            fail("Teams picker must not list Personal Assistant")
+        marketing_ids = [
+            "content-strategist",
+            "seo-specialist",
+            "social-media-manager",
+            "paid-media-specialist",
+            "lifecycle-marketer",
+            "marketing-analyst",
+        ]
         result = tp.apply_team(
             "marketing-team",
             payload_root=ROOT,
@@ -84,11 +98,26 @@ def test_apply_files_named_section(tp) -> None:
         )
         if result.get("displayName") != "Marketing Team":
             fail(f"apply must report Marketing Team, got {result.get('displayName')}")
-        profile = (desktop / "copywriter" / "profile.yaml").read_text(encoding="utf-8")
+        applied = [b.get("id") for b in result.get("bots") or []]
+        if applied != marketing_ids:
+            fail(f"apply Marketing Team must deploy all 6 Cos bots, got {applied}")
+        if (desktop / "copywriter").exists() or (desktop / "campaign-sequencer").exists():
+            fail("apply must not leave Copywriter / Campaign Sequencer in MARKETING TEAM")
+        profile = (desktop / "content-strategist" / "profile.yaml").read_text(encoding="utf-8")
         if "sec-dragon-marketing-team" not in profile or "Marketing Team" not in profile:
             fail("one-click apply must file bots under Marketing Team, not UNASSIGNED")
         if "section:unassigned" in profile.lower():
             fail("applied Marketing Team bots must not be Unassigned")
+        try:
+            tp.apply_team(
+                "personal-assistant",
+                payload_root=ROOT,
+                install_root=install,
+                desktop_profiles_root=desktop,
+            )
+            fail("Teams apply must refuse Personal Assistant")
+        except ValueError:
+            pass
         imported = tmp_path / "from-file"
         again = tp.import_team_file(
             ROOT / "bot-groups" / "trading-team",
@@ -108,6 +137,8 @@ def test_overlay_and_launch_wired() -> None:
     branding = read(BRANDING_PY)
     if "teams-picker" not in branding and "dragon-ai-teams" not in branding:
         fail("desktop overlay must inject the Teams picker into the desktop client")
+    if "Personal Assistant is already installed" not in branding:
+        fail("Teams dialog must say Personal Assistant is already installed")
     css = read(CSS)
     if "[data-dragon-ai-teams-panel]" not in css or "Teams" not in css:
         fail("dragon-ui.css must style the in-app Teams screen")
@@ -126,6 +157,15 @@ def test_overlay_and_launch_wired() -> None:
         fail("Teams UI must still support Import from file")
     if "ComboBox" not in select:
         fail("dropdown path must stay (WinForms ComboBox)")
+    if 'id -ne "personal-assistant"' not in select:
+        fail("Select-BotGroup Teams list must drop Personal Assistant")
+    if "already installed" not in select:
+        fail("Teams UI must say Personal Assistant is already installed")
+    default_apply = read(SCRIPTS / "apply-default-bot-group.ps1")
+    if "personal-assistant" not in default_apply:
+        fail("default deploy must ship Personal Assistant only")
+    if "marketing-team" in default_apply or "trading-team" in default_apply:
+        fail("default deploy must not apply Marketing or Trading")
     for path in (INSTALL, SETUP):
         text = read(path)
         if "teams_picker.py" not in text:

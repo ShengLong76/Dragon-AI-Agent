@@ -85,7 +85,7 @@ Do not restyle the BOTS pane. Do not invent a second groups UI. The upstream sec
 
 James: pick a bot team from the **Dragon AI UI** (sidebar / first-run / settings-adjacent), not only `Import-Profile.ps1`.
 
-Built-in catalog (one click): **Personal Assistant**, **Real Estate Lead Gen**, **Marketing Team**, **Trading Team**. Apply files those bots under that display name — not Unassigned. **Import from file** stays for custom zip/JSON.
+Built-in Teams picker (one click): **Real Estate Lead Gen**, **Marketing Team**, **Trading Team** — multi-bot packs only. **Personal Assistant** is the default single-bot profile (preinstalled); it is not a team. Apply files those bots under that display name — not Unassigned. **Import from file** stays for custom zip/JSON.
 
 **Do (packaging overlay; no Electron rebuild):**
 

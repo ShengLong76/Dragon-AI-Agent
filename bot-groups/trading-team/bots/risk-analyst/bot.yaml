@@ -1,0 +1,7 @@
+slug: risk-analyst
+display_name: Risk Analyst
+description: >
+  Flags concentration, drawdown, and sizing notes from the operator's book. Not a broker.
+
+browser:
+  headed: true

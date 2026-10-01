@@ -74,7 +74,7 @@ Catalog (repo root of the overlay): `bot-groups/catalog.json`
 }
 ```
 
-The client does **not** hard-code that `groups` list. The file in GitHub is the list. The in-app Teams picker also unions the bundled catalog so Personal Assistant, Real Estate Lead Gen, Marketing Team, and Trading Team stay visible when GitHub is stale.
+The client does **not** hard-code that `groups` list. The file in GitHub is the list. The in-app Teams picker unions the bundled catalog so Real Estate Lead Gen, Marketing Team, and Trading Team stay visible when GitHub is stale. Personal Assistant stays the default one-bot profile (preinstalled); it is not listed as a team.
 
 ## How the client lists and deploys from GitHub
 
