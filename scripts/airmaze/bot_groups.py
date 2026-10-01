@@ -42,37 +42,77 @@ DEFAULT_TIMEOUT_SEC = 8
 STALE_TEAM_BOTS = {
     "marketing-team": ("copywriter", "campaign-sequencer"),
 }
-CANONICAL_ROSTERS: dict[str, list[dict[str, str]]] = {
+CANONICAL_ROSTERS: dict[str, list[dict[str, Any]]] = {
     "marketing-team": [
         {
             "id": "content-strategist",
             "title": "Content Strategist",
             "description": "Owns narrative, positioning, and campaign briefs for the marketing desk.",
+            "descriptionDetail": (
+                "Same Marketing seat. Turns a product or offer into story, outline, and handoff. "
+                "Does not invent customer lists, send mail, or publish without the operator. "
+                "Hands SEO notes to SEO Specialist, calendars to Social Media Manager, paid angles "
+                "to Paid Media Specialist, nurture to Lifecycle Marketer, and measurement to Marketing Analyst."
+            ),
         },
         {
             "id": "seo-specialist",
             "title": "SEO Specialist",
-            "description": "Technical and on-page search work: briefs, audits, and keyword notes.",
+            "description": "Runs seoagent.com Skill/CLI audits and optional DataForSEO research.",
+            "descriptionDetail": (
+                "Not a new teammate. Apply Marketing Team still yields the same six Cos seats. "
+                "Only this seat gets extra SEO tooling.\n\n"
+                "Tools: seoagent (seoagent.com free Skill/CLI: npm i -g @seoagent-official/seoagent "
+                "then seoagent init / npx), dataforseo (MCP), plus computer-use and browser.\n\n"
+                "Optional Autopilot is $49/site/month for GSC/cloud. It is not required.\n\n"
+                "After install: re-apply Marketing Team; run seoagent init on the site repo; "
+                "add DataForSEO MCP credentials in desktop MCP settings if you use that tool.\n\n"
+                "Buffer stays on Social Media Manager. Brevo stays on Lifecycle Marketer."
+            ),
         },
         {
             "id": "social-media-manager",
             "title": "Social Media Manager",
             "description": "Channel calendar, posts, and community replies the operator approves.",
+            "descriptionDetail": (
+                "Same Marketing seat. Drafts calendars, posts, and replies for operator approval. "
+                "Does not publish or scrape private accounts without permission. Does not invent "
+                "engagement numbers. Buffer stays on this seat. Campaign story stays with Content "
+                "Strategist; paid amplification goes to Paid Media Specialist."
+            ),
         },
         {
             "id": "paid-media-specialist",
             "title": "Paid Media Specialist",
             "description": "Paid search and social plans. Does not spend real money without the operator.",
+            "descriptionDetail": (
+                "Same Marketing seat. Plans paid search and social: audiences, angles, and draft budgets. "
+                "Does not spend real money, connect ad accounts, or launch campaigns without the operator. "
+                "Does not invent ROAS or click numbers. Creative brief stays with Content Strategist; "
+                "results go to Marketing Analyst."
+            ),
         },
         {
             "id": "lifecycle-marketer",
             "title": "Lifecycle Marketer",
             "description": "Nurture, onboarding, and retention sequences after a campaign or signup.",
+            "descriptionDetail": (
+                "Same Marketing seat. Plans nurture, onboarding, and retention sequences. "
+                "Does not send mail or SMS, and does not invent subscriber lists. "
+                "Brevo stays on this seat. Stay consent-aware when the operator provides those rules. "
+                "Offer story stays with Content Strategist; conversion notes go to Marketing Analyst."
+            ),
         },
         {
             "id": "marketing-analyst",
             "title": "Marketing Analyst",
             "description": "Measures campaign performance from numbers the operator provides. Does not invent metrics.",
+            "descriptionDetail": (
+                "Same Marketing seat. Measures campaign performance from numbers, exports, or dashboards "
+                "the operator provides. Does not invent metrics, scrape private analytics, or claim "
+                "causality you cannot support. Call out missing data. Recommendations go back to "
+                "Content Strategist and the relevant channel bot."
+            ),
         },
     ],
     "real-estate-cold-call-lead-refresher": [
@@ -257,16 +297,18 @@ def normalize_manifest(data: dict[str, Any]) -> dict[str, Any]:
         tools = [str(t) for t in _as_list(bot.get("tools")) if t]
         if not tools:
             tools = list(connector_ids)
-        bots_out.append(
-            {
-                "id": str(bot.get("id") or ""),
-                "title": str(bot.get("title") or bot.get("displayName") or bot.get("id") or ""),
-                "description": str(bot.get("description") or ""),
-                "tools": tools,
-                "soul": str(bot.get("soul") or ""),
-                "config": str(bot.get("config") or ""),
-            }
-        )
+        item = {
+            "id": str(bot.get("id") or ""),
+            "title": str(bot.get("title") or bot.get("displayName") or bot.get("id") or ""),
+            "description": str(bot.get("description") or ""),
+            "tools": tools,
+            "soul": str(bot.get("soul") or ""),
+            "config": str(bot.get("config") or ""),
+        }
+        detail = str(bot.get("descriptionDetail") or "").strip()
+        if detail:
+            item["descriptionDetail"] = detail
+        bots_out.append(item)
 
     name = str(data.get("name") or data.get("displayName") or data.get("id") or "")
     department = str(data.get("departmentJob") or data.get("description") or "")
@@ -482,16 +524,18 @@ def _ensure_canonical_roster(group: dict[str, Any], folder: Path | None = None) 
                 f"display_name: {spec['title']}\n"
                 f"description: {spec.get('description') or ''}\n"
             )
-        ordered.append(
-            {
-                "id": bot_id,
-                "title": str(existing.get("title") or spec["title"]),
-                "description": str(existing.get("description") or spec.get("description") or ""),
-                "tools": list(existing.get("tools") or spec.get("tools") or ["computer-use", "browser"]),
-                "soul": soul,
-                "config": config,
-            }
-        )
+        filled = {
+            "id": bot_id,
+            "title": str(existing.get("title") or spec["title"]),
+            "description": str(existing.get("description") or spec.get("description") or ""),
+            "tools": list(existing.get("tools") or spec.get("tools") or ["computer-use", "browser"]),
+            "soul": soul,
+            "config": config,
+        }
+        detail = str(existing.get("descriptionDetail") or spec.get("descriptionDetail") or "").strip()
+        if detail:
+            filled["descriptionDetail"] = detail
+        ordered.append(filled)
     group["bots"] = ordered
     return group
 
@@ -719,6 +763,8 @@ def _write_bot_meta(dest: Path, bot: dict[str, Any], group_id: str, section: dic
         "tools": list(bot.get("tools") or []),
         "bot_group_id": group_id,
     }
+    if bot.get("descriptionDetail"):
+        meta["descriptionDetail"] = bot["descriptionDetail"]
     if section:
         meta["sectionId"] = section["sectionId"]
         meta["sectionName"] = section["sectionName"]

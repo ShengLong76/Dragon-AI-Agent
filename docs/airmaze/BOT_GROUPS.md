@@ -37,6 +37,7 @@ Canonical file: `bot-groups/<id>/bot-group.json`.
       "id": "email-warmer",
       "title": "Email Warmer",
       "description": "CAN-SPAM warming sequences that link to a TCPA consent form.",
+      "descriptionDetail": "Optional hover/focus write-up in the Teams picker.",
       "tools": ["email", "crm", "consent-form"],
       "soul": "bots/email-warmer/SOUL.md",
       "config": "bots/email-warmer/bot.yaml"
@@ -50,7 +51,8 @@ Canonical file: `bot-groups/<id>/bot-group.json`.
 | `name` | Bot group name (department pack) |
 | `departmentJob` | The department-level job the group works toward |
 | `bots[].title` | That bot's job title |
-| `bots[].description` | What that bot does |
+| `bots[].description` | Brief under the seat name in the Teams picker (and deploy/`bot.meta.json`) |
+| `bots[].descriptionDetail` | Optional hover/focus write-up in the Teams picker. Omit when empty. |
 | `bots[].tools` | Tool ids the bot is allowed to use (email, CRM, computer-use, …) |
 
 Optional `connectors[]` stay as non-secret placeholders the installer already copies. They are not a second product; they back the tools list.

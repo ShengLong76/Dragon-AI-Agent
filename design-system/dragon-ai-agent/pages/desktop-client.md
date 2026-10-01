@@ -51,6 +51,8 @@ The Bots rail must not list the built-in default Hermes agent next to Personal A
 
 The left-rail header above SESSIONS / BOTS is a brand lockup: decorative navy dragon (`aria-hidden`) + **Dragon AI** in Syne 700 (`#F0F0F5` on `#1C1C20`) + the Teams button on the same row. The mark is transparent only (no red border, no plate) and the same height as the Teams button (max `32px`, `clamp` + `cqi` so it shrinks when the sidebar column is resized). Wordmark ellipsizes; Teams wraps under on a narrow rail. Accessible name **Dragon AI Agent**. Do not cover the tab hit targets.
 
+The Teams dialog lists seats under each team. Brief (`description`) stays visible under the seat name; `descriptionDetail` is a hover/focus tooltip (`role="tooltip"`), not a native `title` and not the only path for the one-liner. Apply is the team row. Seats are not nested buttons. Focus rings stay visible. Do not clamp essential seat names.
+
 ## Surfaces this overlay may style
 
 - Empty-state wordmark, intro subtitle, and the front-facing dragon mark

@@ -376,20 +376,47 @@ def teams_picker_script() -> str:
         'panel.setAttribute("role","dialog");'
         'panel.setAttribute("aria-label","Teams");'
         "panel.hidden=true;"
-        'panel.innerHTML=\'<header><h2>Teams</h2><p>Apply a multi-bot team. Personal Assistant is already installed. Bots file under that team name, not Unassigned.</p></header><div data-dragon-ai-teams-list></div><label>Import custom zip or JSON<input type="file" accept=".zip,.json,application/json,application/zip" data-dragon-ai-teams-import></label><p data-dragon-ai-teams-status role="status"></p><button type="button" data-dragon-ai-teams-close>Close</button>\';'
+        'panel.innerHTML=\'<header><h2>Teams</h2><p>Apply a multi-bot team. Personal Assistant is already installed. Bots file under that team name, not Unassigned. Each seat shows a brief; hover or focus a seat for details.</p></header><div data-dragon-ai-teams-list></div><label>Import custom zip or JSON<input type="file" accept=".zip,.json,application/json,application/zip" data-dragon-ai-teams-import></label><p data-dragon-ai-teams-status role="status"></p><button type="button" data-dragon-ai-teams-close>Close</button>\';'
         "function setStatus(t){var s=$('[data-dragon-ai-teams-status]',panel);if(s)s.textContent=t||'';}"
         "function show(){panel.hidden=false;panel.removeAttribute('hidden');load();}"
         "function hide(){panel.hidden=true;panel.setAttribute('hidden','');}"
         "function reloadRoster(){hide();try{location.reload();}catch(e){try{window.location.href=window.location.href;}catch(e2){}}}"
         "function finishApply(){hide();reloadRoster();}"
         "function card(team){"
+        'var wrap=document.createElement("article");'
+        'wrap.setAttribute("data-dragon-ai-team-id",team.id||"");'
         'var b=document.createElement("button");b.type="button";'
-        'b.setAttribute("data-dragon-ai-team-id",team.id||"");'
+        'b.setAttribute("data-dragon-ai-team-apply","true");'
         'b.innerHTML="<strong></strong><span></span>";'
         "b.querySelector('strong').textContent=team.displayName||team.name||team.id;"
         "b.querySelector('span').textContent=team.departmentJob||'';"
         "b.addEventListener('click',function(){apply(team.id);});"
-        "return b;"
+        "wrap.appendChild(b);"
+        'var seats=document.createElement("ul");'
+        'seats.setAttribute("data-dragon-ai-team-seats","true");'
+        "(team.bots||[]).forEach(function(bot,i){"
+        'var li=document.createElement("li");'
+        'li.setAttribute("data-dragon-ai-seat-id",bot.id||"");'
+        'var name=document.createElement("strong");'
+        "name.textContent=bot.title||bot.id||'';"
+        'var brief=document.createElement("span");'
+        "brief.textContent=bot.description||'';"
+        "li.appendChild(name);li.appendChild(brief);"
+        "if(bot.descriptionDetail){"
+        'li.setAttribute("data-dragon-ai-seat-detail","true");'
+        "li.tabIndex=0;"
+        'var tipId="dragon-seat-tip-"+(team.id||"team")+"-"+(bot.id||i);'
+        'li.setAttribute("aria-describedby",tipId);'
+        'var tip=document.createElement("div");'
+        'tip.id=tipId;tip.setAttribute("role","tooltip");'
+        'tip.setAttribute("data-dragon-ai-seat-tooltip","true");'
+        "tip.textContent=bot.descriptionDetail;"
+        "li.appendChild(tip);"
+        "}"
+        "seats.appendChild(li);"
+        "});"
+        "if(seats.childNodes.length)wrap.appendChild(seats);"
+        "return wrap;"
         "}"
         "function load(){"
         "setStatus('Loading teams…');"
@@ -800,8 +827,14 @@ def self_test() -> int:
     if once.count(TEAMS_SCRIPT_MARK) != 1 or "Teams" not in once:
         print("FAIL: Teams picker script must inject into the desktop client", file=sys.stderr)
         return 1
+    if "data-dragon-ai-team-seats" not in once or "descriptionDetail" not in once:
+        print("FAIL: Teams picker must list seats with brief + hover detail", file=sys.stderr)
+        return 1
     if "[data-dragon-ai-teams-panel]" not in css:
         print("FAIL: overlay CSS must style the in-app Teams screen", file=sys.stderr)
+        return 1
+    if "[data-dragon-ai-seat-tooltip]" not in css:
+        print("FAIL: overlay CSS must style seat hover/focus detail", file=sys.stderr)
         return 1
     if icon_source() is None:
         print("FAIL: Dragon ICO missing for taskbar/resources/icon.ico", file=sys.stderr)

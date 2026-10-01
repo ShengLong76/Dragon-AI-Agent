@@ -278,7 +278,8 @@ body,
 
 [data-dragon-ai-teams-open]:focus-visible,
 [data-dragon-ai-teams-panel] button:focus-visible,
-[data-dragon-ai-teams-panel] input:focus-visible {
+[data-dragon-ai-teams-panel] input:focus-visible,
+[data-dragon-ai-teams-panel] [data-dragon-ai-team-seats] li:focus-visible {
   outline: 2px solid var(--color-ring);
   outline-offset: 2px;
 }
@@ -288,7 +289,7 @@ body,
   z-index: 80;
   top: 12px;
   left: 12px;
-  width: min(28rem, calc(100vw - 24px));
+  width: min(36rem, calc(100vw - 24px));
   max-height: calc(100vh - 24px);
   overflow: auto;
   padding: 16px;
@@ -319,28 +320,109 @@ body,
   margin: 12px 0;
 }
 
-[data-dragon-ai-teams-list] button {
-  display: block;
-  width: 100%;
-  text-align: left;
+[data-dragon-ai-teams-list] article {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   padding: 10px 12px;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-card);
   color: var(--color-foreground);
+}
+
+[data-dragon-ai-teams-list] button,
+[data-dragon-ai-team-apply] {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-background);
+  color: var(--color-foreground);
   cursor: pointer;
 }
 
-[data-dragon-ai-teams-list] button strong {
+[data-dragon-ai-teams-list] button strong,
+[data-dragon-ai-team-apply] strong {
   display: block;
   font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
   font-weight: 700;
 }
 
-[data-dragon-ai-teams-list] button span {
+[data-dragon-ai-teams-list] button span,
+[data-dragon-ai-team-apply] span,
+[data-dragon-ai-team-seats] span {
   display: block;
   color: var(--color-muted-foreground);
   font-size: 0.8125rem;
+  line-height: 1.4;
+  height: auto;
+}
+
+[data-dragon-ai-team-seats] {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+[data-dragon-ai-team-seats] li {
+  position: relative;
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+
+[data-dragon-ai-team-seats] li strong {
+  display: block;
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+[data-dragon-ai-team-seats] li[data-dragon-ai-seat-detail] {
+  cursor: help;
+}
+
+[data-dragon-ai-team-seats] li:hover,
+[data-dragon-ai-team-seats] li:focus,
+[data-dragon-ai-team-seats] li:focus-visible,
+[data-dragon-ai-team-seats] li:focus-within {
+  background: var(--color-muted);
+}
+
+[data-dragon-ai-seat-tooltip] {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 90;
+  max-width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  box-shadow: 0 8px 24px #00000080;
+}
+
+[data-dragon-ai-team-seats] li:hover [data-dragon-ai-seat-tooltip],
+[data-dragon-ai-team-seats] li:focus [data-dragon-ai-seat-tooltip],
+[data-dragon-ai-team-seats] li:focus-within [data-dragon-ai-seat-tooltip] {
+  display: block;
+}
+
+[data-dragon-ai-teams-panel] [data-dragon-ai-team-apply]:focus-visible,
+[data-dragon-ai-teams-panel] [data-dragon-ai-team-seats] li:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
 }
 
 [data-dragon-ai-teams-panel] label {

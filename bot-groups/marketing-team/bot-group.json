@@ -5,12 +5,13 @@
   "name": "Marketing Team",
   "displayName": "Marketing Team",
   "departmentJob": "Content, SEO, social, paid, lifecycle, and measurement for a marketing desk.",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "bots": [
     {
       "id": "content-strategist",
       "title": "Content Strategist",
       "description": "Owns narrative, positioning, and campaign briefs for the marketing desk.",
+      "descriptionDetail": "Same Marketing seat. Turns a product or offer into story, outline, and handoff. Does not invent customer lists, send mail, or publish without the operator. Hands SEO notes to SEO Specialist, calendars to Social Media Manager, paid angles to Paid Media Specialist, nurture to Lifecycle Marketer, and measurement to Marketing Analyst.",
       "tools": ["computer-use", "browser"],
       "soul": "bots/content-strategist/SOUL.md",
       "config": "bots/content-strategist/bot.yaml"
@@ -18,7 +19,8 @@
     {
       "id": "seo-specialist",
       "title": "SEO Specialist",
-      "description": "Technical and on-page search work: briefs, audits, and keyword notes.",
+      "description": "Runs seoagent.com Skill/CLI audits and optional DataForSEO research.",
+      "descriptionDetail": "Not a new teammate. Apply Marketing Team still yields the same six Cos seats. Only this seat gets extra SEO tooling.\n\nTools: seoagent (seoagent.com free Skill/CLI: npm i -g @seoagent-official/seoagent then seoagent init / npx), dataforseo (MCP), plus computer-use and browser.\n\nOptional Autopilot is $49/site/month for GSC/cloud. It is not required.\n\nAfter install: re-apply Marketing Team; run seoagent init on the site repo; add DataForSEO MCP credentials in desktop MCP settings if you use that tool.\n\nBuffer stays on Social Media Manager. Brevo stays on Lifecycle Marketer.",
       "tools": ["computer-use", "browser"],
       "soul": "bots/seo-specialist/SOUL.md",
       "config": "bots/seo-specialist/bot.yaml"
@@ -27,6 +29,7 @@
       "id": "social-media-manager",
       "title": "Social Media Manager",
       "description": "Channel calendar, posts, and community replies the operator approves.",
+      "descriptionDetail": "Same Marketing seat. Drafts calendars, posts, and replies for operator approval. Does not publish or scrape private accounts without permission. Does not invent engagement numbers. Buffer stays on this seat. Campaign story stays with Content Strategist; paid amplification goes to Paid Media Specialist.",
       "tools": ["computer-use", "browser"],
       "soul": "bots/social-media-manager/SOUL.md",
       "config": "bots/social-media-manager/bot.yaml"
@@ -35,6 +38,7 @@
       "id": "paid-media-specialist",
       "title": "Paid Media Specialist",
       "description": "Paid search and social plans. Does not spend real money without the operator.",
+      "descriptionDetail": "Same Marketing seat. Plans paid search and social: audiences, angles, and draft budgets. Does not spend real money, connect ad accounts, or launch campaigns without the operator. Does not invent ROAS or click numbers. Creative brief stays with Content Strategist; results go to Marketing Analyst.",
       "tools": ["computer-use", "browser"],
       "soul": "bots/paid-media-specialist/SOUL.md",
       "config": "bots/paid-media-specialist/bot.yaml"
@@ -43,6 +47,7 @@
       "id": "lifecycle-marketer",
       "title": "Lifecycle Marketer",
       "description": "Nurture, onboarding, and retention sequences after a campaign or signup.",
+      "descriptionDetail": "Same Marketing seat. Plans nurture, onboarding, and retention sequences. Does not send mail or SMS, and does not invent subscriber lists. Brevo stays on this seat. Stay consent-aware when the operator provides those rules. Offer story stays with Content Strategist; conversion notes go to Marketing Analyst.",
       "tools": ["computer-use", "browser"],
       "soul": "bots/lifecycle-marketer/SOUL.md",
       "config": "bots/lifecycle-marketer/bot.yaml"
@@ -51,6 +56,7 @@
       "id": "marketing-analyst",
       "title": "Marketing Analyst",
       "description": "Measures campaign performance from numbers the operator provides. Does not invent metrics.",
+      "descriptionDetail": "Same Marketing seat. Measures campaign performance from numbers, exports, or dashboards the operator provides. Does not invent metrics, scrape private analytics, or claim causality you cannot support. Call out missing data. Recommendations go back to Content Strategist and the relevant channel bot.",
       "tools": ["computer-use", "browser"],
       "soul": "bots/marketing-analyst/SOUL.md",
       "config": "bots/marketing-analyst/bot.yaml"
