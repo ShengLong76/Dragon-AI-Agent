@@ -151,6 +151,12 @@ function Install-DragonAIDesktopFontPack {
     $teamsMark = 'data-dragon-ai-branding="teams-picker"'
     $sidebarSnippet = "<script $sidebarMark>`n" + (Get-DragonAIPackScript -Name "sidebar-header.js") + "`n</script>"
     $teamsSnippet = "<script $teamsMark>`n" + (Get-DragonAIPackScript -Name "teams-picker.js") + "`n</script>"
+    if ($sidebarSnippet -notmatch 'data-dragon-ai-sidebar-fixed' -or $sidebarSnippet -notmatch 'findDragonSidebarHost' -or $sidebarSnippet -notmatch 'findColumnHost') {
+        throw "Apply-DesktopBranding: sidebar-header.js is missing the body fixed-overlay fallback host"
+    }
+    if ($teamsSnippet -notmatch 'data-dragon-ai-sidebar-fixed' -or $teamsSnippet -notmatch 'findDragonSidebarHost' -or $teamsSnippet -notmatch 'Teams Marketplace') {
+        throw "Apply-DesktopBranding: teams-picker.js is missing the fixed-overlay host or Teams Marketplace label"
+    }
     $utf8 = New-Object System.Text.UTF8Encoding $false
     foreach ($root in $Roots) {
         if (-not $root -or -not (Test-Path -LiteralPath $root -PathType Container)) { continue }

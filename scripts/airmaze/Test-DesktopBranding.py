@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 import sys
 import tempfile
 
@@ -63,6 +64,43 @@ def read(path: pathlib.Path) -> str:
     if not path.is_file():
         fail(f"missing {path}")
     return path.read_text(encoding="utf-8")
+
+
+def _js_code_only(text: str) -> str:
+    stripped = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+    return re.sub(r"//.*?$", "", stripped, flags=re.M)
+
+
+def assert_sidebar_host_fallback(sidebar_js: str, teams_js: str, css: str) -> None:
+    for label, text in (("sidebar-header.js", sidebar_js), ("teams-picker.js", teams_js)):
+        if "findColumnHost" not in text:
+            fail(f"{label} must try column hosts first")
+        if "findDragonSidebarHost" not in text:
+            fail(f"{label} must share findDragonSidebarHost")
+        if 'data-slot="sidebar-header"' not in text or 'data-slot="sidebar-inner"' not in text:
+            fail(f"{label} must still prefer sidebar-header / sidebar-inner")
+        if "data-dragon-ai-sidebar-fixed" not in text:
+            fail(f"{label} must fall back to data-dragon-ai-sidebar-fixed on body")
+        if "document.body" not in text:
+            fail(f"{label} must mount the fixed overlay on document.body")
+        if "findSessionsBotsStrip" not in text:
+            fail(f"{label} must park the overlay below Sessions / Bots")
+        if "sidebar-wrapper" in _js_code_only(text):
+            fail(f"{label} must not treat sidebar-wrapper as a column host")
+    if "Teams Marketplace" not in teams_js:
+        fail("teams-picker.js control label must be Teams Marketplace")
+    if re.search(r'textContent\s*=\s*"Teams"', teams_js):
+        fail("user-visible control label must be Teams Marketplace, not Teams")
+    if "[data-dragon-ai-sidebar-fixed]" not in css:
+        fail("dragon-ui.css must style the body fixed overlay")
+    if "min-width: 16rem" not in css:
+        fail("fixed overlay row must keep a 16rem width (not collapse to ~24px)")
+    if re.search(r"\[data-dragon-ai-sidebar-fixed\][^{]*\{[^}]*container-type", css, re.S):
+        fail("fixed overlay must not set container-type (collapses to ~24px)")
+    if "@media (max-width: 1100px)" not in css:
+        fail("overlay path must wrap Teams Marketplace with @media (max-width: 1100px)")
+    if "container-type: inline-size" not in css or "@container" not in css:
+        fail("real sidebar slots must keep @container wrap")
 
 
 def test_table() -> dict:
@@ -381,6 +419,8 @@ def test_packaging_not_regressed() -> None:
             fail("Apply-DesktopBranding.ps1 must upsert sidebar inject even when index.html is already branded")
     if "sidebar-header.js" not in apply_ps or "teams-picker.js" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must ship/copy prebuilt inject scripts without Python")
+    if "data-dragon-ai-sidebar-fixed" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must verify the body fixed-overlay fallback landed")
     if "Get-DragonAIInstallUnpackedRoots" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must also land assets under DragonAIAgent app.asar.unpacked")
     if "Remove-DragonAICrimsonLockupBorder" not in apply_ps:
@@ -450,6 +490,12 @@ def test_packaging_not_regressed() -> None:
         fail("packaged dragon-ui.css must not include a crimson lockup border")
     sidebar_js = read(pack / "sidebar-header.js")
     teams_js = read(pack / "teams-picker.js")
+    assert_sidebar_host_fallback(sidebar_js, teams_js, css)
+    host_note = ROOT / "docs" / "airmaze" / "SIDEBAR_HOST.md"
+    if not host_note.is_file() or "data-dragon-ai-sidebar-fixed" not in read(host_note):
+        fail("docs/airmaze/SIDEBAR_HOST.md must describe the body fixed-overlay fallback")
+    if "Teams Marketplace" not in read(host_note):
+        fail("SIDEBAR_HOST.md must name the Teams Marketplace control")
     for label, text in (("sidebar-header.js", sidebar_js), ("teams-picker.js", teams_js), ("dragon-ui.css", css)):
         compact = text.replace(" ", "")
         if "rgba(196,30,58" in compact:
