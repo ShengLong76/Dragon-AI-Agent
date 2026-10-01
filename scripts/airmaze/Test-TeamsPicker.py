@@ -108,6 +108,36 @@ def test_apply_files_named_section(tp) -> None:
             fail("one-click apply must file bots under Marketing Team, not UNASSIGNED")
         if "section:unassigned" in profile.lower():
             fail("applied Marketing Team bots must not be Unassigned")
+        roster_cases = (
+            (
+                "real-estate-cold-call-lead-refresher",
+                [
+                    "lead-sourcer",
+                    "email-warmer",
+                    "cold-call-script-writer",
+                    "follow-up-sequencer",
+                ],
+                "Real Estate Lead Gen",
+            ),
+            (
+                "trading-team",
+                ["market-researcher", "trade-journal", "risk-analyst", "news-scanner"],
+                "Trading Team",
+            ),
+        )
+        for team_id, expected, label in roster_cases:
+            pack = tp.apply_team(
+                team_id,
+                payload_root=ROOT,
+                install_root=tmp_path / f"install-{team_id}",
+                desktop_profiles_root=tmp_path / f"desktop-{team_id}",
+            )
+            ids = [b.get("id") for b in pack.get("bots") or []]
+            if ids != expected:
+                fail(f"apply {label} must deploy {expected}, got {ids}")
+            first = (tmp_path / f"desktop-{team_id}" / expected[0] / "profile.yaml").read_text(encoding="utf-8")
+            if label not in first:
+                fail(f"apply {label} must file bots under that section")
         try:
             tp.apply_team(
                 "personal-assistant",
@@ -139,6 +169,8 @@ def test_overlay_and_launch_wired() -> None:
         fail("desktop overlay must inject the Teams picker into the desktop client")
     if "Personal Assistant is already installed" not in branding:
         fail("Teams dialog must say Personal Assistant is already installed")
+    if "finishApply" not in branding or "location.reload" not in branding:
+        fail("after apply the Teams dialog must close and reload the bot roster")
     css = read(CSS)
     if "[data-dragon-ai-teams-panel]" not in css or "Teams" not in css:
         fail("dragon-ui.css must style the in-app Teams screen")
@@ -147,6 +179,8 @@ def test_overlay_and_launch_wired() -> None:
         fail("start-embedded.ps1 must start the Teams picker helper")
     if "8653" not in launcher:
         fail("Teams helper must use loopback :8653 (not Bot Screen :8650)")
+    if "content-strategist" not in launcher:
+        fail("Teams helper must prefer the Cos Marketing pack over a stale InstallRoot stub")
     wizard = read(WIZARD)
     if "Teams" not in wizard:
         fail("first-run wizard must offer Teams selection")

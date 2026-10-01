@@ -39,6 +39,55 @@ UI_SECTIONS_NAME = "bot-ui-sections.json"
 UI_SECTION_MARK = "# dragon-ai-ui-section"
 UI_SECTION_PREFIX = "sec-dragon-"
 DEFAULT_TIMEOUT_SEC = 8
+STALE_TEAM_BOTS = {
+    "marketing-team": ("copywriter", "campaign-sequencer"),
+}
+CANONICAL_ROSTERS: dict[str, list[dict[str, str]]] = {
+    "marketing-team": [
+        {
+            "id": "content-strategist",
+            "title": "Content Strategist",
+            "description": "Owns narrative, positioning, and campaign briefs for the marketing desk.",
+        },
+        {
+            "id": "seo-specialist",
+            "title": "SEO Specialist",
+            "description": "Technical and on-page search work: briefs, audits, and keyword notes.",
+        },
+        {
+            "id": "social-media-manager",
+            "title": "Social Media Manager",
+            "description": "Channel calendar, posts, and community replies the operator approves.",
+        },
+        {
+            "id": "paid-media-specialist",
+            "title": "Paid Media Specialist",
+            "description": "Paid search and social plans. Does not spend real money without the operator.",
+        },
+        {
+            "id": "lifecycle-marketer",
+            "title": "Lifecycle Marketer",
+            "description": "Nurture, onboarding, and retention sequences after a campaign or signup.",
+        },
+        {
+            "id": "marketing-analyst",
+            "title": "Marketing Analyst",
+            "description": "Measures campaign performance from numbers the operator provides. Does not invent metrics.",
+        },
+    ],
+    "real-estate-cold-call-lead-refresher": [
+        {"id": "lead-sourcer", "title": "Lead Sourcer", "description": "Finds and refreshes outbound real-estate leads."},
+        {"id": "email-warmer", "title": "Email Warmer", "description": "CAN-SPAM warming sequences toward a TCPA consent form."},
+        {"id": "cold-call-script-writer", "title": "Cold Call Script Writer", "description": "Writes cold-call openers and talk tracks."},
+        {"id": "follow-up-sequencer", "title": "Follow-up Sequencer", "description": "Plans multi-touch follow-up sequences."},
+    ],
+    "trading-team": [
+        {"id": "market-researcher", "title": "Market Researcher", "description": "Summarizes public market context. Does not place orders."},
+        {"id": "trade-journal", "title": "Trade Journal", "description": "Logs discretionary trades. Not a broker."},
+        {"id": "risk-analyst", "title": "Risk Analyst", "description": "Flags concentration and sizing notes. Not a broker."},
+        {"id": "news-scanner", "title": "News Scanner", "description": "Summarizes public market news. Not investment advice."},
+    ],
+}
 
 
 class GitHubUnreachable(Exception):
@@ -378,7 +427,73 @@ def _load_group_folder(folder: Path) -> dict[str, Any]:
     manifest = _find_manifest(folder)
     if not manifest:
         raise FileNotFoundError(f"no {MANIFEST_NAME} in {folder}")
-    return _merge_disk_bots(folder, normalize_manifest(_read_json(manifest)))
+    return _ensure_canonical_roster(_merge_disk_bots(folder, normalize_manifest(_read_json(manifest))), folder)
+
+
+def _engine_bundle_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def _folder_roster_ids(folder: Path) -> list[str]:
+    manifest = _find_manifest(folder)
+    if not manifest:
+        return []
+    try:
+        group = _merge_disk_bots(folder, normalize_manifest(_read_json(manifest)))
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        return []
+    return [str(b.get("id")) for b in group.get("bots") or [] if b.get("id")]
+
+
+def _roster_score(folder: Path, group_id: str) -> tuple[int, int, int]:
+    ids = set(_folder_roster_ids(folder))
+    want = {str(b["id"]) for b in CANONICAL_ROSTERS.get(group_id, [])}
+    stale = set(STALE_TEAM_BOTS.get(group_id, ()))
+    return (len(ids & want), 0 if ids & stale and not (ids & want) else 1, len(ids))
+
+
+def _ensure_canonical_roster(group: dict[str, Any], folder: Path | None = None) -> dict[str, Any]:
+    """Replace Copywriter/Campaign Sequencer stubs with Cos's full pack."""
+    gid = str(group.get("id") or "")
+    want = CANONICAL_ROSTERS.get(gid)
+    if not want:
+        return group
+    stale = set(STALE_TEAM_BOTS.get(gid, ()))
+    by_id = {
+        str(b["id"]): b
+        for b in (group.get("bots") or [])
+        if isinstance(b, dict) and b.get("id") and b["id"] not in stale
+    }
+    ordered: list[dict[str, Any]] = []
+    for spec in want:
+        bot_id = spec["id"]
+        existing = by_id.get(bot_id, {})
+        soul = str(existing.get("soul") or f"bots/{bot_id}/SOUL.md")
+        config = str(existing.get("config") or f"bots/{bot_id}/bot.yaml")
+        if folder is not None and "\n" not in soul and not (folder / soul).is_file():
+            soul = (
+                f"# {spec['title']}\n\n"
+                f"You are **{spec['title']}**, part of {group.get('displayName') or group.get('name') or gid}.\n"
+                f"{spec.get('description') or ''}\n"
+            )
+        if folder is not None and "\n" not in config and not (folder / config).is_file():
+            config = (
+                f"slug: {bot_id}\n"
+                f"display_name: {spec['title']}\n"
+                f"description: {spec.get('description') or ''}\n"
+            )
+        ordered.append(
+            {
+                "id": bot_id,
+                "title": str(existing.get("title") or spec["title"]),
+                "description": str(existing.get("description") or spec.get("description") or ""),
+                "tools": list(existing.get("tools") or spec.get("tools") or ["computer-use", "browser"]),
+                "soul": soul,
+                "config": config,
+            }
+        )
+    group["bots"] = ordered
+    return group
 
 
 def _profile_belongs_to_group(dest: Path, group_id: str, section: dict[str, str]) -> bool:
@@ -466,13 +581,16 @@ def list_groups(
 
 def _candidate_group_dirs(group_id: str, rel: str, payload: Path, install: Path) -> list[Path]:
     rel_os = rel.replace("/", "/")
+    engine = _engine_bundle_root()
     return [
+        engine / REPO_PATH / rel_os,
+        engine / REPO_PATH / group_id,
         payload / REPO_PATH / rel_os,
-        install / REPO_PATH / "cache" / rel_os,
+        payload / REPO_PATH / group_id,
         install / REPO_PATH / "imported" / group_id,
+        install / REPO_PATH / "cache" / rel_os,
         payload / "profiles" / rel_os,
         install / REPO_PATH / "applied" / group_id,
-        payload / REPO_PATH / group_id,
         payload / "profiles" / group_id,
     ]
 
@@ -542,9 +660,28 @@ def resolve_group_dir(
     payload = Path(payload_root)
     install = Path(install_root)
     rel = _catalog_rel(group_id, payload, install)
-    for folder in _candidate_group_dirs(group_id, rel, payload, install):
-        if _find_manifest(folder):
-            return folder
+    found = [folder for folder in _candidate_group_dirs(group_id, rel, payload, install) if _find_manifest(folder)]
+
+    def _is_under(path: Path, root: Path) -> bool:
+        try:
+            path.resolve().relative_to(root.resolve())
+            return True
+        except ValueError:
+            return False
+
+    def _is_stale(folder: Path) -> bool:
+        ids = set(_folder_roster_ids(folder))
+        want = {str(item["id"]) for item in CANONICAL_ROSTERS.get(group_id, [])}
+        stale = set(STALE_TEAM_BOTS.get(group_id, ()))
+        return bool(stale) and bool(ids & stale) and not (ids & want)
+
+    payload_found = [folder for folder in found if _is_under(folder, payload)]
+    if payload_found and not _is_stale(payload_found[0]):
+        return payload_found[0]
+    if found:
+        if group_id in CANONICAL_ROSTERS:
+            return max(found, key=lambda folder: _roster_score(folder, group_id))
+        return found[0]
     if fetcher is not None:
         return _fetch_group_tree(group_id, rel, install, fetcher, repo, ref)
     try:

@@ -378,8 +378,10 @@ def teams_picker_script() -> str:
         "panel.hidden=true;"
         'panel.innerHTML=\'<header><h2>Teams</h2><p>Apply a multi-bot team. Personal Assistant is already installed. Bots file under that team name, not Unassigned.</p></header><div data-dragon-ai-teams-list></div><label>Import custom zip or JSON<input type="file" accept=".zip,.json,application/json,application/zip" data-dragon-ai-teams-import></label><p data-dragon-ai-teams-status role="status"></p><button type="button" data-dragon-ai-teams-close>Close</button>\';'
         "function setStatus(t){var s=$('[data-dragon-ai-teams-status]',panel);if(s)s.textContent=t||'';}"
-        "function show(){panel.hidden=false;load();}"
-        "function hide(){panel.hidden=true;}"
+        "function show(){panel.hidden=false;panel.removeAttribute('hidden');load();}"
+        "function hide(){panel.hidden=true;panel.setAttribute('hidden','');}"
+        "function reloadRoster(){hide();try{location.reload();}catch(e){try{window.location.href=window.location.href;}catch(e2){}}}"
+        "function finishApply(){hide();reloadRoster();}"
         "function card(team){"
         'var b=document.createElement("button");b.type="button";'
         'b.setAttribute("data-dragon-ai-team-id",team.id||"");'
@@ -403,7 +405,7 @@ def teams_picker_script() -> str:
         "fetch(API+'/api/teams/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})})"
         ".then(function(r){return r.json();}).then(function(data){"
         "if(data.error){setStatus(data.message||data.error);return;}"
-        "setStatus('Applied '+(data.displayName||data.name||id)+'. Bots are in that named group, not Unassigned.');"
+        "finishApply();"
         "}).catch(function(){setStatus('Apply failed. Is the Teams helper running?');});"
         "}"
         "function importFile(file){"
@@ -416,7 +418,7 @@ def teams_picker_script() -> str:
         "fetch(API+'/api/teams/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:file.name,contentBase64:btoa(bin)})})"
         ".then(function(r){return r.json();}).then(function(data){"
         "if(data.error){setStatus(data.message||data.error);return;}"
-        "setStatus('Imported '+(data.displayName||data.name||file.name)+'.');"
+        "finishApply();"
         "}).catch(function(){setStatus('Import failed.');});"
         "};"
         "reader.readAsArrayBuffer(file);"
@@ -425,7 +427,7 @@ def teams_picker_script() -> str:
         '$("[data-dragon-ai-teams-close]",panel).addEventListener("click",hide);'
         'var inp=$("[data-dragon-ai-teams-import]",panel);'
         "if(inp)inp.addEventListener('change',function(){importFile(inp.files&&inp.files[0]);});"
-        "root.appendChild(open);root.appendChild(panel);"
+        "root.appendChild(open);if(document.body){document.body.appendChild(panel);}else{root.appendChild(panel);}"
         'var row=document.querySelector("[data-dragon-ai-sidebar-row]");'
         "if(row){row.appendChild(root);}else if(host.getAttribute&&host.getAttribute('data-dragon-ai-sidebar-brand')&&host.parentNode){host.parentNode.insertBefore(root,host.nextSibling);}else{host.appendChild(root);}"
         "}"

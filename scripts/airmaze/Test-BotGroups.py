@@ -406,15 +406,22 @@ def test_deploy_files_named_ui_section(bg) -> None:
         (mdir / "bot-group.json").write_text(json.dumps(marketing), encoding="utf-8")
         (mdir / "bots" / "copywriter" / "SOUL.md").write_text("# Copy\n", encoding="utf-8")
         (mdir / "bots" / "copywriter" / "bot.yaml").write_text("slug: copywriter\n", encoding="utf-8")
-        bg.deploy_group(
+        marketing_result = bg.deploy_group(
             "marketing-team",
             payload_root=tmp_path / "payload",
             install_root=install,
             desktop_profiles_root=desktop,
         )
-        mprofile = (desktop / "copywriter" / "profile.yaml").read_text(encoding="utf-8")
-        if "sec-dragon-marketing-team" not in mprofile or "Marketing Team" not in mprofile:
-            fail("Marketing Team import must create its own named UI section")
+        marketing_ids = [b.get("id") for b in marketing_result.get("bots") or []]
+        if marketing_ids != COS_ROSTERS["marketing-team"]:
+            fail(f"stub Marketing pack must deploy Cos's 6 bots, got {marketing_ids}")
+        for bot_id in COS_ROSTERS["marketing-team"]:
+            mprofile = (desktop / bot_id / "profile.yaml").read_text(encoding="utf-8")
+            if "sec-dragon-marketing-team" not in mprofile or "Marketing Team" not in mprofile:
+                fail(f"{bot_id} must file under MARKETING TEAM, not UNASSIGNED")
+        for stale in STALE_MARKETING_IDS:
+            if (desktop / stale).exists():
+                fail(f"Marketing Team must not deploy stub {stale}")
         warmer_after = (desktop / "email-warmer" / "profile.yaml").read_text(encoding="utf-8")
         if section_id not in warmer_after:
             fail("a second group must not steal the Real Estate section id")
@@ -677,26 +684,34 @@ def test_deploy_full_roster_replaces_stale(bg) -> None:
             json.dumps({"kind": "bot-group-catalog", "groups": [{"id": "marketing-team", "path": "marketing-team"}]}),
             encoding="utf-8",
         )
-        bg.deploy_group(
-            "marketing-team",
-            payload_root=payload,
-            install_root=install,
-            desktop_profiles_root=desktop,
-        )
-        if not (desktop / "copywriter").is_dir() or not (desktop / "campaign-sequencer").is_dir():
-            fail("setup must first land the stale stub bots")
+        desktop.mkdir(parents=True)
+        for stale_id, title in (("copywriter", "Copywriter"), ("campaign-sequencer", "Campaign Sequencer")):
+            dest = desktop / stale_id
+            dest.mkdir(parents=True)
+            (dest / "bot.meta.json").write_text(
+                json.dumps(
+                    {
+                        "id": stale_id,
+                        "title": title,
+                        "bot_group_id": "marketing-team",
+                        "sectionId": "sec-dragon-marketing-team",
+                        "sectionName": "Marketing Team",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (dest / "profile.yaml").write_text(
+                "# dragon-ai-ui-section\nui_meta:\n  hermes-bots:\n    sectionId: \"sec-dragon-marketing-team\"\n    sectionName: \"Marketing Team\"\n",
+                encoding="utf-8",
+            )
+        expanded = [b["id"] for b in bg._load_group_folder(stub_dir).get("bots") or []]
+        if expanded != COS_ROSTERS["marketing-team"]:
+            fail(f"a stub Marketing folder must expand to Cos's 6 bots, got {expanded}")
         extra = stub_dir / "bots" / "seo-specialist"
         extra.mkdir()
         (extra / "SOUL.md").write_text("# Extra on disk\n", encoding="utf-8")
         (extra / "bot.yaml").write_text("slug: seo-specialist\ndisplay_name: SEO Specialist\n", encoding="utf-8")
-        disk_union = bg.deploy_group(
-            "marketing-team",
-            payload_root=payload,
-            install_root=install,
-            desktop_profiles_root=desktop,
-        )
-        disk_ids = [b["id"] for b in disk_union.get("bots") or []]
-        if "seo-specialist" not in disk_ids:
+        if "seo-specialist" not in bg._folder_roster_ids(stub_dir):
             fail("deploy must pick up bots/ folders missing from bot-group.json")
         result = bg.deploy_group(
             "marketing-team",

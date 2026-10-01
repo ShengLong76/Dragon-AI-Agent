@@ -725,10 +725,15 @@ function Start-DragonAITeamsPicker {
     $desktop = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "hermes\profiles" } else { Join-Path $InstallRoot "hermes-profiles" }
     $embedded = if ($env:USERPROFILE) { Join-Path $env:USERPROFILE ".hermes-airmaze-embedded\profiles" } else { "" }
     $payload = $InstallRoot
-    if (-not (Test-Path -LiteralPath (Join-Path $payload "bot-groups\catalog.json"))) {
-        $hint = Join-Path $PSScriptRoot "..\.."
-        if (Test-Path -LiteralPath (Join-Path $hint "bot-groups\catalog.json")) {
-            $payload = (Resolve-Path -LiteralPath $hint).Path
+    $scriptTree = Join-Path $PSScriptRoot "..\.."
+    $cosMark = "bot-groups\marketing-team\bots\content-strategist\SOUL.md"
+    if (Test-Path -LiteralPath (Join-Path $scriptTree $cosMark)) {
+        $payload = (Resolve-Path -LiteralPath $scriptTree).Path
+    } elseif (-not (Test-Path -LiteralPath (Join-Path $payload $cosMark))) {
+        if (Test-Path -LiteralPath (Join-Path $payload "bot-groups\catalog.json")) {
+            # keep InstallRoot
+        } elseif (Test-Path -LiteralPath (Join-Path $scriptTree "bot-groups\catalog.json")) {
+            $payload = (Resolve-Path -LiteralPath $scriptTree).Path
         }
     }
     try {
