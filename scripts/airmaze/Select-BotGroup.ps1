@@ -145,7 +145,7 @@ function Show-BotGroupDropdown {
     $singularOn = [bool]$settings.allowSingularBotImportExport
 
     $form = New-Object System.Windows.Forms.Form
-    $form.Text = "Dragon AI Agent — Teams"
+    $form.Text = "Dragon AI Agent — Teams Marketplace"
     $form.Size = New-Object System.Drawing.Size(640, 420)
     $form.StartPosition = "CenterScreen"
     $form.BackColor = $script:BrandBack
@@ -310,7 +310,7 @@ if (Initialize-BotGroupWinForms) {
     $listed = Get-ListedGroups
     Write-Host ""
     Write-Host "========================================"
-    Write-Host " Dragon AI Agent — Teams"
+    Write-Host " Dragon AI Agent — Teams Marketplace"
     Write-Host "========================================"
     $entries = @($listed.groups | Where-Object { $_.id -ne "personal-assistant" })
     $i = 1

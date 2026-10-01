@@ -193,12 +193,12 @@ body,
 /* dragon-ai-lockup-wrap:1
    Sidebar header lockup above SESSIONS / BOTS.
    Logo stays a fixed 32px transparent SVG (no plate / no red border) and
-   matches the Teams Marketplace button height at full width. When a real
-   sidebar column shrinks, @container wrap drops Marketplace below the logo.
-   Hermes sidebar-wrapper is the full app shell — never a column host.
-   Fallback is a body overlay [data-dragon-ai-sidebar-fixed] pinned into
+   matches the Teams Marketplace button height. The Marketplace control
+   sits under the logo. Hermes sidebar-wrapper is the full app shell —
+   never a column host. Fallback is a body overlay
+   [data-dragon-ai-sidebar-fixed] pinned into
    [data-dragon-ai-sidebar-clearance] above the Sessions / Bots strip
-   (never cover those tabs; default top: 96px, never 48px). Do not set
+   (must not cover BOTS; default top: 96px, never 48px). Do not set
    container-type on the fixed row (it collapses to ~24px). Overlay wrap
    uses @media (max-width: 1100px). */
 [data-slot="sidebar-inner"],
@@ -250,8 +250,9 @@ body,
 [data-dragon-ai-sidebar-row] {
   --dragon-sidebar-control-height: 32px;
   display: flex;
+  flex-direction: column;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: stretch;
   gap: 8px;
   box-sizing: border-box;
   width: 100%;
@@ -322,11 +323,13 @@ body,
   white-space: nowrap;
 }
 
-/* In-app Teams picker (sidebar button + dialog). */
+/* In-app Teams Marketplace (sidebar button under the logo + dialog). */
 [data-dragon-ai-teams-root] {
   padding: 0;
-  margin-left: auto;
-  flex: 0 0 auto;
+  margin-left: 0;
+  flex: 1 1 100%;
+  width: 100%;
+  max-width: 100%;
   min-width: max-content;
   background: transparent;
 }
@@ -334,12 +337,14 @@ body,
 [data-dragon-ai-teams-open] {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   box-sizing: border-box;
-  height: 32px;
+  height: auto;
   min-height: 32px;
+  width: 100%;
   flex-shrink: 0;
   max-width: 100%;
-  padding: 0 12px;
+  padding: 6px 12px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
   background: var(--color-card);
@@ -349,6 +354,13 @@ body,
   font-size: var(--dragon-ui-font-size-ui);
   line-height: var(--dragon-ui-line-height-ui);
   cursor: pointer;
+}
+
+/* Icon-rail / collapsed column: hide lockup so the BOTS tab stays clickable. */
+@container (max-width: 4.5rem) {
+  [data-dragon-ai-sidebar-row] {
+    display: none;
+  }
 }
 
 @container (max-width: 14rem) {
@@ -379,33 +391,59 @@ body,
 
 [data-dragon-ai-teams-open]:focus-visible,
 [data-dragon-ai-teams-panel] button:focus-visible,
-[data-dragon-ai-teams-panel] input:focus-visible {
+[data-dragon-ai-teams-panel] input:focus-visible,
+[data-dragon-ai-teams-panel] [data-dragon-ai-team-seats] li:focus-visible {
   outline: 2px solid var(--color-ring);
   outline-offset: 2px;
 }
 
 [data-dragon-ai-teams-panel] {
+  --dragon-card-shadow:
+    0 1px 0 #ffffff1f,
+    0 2px 4px #00000080,
+    0 8px 18px #000000a6,
+    0 20px 44px #000000cc;
+  --dragon-card-shadow-hover:
+    0 1px 0 #ffffff2e,
+    0 4px 10px #00000099,
+    0 14px 28px #000000d4,
+    0 28px 56px #000000e0;
   position: fixed;
   z-index: 80;
-  top: 12px;
+  top: 88px;
   left: 12px;
-  width: min(28rem, calc(100vw - 24px));
-  max-height: calc(100vh - 24px);
+  width: min(72rem, calc(100vw - 24px));
+  max-height: calc(100vh - 100px);
   overflow: auto;
   padding: 16px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
-  background: var(--color-background);
+  border-radius: 12px;
+  background: #000;
   color: var(--color-foreground);
-  box-shadow: 0 16px 40px #00000080;
+  font-size: var(--dragon-ui-font-size-body);
+  line-height: var(--dragon-ui-line-height-body);
+  box-shadow: 0 24px 64px #000000e6, 0 2px 0 #ffffff14;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-10px) scale(0.98);
+  transform-origin: top left;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+}
+
+[data-dragon-ai-teams-panel][data-dragon-ai-teams-visible] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
 }
 
 [data-dragon-ai-teams-panel] h2 {
   margin: 0 0 6px;
   font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
   font-weight: 700;
-  font-size: 1.25rem;
-  line-height: 1.3;
+  font-size: var(--dragon-ui-font-size-body);
+  line-height: var(--dragon-ui-line-height-body);
   color: var(--color-foreground);
 }
 
@@ -423,31 +461,143 @@ body,
   margin: 12px 0;
 }
 
-[data-dragon-ai-teams-list] button {
+[data-dragon-ai-teams-list] article {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #ffffff14;
+  border-radius: 12px;
+  background: #0e0e12;
+  color: var(--color-foreground);
+  box-shadow: var(--dragon-card-shadow);
+}
+
+[data-dragon-ai-teams-list] button,
+[data-dragon-ai-team-apply] {
   display: block;
   width: 100%;
   text-align: left;
   padding: 10px 12px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-card);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #32323c 0%, #282830 100%);
   color: var(--color-foreground);
+  box-shadow: var(--dragon-card-shadow);
   font-size: var(--dragon-ui-font-size-body);
   line-height: var(--dragon-ui-line-height-body);
   cursor: pointer;
 }
 
-[data-dragon-ai-teams-list] button strong {
+[data-dragon-ai-teams-list] button strong,
+[data-dragon-ai-team-apply] strong {
   display: block;
   font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
   font-weight: 700;
 }
 
-[data-dragon-ai-teams-list] button span {
+[data-dragon-ai-teams-list] button span,
+[data-dragon-ai-team-apply] span,
+[data-dragon-ai-team-seats] span {
   display: block;
   color: var(--color-muted-foreground);
   font-size: var(--dragon-ui-font-size-ui);
   line-height: var(--dragon-ui-line-height-ui);
+  height: auto;
+  overflow-wrap: anywhere;
+}
+
+[data-dragon-ai-team-seats] {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+[data-dragon-ai-team-seats] li {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #ffffff26;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #32323c 0%, #282830 100%);
+  box-shadow:
+    inset 0 1px 0 #ffffff2e,
+    0 1px 0 #ffffff1f,
+    0 8px 18px #000000cc,
+    0 22px 48px #000000e6;
+  transition: box-shadow 0.18s ease, transform 0.18s ease, background 0.18s ease;
+}
+
+[data-dragon-ai-seat-icon] {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  display: block;
+  object-fit: contain;
+  background: transparent;
+}
+
+[data-dragon-ai-seat-copy] {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+[data-dragon-ai-team-seats] li strong {
+  display: block;
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: var(--dragon-ui-font-size-body);
+  line-height: var(--dragon-ui-line-height-ui);
+  color: var(--color-foreground);
+}
+
+[data-dragon-ai-team-seats] li[data-dragon-ai-seat-detail] {
+  cursor: help;
+}
+
+[data-dragon-ai-team-seats] li:hover,
+[data-dragon-ai-team-seats] li:focus,
+[data-dragon-ai-team-seats] li:focus-visible,
+[data-dragon-ai-team-seats] li:focus-within {
+  background: linear-gradient(180deg, #3a3a44 0%, #303038 100%);
+  box-shadow: var(--dragon-card-shadow-hover);
+  transform: translateY(-2px);
+}
+
+[data-dragon-ai-seat-tooltip] {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 90;
+  width: max(100%, min(22rem, 70vw));
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: #0a0a0a;
+  color: var(--color-foreground);
+  font-size: var(--dragon-ui-font-size-ui);
+  line-height: var(--dragon-ui-line-height-ui);
+  white-space: pre-wrap;
+  box-shadow: var(--dragon-card-shadow-hover);
+}
+
+[data-dragon-ai-team-seats] li:hover [data-dragon-ai-seat-tooltip],
+[data-dragon-ai-team-seats] li:focus [data-dragon-ai-seat-tooltip],
+[data-dragon-ai-team-seats] li:focus-within [data-dragon-ai-seat-tooltip] {
+  display: block;
+}
+
+[data-dragon-ai-teams-panel] [data-dragon-ai-team-apply]:focus-visible,
+[data-dragon-ai-teams-panel] [data-dragon-ai-team-seats] li:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
 }
 
 [data-dragon-ai-teams-panel] label {

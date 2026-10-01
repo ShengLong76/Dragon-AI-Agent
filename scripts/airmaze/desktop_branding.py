@@ -242,6 +242,15 @@ def logo_files() -> list[Path]:
     return [brand / name for name in LOGO_NAMES if (brand / name).is_file()]
 
 
+def team_icon_files() -> list[Path]:
+    folder = branding_dir() / "teams"
+    if not folder.is_dir():
+        return []
+    return sorted(
+        p for p in folder.iterdir() if p.is_file() and p.suffix.lower() == ".svg"
+    )
+
+
 def font_pack_dir() -> Path | None:
     candidates = (
         HERE.parents[1] / "branding" / "fonts" / "syne",
@@ -444,6 +453,10 @@ def install_font_pack(roots: list[Path], required: bool = True) -> dict[str, Any
             (dest / src.name).write_bytes(src.read_bytes())
         for src in logo_files():
             (dest / src.name).write_bytes(src.read_bytes())
+        icons_dest = dest / "teams"
+        icons_dest.mkdir(parents=True, exist_ok=True)
+        for src in team_icon_files():
+            (icons_dest / src.name).write_bytes(src.read_bytes())
         sheet = (dest / STYLESHEET_NAME).read_text(encoding="utf-8")
         css_targets = list(dest_root.glob("*.css")) + list((dest_root / "assets").glob("*.css") if (dest_root / "assets").is_dir() else [])
         for css_path in css_targets:
@@ -843,8 +856,20 @@ def self_test() -> int:
     if not voice_selector_js_path().is_file():
         print("FAIL: branding/voice/dragon-voice-selector.js missing", file=sys.stderr)
         return 1
+    if "data-dragon-ai-team-seats" not in once or "descriptionDetail" not in once:
+        print("FAIL: Teams picker must list seats with brief + hover detail", file=sys.stderr)
+        return 1
+    if "data-dragon-ai-seat-icon" not in once or "dragon-ai-branding/teams/" not in once:
+        print("FAIL: Teams picker must load per-seat icons from the branding pack", file=sys.stderr)
+        return 1
+    if not any(p.name == "seo-specialist.svg" for p in team_icon_files()):
+        print("FAIL: branding/teams must ship SEO Specialist icon", file=sys.stderr)
+        return 1
     if "[data-dragon-ai-teams-panel]" not in css:
         print("FAIL: overlay CSS must style the in-app Teams screen", file=sys.stderr)
+        return 1
+    if "[data-dragon-ai-seat-tooltip]" not in css:
+        print("FAIL: overlay CSS must style seat hover/focus detail", file=sys.stderr)
         return 1
     if "[data-dragon-voice-provider]" not in css or "[aria-checked=" not in css:
         print("FAIL: overlay CSS must style the GPT | Grok voice selector", file=sys.stderr)

@@ -1,7 +1,7 @@
 slug: seo-specialist
 display_name: SEO Specialist
 description: >
-  Technical and on-page search work: briefs, audits, and keyword notes.
+  Runs seoagent.com Skill/CLI audits and optional DataForSEO research.
 
 browser:
   headed: true

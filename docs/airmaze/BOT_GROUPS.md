@@ -37,6 +37,7 @@ Canonical file: `bot-groups/<id>/bot-group.json`.
       "id": "email-warmer",
       "title": "Email Warmer",
       "description": "CAN-SPAM warming sequences that link to a TCPA consent form.",
+      "descriptionDetail": "Optional hover/focus write-up in Teams Marketplace.",
       "tools": ["email", "crm", "consent-form"],
       "soul": "bots/email-warmer/SOUL.md",
       "config": "bots/email-warmer/bot.yaml"
@@ -50,7 +51,8 @@ Canonical file: `bot-groups/<id>/bot-group.json`.
 | `name` | Bot group name (department pack) |
 | `departmentJob` | The department-level job the group works toward |
 | `bots[].title` | That bot's job title |
-| `bots[].description` | What that bot does |
+| `bots[].description` | Brief under the seat name in Teams Marketplace (and deploy/`bot.meta.json`) |
+| `bots[].descriptionDetail` | Optional hover/focus write-up in Teams Marketplace. Omit when empty. |
 | `bots[].tools` | Tool ids the bot is allowed to use (email, CRM, computer-use, …) |
 
 Optional `connectors[]` stay as non-secret placeholders the installer already copies. They are not a second product; they back the tools list.
@@ -81,7 +83,7 @@ The client does **not** hard-code that `groups` list. The file in GitHub is the 
 **Repo:** https://github.com/ShengLong76/airmaze-agent  
 **Path:** `bot-groups/` on `main`  
 **Engine:** `scripts/airmaze/bot_groups.py` (Dragon overlay; Linux-safe)  
-**UI:** in-app **Teams** dialog in the Dragon AI desktop (sidebar button, overlay + `teams_picker.py` on `127.0.0.1:8653`). First-run wizard has **Choose a Team**. `Select-BotGroup.ps1` remains the WinForms **dropdown** (ComboBox) fallback, same crimson / dark chrome. Import from file stays. Not a restyle.
+**UI:** in-app **Teams Marketplace** dialog in the Dragon AI desktop (sidebar button under the logo, overlay + `teams_picker.py` on `127.0.0.1:8653`). First-run wizard has **Teams Marketplace**. `Select-BotGroup.ps1` remains the WinForms **dropdown** (ComboBox) fallback, same crimson / dark chrome. Import from file stays. Not a restyle.
 
 On open, the dropdown calls `list_groups`:
 

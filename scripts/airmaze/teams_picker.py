@@ -60,15 +60,29 @@ def is_picker_team(group: dict[str, Any]) -> bool:
     return True
 
 
+def present_seat(bot: dict[str, Any]) -> dict[str, Any]:
+    seat = {
+        "id": bot.get("id"),
+        "title": bot.get("title") or bot.get("id"),
+        "description": bot.get("description") or "",
+    }
+    detail = str(bot.get("descriptionDetail") or "").strip()
+    if detail:
+        seat["descriptionDetail"] = detail
+    return seat
+
+
 def present_team(group: dict[str, Any]) -> dict[str, Any]:
     section = bg.ui_section_for_group(group)
     bots = group.get("bots") if isinstance(group.get("bots"), list) else []
+    seats = [present_seat(b) for b in bots if isinstance(b, dict) and b.get("id")]
     return {
         "id": group.get("id"),
         "name": group.get("name"),
         "displayName": team_label(group),
         "departmentJob": group.get("departmentJob") or "",
-        "botCount": len([b for b in bots if isinstance(b, dict) and b.get("id")]),
+        "bots": seats,
+        "botCount": len(seats),
         "uiSection": section,
     }
 
@@ -324,6 +338,23 @@ def self_test() -> int:
         return 1
     if not is_picker_team({"id": "marketing-team", "bots": [{"id": "a"}, {"id": "b"}]}):
         print("FAIL: multi-bot packs must stay in the Teams picker", file=sys.stderr)
+        return 1
+    shown = present_team(
+        {
+            "id": "marketing-team",
+            "displayName": "Marketing Team",
+            "bots": [
+                {
+                    "id": "seo-specialist",
+                    "title": "SEO Specialist",
+                    "description": "brief",
+                    "descriptionDetail": "hover detail",
+                }
+            ],
+        }
+    )
+    if not shown.get("bots") or shown["bots"][0].get("descriptionDetail") != "hover detail":
+        print("FAIL: present_team must expose seat descriptionDetail", file=sys.stderr)
         return 1
     print("OK  teams_picker self-test")
     return 0

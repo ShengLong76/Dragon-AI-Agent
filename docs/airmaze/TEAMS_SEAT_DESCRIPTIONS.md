@@ -1,0 +1,69 @@
+# Teams Marketplace — seat brief + hover detail
+
+James: under each bot/seat name in the **Teams Marketplace** dialog, show a **brief** line; on **hover** (and keyboard focus), show a **detailed** write-up. SEO Specialist copy is the seoagent.com seat, not a seventh teammate.
+
+This is packaging overlay only. No `Hermes.exe` rebuild. Bot Screen stays `127.0.0.1:8650` / `dragon-local`. Marketing stays **six** Cos seats.
+
+## Product
+
+| Surface | Copy |
+|---------|------|
+| Under the seat name | `bots[].description` (brief) |
+| Hover / focus popover | `bots[].descriptionDetail` (optional; skip the popover when empty) |
+
+Apply is still the **team** row. Seats are informational. Clicking a seat must not apply a one-bot pack.
+
+The Teams helper (`GET /api/teams` on `127.0.0.1:8653`) already listed team `displayName` + `departmentJob`. It did **not** ship seat rows or a hover field. `description` existed on the group file for deploy/`bot.meta.json`. There was no `descriptionDetail` and no seat list in the overlay. This change extends that schema + UI; it does not invent a second Teams product. User-facing chrome is **Teams Marketplace**; `data-dragon-ai-teams-*` ids stay.
+
+## SEO Specialist (seoagent.com)
+
+**Brief:** `Runs seoagent.com Skill/CLI audits and optional DataForSEO research.`
+
+**Detail** (hover / focus) — Cos’s seat write-up, updated off claude-seo:
+
+- Not a new teammate. Apply Marketing Team still yields six bots. Only this seat gets extra SEO tooling.
+- Tools: `seoagent` (seoagent.com free Skill/CLI: `npm i -g @seoagent-official/seoagent` then `seoagent init` / npx), `dataforseo` (MCP), plus `computer-use` and `browser`.
+- Optional Autopilot is $49/site/month for GSC/cloud. Not required.
+- After install: re-apply Marketing; run `seoagent init` on the site repo; add DataForSEO MCP credentials in desktop MCP settings if using that tool.
+- Buffer stays on Social Media Manager. Brevo stays on Lifecycle Marketer.
+
+PR #18 wires those tools on the same seat. This branch starts from **current main** (copy + picker UI only). It does not restack #18.
+
+## Other Marketing seats
+
+Same brief + hover fields. Briefs stay Cos’s one-liners. Hover restates charter, handoff, and (where it matters) Buffer / Brevo. Real Estate and Trading keep `description` as the brief under the name; they omit `descriptionDetail` until someone writes one.
+
+## UX
+
+- Brief is always visible (do not clamp the seat name or the one-liner into an ellipsis-only card).
+- Detail is extra: CSS `:hover` / `:focus` / `:focus-within` on a `role="tooltip"` popover. Keyboard users can tab to a seat that has detail.
+- Do not nest seat controls inside the Apply button.
+- Visible focus ring on the team Apply control and on seats that open a tooltip.
+- Do not rely on the native `title` attribute for Cos’s long SEO write-up.
+
+## Seat cards (James, 2026-10-01)
+
+Seats are **cards** in a **4-column CSS grid** (`grid-template-columns: repeat(4, 1fr)`). Marketing’s six seats wrap to a second row; Real Estate / Trading fill one row. Do not paint empty cells to force a 4×4 board.
+
+Each seat card (and the team Apply control) uses the same contemporary radius (`12px`) and a dark-surface shadow. Hover/focus lifts the shadow slightly without a layout-shifting scale. Syne + crimson focus ring stay. This lives in `dragon-ui.css` on this branch — not stacked on PR #14’s popup.
+
+Card text wraps (`min-width: 0`; no nowrap clamp on the brief).
+
+## Seat icons (James, 2026-10-01)
+
+Each seat card shows a **left icon** beside the title + brief (Grok Bot marketplace layout — icon does not replace the card). Assets are committed SVGs under `branding/teams/<seat-id>.svg` (low-poly navy `#314A73` + crimson `#C41E3A`, transparent). Overlay copies them to `dragon-ai-branding/teams/`. Decorative next to visible text (`aria-hidden`). Unknown imported seats fall back to `seat.svg`. No runtime LLM call when Teams Marketplace opens.
+
+## Marketplace chrome (James, 2026-10-01)
+
+User-facing label is **Teams Marketplace** (sidebar button, dialog title, `aria-label`). Internal `data-dragon-ai-teams-*` ids stay.
+
+The control sits **under** the 32px dragon logo (column lockup; mark size does not change). In-flow only — **must not cover BOTS** (header overflow hidden; hide the lockup on an icon-rail). The panel opens from that control with a fade + slight slide/scale. Do not set required state from `transitionend`. `prefers-reduced-motion` already shortens motion. Panel background is **black** (`#000`). Seat cards keep the 4-column grid, 12px radius, left icon, brief + hover, and use layered shadows for elevation.
+
+Marketplace type uses the **16px body** contrast tokens (`--dragon-ui-font-size-body`, `--color-foreground` / `--color-muted-foreground`). Sidebar bot-name vs session-list matching stays on the inject/branding PR.
+
+## Out of scope
+
+- A seventh Marketing bot
+- Moving Buffer / Brevo onto SEO Specialist
+- Vendoring Autopilot or claiming it is free
+- Restyling Bot Screen / rebuilding Electron
