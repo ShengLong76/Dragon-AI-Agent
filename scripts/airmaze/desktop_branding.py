@@ -453,7 +453,7 @@ def voice_provider_script() -> str:
     body = path.read_text(encoding="utf-8").strip()
     if VOICE_SCRIPT_MARK in body:
         raise ValueError("voice selector JS must not include its own script mark")
-    return f"<script {VOICE_SCRIPT_MARK}>\n{body}\n</script>\n"
+    return f"<script {VOICE_SCRIPT_MARK}>\n{body}\n</script>"
 
 
 def inject_voice_provider_script(html: str) -> tuple[str, bool]:
