@@ -170,6 +170,21 @@ def test_overlay_and_launch_wired() -> None:
         fail("desktop overlay must inject the Teams picker into the desktop client")
     if "Personal Assistant is already installed" not in picker_js:
         fail("Teams dialog must say Personal Assistant is already installed")
+    if "Teams Marketplace" not in picker_js:
+        fail("user-visible control label must be Teams Marketplace")
+    if 'textContent = "Teams"' in picker_js or 'textContent="Teams"' in picker_js:
+        fail("sidebar control must not be labeled Teams (use Teams Marketplace)")
+    if "findColumnHost" not in picker_js or "data-dragon-ai-sidebar-fixed" not in picker_js:
+        fail("Teams Marketplace must try column hosts then the body fixed overlay")
+    if "findBotsTab" not in picker_js or "data-dragon-ai-sidebar-clearance" not in picker_js:
+        fail("fixed overlay must reserve clearance so the BOTS tab stays clickable")
+    picker_compact = picker_js.replace(" ", "")
+    if "vartop=96" not in picker_compact or "return96" not in picker_compact:
+        fail("Teams Marketplace overlay must default to 96px clearance (not cover BOTS)")
+    if "vartop=48" in picker_compact or "return48" in picker_compact:
+        fail("Teams Marketplace overlay must not use 48px (covers BOTS)")
+    if 'data-slot="sidebar-wrapper"' in picker_js:
+        fail("Teams Marketplace must not treat sidebar-wrapper as a column host")
     if "finishApply" not in picker_js or "location.reload" not in picker_js:
         fail("after apply the Teams dialog must close and reload the bot roster")
     css = read(CSS)
@@ -212,8 +227,14 @@ def test_overlay_and_launch_wired() -> None:
         if "teams_picker.py" not in text:
             fail(f"{path.name} must install teams_picker.py")
     product = read(PRODUCT)
-    if "Teams" not in product or "8653" not in product:
-        fail("PRODUCT_BRANDING.md must describe the in-app Teams picker")
+    if "Teams Marketplace" not in product or "8653" not in product:
+        fail("PRODUCT_BRANDING.md must describe the in-app Teams Marketplace picker")
+    host_note = ROOT / "docs" / "airmaze" / "SIDEBAR_HOST.md"
+    if not host_note.is_file() or "data-dragon-ai-sidebar-fixed" not in read(host_note):
+        fail("SIDEBAR_HOST.md must describe the body fixed-overlay fallback")
+    css = read(CSS)
+    if "@media (max-width: 1100px)" not in css:
+        fail("dragon-ui.css must wrap the overlay Marketplace control at max-width 1100px")
     print("OK  Teams picker wired into overlay, first-run, and launch")
 
 

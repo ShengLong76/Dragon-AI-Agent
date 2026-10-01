@@ -793,6 +793,15 @@ def self_test() -> int:
     if once.count(SIDEBAR_SCRIPT_MARK) != 1 or "Dragon AI" not in once:
         print("FAIL: sidebar header script must inject Dragon AI once", file=sys.stderr)
         return 1
+    if "findColumnHost" not in once or "data-dragon-ai-sidebar-fixed" not in once:
+        print("FAIL: sidebar inject must try column hosts then body data-dragon-ai-sidebar-fixed", file=sys.stderr)
+        return 1
+    if "findBotsTab" not in once or "data-dragon-ai-sidebar-clearance" not in once:
+        print("FAIL: sidebar inject must reserve clearance so the overlay does not cover BOTS", file=sys.stderr)
+        return 1
+    if re.search(r'querySelector\(\s*[\'"]\[data-slot="sidebar-wrapper"\]', once):
+        print("FAIL: sidebar inject must not treat sidebar-wrapper as a column host", file=sys.stderr)
+        return 1
     if "pinWrap" not in once or "border:0" not in once.replace(" ", ""):
         print("FAIL: sidebar inject must pin the lockup with border:0 (no crimson frame)", file=sys.stderr)
         return 1
@@ -816,8 +825,11 @@ def self_test() -> int:
     if not refreshed_changed or "dragon-ai-agent-logo.svg" not in refreshed:
         print("FAIL: overlay must refresh a stale PNG sidebar script to the SVG mark", file=sys.stderr)
         return 1
-    if once.count(TEAMS_SCRIPT_MARK) != 1 or "Teams" not in once:
-        print("FAIL: Teams picker script must inject into the desktop client", file=sys.stderr)
+    if once.count(TEAMS_SCRIPT_MARK) != 1 or "Teams Marketplace" not in once:
+        print("FAIL: Teams Marketplace script must inject into the desktop client", file=sys.stderr)
+        return 1
+    if "data-dragon-ai-sidebar-fixed" not in once:
+        print("FAIL: Teams Marketplace inject must share the body fixed-overlay fallback", file=sys.stderr)
         return 1
     if once.count(VOICE_SCRIPT_MARK) != 1 or "GPT" not in once or "Grok" not in once:
         print("FAIL: voice selector must inject GPT and Grok (GPT stays)", file=sys.stderr)
