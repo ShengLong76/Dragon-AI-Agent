@@ -43,7 +43,7 @@ Full token table and skill-vs-override notes: `design-system/dragon-ai-agent/` (
 - Imported / deployed bot groups file into a named BOTS section labeled with the pack display name. They are not left under UNASSIGNED.
 - First-run setup has a **Models** step (after Welcome) for default chat LLM + default image LLM. Product defaults are Grok (xAI) + Grok Imagine. Design: `docs/airmaze/FIRST_RUN_MODELS.md`.
 - Opening Dragon AI Agent starts Docker Desktop in the **tray** when the engine is down (no Containers dashboard). Design: `docs/airmaze/DOCKER_LAUNCH.md`.
-- Teams picker lists each pack’s seats under the team name with a brief line; hover or focus shows optional detail. Marketing SEO Specialist copy is seoagent.com. Design: `docs/airmaze/TEAMS_SEAT_DESCRIPTIONS.md`.
+- Teams picker lists each pack’s seats as 4-column cards under the team name, with a brief line; hover or focus shows optional detail. Marketing SEO Specialist copy is seoagent.com. Design: `docs/airmaze/TEAMS_SEAT_DESCRIPTIONS.md`.
 
 ## What does not change
 

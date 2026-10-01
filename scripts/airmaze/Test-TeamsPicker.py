@@ -251,8 +251,17 @@ def test_overlay_and_launch_wired() -> None:
         fail("dragon-ui.css must style the seat hover/focus tooltip")
     if ":hover [data-dragon-ai-seat-tooltip]" not in css or ":focus" not in css:
         fail("seat detail must show on hover and keyboard focus, not hover-only")
+    if "grid-template-columns: repeat(4, 1fr)" not in css:
+        fail("Teams seats must use a 4-column CSS grid (repeat(4, 1fr))")
+    if "[data-dragon-ai-team-seats] {\n  list-style: none;\n  margin: 0;\n  padding: 0;\n  display: grid;" not in css:
+        fail("[data-dragon-ai-team-seats] must be display:grid")
+    seat_card = css.split("[data-dragon-ai-team-seats] li {", 1)
+    if len(seat_card) < 2 or "box-shadow:" not in seat_card[1].split("}", 1)[0]:
+        fail("seat cards must have a box-shadow")
+    if "border-radius: 12px" not in css:
+        fail("seat/team cards must share a 12px corner radius")
     design = read(DESIGN)
-    for needle in ("descriptionDetail", "seoagent.com", "six", "hover"):
+    for needle in ("descriptionDetail", "seoagent.com", "six", "hover", "4-column"):
         if needle not in design:
             fail(f"TEAMS_SEAT_DESCRIPTIONS.md must document {needle!r}")
     groups_doc = read(BOT_GROUPS_DOC)

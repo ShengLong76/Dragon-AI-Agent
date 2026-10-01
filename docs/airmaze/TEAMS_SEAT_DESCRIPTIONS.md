@@ -41,6 +41,14 @@ Same brief + hover fields. Briefs stay Cos’s one-liners. Hover restates charte
 - Visible focus ring on the team Apply control and on seats that open a tooltip.
 - Do not rely on the native `title` attribute for Cos’s long SEO write-up.
 
+## Seat cards (James, 2026-10-01)
+
+Seats are **cards** in a **4-column CSS grid** (`grid-template-columns: repeat(4, 1fr)`). Marketing’s six seats wrap to a second row; Real Estate / Trading fill one row. Do not paint empty cells to force a 4×4 board.
+
+Each seat card (and the team Apply control) uses the same contemporary radius (`12px`) and a dark-surface shadow. Hover/focus lifts the shadow slightly without a layout-shifting scale. Syne + crimson focus ring stay. This lives in `dragon-ui.css` on this branch — not stacked on PR #14’s popup.
+
+Card text wraps (`min-width: 0`; no nowrap clamp on the brief).
+
 ## Out of scope
 
 - A seventh Marketing bot

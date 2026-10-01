@@ -11,6 +11,7 @@ After `docs/airmaze/TEAMS_SEAT_DESCRIPTIONS.md`. Tests first. No Electron rebuil
    - Other Marketing seats have `description` + `descriptionDetail`.
    - `list_teams` / `present_team` expose `bots[]` with those fields.
    - Overlay lists seats under the team name, tooltip on hover/focus, Apply stays on the team (no nested seat buttons).
+   - Seat cards use `repeat(4, 1fr)`, `box-shadow`, and a shared `12px` radius.
 3. **Schema** — optional `bots[].descriptionDetail`. Pass through `normalize_manifest`, canonical roster fill, and `present_team`.
 4. **Copy** — Marketing `bot-group.json` (+ SEO `bot.yaml` brief). Six seats.
 5. **UI** — `desktop_branding.py` Teams inject + `dragon-ui.css`.

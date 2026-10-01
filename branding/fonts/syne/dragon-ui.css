@@ -289,12 +289,12 @@ body,
   z-index: 80;
   top: 12px;
   left: 12px;
-  width: min(36rem, calc(100vw - 24px));
+  width: min(72rem, calc(100vw - 24px));
   max-height: calc(100vh - 24px);
   overflow: auto;
   padding: 16px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--color-background);
   color: var(--color-foreground);
   box-shadow: 0 16px 40px #00000080;
@@ -323,10 +323,10 @@ body,
 [data-dragon-ai-teams-list] article {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 12px;
+  padding: 12px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--color-card);
   color: var(--color-foreground);
 }
@@ -336,11 +336,12 @@ body,
   display: block;
   width: 100%;
   text-align: left;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--color-background);
   color: var(--color-foreground);
+  box-shadow: 0 8px 20px #00000066;
   cursor: pointer;
 }
 
@@ -359,21 +360,26 @@ body,
   font-size: 0.8125rem;
   line-height: 1.4;
   height: auto;
+  overflow-wrap: anywhere;
 }
 
 [data-dragon-ai-team-seats] {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
 }
 
 [data-dragon-ai-team-seats] li {
   position: relative;
-  padding: 6px 8px;
-  border-radius: 6px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-background);
+  box-shadow: 0 8px 20px #00000066;
 }
 
 [data-dragon-ai-team-seats] li strong {
@@ -392,19 +398,19 @@ body,
 [data-dragon-ai-team-seats] li:focus-visible,
 [data-dragon-ai-team-seats] li:focus-within {
   background: var(--color-muted);
+  box-shadow: 0 12px 28px #00000080;
 }
 
 [data-dragon-ai-seat-tooltip] {
   display: none;
   position: absolute;
   left: 0;
-  right: 0;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   z-index: 90;
-  max-width: 100%;
+  width: max(100%, min(22rem, 70vw));
   padding: 10px 12px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--color-background);
   color: var(--color-foreground);
   font-size: 0.8125rem;
