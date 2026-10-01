@@ -43,6 +43,22 @@ def fail(msg: str) -> None:
     raise SystemExit(1)
 
 
+def _lin(channel: int) -> float:
+    value = channel / 255.0
+    return value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
+
+
+def _rel_luminance(hex_color: str) -> float:
+    raw = hex_color.removeprefix("#")
+    red, green, blue = (int(raw[i : i + 2], 16) for i in (0, 2, 4))
+    return 0.2126 * _lin(red) + 0.7152 * _lin(green) + 0.0722 * _lin(blue)
+
+
+def _contrast_ratio(foreground: str, background: str) -> float:
+    lighter, darker = sorted((_rel_luminance(foreground), _rel_luminance(background)), reverse=True)
+    return (lighter + 0.05) / (darker + 0.05)
+
+
 def read(path: pathlib.Path) -> str:
     if not path.is_file():
         fail(f"missing {path}")
@@ -80,6 +96,12 @@ def test_table() -> dict:
     tokens = table.get("tokens") or {}
     if tokens.get("primary") != "#C41E3A" or tokens.get("background") != "#1C1C20":
         fail("table tokens must keep dragon crimson on dark surfaces")
+    if tokens.get("mutedForeground") != "#C4C4CE":
+        fail("table mutedForeground must be Grok-like #C4C4CE (not washed #A0A0AA)")
+    if tokens.get("fontSizeBody") != "16px" or tokens.get("lineHeightBody") != "1.55":
+        fail("table must record 16px / 1.55 body type (Grok Bot parity)")
+    if tokens.get("fontSizeUi") != "14px":
+        fail("table must record 14px sidebar/Teams chrome")
     logo = table.get("logo") or {}
     if logo.get("facing") != "front" or "dragon-ai-agent-logo.svg" not in str(logo.get("svg")):
         fail("table must record a front-facing SVG dragon mark")
@@ -385,6 +407,16 @@ def test_packaging_not_regressed() -> None:
     voice_js = ROOT / "branding" / "voice" / "dragon-voice-selector.js"
     if not voice_js.is_file():
         fail("branding/voice/dragon-voice-selector.js must ship the duplex client")
+    if "--dragon-ui-font-size-body: 16px" not in css or "--dragon-ui-line-height-body: 1.55" not in css:
+        fail("dragon-ui.css must ship 16px / 1.55 Grok Bot body type")
+    if "--conversation-text-base-size: 16px" not in css or "--ui-text-tertiary: #c4c4ce" not in css:
+        fail("dragon-ui.css must remap Hermes 13px / 54% tertiary to 16px opaque muted")
+    if "--color-muted-foreground: #c4c4ce" not in css:
+        fail("dragon-ui.css muted text must be #c4c4ce for dark contrast")
+    if '[data-slot="aui_assistant-message-content"]' not in css:
+        fail("dragon-ui.css must size chat message content like Grok Bot")
+    if _contrast_ratio("#F0F0F5", "#1C1C20") < 4.5 or _contrast_ratio("#C4C4CE", "#1C1C20") < 4.5:
+        fail("overlay text tokens must clear 4.5:1 on #1C1C20")
     if "dragon-ai-agent-logo.png" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must copy the dragon PNG into the overlay pack")
     mark = ROOT / "branding" / "dragon-ai-agent-logo.svg"
@@ -439,6 +471,10 @@ def test_packaging_not_regressed() -> None:
         fail("DESIGN.md must say the sidebar shows Personal Assistant, not Hermes")
     if "hidden" not in design_txt.lower():
         fail("DESIGN.md must say the default Hermes sidebar bot is hidden")
+    if "16px" not in design_txt or "Grok" not in design_txt:
+        fail("DESIGN.md must record Grok Bot type size (16px) and contrast")
+    if "#C4C4CE" not in design_txt and "#c4c4ce" not in design_txt.lower():
+        fail("DESIGN.md must record the brighter muted token")
     print("OK  packaging Bot Screen / installer wiring")
 
 

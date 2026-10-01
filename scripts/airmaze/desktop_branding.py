@@ -784,6 +784,21 @@ def self_test() -> int:
     if tokens.get("primary") != "#C41E3A":
         print("FAIL: table tokens.primary must stay dragon crimson", file=sys.stderr)
         return 1
+    if tokens.get("mutedForeground") != "#C4C4CE":
+        print("FAIL: table mutedForeground must be Grok-like #C4C4CE", file=sys.stderr)
+        return 1
+    if tokens.get("fontSizeBody") != "16px" or tokens.get("lineHeightBody") != "1.55":
+        print("FAIL: table must record 16px / 1.55 body type", file=sys.stderr)
+        return 1
+    if "--dragon-ui-font-size-body: 16px" not in css or "--conversation-text-base-size: 16px" not in css:
+        print("FAIL: overlay CSS must remap Hermes chat to 16px body", file=sys.stderr)
+        return 1
+    if "--ui-text-tertiary: #c4c4ce" not in css or "--color-muted-foreground: #c4c4ce" not in css:
+        print("FAIL: overlay CSS must replace 54% tertiary with opaque #c4c4ce", file=sys.stderr)
+        return 1
+    if '[data-slot="aui_assistant-message-content"]' not in css:
+        print("FAIL: overlay CSS must style chat message type size", file=sys.stderr)
+        return 1
     meta = table.get("font") or {}
     if meta.get("family") != "Syne":
         print("FAIL: table font.family must be Syne", file=sys.stderr)

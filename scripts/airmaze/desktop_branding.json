@@ -22,8 +22,11 @@
     "background": "#1C1C20",
     "foreground": "#F0F0F5",
     "card": "#282830",
-    "mutedForeground": "#A0A0AA",
-    "ring": "#C41E3A"
+    "mutedForeground": "#C4C4CE",
+    "ring": "#C41E3A",
+    "fontSizeBody": "16px",
+    "fontSizeUi": "14px",
+    "lineHeightBody": "1.55"
   },
   "logo": {
     "svg": "branding/dragon-ai-agent-logo.svg",
