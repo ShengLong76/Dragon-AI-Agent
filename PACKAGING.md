@@ -63,7 +63,7 @@ Setting keys include `openUIOnStartupDisabled` / `OpenUIOnStartupDisabled` = tru
 
 ## Launch UI
 
-The **Dragon AI Agent** shortcut targets `wscript.exe` + `scripts/airmaze/Start-DragonAI.vbs` (no console flash). That host requires Docker to already be running (fail-closed; `-StartDocker` to opt in), starts the gateway **and** Desktop serve proxy, waits for host HTTP on `127.0.0.1:8642` and `127.0.0.1:8650/api/health`, wires Remote `connections.json`, then launches the desktop client. It does **not** open `:9119`. Missing Docker or client is a MessageBox. `start-embedded.ps1` remains for debug. See `docs/airmaze/BRANDING.md`. Verify with `python3 scripts/airmaze/Test-LaunchSmoke.py` (no secrets).
+The **Dragon AI Agent** shortcut targets `wscript.exe` + `scripts/airmaze/Start-DragonAI.vbs` (no console flash). That host starts Docker Desktop in the **tray** when `docker info` fails (already running is a no-op), starts the gateway **and** Desktop serve proxy, waits for host HTTP on `127.0.0.1:8642` and `127.0.0.1:8650/api/health`, wires Remote `connections.json`, then launches the desktop client. It does **not** open `:9119` or the Docker dashboard. Missing Docker after a wait, or a missing client, is a MessageBox. `start-embedded.ps1` remains for debug. See `docs/airmaze/BRANDING.md` and `docs/airmaze/DOCKER_LAUNCH.md`. Verify with `python3 scripts/airmaze/Test-LaunchSmoke.py` (no secrets).
 
 ## Limitations
 

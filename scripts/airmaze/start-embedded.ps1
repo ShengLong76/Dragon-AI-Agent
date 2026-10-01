@@ -5,11 +5,12 @@
 
 .DESCRIPTION
   This is the Desktop / Start Menu "Dragon AI Agent" entrypoint.
-  It requires Docker Desktop to already be running (fail-closed), brings the
+  It checks whether Docker is running and starts Docker Desktop in the
+  system tray when it is not (no Containers dashboard). Then it brings the
   gateway up, waits until the API is reachable on the Windows host, then
   launches the Dragon AI Agent desktop (on-disk Hermes.exe). Failures
-  (engine down, compose errors, missing client) show a MessageBox / popup
-  and exit non-zero. Pass -StartDocker to opt in to auto-starting Desktop.
+  (engine still down after a wait, compose errors, missing client) show a
+  MessageBox / popup and exit non-zero. -StartDocker is kept as an alias.
 
   The installed Desktop / Start Menu shortcut runs Start-DragonAI.vbs (wscript)
   so no PowerShell console flashes. Use this .ps1 directly for debugging
@@ -421,6 +422,45 @@ function Test-TcpOpen {
     }
 }
 
+function Set-DockerTrayOnlySettings {
+    $dir = Join-Path $env:APPDATA "Docker"
+    try {
+        if (-not (Test-Path -LiteralPath $dir)) {
+            New-Item -ItemType Directory -Force -Path $dir | Out-Null
+        }
+    } catch {
+        Write-LaunchLog "Could not create Docker settings dir: $($_.Exception.Message)" "WARN"
+        return
+    }
+    $patch = @{
+        openUIOnStartupDisabled = $true
+        OpenUIOnStartupDisabled = $true
+        startMinimized          = $true
+        minimizeToTray          = $true
+        displayedOnboarding     = $true
+    }
+    foreach ($name in @("settings.json", "settings-store.json")) {
+        $file = Join-Path $dir $name
+        try {
+            $obj = $null
+            if (Test-Path -LiteralPath $file) {
+                $raw = Get-Content -LiteralPath $file -Raw -ErrorAction Stop
+                if (-not [string]::IsNullOrWhiteSpace($raw)) {
+                    $obj = $raw | ConvertFrom-Json -ErrorAction Stop
+                }
+            }
+            if ($null -eq $obj) { $obj = [pscustomobject]@{} }
+            foreach ($k in $patch.Keys) {
+                $obj | Add-Member -MemberType NoteProperty -Name $k -Value $patch[$k] -Force
+            }
+            Set-Content -LiteralPath $file -Value ($obj | ConvertTo-Json -Depth 20) -Encoding UTF8
+            Write-LaunchLog "Patched Docker tray-only settings: $file"
+        } catch {
+            Write-LaunchLog "Could not patch $file : $($_.Exception.Message)" "WARN"
+        }
+    }
+}
+
 function Start-DockerIfNeeded {
     Fix-DockerPath
     if (Get-Command docker -ErrorAction SilentlyContinue) {
@@ -430,6 +470,7 @@ function Start-DockerIfNeeded {
     if (-not $exe) {
         return $false
     }
+    Set-DockerTrayOnlySettings
     Update-LaunchStatus "Starting Docker Desktop (system tray). This can take a minute..."
     try {
         Start-Process -FilePath $exe -WindowStyle Hidden -ErrorAction Stop
@@ -790,7 +831,7 @@ function Get-LaunchPlan {
             "require desktop client (win-unpacked Hermes.exe on disk)",
             "overlay unpacked Electron UI chrome to Dragon AI Agent before launch",
             "launch Dragon AI Agent desktop only (not $DashboardUrl)",
-            "fail-closed if Docker engine is down (no auto-start unless -StartDocker)",
+            "start Docker Desktop in the tray when docker info fails (already running is a no-op)",
             "first-run Onboard-Wizard if welcome is still pending",
             "docker CLI stderr progress is not a terminating error",
             "Desktop Remote → $($script:DesktopServeUrl) (token mode; not :8642)",
@@ -823,6 +864,9 @@ function Invoke-Smoke {
         "SilentHost",
         "OpenDashboard",
         "StartDocker",
+        "Start-DockerIfNeeded",
+        "Set-DockerTrayOnlySettings",
+        "openUIOnStartupDisabled",
         "DebugConsole",
         "New-LaunchStatusForm",
         "Invoke-NativeDocker",
@@ -886,15 +930,8 @@ try {
 
     Update-LaunchStatus "Checking Docker..."
     Fix-DockerPath
-    $engineUp = (Get-Command docker -ErrorAction SilentlyContinue) -and (Test-DockerEngine)
-    if (-not $engineUp) {
-        if ($StartDocker) {
-            if (-not (Start-DockerIfNeeded)) {
-                throw "Docker Desktop did not become ready after -StartDocker. Start it from the system tray, wait until it is ready, then open Dragon AI Agent again."
-            }
-        } else {
-            throw "Docker Desktop is not running (engine unavailable). Start Docker Desktop from the system tray, wait until it is ready, then open Dragon AI Agent again. This launcher does not auto-start Docker unless you pass -StartDocker."
-        }
+    if (-not (Start-DockerIfNeeded)) {
+        throw "Docker Desktop did not become ready. Start it from the system tray, wait until it is ready, then open Dragon AI Agent again."
     }
 
     Start-GatewayContainer -ComposePath $compose

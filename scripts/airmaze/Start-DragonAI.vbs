@@ -29,7 +29,7 @@ End If
 RepairProductShortcuts
 
 ' 0 = hide the host window from process create (avoids the powershell.exe flash).
-' -SilentHost skips the 9119 dashboard. Do not pass -StartDocker (fail-closed).
+' -SilentHost skips the 9119 dashboard. start-embedded.ps1 starts Docker in the tray if needed.
 cmd = """" & psExe & """ -STA -NoProfile -NoLogo -NonInteractive -WindowStyle Hidden" & _
       " -ExecutionPolicy Bypass -File """ & ps1 & """ -InstallRoot """ & installRoot & """ -SilentHost"
 sh.Run cmd, 0, False

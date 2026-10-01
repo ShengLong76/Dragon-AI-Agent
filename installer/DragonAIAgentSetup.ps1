@@ -357,6 +357,7 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\Apply-GatewayModels.ps1",
         "scripts\airmaze\Test-GatewayModels.py",
         "docs\airmaze\FIRST_RUN_MODELS.md",
+        "docs\airmaze\DOCKER_LAUNCH.md",
         "scripts\airmaze\DragonAI-SecureStore.ps1",
         "scripts\airmaze\Start-DragonAI.vbs",
         "scripts\airmaze\desktop-loopback-proxy.py",

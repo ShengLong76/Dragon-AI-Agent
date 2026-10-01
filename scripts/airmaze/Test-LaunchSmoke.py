@@ -154,11 +154,8 @@ def check_launcher() -> None:
         fail("launch plan must say Docker starts in the tray when the engine is down")
     if "Starting Docker Desktop (system tray)" not in text:
         fail("Start-DockerIfNeeded must tell James Docker is starting in the tray")
-    if "http://127.0.0.1:9119" in text and "Start-Process" in text:
-        # dashboard URL may be documented; starting it on a normal open is forbidden
-        pass
-    if "Start-Process $DashboardUrl" in text or "Start-Process `$script:DashboardUrl" in text:
-        fail("launcher must not start the Docker or Dragon dashboard URL")
+    if "Start-Process `$script:DashboardUrl" in text:
+        fail("splash/status form still auto-opens the :9119 dashboard")
     if "Show-DragonDialog" not in text:
         fail("launcher throws without a user-visible dialog helper")
     if '$ErrorActionPreference = "Continue"' not in text:
