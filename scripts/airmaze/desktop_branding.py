@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -26,11 +28,20 @@ BRAND_DIR_NAME = "dragon-ai-branding"
 HTML_MARK = 'data-dragon-ai-branding="ui-face"'
 SIDEBAR_SCRIPT_MARK = 'data-dragon-ai-branding="sidebar-header"'
 TEAMS_SCRIPT_MARK = 'data-dragon-ai-branding="teams-picker"'
+VOICE_SCRIPT_MARK = 'data-dragon-ai-branding="voice-provider"'
 OLD_HTML_MARKS = ('data-dragon-ai-branding="outfit"',)
 STYLESHEET_NAME = "dragon-ui.css"
 CSS_APPEND_MARK = "/* dragon-ai-ui-face */"
+LOCKUP_WRAP_MARK = "dragon-ai-lockup-wrap:1"
+SIDEBAR_SCRIPT_NAME = "sidebar-header.js"
+TEAMS_SCRIPT_NAME = "teams-picker.js"
+PACK_FILE_SUFFIXES = {".woff2", ".css", ".txt", ".md", ".js"}
 LOGO_NAMES = ("dragon-ai-agent-logo.svg", "dragon-ai-agent-logo.png")
 APP_USER_MODEL_ID = "com.nousresearch.hermes"
+CRIMSON_LOCKUP_BORDER_RE = re.compile(
+    r"border\s*:\s*1px\s+solid\s+rgba\(\s*196\s*,\s*30\s*,\s*58\s*,\s*[^)]+\)",
+    re.IGNORECASE,
+)
 
 TEXT_EXTENSIONS = {
     ".js",
@@ -96,9 +107,28 @@ def iter_overlay_files(root: Path) -> list[Path]:
     return files
 
 
+def extra_install_unpacked_roots() -> list[Path]:
+    """Also land assets under %LOCALAPPDATA%\\DragonAIAgent\\...\\app.asar.unpacked."""
+    roots: list[Path] = []
+    local = os.environ.get("LOCALAPPDATA") or ""
+    if not local:
+        return roots
+    seed = Path(local) / "DragonAIAgent"
+    if not seed.is_dir():
+        return roots
+    for unpacked in seed.rglob("app.asar.unpacked"):
+        if not unpacked.is_dir():
+            continue
+        if "node_modules" in unpacked.parts:
+            continue
+        roots.append(unpacked)
+    return roots
+
+
 def discover_roots(exe_path: Path) -> list[Path]:
     exe_dir = exe_path.parent
     roots: list[Path] = []
+    seen: set[Path] = set()
     for rel in (
         Path("resources") / "app.asar.unpacked",
         Path("resources") / "app",
@@ -106,13 +136,22 @@ def discover_roots(exe_path: Path) -> list[Path]:
         candidate = exe_dir / rel
         if candidate.exists():
             roots.append(candidate)
+            seen.add(candidate.resolve())
     desktop_root = exe_dir.parent.parent
     intro = desktop_root / "src" / "components" / "chat" / "intro.tsx"
     if intro.is_file():
-        roots.append(desktop_root / "src")
+        src = desktop_root / "src"
+        roots.append(src)
+        seen.add(src.resolve())
     dist = desktop_root / "dist"
-    if dist.is_dir() and dist.resolve() not in {p.resolve() for p in roots}:
+    if dist.is_dir() and dist.resolve() not in seen:
         roots.append(dist)
+        seen.add(dist.resolve())
+    for extra in extra_install_unpacked_roots():
+        resolved = extra.resolve()
+        if resolved not in seen:
+            roots.append(extra)
+            seen.add(resolved)
     return roots
 
 
@@ -156,6 +195,11 @@ def read_text_file(path: Path) -> str | None:
     return None
 
 
+def strip_crimson_lockup_border(text: str) -> tuple[str, int]:
+    out, n = CRIMSON_LOCKUP_BORDER_RE.subn("border:0", text)
+    return out, n
+
+
 def overlay_file(path: Path, table: dict[str, Any], replacements: list[dict[str, str]]) -> int:
     text = read_text_file(path)
     if text is None:
@@ -163,6 +207,8 @@ def overlay_file(path: Path, table: dict[str, Any], replacements: list[dict[str,
     out, hits = apply_text(text, replacements)
     out, extra = apply_source_only(path, table, out)
     hits += extra
+    out, stripped = strip_crimson_lockup_border(out)
+    hits += stripped
     if hits and out != text:
         path.write_bytes(out.encode("utf-8"))
     return hits
@@ -263,46 +309,26 @@ def _link_tag() -> str:
     return f'<link rel="stylesheet" href="./{BRAND_DIR_NAME}/{STYLESHEET_NAME}" {HTML_MARK} />'
 
 
+def pack_script_path(name: str) -> Path:
+    pack = font_pack_dir()
+    if pack is not None and (pack / name).is_file():
+        return pack / name
+    return branding_dir() / "fonts" / "syne" / name
+
+
+def load_pack_script(name: str) -> str:
+    path = pack_script_path(name)
+    if not path.is_file():
+        raise FileNotFoundError(f"branding inject script missing: {path}")
+    return path.read_text(encoding="utf-8").strip()
+
+
+def wrap_marked_script(mark: str, body: str) -> str:
+    return f"<script {mark}>\n{body.rstrip()}\n</script>"
+
+
 def sidebar_header_script() -> str:
-    return (
-        f'<script {SIDEBAR_SCRIPT_MARK}>\n'
-        "(function(){"
-        'var TITLE="Dragon AI";'
-        'var ACCESSIBLE="Dragon AI Agent";'
-        'var LOGO="./dragon-ai-branding/dragon-ai-agent-logo.svg";'
-        "function pinLogo(img){"
-        "img.src=LOGO;"
-        'img.alt="";'
-        'img.setAttribute("aria-hidden","true");'
-        'img.setAttribute("data-dragon-ai-sidebar-logo","true");'
-        'img.style.cssText="display:block;height:32px;width:32px;max-width:32px;max-height:32px;border:0;outline:none;box-shadow:none;background:transparent;padding:0;margin:0;border-radius:0;";'
-        "}"
-        "function mount(){"
-        'var host=document.querySelector(\'[data-slot="sidebar-header"]\')'
-        '||document.querySelector(\'[data-slot="sidebar-inner"]\');'
-        "if(!host)return;"
-        'var existing=host.querySelector("[data-dragon-ai-sidebar-brand]");'
-        "if(existing){var old=existing.querySelector('img');if(old)pinLogo(old);return;}"
-        'var row=document.createElement("div");'
-        'row.setAttribute("data-dragon-ai-sidebar-row","true");'
-        'var wrap=document.createElement("div");'
-        'wrap.setAttribute("data-dragon-ai-sidebar-brand","true");'
-        'wrap.setAttribute("role","img");'
-        "wrap.setAttribute(\"aria-label\",ACCESSIBLE);"
-        'var img=document.createElement("img");'
-        "pinLogo(img);"
-        'var span=document.createElement("span");'
-        'span.setAttribute("aria-hidden","true");'
-        "span.textContent=TITLE;"
-        "wrap.appendChild(img);wrap.appendChild(span);"
-        "row.appendChild(wrap);"
-        "host.insertBefore(row,host.firstChild);"
-        "}"
-        'if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",mount);}else{mount();}'
-        "try{new MutationObserver(mount).observe(document.documentElement,{childList:true,subtree:true});}catch(e){}"
-        "})();"
-        "</script>"
-    )
+    return wrap_marked_script(SIDEBAR_SCRIPT_MARK, load_pack_script(SIDEBAR_SCRIPT_NAME))
 
 
 def inject_font_link(html: str) -> tuple[str, bool]:
@@ -363,159 +389,60 @@ def inject_sidebar_header_script(html: str) -> tuple[str, bool]:
 
 
 def teams_picker_script() -> str:
-    return (
-        f'<script {TEAMS_SCRIPT_MARK}>\n'
-        "(function(){"
-        'var API="http://127.0.0.1:8653";'
-        "function $(sel,root){return (root||document).querySelector(sel);}"
-        "function mount(){"
-        'if(document.querySelector("[data-dragon-ai-teams-root]"))return;'
-        'var host=document.querySelector("[data-dragon-ai-sidebar-brand]")'
-        '||document.querySelector(\'[data-slot="sidebar-header"]\')'
-        '||document.querySelector(\'[data-slot="sidebar-inner"]\');'
-        "if(!host)return;"
-        'var root=document.createElement("div");'
-        'root.setAttribute("data-dragon-ai-teams-root","true");'
-        'var open=document.createElement("button");'
-        'open.type="button";open.textContent="Teams Marketplace";'
-        'open.setAttribute("data-dragon-ai-teams-open","true");'
-        'open.setAttribute("aria-haspopup","dialog");'
-        'open.setAttribute("aria-expanded","false");'
-        'var panel=document.createElement("div");'
-        'panel.setAttribute("data-dragon-ai-teams-panel","true");'
-        'panel.setAttribute("role","dialog");'
-        'panel.setAttribute("aria-label","Teams Marketplace");'
-        'panel.setAttribute("aria-hidden","true");'
-        "panel.hidden=true;"
-        'panel.innerHTML=\'<header><h2>Teams Marketplace</h2><p>Apply a multi-bot team. Personal Assistant is already installed. Bots file under that team name, not Unassigned. Each seat shows a brief; hover or focus a seat for details.</p></header><div data-dragon-ai-teams-list></div><label>Import custom zip or JSON<input type="file" accept=".zip,.json,application/json,application/zip" data-dragon-ai-teams-import></label><p data-dragon-ai-teams-status role="status"></p><button type="button" data-dragon-ai-teams-close>Close</button>\';'
-        "function setStatus(t){var s=$('[data-dragon-ai-teams-status]',panel);if(s)s.textContent=t||'';}"
-        "var hideTimer=0;"
-        "function reducedMotion(){try{return !!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);}catch(e){return false;}}"
-        "function placePanel(){var logo=document.querySelector('[data-dragon-ai-sidebar-brand]')||document.querySelector('[data-dragon-ai-sidebar-logo]');var r=(logo||open).getBoundingClientRect();var top=Math.max(12,Math.round(r.bottom+8));panel.style.top=top+'px';panel.style.left='12px';}"
-        "function show(){if(hideTimer){clearTimeout(hideTimer);hideTimer=0;}panel.hidden=false;panel.removeAttribute('hidden');panel.setAttribute('aria-hidden','false');open.setAttribute('aria-expanded','true');placePanel();load();requestAnimationFrame(function(){requestAnimationFrame(function(){panel.setAttribute('data-dragon-ai-teams-visible','true');});});}"
-        "function hide(){panel.removeAttribute('data-dragon-ai-teams-visible');panel.setAttribute('aria-hidden','true');open.setAttribute('aria-expanded','false');if(hideTimer)clearTimeout(hideTimer);hideTimer=setTimeout(function(){hideTimer=0;if(panel.getAttribute('data-dragon-ai-teams-visible')==='true')return;panel.hidden=true;panel.setAttribute('hidden','');},reducedMotion()?0:220);}"
-        "function reloadRoster(){hide();try{location.reload();}catch(e){try{window.location.href=window.location.href;}catch(e2){}}}"
-        "function finishApply(){hide();reloadRoster();}"
-        "function card(team){"
-        'var wrap=document.createElement("article");'
-        'wrap.setAttribute("data-dragon-ai-team-id",team.id||"");'
-        'var b=document.createElement("button");b.type="button";'
-        'b.setAttribute("data-dragon-ai-team-apply","true");'
-        'b.innerHTML="<strong></strong><span></span>";'
-        "b.querySelector('strong').textContent=team.displayName||team.name||team.id;"
-        "b.querySelector('span').textContent=team.departmentJob||'';"
-        "b.addEventListener('click',function(){apply(team.id);});"
-        "wrap.appendChild(b);"
-        'var seats=document.createElement("ul");'
-        'seats.setAttribute("data-dragon-ai-team-seats","true");'
-        "(team.bots||[]).forEach(function(bot,i){"
-        'var li=document.createElement("li");'
-        'li.setAttribute("data-dragon-ai-seat-id",bot.id||"");'
-        'var icon=document.createElement("img");'
-        'icon.setAttribute("data-dragon-ai-seat-icon","true");'
-        'icon.setAttribute("aria-hidden","true");'
-        'icon.alt="";'
-        'var iconId=String(bot.id||"seat").replace(/[^a-z0-9-]/gi,"");'
-        'icon.src="./dragon-ai-branding/teams/"+(iconId||"seat")+".svg";'
-        'icon.addEventListener("error",function(){if(icon.dataset.fallback)return;icon.dataset.fallback="1";icon.src="./dragon-ai-branding/teams/seat.svg";});'
-        'var copy=document.createElement("div");'
-        'copy.setAttribute("data-dragon-ai-seat-copy","true");'
-        'var name=document.createElement("strong");'
-        "name.textContent=bot.title||bot.id||'';"
-        'var brief=document.createElement("span");'
-        "brief.textContent=bot.description||'';"
-        "copy.appendChild(name);copy.appendChild(brief);"
-        "li.appendChild(icon);li.appendChild(copy);"
-        "if(bot.descriptionDetail){"
-        'li.setAttribute("data-dragon-ai-seat-detail","true");'
-        "li.tabIndex=0;"
-        'var tipId="dragon-seat-tip-"+(team.id||"team")+"-"+(bot.id||i);'
-        'li.setAttribute("aria-describedby",tipId);'
-        'var tip=document.createElement("div");'
-        'tip.id=tipId;tip.setAttribute("role","tooltip");'
-        'tip.setAttribute("data-dragon-ai-seat-tooltip","true");'
-        "tip.textContent=bot.descriptionDetail;"
-        "li.appendChild(tip);"
-        "}"
-        "seats.appendChild(li);"
-        "});"
-        "if(seats.childNodes.length)wrap.appendChild(seats);"
-        "return wrap;"
-        "}"
-        "function load(){"
-        "setStatus('Loading teams…');"
-        "fetch(API+'/api/teams').then(function(r){return r.json();}).then(function(data){"
-        'var list=$("[data-dragon-ai-teams-list]",panel);if(!list)return;'
-        "list.textContent='';"
-        "(data.teams||[]).forEach(function(t){list.appendChild(card(t));});"
-        "setStatus((data.teams||[]).length?'Pick a team to apply.':'No teams listed.');"
-        "}).catch(function(){setStatus('Teams Marketplace helper is not running on 127.0.0.1:8653.');});"
-        "}"
-        "function apply(id){"
-        "setStatus('Applying '+id+'…');"
-        "fetch(API+'/api/teams/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})})"
-        ".then(function(r){return r.json();}).then(function(data){"
-        "if(data.error){setStatus(data.message||data.error);return;}"
-        "finishApply();"
-        "}).catch(function(){setStatus('Apply failed. Is the Teams Marketplace helper running?');});"
-        "}"
-        "function importFile(file){"
-        "if(!file)return;"
-        "setStatus('Importing '+file.name+'…');"
-        "var reader=new FileReader();"
-        "reader.onload=function(){"
-        "var bytes=new Uint8Array(reader.result);"
-        "var bin='';for(var i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);"
-        "fetch(API+'/api/teams/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:file.name,contentBase64:btoa(bin)})})"
-        ".then(function(r){return r.json();}).then(function(data){"
-        "if(data.error){setStatus(data.message||data.error);return;}"
-        "finishApply();"
-        "}).catch(function(){setStatus('Import failed.');});"
-        "};"
-        "reader.readAsArrayBuffer(file);"
-        "}"
-        "open.addEventListener('click',show);"
-        '$("[data-dragon-ai-teams-close]",panel).addEventListener("click",hide);'
-        "try{window.addEventListener('resize',function(){if(panel.getAttribute('data-dragon-ai-teams-visible')==='true')placePanel();});}catch(e){}"
-        'var inp=$("[data-dragon-ai-teams-import]",panel);'
-        "if(inp)inp.addEventListener('change',function(){importFile(inp.files&&inp.files[0]);});"
-        "root.appendChild(open);if(document.body){document.body.appendChild(panel);}else{root.appendChild(panel);}"
-        'var row=document.querySelector("[data-dragon-ai-sidebar-row]");'
-        "if(row){row.appendChild(root);}else if(host.getAttribute&&host.getAttribute('data-dragon-ai-sidebar-brand')&&host.parentNode){host.parentNode.insertBefore(root,host.nextSibling);}else{host.appendChild(root);}"
-        "}"
-        'if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",mount);}else{mount();}'
-        "try{new MutationObserver(mount).observe(document.documentElement,{childList:true,subtree:true});}catch(e){}"
-        "})();"
-        "</script>"
-    )
+    return wrap_marked_script(TEAMS_SCRIPT_MARK, load_pack_script(TEAMS_SCRIPT_NAME))
 
 
 def inject_teams_picker_script(html: str) -> tuple[str, bool]:
     return upsert_marked_script(html, TEAMS_SCRIPT_MARK, teams_picker_script())
 
 
+def voice_selector_js_path() -> Path:
+    return branding_dir() / "voice" / "dragon-voice-selector.js"
+
+
+def voice_provider_script() -> str:
+    """GPT | Grok selector plus overlay Grok duplex client. GPT stays."""
+    path = voice_selector_js_path()
+    body = path.read_text(encoding="utf-8").strip()
+    if VOICE_SCRIPT_MARK in body:
+        raise ValueError("voice selector JS must not include its own script mark")
+    return f"<script {VOICE_SCRIPT_MARK}>\n{body}\n</script>"
+
+
+def inject_voice_provider_script(html: str) -> tuple[str, bool]:
+    return upsert_marked_script(html, VOICE_SCRIPT_MARK, voice_provider_script())
+
+
 def inject_html_branding(html: str) -> tuple[str, bool]:
     out, changed = inject_font_link(html)
     out2, changed2 = inject_sidebar_header_script(out)
     out3, changed3 = inject_teams_picker_script(out2)
-    return out3, changed or changed2 or changed3
+    out4, changed4 = inject_voice_provider_script(out3)
+    out5, stripped = strip_crimson_lockup_border(out4)
+    return out5, changed or changed2 or changed3 or changed4 or bool(stripped)
 
 
 def append_font_css(css_text: str, sheet: str) -> tuple[str, bool]:
+    block = CSS_APPEND_MARK + "\n" + sheet.rstrip() + "\n"
     if CSS_APPEND_MARK in css_text:
-        return css_text, False
-    block = "\n" + CSS_APPEND_MARK + "\n" + sheet.rstrip() + "\n"
-    return css_text.rstrip() + block, True
+        start = css_text.find(CSS_APPEND_MARK)
+        out = css_text[:start] + block
+        return out, out != css_text
+    return css_text.rstrip() + "\n" + block, True
 
 
-def install_font_pack(roots: list[Path]) -> dict[str, Any]:
+def install_font_pack(roots: list[Path], required: bool = True) -> dict[str, Any]:
     pack = font_pack_dir()
     if pack is None:
+        if required:
+            raise FileNotFoundError(
+                "Apply-DesktopBranding: dragon-ui.css pack missing under branding/fonts/syne"
+            )
         return {"fontFamily": None, "targets": 0, "htmlPatched": 0, "copied": False}
     files = [
         p
         for p in pack.iterdir()
-        if p.is_file() and p.suffix.lower() in {".woff2", ".css", ".txt", ".md"}
+        if p.is_file() and p.suffix.lower() in PACK_FILE_SUFFIXES
     ]
     html_patched = 0
     targets = font_install_targets(roots)
@@ -550,6 +477,16 @@ def install_font_pack(roots: list[Path]) -> dict[str, Any]:
             if changed:
                 html_path.write_bytes(out.encode("utf-8"))
                 html_patched += 1
+        landed = dest / STYLESHEET_NAME
+        if required and (not landed.is_file() or LOCKUP_WRAP_MARK not in landed.read_text(encoding="utf-8")):
+            raise FileNotFoundError(
+                f"Apply-DesktopBranding: {STYLESHEET_NAME} with wrap rules did not land in {dest}"
+            )
+    if required and not targets:
+        raise FileNotFoundError(
+            "Apply-DesktopBranding: no unpacked dist target for dragon-ai-branding "
+            "(resources/app.asar.unpacked/dist)"
+        )
     return {
         "fontFamily": "Syne",
         "targets": len(targets),
@@ -782,8 +719,17 @@ def self_test() -> int:
     if '[data-dragon-ai-sidebar-brand]' not in css or "Dragon AI" not in css:
         print("FAIL: overlay CSS must style the sidebar header lockup (Dragon AI)", file=sys.stderr)
         return 1
+    if LOCKUP_WRAP_MARK not in css:
+        print("FAIL: dragon-ui.css must stamp dragon-ai-lockup-wrap so unpacked copies can be verified", file=sys.stderr)
+        return 1
+    if "container-type: inline-size" not in css or "@container" not in css:
+        print("FAIL: dragon-ui.css must ship container wrap rules for the Teams button", file=sys.stderr)
+        return 1
     if "flex-wrap: wrap" not in css or "min-width: max-content" not in css:
         print("FAIL: sidebar Teams must wrap below a fixed logo, not shrink or clip", file=sys.stderr)
+        return 1
+    if "rgba(196,30,58" in css.replace(" ", "") or "rgba(196, 30, 58" in css:
+        print("FAIL: overlay CSS must not paint a crimson lockup border", file=sys.stderr)
         return 1
     if "18cqi" in css or "clamp(20px, 18cqi, 32px)" in css:
         print("FAIL: sidebar logo must stay a fixed 32px (do not clamp/shrink with column width)", file=sys.stderr)
@@ -821,6 +767,21 @@ def self_test() -> int:
     if tokens.get("primary") != "#C41E3A":
         print("FAIL: table tokens.primary must stay dragon crimson", file=sys.stderr)
         return 1
+    if tokens.get("mutedForeground") != "#C4C4CE":
+        print("FAIL: table mutedForeground must be Grok-like #C4C4CE", file=sys.stderr)
+        return 1
+    if tokens.get("fontSizeBody") != "16px" or tokens.get("lineHeightBody") != "1.55":
+        print("FAIL: table must record 16px / 1.55 body type", file=sys.stderr)
+        return 1
+    if "--dragon-ui-font-size-body: 16px" not in css or "--conversation-text-base-size: 16px" not in css:
+        print("FAIL: overlay CSS must remap Hermes chat to 16px body", file=sys.stderr)
+        return 1
+    if "--ui-text-tertiary: #c4c4ce" not in css or "--color-muted-foreground: #c4c4ce" not in css:
+        print("FAIL: overlay CSS must replace 54% tertiary with opaque #c4c4ce", file=sys.stderr)
+        return 1
+    if '[data-slot="aui_assistant-message-content"]' not in css:
+        print("FAIL: overlay CSS must style chat message type size", file=sys.stderr)
+        return 1
     meta = table.get("font") or {}
     if meta.get("family") != "Syne":
         print("FAIL: table font.family must be Syne", file=sys.stderr)
@@ -845,16 +806,55 @@ def self_test() -> int:
     if once.count(SIDEBAR_SCRIPT_MARK) != 1 or "Dragon AI" not in once:
         print("FAIL: sidebar header script must inject Dragon AI once", file=sys.stderr)
         return 1
+    if "findColumnHost" not in once or "data-dragon-ai-sidebar-fixed" not in once:
+        print("FAIL: sidebar inject must try column hosts then body data-dragon-ai-sidebar-fixed", file=sys.stderr)
+        return 1
+    if "findBotsTab" not in once or "data-dragon-ai-sidebar-clearance" not in once:
+        print("FAIL: sidebar inject must reserve clearance so the overlay does not cover BOTS", file=sys.stderr)
+        return 1
+    if re.search(r'querySelector\(\s*[\'"]\[data-slot="sidebar-wrapper"\]', once):
+        print("FAIL: sidebar inject must not treat sidebar-wrapper as a column host", file=sys.stderr)
+        return 1
+    if "pinWrap" not in once or "border:0" not in once.replace(" ", ""):
+        print("FAIL: sidebar inject must pin the lockup with border:0 (no crimson frame)", file=sys.stderr)
+        return 1
+    if "rgba(196,30,58" in once.replace(" ", "") or "rgba(196, 30, 58" in once:
+        print("FAIL: sidebar/teams inject must not set a crimson lockup border", file=sys.stderr)
+        return 1
     if "dragon-ai-agent-logo.svg" not in once:
         print("FAIL: sidebar header script must use the transparent SVG mark", file=sys.stderr)
+        return 1
+    bordered = (
+        '<html><head></head><body>'
+        '<div data-dragon-ai-sidebar-brand style="border:1px solid rgba(196,30,58,.45)"></div>'
+        '</body></html>'
+    )
+    cleaned, cleaned_changed = inject_html_branding(bordered)
+    if not cleaned_changed or "rgba(196,30,58" in cleaned.replace(" ", ""):
+        print("FAIL: overlay must strip a live crimson lockup border from index.html", file=sys.stderr)
         return 1
     stale = once.replace("dragon-ai-agent-logo.svg", "dragon-ai-agent-logo.png")
     refreshed, refreshed_changed = inject_html_branding(stale)
     if not refreshed_changed or "dragon-ai-agent-logo.svg" not in refreshed:
         print("FAIL: overlay must refresh a stale PNG sidebar script to the SVG mark", file=sys.stderr)
         return 1
-    if once.count(TEAMS_SCRIPT_MARK) != 1 or "Teams" not in once:
-        print("FAIL: Teams picker script must inject into the desktop client", file=sys.stderr)
+    if once.count(TEAMS_SCRIPT_MARK) != 1 or "Teams Marketplace" not in once:
+        print("FAIL: Teams Marketplace script must inject into the desktop client", file=sys.stderr)
+        return 1
+    if "data-dragon-ai-sidebar-fixed" not in once:
+        print("FAIL: Teams Marketplace inject must share the body fixed-overlay fallback", file=sys.stderr)
+        return 1
+    if once.count(VOICE_SCRIPT_MARK) != 1 or "GPT" not in once or "Grok" not in once:
+        print("FAIL: voice selector must inject GPT and Grok (GPT stays)", file=sys.stderr)
+        return 1
+    if "Talk with Grok" not in once or "xai-client-secret." not in once:
+        print("FAIL: overlay must host Grok duplex (Talk + xai-client-secret)", file=sys.stderr)
+        return 1
+    if "input_audio_buffer.append" not in once or "grok-voice-latest" not in once:
+        print("FAIL: overlay must send official STS append events to grok-voice-latest", file=sys.stderr)
+        return 1
+    if not voice_selector_js_path().is_file():
+        print("FAIL: branding/voice/dragon-voice-selector.js missing", file=sys.stderr)
         return 1
     if "data-dragon-ai-team-seats" not in once or "descriptionDetail" not in once:
         print("FAIL: Teams picker must list seats with brief + hover detail", file=sys.stderr)
@@ -870,6 +870,16 @@ def self_test() -> int:
         return 1
     if "[data-dragon-ai-seat-tooltip]" not in css:
         print("FAIL: overlay CSS must style seat hover/focus detail", file=sys.stderr)
+        return 1
+    if "[data-dragon-voice-provider]" not in css or "[aria-checked=" not in css:
+        print("FAIL: overlay CSS must style the GPT | Grok voice selector", file=sys.stderr)
+        return 1
+    if "[data-dragon-grok-talk]" not in css:
+        print("FAIL: overlay CSS must style Talk with Grok", file=sys.stderr)
+        return 1
+    voice_meta = table.get("voice") or {}
+    if voice_meta.get("options") != ["gpt", "grok"] or voice_meta.get("default") != "gpt":
+        print("FAIL: table voice.options must be gpt + grok with GPT as default", file=sys.stderr)
         return 1
     if icon_source() is None:
         print("FAIL: Dragon ICO missing for taskbar/resources/icon.ico", file=sys.stderr)

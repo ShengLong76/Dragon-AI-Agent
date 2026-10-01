@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 import sys
 import tempfile
 
@@ -43,10 +44,91 @@ def fail(msg: str) -> None:
     raise SystemExit(1)
 
 
+def _lin(channel: int) -> float:
+    value = channel / 255.0
+    return value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
+
+
+def _rel_luminance(hex_color: str) -> float:
+    raw = hex_color.removeprefix("#")
+    red, green, blue = (int(raw[i : i + 2], 16) for i in (0, 2, 4))
+    return 0.2126 * _lin(red) + 0.7152 * _lin(green) + 0.0722 * _lin(blue)
+
+
+def _contrast_ratio(foreground: str, background: str) -> float:
+    lighter, darker = sorted((_rel_luminance(foreground), _rel_luminance(background)), reverse=True)
+    return (lighter + 0.05) / (darker + 0.05)
+
+
 def read(path: pathlib.Path) -> str:
     if not path.is_file():
         fail(f"missing {path}")
     return path.read_text(encoding="utf-8")
+
+
+def _js_code_only(text: str) -> str:
+    stripped = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+    return re.sub(r"//.*?$", "", stripped, flags=re.M)
+
+
+def assert_sidebar_host_fallback(sidebar_js: str, teams_js: str, css: str) -> None:
+    for label, text in (("sidebar-header.js", sidebar_js), ("teams-picker.js", teams_js)):
+        if "findColumnHost" not in text:
+            fail(f"{label} must try column hosts first")
+        if "findDragonSidebarHost" not in text:
+            fail(f"{label} must share findDragonSidebarHost")
+        if 'sidebar-header' not in text or 'sidebar-inner' not in text:
+            fail(f"{label} must still prefer sidebar-header / sidebar-inner")
+        if "data-dragon-ai-sidebar-fixed" not in text:
+            fail(f"{label} must fall back to data-dragon-ai-sidebar-fixed on body")
+        if "document.body" not in text:
+            fail(f"{label} must mount the fixed overlay on document.body")
+        if "findBotsTab" not in text or "data-dragon-ai-sidebar-clearance" not in text:
+            fail(f"{label} must reserve clearance so the overlay does not cover the BOTS tab")
+        compact = text.replace(" ", "")
+        if "vartop=96" not in compact:
+            fail(f"{label} fixed overlay default top must be 96px (48px sits on BOTS)")
+        if "vartop=48" in compact:
+            fail(f"{label} must not default overlay top to 48px (covers BOTS)")
+        if "return96" not in compact:
+            fail(f"{label} lockupHeight must reserve 96px so wrapped Teams Marketplace does not cover BOTS")
+        if "return48" in compact:
+            fail(f"{label} lockupHeight must not default to 48px (covers BOTS)")
+        if "spacer||strip" in compact or "(spacer||strip)" in compact:
+            fail(f"{label} must pin overlay to the clearance spacer, never the BOTS tab strip")
+        if "sidebar-wrapper" in _js_code_only(text):
+            fail(f"{label} must not treat sidebar-wrapper as a column host")
+    if "Teams Marketplace" not in teams_js:
+        fail("teams-picker.js control label must be Teams Marketplace")
+    if re.search(r'textContent\s*=\s*"Teams"', teams_js):
+        fail("user-visible control label must be Teams Marketplace, not Teams")
+    if "[data-dragon-ai-sidebar-fixed]" not in css:
+        fail("dragon-ui.css must style the body fixed overlay")
+    if "min-width: 16rem" not in css:
+        fail("fixed overlay row must keep a 16rem width (not collapse to ~24px)")
+    css_code = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+    if re.search(r"\[data-dragon-ai-sidebar-fixed\]\s*\{[^}]*container-type", css_code):
+        fail("fixed overlay must not set container-type (collapses to ~24px)")
+    if "@media (max-width: 1100px)" not in css:
+        fail("overlay path must wrap Teams Marketplace with @media (max-width: 1100px)")
+    if "container-type: inline-size" not in css or "@container" not in css:
+        fail("real sidebar slots must keep @container wrap")
+    fixed_rule = re.search(r"\[data-dragon-ai-sidebar-fixed\]\s*\{[^}]*\}", css_code)
+    if not fixed_rule or "top: 96px" not in fixed_rule.group(0):
+        fail("fixed overlay CSS default top must be 96px (clear of BOTS)")
+    if "top: 48px" in fixed_rule.group(0):
+        fail("fixed overlay CSS default must not sit on the BOTS tab (top: 48px)")
+    if "[data-dragon-ai-sidebar-clearance]" not in css or "min-height: 96px" not in css:
+        fail("clearance spacer must reserve 96px above the BOTS tab")
+    name_block = css.split("[data-slot=\"bots-roster\"]", 1)[-1][:900]
+    if "font-size: var(--dragon-ui-font-size-body)" not in name_block:
+        fail("sidebar bot names must use the 16px body size (match middle session names)")
+    if 'text-[0.8125rem]' not in css:
+        fail("Hermes 0.8125rem name chips must remap to 16px body")
+    if "[data-sidebar=\"menu-button\"]" not in name_block:
+        fail("sidebar menu-button names must share the 16px body size")
+    if "[role=\"dialog\"]" not in name_block or "[role=\"listbox\"]" not in name_block:
+        fail("middle session/agent names must share the 16px body size")
 
 
 def test_table() -> dict:
@@ -80,6 +162,12 @@ def test_table() -> dict:
     tokens = table.get("tokens") or {}
     if tokens.get("primary") != "#C41E3A" or tokens.get("background") != "#1C1C20":
         fail("table tokens must keep dragon crimson on dark surfaces")
+    if tokens.get("mutedForeground") != "#C4C4CE":
+        fail("table mutedForeground must be Grok-like #C4C4CE (not washed #A0A0AA)")
+    if tokens.get("fontSizeBody") != "16px" or tokens.get("lineHeightBody") != "1.55":
+        fail("table must record 16px / 1.55 body type (Grok Bot parity)")
+    if tokens.get("fontSizeUi") != "14px":
+        fail("table must record 14px sidebar/Teams chrome")
     logo = table.get("logo") or {}
     if logo.get("facing") != "front" or "dragon-ai-agent-logo.svg" not in str(logo.get("svg")):
         fail("table must record a front-facing SVG dragon mark")
@@ -96,6 +184,9 @@ def test_table() -> dict:
         fail("table sidebar header must be Dragon AI")
     if sidebar.get("userFacingBots") != ["Personal Assistant"]:
         fail("table sidebar must list only Personal Assistant")
+    voice = table.get("voice") or {}
+    if voice.get("options") != ["gpt", "grok"] or voice.get("default") != "gpt":
+        fail("table voice.options must be gpt + grok with GPT as the default")
     if by_from.get("return 'Hermes'") != "return ''":
         fail("table must stop presenting Hermes as a sidebar bot label")
     print("OK  desktop_branding.json surfaces")
@@ -223,6 +314,12 @@ const protocol = 'hermes://copilot-key/start';
             fail("index.html must inject the sidebar header lockup (Dragon AI)")
         if 'data-dragon-ai-branding="teams-picker"' not in html or "Teams" not in html:
             fail("index.html must inject the in-app Teams picker")
+        if 'data-dragon-ai-branding="voice-provider"' not in html:
+            fail("index.html must inject the GPT | Grok voice selector")
+        if "GPT" not in html or "Grok" not in html:
+            fail("voice selector must list both GPT and Grok")
+        if "Talk with Grok" not in html or "xai-client-secret." not in html:
+            fail("index.html must inject the overlay Grok duplex client")
         icon_dest = unpacked / "resources" / "icon.ico"
         if not icon_dest.is_file() or icon_dest.read_bytes()[:4] != b"\x00\x00\x01\x00":
             fail("apply must copy the Dragon ICO to resources/icon.ico")
@@ -258,6 +355,18 @@ const protocol = 'hermes://copilot-key/start';
             fail("injected CSS must style the sidebar header lockup")
         if "flex-wrap: wrap" not in css_txt or "min-width: max-content" not in css_txt:
             fail("injected CSS must wrap Teams below a fixed-size logo")
+        if "dragon-ai-lockup-wrap:1" not in css_txt:
+            fail("copied dragon-ui.css must stamp lockup wrap so live unpacked UI is not an older hash")
+        if "container-type: inline-size" not in css_txt or "@container" not in css_txt:
+            fail("copied dragon-ui.css must include container wrap rules")
+        if "rgba(196,30,58" in css_txt.replace(" ", "") or "rgba(196, 30, 58" in css_txt:
+            fail("copied dragon-ui.css must not keep a crimson lockup border")
+        if "rgba(196,30,58" in html.replace(" ", "") or "rgba(196, 30, 58" in html:
+            fail("index.html inject must not keep a crimson lockup border")
+        if "pinWrap" not in html or "border:0" not in html.replace(" ", ""):
+            fail("index.html inject must pin the lockup with border:0")
+        if not (pack_dir / "sidebar-header.js").is_file() or not (pack_dir / "teams-picker.js").is_file():
+            fail("prebuilt inject scripts must be copied into dragon-ai-branding")
         if "18cqi" in css_txt:
             fail("injected CSS must not shrink the sidebar logo with column width")
         if "--dragon-sidebar-control-height: 32px" not in css_txt:
@@ -279,6 +388,35 @@ const protocol = 'hermes://copilot-key/start';
         html2 = (dist / "index.html").read_text(encoding="utf-8")
         if html2.count('data-dragon-ai-branding="ui-face"') != 1:
             fail("second pass duplicated the wordmark stylesheet link")
+        stale_css = "/* stale unpacked hash without wrap */\n.wordmark{font-family:Syne}\n"
+        css.write_text(stale_css, encoding="utf-8")
+        (dist / "index.html").write_text(
+            '<!doctype html><html><head><title>Dragon AI Agent</title>'
+            '<link rel="stylesheet" href="./dragon-ai-branding/dragon-ui.css" data-dragon-ai-branding="ui-face" />'
+            '</head><body>'
+            '<div data-dragon-ai-sidebar-brand style="border:1px solid rgba(196,30,58,.45)">'
+            '<img alt="" style="border:1px solid rgba(196,30,58,.45)"></div>'
+            '</body></html>\n',
+            encoding="utf-8",
+        )
+        (dist / "assets" / "index.css").write_text(
+            ".wordmark{font-family:'Syne',var(--font-sans)}\n/* dragon-ai-ui-face */\n/* stale appended sheet */\n",
+            encoding="utf-8",
+        )
+        summary3 = db.apply_to_exe(exe)
+        if summary3.get("font", {}).get("copied") is not True:
+            fail(f"stale unpacked refresh did not copy the pack: {summary3}")
+        refreshed_css = css.read_text(encoding="utf-8")
+        if "flex-wrap: wrap" not in refreshed_css or "dragon-ai-lockup-wrap:1" not in refreshed_css:
+            fail("apply must overwrite an older dragon-ai-branding/dragon-ui.css with wrap rules")
+        refreshed_html = (dist / "index.html").read_text(encoding="utf-8")
+        if "rgba(196,30,58" in refreshed_html.replace(" ", ""):
+            fail("apply must strip a live crimson lockup border from index.html")
+        if "pinWrap" not in refreshed_html or 'data-dragon-ai-branding="sidebar-header"' not in refreshed_html:
+            fail("apply must refresh the sidebar lockup inject on a previously branded index.html")
+        refreshed_bundle = (dist / "assets" / "index.css").read_text(encoding="utf-8")
+        if "flex-wrap: wrap" not in refreshed_bundle or "stale appended sheet" in refreshed_bundle:
+            fail("apply must refresh the appended renderer CSS block, not skip it")
         print("OK  fake win-unpacked overlay")
 
 
@@ -306,12 +444,36 @@ def test_packaging_not_regressed() -> None:
         fail("Apply-DesktopBranding.ps1 must target unpacked renderer files")
     if "Install-DragonAIDesktopFontPack" not in apply_ps or "Syne" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must install the bundled Syne pack")
+    if 'if ($text.Contains(\'data-dragon-ai-branding="ui-face"\')' in apply_ps and "continue }" in apply_ps:
+        # Old apply skipped the entire HTML file once the link existed.
+        if apply_ps.count('data-dragon-ai-branding="sidebar-header"') < 1:
+            fail("Apply-DesktopBranding.ps1 must upsert sidebar inject even when index.html is already branded")
+    if "sidebar-header.js" not in apply_ps or "teams-picker.js" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must ship/copy prebuilt inject scripts without Python")
+    if "data-dragon-ai-sidebar-fixed" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must verify the body fixed-overlay fallback landed")
+    if "findBotsTab" not in apply_ps or "data-dragon-ai-sidebar-clearance" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must verify BOTS-tab clearance landed")
+    if "Teams Marketplace" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must verify the Teams Marketplace label landed")
+    if "Get-DragonAIInstallUnpackedRoots" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must also land assets under DragonAIAgent app.asar.unpacked")
+    if "Remove-DragonAICrimsonLockupBorder" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must strip a live crimson lockup border")
+    if "return $summary" in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must not return after Python and skip the PowerShell pack copy")
+    if "throw" not in apply_ps or "did not land" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must throw when dragon-ui.css does not land (no silent skip)")
+    if '".js"' not in apply_ps and ".js" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must copy .js inject assets into dragon-ai-branding")
     for path in INSTALLERS:
         text = read(path)
         if "Apply-DesktopBranding.ps1" not in text or "desktop_branding.py" not in text:
             fail(f"{path.name} must install the UI overlay scripts")
         if "branding\\fonts" not in text and "branding/fonts" not in text:
             fail(f"{path.name} must copy branding/fonts for the wordmark overlay")
+        if "branding\\voice" not in text and "branding/voice" not in text:
+            fail(f"{path.name} must copy branding/voice for the Grok duplex overlay")
     branding = read(BRANDING)
     if "HERMES AGENT" not in branding and "empty state" not in branding.lower():
         fail("BRANDING.md must document the in-app overlay and leftovers")
@@ -325,6 +487,10 @@ def test_packaging_not_regressed() -> None:
         fail("BRANDING.md must say Universal Sans is proprietary and not shipped")
     if "UI UX Pro Max" not in branding and "ui-ux-pro-max" not in branding:
         fail("BRANDING.md must name the UI UX Pro Max design system")
+    if "Python is optional" not in branding or "Apply-DesktopBranding.ps1" not in branding:
+        fail("BRANDING.md must say PowerShell apply copies unpacked UI without Python")
+    if "dragon-ai-lockup-wrap:1" not in branding:
+        fail("BRANDING.md must say how to confirm the live unpacked sheet is the tip pack")
     pack = ROOT / "branding" / "fonts" / "syne"
     if not (pack / "OFL.txt").is_file() or not (pack / "syne-latin-wght-normal.woff2").is_file():
         fail("branding/fonts/syne must bundle OFL.txt and the Syne woff2 files")
@@ -351,6 +517,30 @@ def test_packaging_not_regressed() -> None:
         fail("dragon-ui.css must style the sidebar header lockup (Dragon AI)")
     if "flex-wrap: wrap" not in css or "min-width: max-content" not in css:
         fail("sidebar Teams must wrap below a fixed logo (not clip, not shrink the mark)")
+    if "dragon-ai-lockup-wrap:1" not in css:
+        fail("packaged dragon-ui.css must stamp lockup wrap for unpacked-copy verification")
+    if "container-type: inline-size" not in css or "@container" not in css:
+        fail("packaged dragon-ui.css must include container wrap rules that actually get copied")
+    if "rgba(196,30,58" in css.replace(" ", "") or "rgba(196, 30, 58" in css:
+        fail("packaged dragon-ui.css must not include a crimson lockup border")
+    sidebar_js = read(pack / "sidebar-header.js")
+    teams_js = read(pack / "teams-picker.js")
+    assert_sidebar_host_fallback(sidebar_js, teams_js, css)
+    host_note = ROOT / "docs" / "airmaze" / "SIDEBAR_HOST.md"
+    if not host_note.is_file() or "data-dragon-ai-sidebar-fixed" not in read(host_note):
+        fail("docs/airmaze/SIDEBAR_HOST.md must describe the body fixed-overlay fallback")
+    if "Teams Marketplace" not in read(host_note):
+        fail("SIDEBAR_HOST.md must name the Teams Marketplace control")
+    if "16px" not in read(host_note) or "data-dragon-ai-sidebar-clearance" not in read(host_note):
+        fail("SIDEBAR_HOST.md must record 16px name parity and BOTS-tab clearance")
+    for label, text in (("sidebar-header.js", sidebar_js), ("teams-picker.js", teams_js), ("dragon-ui.css", css)):
+        compact = text.replace(" ", "")
+        if "rgba(196,30,58" in compact:
+            fail(f"{label} must not include border rgba(196,30,58)")
+    if "pinWrap" not in sidebar_js or "border:0" not in sidebar_js.replace(" ", ""):
+        fail("sidebar-header.js must pin the lockup with border:0")
+    if "flex-wrap" not in apply_ps and "lockup-wrap" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must verify wrap rules landed in the copied sheet")
     if "18cqi" in css or "clamp(20px, 18cqi, 32px)" in css:
         fail("sidebar logo must stay a fixed 32px (do not clamp/shrink)")
     if "--dragon-sidebar-control-height: 32px" not in css:
@@ -370,6 +560,23 @@ def test_packaging_not_regressed() -> None:
         fail("sidebar logo must be 32px square matching Teams at full width")
     if "Personal Assistant" not in css:
         fail("dragon-ui.css must keep Personal Assistant as the visible sidebar bot")
+    if "[data-dragon-voice-provider]" not in css:
+        fail("dragon-ui.css must style the GPT | Grok voice selector")
+    if "[data-dragon-grok-talk]" not in css:
+        fail("dragon-ui.css must style Talk with Grok")
+    voice_js = ROOT / "branding" / "voice" / "dragon-voice-selector.js"
+    if not voice_js.is_file():
+        fail("branding/voice/dragon-voice-selector.js must ship the duplex client")
+    if "--dragon-ui-font-size-body: 16px" not in css or "--dragon-ui-line-height-body: 1.55" not in css:
+        fail("dragon-ui.css must ship 16px / 1.55 Grok Bot body type")
+    if "--conversation-text-base-size: 16px" not in css or "--ui-text-tertiary: #c4c4ce" not in css:
+        fail("dragon-ui.css must remap Hermes 13px / 54% tertiary to 16px opaque muted")
+    if "--color-muted-foreground: #c4c4ce" not in css:
+        fail("dragon-ui.css muted text must be #c4c4ce for dark contrast")
+    if '[data-slot="aui_assistant-message-content"]' not in css:
+        fail("dragon-ui.css must size chat message content like Grok Bot")
+    if _contrast_ratio("#F0F0F5", "#1C1C20") < 4.5 or _contrast_ratio("#C4C4CE", "#1C1C20") < 4.5:
+        fail("overlay text tokens must clear 4.5:1 on #1C1C20")
     if "dragon-ai-agent-logo.png" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must copy the dragon PNG into the overlay pack")
     mark = ROOT / "branding" / "dragon-ai-agent-logo.svg"
@@ -424,6 +631,10 @@ def test_packaging_not_regressed() -> None:
         fail("DESIGN.md must say the sidebar shows Personal Assistant, not Hermes")
     if "hidden" not in design_txt.lower():
         fail("DESIGN.md must say the default Hermes sidebar bot is hidden")
+    if "16px" not in design_txt or "Grok" not in design_txt:
+        fail("DESIGN.md must record Grok Bot type size (16px) and contrast")
+    if "#C4C4CE" not in design_txt and "#c4c4ce" not in design_txt.lower():
+        fail("DESIGN.md must record the brighter muted token")
     print("OK  packaging Bot Screen / installer wiring")
 
 

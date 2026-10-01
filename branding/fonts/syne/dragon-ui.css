@@ -71,7 +71,7 @@
   --color-card: #282830;
   --color-card-foreground: #f0f0f5;
   --color-muted: #32323a;
-  --color-muted-foreground: #a0a0aa;
+  --color-muted-foreground: #c4c4ce;
   --color-border: #50505a;
   --color-destructive: #dc4646;
   --color-on-destructive: #ffffff;
@@ -79,8 +79,8 @@
   --color-ok: #3cb45a;
   --color-pending: #c8a028;
 
-  /* 16px body contrast tokens — Marketplace chrome matches the
-     inject/branding PR. Do not restyle sidebar bot names here. */
+  /* Grok Bot / Cursor in-app chat type: 16px body, 1.55 leading.
+     Hermes ships 13px (0.8125rem) body + conversation and 54% tertiary. */
   --dragon-ui-font-size-body: 16px;
   --dragon-ui-font-size-ui: 14px;
   --dragon-ui-font-size-caption: 13px;
@@ -93,10 +93,41 @@
   --space-lg: 24px;
 }
 
+/* Beat Hermes html 1rem / body 0.8125rem and 54%-mix greys. Overlay
+   loads last (index.html link + appended renderer CSS). No asar rebuild. */
+:root,
+:root.dark,
+html {
+  --dt-base-size: 16px;
+  --dt-line-height: 1.55;
+  --conversation-text-base-size: 16px;
+  --conversation-tool-base-size: 13px;
+  --conversation-caption-base-size: 14px;
+  --conversation-base-line-height: 1.55;
+  --conversation-caption-base-line-height: 1.45;
+  --chat-text-scale: 1;
+  --ui-text-primary: #f0f0f5;
+  --ui-text-secondary: #d6d6de;
+  --ui-text-tertiary: #c4c4ce;
+  --ui-text-quaternary: #b4b4be;
+  --conversation-scaffold-text: #c8c8d2;
+  --conversation-scaffold-meta: #b8b8c2;
+  --dt-foreground: #f0f0f5;
+  --dt-card-foreground: #f0f0f5;
+  --dt-muted-foreground: #c4c4ce;
+  --dt-popover-foreground: #f0f0f5;
+  --dt-secondary-foreground: #d6d6de;
+  --sidebar-foreground: #f0f0f5;
+  --sidebar-accent-foreground: #f0f0f5;
+}
+
 html,
 body,
 #root {
   font-family: var(--dragon-ui-font);
+  font-size: var(--dragon-ui-font-size-body);
+  line-height: var(--dragon-ui-line-height-body);
+  color: var(--color-foreground);
 }
 
 /* Empty-state wordmark — beat the upstream Collapse display face. */
@@ -159,18 +190,61 @@ body,
   display: none !important;
 }
 
-/* Sidebar header lockup above SESSIONS / BOTS.
+/* dragon-ai-lockup-wrap:1
+   Sidebar header lockup above SESSIONS / BOTS.
    Logo stays a fixed 32px transparent SVG (no plate / no red border) and
    matches the Teams Marketplace button height. The Marketplace control
-   always sits under the logo — the mark does not shrink. In-flow only:
-   must not cover BOTS (no overflow paint over the tab strip). */
+   sits under the logo. Hermes sidebar-wrapper is the full app shell —
+   never a column host. Fallback is a body overlay
+   [data-dragon-ai-sidebar-fixed] pinned into
+   [data-dragon-ai-sidebar-clearance] above the Sessions / Bots strip
+   (must not cover BOTS; default top: 96px, never 48px). Do not set
+   container-type on the fixed row (it collapses to ~24px). Overlay wrap
+   uses @media (max-width: 1100px). */
 [data-slot="sidebar-inner"],
 [data-slot="sidebar-header"] {
   container-type: inline-size;
   min-width: 0;
   height: auto !important;
   max-height: none !important;
-  overflow: hidden !important;
+  overflow: visible !important;
+}
+
+[data-dragon-ai-sidebar-fixed] {
+  position: fixed;
+  z-index: 40;
+  top: 96px;
+  left: 0;
+  width: 16rem;
+  max-width: 16rem;
+  min-width: 16rem;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  pointer-events: none;
+  background: transparent;
+  border: 0;
+}
+
+[data-dragon-ai-sidebar-clearance] {
+  display: block;
+  width: 100%;
+  min-height: 96px;
+  pointer-events: none;
+  background: transparent;
+  border: 0;
+  flex: 0 0 auto;
+}
+
+[data-dragon-ai-sidebar-fixed] [data-dragon-ai-sidebar-row] {
+  width: 16rem;
+  max-width: 16rem;
+  min-width: 16rem;
+  pointer-events: auto;
+}
+
+[data-dragon-ai-sidebar-fixed] [data-dragon-ai-teams-root] {
+  pointer-events: auto;
 }
 
 [data-dragon-ai-sidebar-row] {
@@ -185,13 +259,14 @@ body,
   max-width: 100%;
   min-width: 0;
   padding: 8px 12px;
-  overflow: hidden;
+  overflow: visible;
   background: transparent;
   background-color: transparent;
   border: 0;
 }
 
-[data-dragon-ai-sidebar-brand] {
+[data-dragon-ai-sidebar-brand],
+[data-dragon-ai-sidebar-brand][style] {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -201,10 +276,14 @@ body,
   min-height: var(--dragon-sidebar-control-height);
   padding: 0;
   color: var(--color-foreground);
-  background: transparent;
-  background-color: transparent;
-  border: 0;
-  box-shadow: none;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 [data-dragon-ai-sidebar-brand] img,
@@ -272,7 +351,7 @@ body,
   color: var(--color-foreground);
   font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
   font-weight: 700;
-  font-size: var(--dragon-ui-font-size-body);
+  font-size: var(--dragon-ui-font-size-ui);
   line-height: var(--dragon-ui-line-height-ui);
   cursor: pointer;
 }
@@ -292,6 +371,19 @@ body,
   }
 
   [data-dragon-ai-teams-open] {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 1100px) {
+  [data-dragon-ai-sidebar-fixed] [data-dragon-ai-teams-root] {
+    margin-left: 0;
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+
+  [data-dragon-ai-sidebar-fixed] [data-dragon-ai-teams-open] {
     width: 100%;
     justify-content: center;
   }
@@ -392,6 +484,8 @@ body,
   background: linear-gradient(180deg, #32323c 0%, #282830 100%);
   color: var(--color-foreground);
   box-shadow: var(--dragon-card-shadow);
+  font-size: var(--dragon-ui-font-size-body);
+  line-height: var(--dragon-ui-line-height-body);
   cursor: pointer;
 }
 
@@ -522,7 +616,7 @@ body,
   border-radius: 6px;
   background: var(--color-primary);
   color: var(--color-on-primary);
-  font-size: var(--dragon-ui-font-size-body);
+  font-size: var(--dragon-ui-font-size-ui);
   font-weight: 700;
   cursor: pointer;
 }
@@ -553,11 +647,62 @@ body,
   -webkit-line-clamp: 2;
 }
 
+/* Sidebar chrome (group labels, chrome copy) stays 14px. Name chips below. */
+[data-slot="sidebar"],
+[data-slot="sidebar-inner"],
+[data-slot="sidebar-header"] {
+  font-size: var(--dragon-ui-font-size-ui);
+  line-height: var(--dragon-ui-line-height-ui);
+  color: var(--color-foreground);
+}
+
+/* Sidebar bot names and middle session/agent names must match (Grok 16px).
+   Hermes paints chips as text-[0.8125rem] (13px) and menu-button at 14px;
+   Personal Assistant then looks smaller than Dragon AI Tester. */
+[data-slot="bots-roster"] [data-roster-key],
+[data-slot="bots-roster"] [data-roster-key] span,
+[data-roster-key] span,
+[data-sidebar="menu-button"],
+[data-sidebar="menu-button"] span,
+[data-slot="sidebar-menu-button"],
+[data-slot="sidebar-menu-button"] span,
+[role="dialog"] span[class*="truncate"],
+[role="dialog"] span.font-medium,
+[role="listbox"] span,
+[role="option"],
+[role="option"] span,
+span[class*="text-[0.8125rem]"].font-medium,
+span[class*="text-[0.8125rem]"][class*="truncate"] {
+  font-size: var(--dragon-ui-font-size-body) !important;
+  line-height: var(--dragon-ui-line-height-body);
+}
+
+[data-sidebar="group-label"] {
+  font-size: var(--dragon-ui-font-size-caption);
+  line-height: var(--dragon-ui-line-height-ui);
+  color: var(--color-muted-foreground);
+}
+
+[data-slot="aui_thread-content"],
+[data-slot="aui_assistant-message-content"],
+[data-slot="aui_user-message-root"],
+[data-slot="aui_system-message-root"],
+[data-slot="composer-rich-input"] {
+  --conversation-text-font-size: var(--dragon-ui-font-size-body);
+  --conversation-line-height: var(--dragon-ui-line-height-body);
+  font-size: var(--dragon-ui-font-size-body);
+  line-height: var(--dragon-ui-line-height-body);
+  color: var(--color-foreground);
+}
+
 textarea,
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
 [contenteditable="true"],
 [role="textbox"] {
   font-family: var(--dragon-ui-font);
+  font-size: var(--dragon-ui-font-size-body);
+  line-height: var(--dragon-ui-line-height-body);
+  color: var(--color-foreground);
 }
 
 textarea::placeholder,
@@ -569,9 +714,81 @@ input::placeholder {
 textarea:focus-visible,
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus-visible,
 [contenteditable="true"]:focus-visible,
-[role="textbox"]:focus-visible {
+[role="textbox"]:focus-visible,
+[data-dragon-voice-option]:focus-visible,
+[data-dragon-grok-talk]:focus-visible {
   outline: 2px solid var(--color-ring);
   outline-offset: 2px;
+}
+
+/* GPT | Grok voice selector — Grok is additive; GPT stays. */
+[data-dragon-voice-provider] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 4px 0;
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-dragon-voice-legend] {
+  color: var(--color-muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+[data-dragon-voice-option] {
+  box-sizing: border-box;
+  min-width: 44px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-card);
+  color: var(--color-foreground);
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+[data-dragon-voice-option][aria-checked="true"] {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+[data-dragon-grok-talk] {
+  box-sizing: border-box;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--color-primary);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-primary);
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+[data-dragon-grok-talk][aria-pressed="true"] {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+[data-dragon-grok-talk][hidden] {
+  display: none;
+}
+
+[data-dragon-voice-status] {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--color-muted-foreground);
+  font-size: 0.75rem;
 }
 
 @media (prefers-reduced-motion: reduce) {

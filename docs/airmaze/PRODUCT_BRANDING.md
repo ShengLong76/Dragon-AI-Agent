@@ -15,17 +15,17 @@ PR #3 / #7 already overlay empty-state copy, Syne, the navy mark, and a CSS hide
 ## Mark and name
 
 - **In-app mark:** the existing navy coiled dragon (`branding/dragon-ai-agent-logo.png`). No new logo. Empty-state and sidebar header stay navy / unboxed.
-- **Windows ICO:** the circular Dragon badge James attached (same bytes as `installer/winres/icon.ico`). That is the Setup.exe icon and the asset for taskbar / Start Menu / `Hermes.exe` stamp. Do not invent a third mark.
+- **Windows ICO:** the circular Dragon badge James attached (`installer/winres/icon-source.png` → contain-max `installer/winres/icon.ico`). That is the Setup.exe icon and the asset for taskbar / Start Menu / `Hermes.exe` stamp. Do not invent a third mark. Do not pick a fixed display pixel size — contain-max the dragon into the Windows slot (`docs/airmaze/TRAY_ICON.md`).
 - **Name in the rail:** **Dragon AI** (fits the 16rem sidebar). Accessible name **Dragon AI Agent** (matches empty-state / settings copy).
-- **Type:** Syne 700, foreground `#F0F0F5` on `#1C1C20` (≥4.5:1). Logo beside the name is decorative (`aria-hidden="true"`), the transparent SVG mark (no red border, no plate), height matched to the Teams Marketplace button (fixed 32px) at full width. The Marketplace control sits under the logo; the mark does not shrink.
+- **Type:** Syne 700, foreground `#F0F0F5` on `#1C1C20` (≥4.5:1). Sidebar / chat / Teams Marketplace overlay type matches Grok Bot: **16px** body, **14px** chrome, muted `#C4C4CE` (not Hermes 13px / 54% grey). Logo beside the name is decorative (`aria-hidden="true"`), the transparent SVG mark (no red border, no plate), height matched to the Teams Marketplace button (fixed 32px). The Marketplace control sits under the logo. Host fallback: `docs/airmaze/SIDEBAR_HOST.md`.
 
 UI UX Pro Max: decorative-beside-text (`aria-hidden`); Color Contrast (High). No verified “sidebar brand lockup” row — general guidance only: keep the lockup out of the SESSIONS / BOTS tab hit targets.
 
 ## 1) Sidebar header
 
-Upstream chrome: `data-slot="sidebar-header"` on the left rail, then the SESSIONS | BOTS strip. The header slot is empty.
+Upstream chrome *defined* `data-slot="sidebar-header"` / `sidebar-inner`. Live UltraDragon Hermes does not paint those — only `sidebar-wrapper`, and that node is the full app shell.
 
-**Do:** at overlay time, inject a brand lockup into that header (CSS + a small script in the unpacked `index.html` / `dragon-ai-branding/` pack). First child of `[data-slot="sidebar-header"]` when that node exists; otherwise prepend inside `[data-slot="sidebar-inner"]` above the tab strip.
+**Do:** at overlay time, inject a brand lockup (CSS + `sidebar-header.js` / `teams-picker.js`). Try column hosts first (`sidebar-header`, `sidebar-inner`, `sidebar-container`, `sidebar`). If those are absent, mount a body overlay `[data-dragon-ai-sidebar-fixed]` **below** the Sessions / Bots strip so those tabs stay visible and clickable. Do **not** treat `sidebar-wrapper` as a column. Design: `docs/airmaze/SIDEBAR_HOST.md`.
 
 Do not cover SESSIONS / BOTS. Do not restyle Bot Screen.
 
@@ -89,7 +89,7 @@ Built-in Teams Marketplace (one click): **Real Estate Lead Gen**, **Marketing Te
 
 **Do (packaging overlay; no Electron rebuild):**
 
-1. Inject a **Teams Marketplace** button + dialog into the unpacked desktop client (`desktop_branding.py` / `dragon-ui.css`). The control sits under the 32px logo; the panel is black and opens with a fade + slight slide/scale.
+1. Inject a **Teams Marketplace** button + dialog into the unpacked desktop client (`desktop_branding.py` / `dragon-ui.css`). The user-visible control label is **Teams Marketplace** (not “Teams”). The control sits under the 32px logo; the panel is black and opens with a fade + slight slide/scale.
 2. Loopback helper `teams_picker.py` on `127.0.0.1:8653` (`GET /api/teams`, `POST /api/teams/apply`, `POST /api/teams/import`). Not Bot Screen `:8650`.
 3. Launch starts the helper (`start-embedded.ps1`). First-run wizard has **Teams Marketplace**. `Select-BotGroup.ps1` window title is **Teams Marketplace**; Import file remains.
 4. Helper always unions the bundled catalog so Marketing / Trading show even if GitHub is stale.

@@ -51,6 +51,8 @@ REQUIRED_LAUNCHER = (
     "Exclude-DragonAIHermesBots",
     "teams_picker",
     "8653",
+    "voice_chat",
+    "8654",
 )
 
 REQUIRED_FINDER = (
@@ -251,6 +253,11 @@ def main() -> int:
         proc = subprocess.run([sys.executable, str(branding_test)], cwd=str(ROOT))
         if proc.returncode != 0:
             fail("Test-DesktopBranding.py failed")
+    tray_test = ROOT / "scripts" / "airmaze" / "Test-TrayIcon.py"
+    if tray_test.is_file():
+        proc = subprocess.run([sys.executable, str(tray_test)], cwd=str(ROOT))
+        if proc.returncode != 0:
+            fail("Test-TrayIcon.py failed")
     bot_groups_test = ROOT / "scripts" / "airmaze" / "Test-BotGroups.py"
     if bot_groups_test.is_file():
         proc = subprocess.run([sys.executable, str(bot_groups_test)], cwd=str(ROOT))

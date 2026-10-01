@@ -189,21 +189,33 @@ def test_apply_files_named_section(tp) -> None:
 
 def test_overlay_and_launch_wired() -> None:
     branding = read(BRANDING_PY)
+    picker_js = read(ROOT / "branding" / "fonts" / "syne" / "teams-picker.js")
     if "teams-picker" not in branding and "dragon-ai-teams" not in branding:
         fail("desktop overlay must inject the Teams picker into the desktop client")
-    if "Personal Assistant is already installed" not in branding:
+    if "Personal Assistant is already installed" not in picker_js:
         fail("Teams dialog must say Personal Assistant is already installed")
-    if 'textContent="Teams Marketplace"' not in branding:
-        fail("sidebar control must be labeled Teams Marketplace")
-    if 'aria-label="Teams Marketplace"' not in branding and 'setAttribute("aria-label","Teams Marketplace")' not in branding:
-        fail("Teams dialog aria-label must be Teams Marketplace")
-    if "<h2>Teams Marketplace</h2>" not in branding:
+    if "Teams Marketplace" not in picker_js:
+        fail("user-visible control label must be Teams Marketplace")
+    if 'textContent = "Teams"' in picker_js or 'textContent="Teams"' in picker_js:
+        fail("sidebar control must not be labeled Teams (use Teams Marketplace)")
+    if "<h2>Teams Marketplace</h2>" not in picker_js:
         fail("Teams dialog title must be Teams Marketplace")
-    if "data-dragon-ai-teams-visible" not in branding:
+    if "data-dragon-ai-teams-visible" not in picker_js:
         fail("open/close must toggle data-dragon-ai-teams-visible (not hidden-only)")
-    if "setTimeout" not in branding:
+    if "setTimeout" not in picker_js:
         fail("close must finish with a timeout, not transitionend-only")
-    if "finishApply" not in branding or "location.reload" not in branding:
+    if "findColumnHost" not in picker_js or "data-dragon-ai-sidebar-fixed" not in picker_js:
+        fail("Teams Marketplace must try column hosts then the body fixed overlay")
+    if "findBotsTab" not in picker_js or "data-dragon-ai-sidebar-clearance" not in picker_js:
+        fail("fixed overlay must reserve clearance so the BOTS tab stays clickable")
+    picker_compact = picker_js.replace(" ", "")
+    if "vartop=96" not in picker_compact or "return96" not in picker_compact:
+        fail("Teams Marketplace overlay must default to 96px clearance (not cover BOTS)")
+    if "vartop=48" in picker_compact or "return48" in picker_compact:
+        fail("Teams Marketplace overlay must not use 48px (covers BOTS)")
+    if 'data-slot="sidebar-wrapper"' in picker_js:
+        fail("Teams Marketplace must not treat sidebar-wrapper as a column host")
+    if "finishApply" not in picker_js or "location.reload" not in picker_js:
         fail("after apply the Teams dialog must close and reload the bot roster")
     css = read(CSS)
     if "[data-dragon-ai-teams-panel]" not in css or "Teams Marketplace" not in css:
@@ -213,9 +225,11 @@ def test_overlay_and_launch_wired() -> None:
     if "must not cover BOTS" not in css:
         fail("Marketplace lockup must not cover BOTS")
     if "--dragon-ui-font-size-body: 16px" not in css:
-        fail("Marketplace chrome must use the 16px body token")
+        fail("Teams overlay must share the 16px Grok Bot body size")
     if "font-size: var(--dragon-ui-font-size-body)" not in css:
-        fail("Marketplace control must use the 16px body token")
+        fail("Teams list rows must use the 16px body token, not 0.8125rem")
+    if "font-size: 0.8125rem" in css:
+        fail("Teams picker CSS must not keep Hermes 13px captions")
     if "background: #000" not in css.split("[data-dragon-ai-teams-panel] {", 1)[-1].split("}", 1)[0]:
         fail("marketplace panel must use a black background")
     if "opacity" not in css.split("[data-dragon-ai-teams-panel] {", 1)[-1]:
@@ -255,22 +269,24 @@ def test_overlay_and_launch_wired() -> None:
         if "teams_picker.py" not in text:
             fail(f"{path.name} must install teams_picker.py")
     product = read(PRODUCT)
-    if "Teams" not in product or "8653" not in product:
-        fail("PRODUCT_BRANDING.md must describe the in-app Teams picker")
+    if "Teams Marketplace" not in product or "8653" not in product:
+        fail("PRODUCT_BRANDING.md must describe the in-app Teams Marketplace picker")
     if "descriptionDetail" not in product and "hover" not in product.lower():
         fail("PRODUCT_BRANDING.md must mention seat brief + hover detail")
-    branding = read(BRANDING_PY)
-    if "data-dragon-ai-team-seats" not in branding:
+    host_note = ROOT / "docs" / "airmaze" / "SIDEBAR_HOST.md"
+    if not host_note.is_file() or "data-dragon-ai-sidebar-fixed" not in read(host_note):
+        fail("SIDEBAR_HOST.md must describe the body fixed-overlay fallback")
+    if "data-dragon-ai-team-seats" not in picker_js:
         fail("Teams overlay must list seats under each team name")
-    if "descriptionDetail" not in branding:
+    if "descriptionDetail" not in picker_js:
         fail("Teams overlay must render descriptionDetail on hover/focus")
-    if "data-dragon-ai-seat-tooltip" not in branding:
+    if "data-dragon-ai-seat-tooltip" not in picker_js:
         fail("Teams overlay must pop a tooltip for seat detail")
-    if 'setAttribute("role","tooltip")' not in branding and 'role="tooltip"' not in branding:
+    if 'setAttribute("role", "tooltip")' not in picker_js and 'role="tooltip"' not in picker_js:
         fail("Teams overlay must mark seat detail as role=tooltip")
-    if "data-dragon-ai-team-apply" not in branding:
+    if "data-dragon-ai-team-apply" not in picker_js:
         fail("Apply must stay on the team row, not a seat")
-    if "createElement(\"li\")" not in branding and "createElement('li')" not in branding:
+    if 'createElement("li")' not in picker_js and "createElement('li')" not in picker_js:
         fail("seat rows must be list items, not nested buttons")
     css = read(CSS)
     if "[data-dragon-ai-seat-tooltip]" not in css:
@@ -289,16 +305,18 @@ def test_overlay_and_launch_wired() -> None:
         fail("seat cards must use layered shadows for elevation")
     if "border-radius: 12px" not in css:
         fail("seat/team cards must share a 12px corner radius")
-    if "data-dragon-ai-seat-icon" not in branding:
+    if "data-dragon-ai-seat-icon" not in picker_js:
         fail("Teams overlay must place a seat icon beside the title/brief")
-    if "aria-hidden" not in branding:
+    if "aria-hidden" not in picker_js:
         fail("seat icons beside visible text must be aria-hidden")
-    if "dragon-ai-branding/teams/" not in branding:
+    if "dragon-ai-branding/teams/" not in picker_js:
         fail("seat icons must load from the overlay branding pack")
     if "[data-dragon-ai-seat-icon]" not in css:
         fail("dragon-ui.css must size the seat icon beside the copy")
     if "display: flex" not in seat_card[1].split("}", 1)[0]:
         fail("seat cards must flex icon left of title/brief")
+    if "@media (max-width: 1100px)" not in css:
+        fail("dragon-ui.css must wrap the overlay Marketplace control at max-width 1100px")
     icons_dir = ROOT / "branding" / "teams"
     if not (icons_dir / "seat.svg").is_file():
         fail("branding/teams/seat.svg fallback must exist")

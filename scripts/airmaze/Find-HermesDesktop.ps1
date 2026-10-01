@@ -313,7 +313,8 @@ function Apply-DragonAIDesktopUiBranding {
             return $true
         }
     } catch {
-        return $false
+        Write-Warning "Dragon AI Agent UI overlay failed: $($_.Exception.Message)"
+        throw
     }
     return $false
 }
@@ -324,8 +325,13 @@ function Start-HermesDesktopClient {
     )
     $wd = Split-Path -Parent $ExePath
     # Overlay empty-state / composer / settings copy before the window opens.
+    # PowerShell copies dragon-ui.css + inject even when python3 is not on PATH.
     Exclude-DragonAIHermesBots | Out-Null
-    Apply-DragonAIDesktopUiBranding -ExePath $ExePath | Out-Null
+    try {
+        Apply-DragonAIDesktopUiBranding -ExePath $ExePath | Out-Null
+    } catch {
+        Write-Warning "Dragon AI Agent UI overlay did not update unpacked dist: $($_.Exception.Message)"
+    }
     try {
         $picker = Join-Path $PSScriptRoot "teams_picker.py"
         $py = Get-Command python3 -ErrorAction SilentlyContinue
@@ -338,6 +344,14 @@ function Start-HermesDesktopClient {
                 $picker, "serve", "--payload", $install, "--install", $install,
                 "--desktop", $desktop, "--embedded", $embedded,
                 "--host", "127.0.0.1", "--port", "8653"
+            ) -WindowStyle Hidden -ErrorAction SilentlyContinue | Out-Null
+        }
+        $voice = Join-Path $PSScriptRoot "voice_chat.py"
+        $voiceHome = Join-Path $env:USERPROFILE ".hermes-airmaze-embedded"
+        if ($py -and (Test-Path -LiteralPath $voice)) {
+            Start-Process -FilePath $py.Source -ArgumentList @(
+                $voice, "serve", "--home", $voiceHome,
+                "--host", "127.0.0.1", "--port", "8654"
             ) -WindowStyle Hidden -ErrorAction SilentlyContinue | Out-Null
         }
     } catch {}
