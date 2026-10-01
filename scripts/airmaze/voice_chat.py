@@ -5,21 +5,20 @@ Upstream Hermes voice chat is ``voice.voice_chat_mode: chained | gpt-live``.
 ``gpt-live`` is the existing OpenAI GPT voice path (``gpt-live-1``). This
 module ADDS Grok voice beside it. It never removes or replaces GPT.
 
-Grok uses documented xAI Voice APIs (not invented):
+Grok full duplex uses documented xAI Voice APIs (not invented):
 
-* TTS  POST https://api.x.ai/v1/tts
-* STT  POST https://api.x.ai/v1/stt  (model grok-voice-transcribe-2.0)
-* STS  wss://api.x.ai/v1/realtime?model=grok-voice-latest
-* Token POST https://api.x.ai/v1/realtime/client_secrets
+    * STS  wss://api.x.ai/v1/realtime?model=grok-voice-latest
+    * Token POST https://api.x.ai/v1/realtime/client_secrets
+    * TTS  POST https://api.x.ai/v1/tts  (unary fallback)
+    * STT  POST https://api.x.ai/v1/stt  (model grok-voice-transcribe-2.0)
 
-Auth reuses ``XAI_API_KEY`` / the machine's existing xAI Grok login.
-Nothing secret is written into config.yaml.
+The Electron overlay hosts Grok duplex (Talk with Grok). This helper mints
+the ephemeral token so the renderer never sees ``XAI_API_KEY``. Selecting
+Grok still writes ``voice_chat_mode: chained`` because Hermes rejects
+``grok-live`` today — that keeps native gpt-live from starting at the same
+time. Unary xAI STT/TTS stay as fallback if the helper/key is missing.
 
-Upstream ``voice_chat_mode`` only accepts ``chained`` | ``gpt-live``. Selecting
-Grok therefore writes chained + ``stt.provider: xai`` + ``tts.provider: xai``
-(Hermes already ships those providers) and keeps ``voice.grok_live`` for a
-future full-duplex wire-up. Selecting GPT writes ``gpt-live`` and leaves the
-Grok/xAI blocks in place so both options remain.
+Selecting GPT writes ``gpt-live`` and leaves the Grok/xAI blocks in place.
 
 Stdlib only. Loopback helper binds 127.0.0.1:8654 (not Bot Screen :8650,
 not Teams :8653).
@@ -62,6 +61,10 @@ XAI_STT_MODEL = "grok-voice-transcribe-2.0"
 XAI_VOICE_MODEL = "grok-voice-latest"
 XAI_DEFAULT_VOICE = "eve"
 XAI_DEFAULT_LANGUAGE = "en"
+XAI_PCM_RATE = 24000
+XAI_AUDIO_FORMAT = {"type": "audio/pcm", "rate": XAI_PCM_RATE}
+XAI_WS_PROTOCOL_PREFIX = "xai-client-secret."
+GROK_LIVE_MODE = "grok-live"
 
 # Official OpenAI GPT-Live — Hermes tools/voice_live.py
 OPENAI_LIVE_BASE = "https://api.openai.com/v1"
@@ -101,8 +104,10 @@ PROVIDERS: list[dict[str, Any]] = [
         "label": "Grok",
         "title": "Grok voice",
         "vendor": "xai",
-        "kind": "stt-tts-and-realtime",
+        "kind": "full-duplex",
         "voiceChatMode": CHAINED_MODE,
+        "targetVoiceChatMode": GROK_LIVE_MODE,
+        "duplexHost": "overlay",
         "model": XAI_VOICE_MODEL,
         "sttModel": XAI_STT_MODEL,
         "voice": XAI_DEFAULT_VOICE,
@@ -115,16 +120,29 @@ PROVIDERS: list[dict[str, Any]] = [
             "realtime": f"{XAI_REALTIME_URL}?model={XAI_VOICE_MODEL}",
             "clientSecrets": XAI_CLIENT_SECRETS_URL,
         },
-        "docs": DOCS["voice"],
+        "duplex": {
+            "realtime": f"{XAI_REALTIME_URL}?model={XAI_VOICE_MODEL}",
+            "clientSecrets": XAI_CLIENT_SECRETS_URL,
+            "wsProtocolPrefix": XAI_WS_PROTOCOL_PREFIX,
+            "turnDetection": {"type": "server_vad"},
+            "audio": {
+                "input": {"format": dict(XAI_AUDIO_FORMAT)},
+                "output": {"format": dict(XAI_AUDIO_FORMAT)},
+            },
+        },
+        "docs": DOCS["sts"],
         "notes": (
-            "xAI Grok Voice. Chained STT/TTS works on current Hermes "
-            "(stt.provider=xai, tts.provider=xai). Full-duplex grok-voice-latest "
-            "needs an ephemeral token for the renderer."
+            "xAI Grok Voice full duplex (grok-voice-latest). Overlay Talk with "
+            "Grok mints POST /v1/realtime/client_secrets and opens the documented "
+            "WebSocket. Hermes voice_chat_mode stays chained so native gpt-live "
+            "does not also start. Unary STT/TTS remain fallback if the helper "
+            "or key is missing."
         ),
         "upstreamLimitation": (
-            "Hermes voice.voice_chat_mode only accepts chained|gpt-live. "
-            "Grok selection therefore uses chained + xAI STT/TTS and stores "
-            "voice.grok_live for a later grok-live engine."
+            "Hermes voice.voice_chat_mode only accepts chained|gpt-live "
+            "(methods_config_set.py). voice-live.ts / tools/voice_live.py must "
+            "accept grok-live beside gpt-live before this package can write "
+            "voice_chat_mode: grok-live. Until then the Electron overlay hosts duplex."
         ),
     },
 ]
@@ -225,7 +243,12 @@ def voice_blocks_for(provider_id: str, parsed: dict[str, Any]) -> dict[str, dict
         _as_map(existing_voice.get("gpt_live")),
     )
     grok_live = _merge_keep(
-        {"model": XAI_VOICE_MODEL, "voice": XAI_DEFAULT_VOICE},
+        {
+            "model": XAI_VOICE_MODEL,
+            "voice": XAI_DEFAULT_VOICE,
+            "duplex": True,
+            "realtime": realtime_session_url(),
+        },
         _as_map(existing_voice.get("grok_live")),
     )
     voice = _merge_keep(
@@ -289,6 +312,8 @@ def apply_voice_provider(home: Path | str, provider_id: str) -> dict[str, Any]:
         "keptGrokLive": bool(gm._nested_get(final, "voice", "grok_live")),
         "sttProvider": str(gm._nested_get(final, "stt", "provider") or ""),
         "ttsProvider": str(gm._nested_get(final, "tts", "provider") or ""),
+        "duplexHost": "overlay" if choice["id"] == PROVIDER_GROK else "hermes-gpt-live",
+        "targetVoiceChatMode": choice.get("targetVoiceChatMode") or choice["voiceChatMode"],
     }
 
 
@@ -326,13 +351,23 @@ def realtime_session_url(model: str = XAI_VOICE_MODEL) -> str:
 
 
 def realtime_session_update(voice: str = XAI_DEFAULT_VOICE, instructions: str = "") -> dict[str, Any]:
+    """Official STS session.update — docs.x.ai speech-to-speech defaults."""
     session: dict[str, Any] = {
         "voice": voice or XAI_DEFAULT_VOICE,
         "turn_detection": {"type": "server_vad"},
+        "audio": {
+            "input": {"format": dict(XAI_AUDIO_FORMAT)},
+            "output": {"format": dict(XAI_AUDIO_FORMAT)},
+        },
     }
     if str(instructions or "").strip():
         session["instructions"] = str(instructions).strip()
     return {"type": "session.update", "session": session}
+
+
+def input_audio_buffer_append(audio_b64: str) -> dict[str, Any]:
+    """Official JSON transport: base64 PCM in input_audio_buffer.append."""
+    return {"type": "input_audio_buffer.append", "audio": str(audio_b64 or "")}
 
 
 def client_secrets_request(expires_seconds: int = 300) -> dict[str, Any]:
@@ -369,12 +404,24 @@ def resolve_xai_api_key(home: Path | str | None = None) -> str:
     return read_dotenv_key(default_embedded_home(), "XAI_API_KEY")
 
 
+def _ephemeral_value(payload: Any) -> str:
+    if not isinstance(payload, dict):
+        return ""
+    raw = payload.get("value")
+    if raw:
+        return str(raw)
+    token = payload.get("token")
+    if isinstance(token, dict) and token.get("value"):
+        return str(token["value"])
+    return ""
+
+
 def mint_ephemeral_token(
     api_key: str | None = None,
     home: Path | str | None = None,
     opener: Any = None,
 ) -> dict[str, Any]:
-    """POST /v1/realtime/client_secrets. Returns the vendor body, never the API key."""
+    """POST /v1/realtime/client_secrets. Returns value + realtime URL, never the API key."""
     key = str(api_key or resolve_xai_api_key(home)).strip()
     if not key:
         return {
@@ -382,6 +429,8 @@ def mint_ephemeral_token(
             "error": "missing_xai_key",
             "message": "Set XAI_API_KEY or keep the existing xAI Grok login. Do not paste a key into the desktop UI.",
             "docs": DOCS["ephemeral"],
+            "realtimeUrl": realtime_session_url(),
+            "session": realtime_session_update(),
         }
     spec = client_secrets_request()
     body = json.dumps(spec["json"]).encode("utf-8")
@@ -400,10 +449,34 @@ def mint_ephemeral_token(
         return {"ok": False, "error": f"http_{exc.code}", "message": detail, "docs": DOCS["ephemeral"]}
     except (OSError, json.JSONDecodeError, TimeoutError) as exc:
         return {"ok": False, "error": type(exc).__name__, "message": str(exc), "docs": DOCS["ephemeral"]}
+    if not isinstance(payload, dict):
+        return {
+            "ok": False,
+            "error": "invalid_token_body",
+            "message": "xAI client_secrets response was not an object.",
+            "docs": DOCS["ephemeral"],
+        }
     dumped = json.dumps(payload)
     if key and key in dumped:
         payload = {k: v for k, v in payload.items() if v != key}
-    return {"ok": True, "docs": DOCS["ephemeral"], "token": payload}
+    value = _ephemeral_value(payload)
+    if not value:
+        return {
+            "ok": False,
+            "error": "missing_token_value",
+            "message": "xAI client_secrets response had no value field.",
+            "docs": DOCS["ephemeral"],
+        }
+    return {
+        "ok": True,
+        "value": value,
+        "expires_at": payload.get("expires_at"),
+        "token": payload,
+        "realtimeUrl": realtime_session_url(),
+        "session": realtime_session_update(),
+        "wsProtocolPrefix": XAI_WS_PROTOCOL_PREFIX,
+        "docs": DOCS["ephemeral"],
+    }
 
 
 def selection_payload(home: Path | str) -> dict[str, Any]:
@@ -522,9 +595,28 @@ def self_test() -> int:
     if "grok-voice-latest" not in realtime_session_url():
         print("self-test: realtime URL must name grok-voice-latest", file=sys.stderr)
         return 1
+    update = realtime_session_update()
+    audio = (update.get("session") or {}).get("audio") or {}
+    if (audio.get("input") or {}).get("format") != XAI_AUDIO_FORMAT:
+        print(f"self-test: session.update must use official PCM 24000: {update}", file=sys.stderr)
+        return 1
+    if (update.get("session") or {}).get("turn_detection") != {"type": "server_vad"}:
+        print(f"self-test: session.update must use server_vad: {update}", file=sys.stderr)
+        return 1
+    append = input_audio_buffer_append("Zg==")
+    if append != {"type": "input_audio_buffer.append", "audio": "Zg=="}:
+        print(f"self-test: input_audio_buffer.append drifted: {append}", file=sys.stderr)
+        return 1
+    grok = next(row for row in provider_catalog() if row["id"] == PROVIDER_GROK)
+    if grok.get("kind") != "full-duplex" or grok.get("duplexHost") != "overlay":
+        print(f"self-test: Grok catalog must be overlay full-duplex, got {grok}", file=sys.stderr)
+        return 1
     secrets = client_secrets_request()
-    if secrets["url"] != XAI_CLIENT_SECRETS_URL or "expires_after" not in secrets["json"]:
+    if secrets["url"] != XAI_CLIENT_SECRETS_URL or secrets["json"] != {"expires_after": {"seconds": 300}}:
         print(f"self-test: client_secrets spec drifted: {secrets}", file=sys.stderr)
+        return 1
+    if "session" in secrets["json"]:
+        print("self-test: client_secrets must not send unsupported session field", file=sys.stderr)
         return 1
     try:
         _lookup("nope")

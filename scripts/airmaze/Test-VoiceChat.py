@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Tests first: GPT voice stays; Grok voice is a second selectable option.
+"""Tests first: GPT voice stays; Grok is overlay full-duplex beside it.
 
-James: do not replace GPT voice. Add Grok (xAI STT/TTS + grok-voice-latest)
-beside it. Endpoints must match public xAI docs — no invented URLs.
-No secrets. Safe on Linux CI.
+James: ChatGPT voice is duplex. Grok must feel the same via official
+wss://api.x.ai/v1/realtime?model=grok-voice-latest — not only chained
+STT→LLM→TTS. Endpoints must match public xAI docs. No secrets. Safe on Linux CI.
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ APPLY = SCRIPTS / "Apply-VoiceChat.ps1"
 BRANDING = SCRIPTS / "desktop_branding.py"
 TABLE = SCRIPTS / "desktop_branding.json"
 CSS = ROOT / "branding" / "fonts" / "syne" / "dragon-ui.css"
+VOICE_JS = ROOT / "branding" / "voice" / "dragon-voice-selector.js"
 LAUNCHER = SCRIPTS / "start-embedded.ps1"
 FINDER = SCRIPTS / "Find-HermesDesktop.ps1"
 INSTALL = SCRIPTS / "install.ps1"
@@ -106,7 +107,18 @@ def test_catalog_keeps_both(vc) -> None:
         fail("STT model must be grok-voice-transcribe-2.0")
     if grok["voice"] != "eve":
         fail("default Grok voice_id must be eve")
-    print("OK  catalog keeps GPT and adds documented Grok endpoints")
+    if grok.get("kind") != "full-duplex":
+        fail("Grok catalog kind must be full-duplex, not chained-only")
+    if grok.get("duplexHost") != "overlay":
+        fail("this repo hosts Grok duplex in the Electron overlay")
+    if grok.get("targetVoiceChatMode") != "grok-live":
+        fail("catalog must name the Hermes leftover target grok-live")
+    duplex = grok.get("duplex") or {}
+    if duplex.get("wsProtocolPrefix") != "xai-client-secret.":
+        fail("browser WS must use official xai-client-secret. prefix")
+    if (duplex.get("audio") or {}).get("input") != {"format": {"type": "audio/pcm", "rate": 24000}}:
+        fail(f"duplex audio must match official PCM 24000, got {duplex}")
+    print("OK  catalog keeps GPT and adds documented Grok duplex endpoints")
 
 
 def test_request_builders_match_docs(vc) -> None:
@@ -129,6 +141,15 @@ def test_request_builders_match_docs(vc) -> None:
     update = vc.realtime_session_update("eve", "You are Dragon AI.")
     if update["type"] != "session.update" or update["session"]["voice"] != "eve":
         fail(f"realtime session.update drifted: {update}")
+    if update["session"]["turn_detection"] != {"type": "server_vad"}:
+        fail(f"session.update must use official server_vad: {update}")
+    if update["session"]["audio"]["input"]["format"] != {"type": "audio/pcm", "rate": 24000}:
+        fail(f"session.update input must be official audio/pcm 24000: {update}")
+    if update["session"]["audio"]["output"]["format"] != {"type": "audio/pcm", "rate": 24000}:
+        fail(f"session.update output must be official audio/pcm 24000: {update}")
+    append = vc.input_audio_buffer_append("Zg==")
+    if append != {"type": "input_audio_buffer.append", "audio": "Zg=="}:
+        fail(f"input_audio_buffer.append drifted: {append}")
     print("OK  request builders match public xAI Voice docs")
 
 
@@ -156,7 +177,14 @@ def test_apply_does_not_replace_gpt(vc) -> None:
         if voice.get("selected_provider") != "grok":
             fail("Grok select must record selected_provider grok")
         if voice.get("voice_chat_mode") != "chained":
-            fail("Grok select uses chained until Hermes accepts grok-live")
+            fail("Grok select writes chained until Hermes accepts grok-live")
+        grok_live = voice.get("grok_live") or {}
+        if str(grok_live.get("duplex")).lower() not in {"true", "1"}:
+            fail("Grok select must record grok_live.duplex so overlay hosts STS")
+        if "grok-voice-latest" not in str(grok_live.get("realtime") or ""):
+            fail("grok_live.realtime must name grok-voice-latest")
+        if grok.get("duplexHost") != "overlay":
+            fail("apply must report overlay as the Grok duplex host")
         if (data.get("stt") or {}).get("provider") != "xai":
             fail("Grok select must set stt.provider xai")
         if (data.get("tts") or {}).get("provider") != "xai":
@@ -198,6 +226,40 @@ def test_no_invented_endpoints(vc) -> None:
     print("OK  no invented Grok endpoints")
 
 
+def test_ephemeral_token_shape(vc) -> None:
+    missing = vc.mint_ephemeral_token(api_key="")
+    if missing.get("ok") is not False or missing.get("error") != "missing_xai_key":
+        fail(f"missing key must fail closed: {missing}")
+    if missing.get("realtimeUrl") != "wss://api.x.ai/v1/realtime?model=grok-voice-latest":
+        fail("missing-key payload must still name the official realtime URL")
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return json.dumps({"value": "tok_test", "expires_at": 99}).encode("utf-8")
+
+    def opener(req, timeout=20):
+        if getattr(req, "full_url", "") != OFFICIAL["secrets"] and req.get_full_url() != OFFICIAL["secrets"]:
+            fail(f"ephemeral must POST official client_secrets, got {req.full_url}")
+        return _Resp()
+
+    minted = vc.mint_ephemeral_token(api_key="sk-test-not-real", opener=opener)
+    if minted.get("ok") is not True or minted.get("value") != "tok_test":
+        fail(f"mint must surface vendor value: {minted}")
+    if minted.get("realtimeUrl") != "wss://api.x.ai/v1/realtime?model=grok-voice-latest":
+        fail(f"mint must return official realtime URL: {minted}")
+    if minted.get("session", {}).get("type") != "session.update":
+        fail("mint must include official session.update for the overlay")
+    if "sk-test-not-real" in json.dumps(minted):
+        fail("mint must never echo the API key")
+    print("OK  ephemeral token returns value + realtimeUrl, never the API key")
+
+
 def test_overlay_selector_coexists(vc) -> None:
     sys.path.insert(0, str(SCRIPTS))
     import desktop_branding as db  # noqa: WPS433
@@ -213,6 +275,19 @@ def test_overlay_selector_coexists(vc) -> None:
         fail("overlay must call the voice helper on :8654")
     if "8650" in script:
         fail("voice helper must not collide with Bot Screen :8650")
+    if "Talk with Grok" not in script:
+        fail("overlay must expose Talk with Grok for duplex")
+    if "xai-client-secret." not in script:
+        fail("overlay must authenticate the browser WS with xai-client-secret.")
+    if "input_audio_buffer.append" not in script:
+        fail("overlay must stream mic via official input_audio_buffer.append")
+    if "wss://api.x.ai/v1/realtime?model=grok-voice-latest" not in script:
+        fail("overlay must target official grok-voice-latest realtime")
+    if "/api/voice/ephemeral" not in script:
+        fail("overlay must mint the token through the helper, not with XAI_API_KEY")
+    js = read(VOICE_JS)
+    if "Talk with Grok" not in js or "xai-client-secret." not in js:
+        fail("branding/voice/dragon-voice-selector.js must host duplex")
     html = "<html><head></head><body></body></html>"
     once, changed = db.inject_html_branding(html)
     twice, changed2 = db.inject_html_branding(once)
@@ -227,6 +302,8 @@ def test_overlay_selector_coexists(vc) -> None:
         fail("dragon-ui.css must style the voice provider control")
     if "aria-checked" not in css and "[aria-checked=" not in css:
         fail("voice selector CSS must style the selected option")
+    if "[data-dragon-grok-talk]" not in css:
+        fail("dragon-ui.css must style Talk with Grok")
     table = json.loads(read(TABLE))
     voice = table.get("voice") or {}
     if voice.get("options") != ["gpt", "grok"]:
@@ -246,11 +323,19 @@ def test_docs_and_packaging(vc) -> None:
         "https://api.x.ai/v1/stt",
         "grok-voice-latest",
         "gpt-live",
+        "grok-live",
         "do not replace",
         "OPENAI_API_KEY",
+        "full-duplex",
+        "Talk with Grok",
+        "xai-client-secret",
+        "voice-live.ts",
+        "voice_live.py",
     ):
         if needle.lower() not in docs.lower() and needle not in docs:
             fail(f"VOICE.md must document {needle!r}")
+    if "ready-to-paste" not in docs.lower() and "follow-up prompt" not in docs.lower():
+        fail("VOICE.md must include the ready-to-paste Hermes follow-up prompt")
     if "invent" in docs.lower() and "do not invent" not in docs.lower():
         pass
     guide = read(SETUP_GUIDE)
@@ -279,6 +364,8 @@ def test_docs_and_packaging(vc) -> None:
             fail(f"{path.name} must install voice_chat.py and VOICE.md")
         if "Apply-VoiceChat.ps1" not in text:
             fail(f"{path.name} must install Apply-VoiceChat.ps1")
+        if "branding\\voice" not in text and "branding/voice" not in text:
+            fail(f"{path.name} must copy branding/voice for the duplex overlay")
     if vc.self_test() != 0:
         fail("voice_chat --self-test failed")
     print("OK  docs, launcher, and installer wiring")
@@ -290,9 +377,10 @@ def main() -> int:
     test_request_builders_match_docs(vc)
     test_apply_does_not_replace_gpt(vc)
     test_no_invented_endpoints(vc)
+    test_ephemeral_token_shape(vc)
     test_overlay_selector_coexists(vc)
     test_docs_and_packaging(vc)
-    print("SMOKE OK: GPT voice stays; Grok voice is a second selectable option.")
+    print("SMOKE OK: GPT voice stays gpt-live; Grok overlay hosts official duplex.")
     return 0
 
 

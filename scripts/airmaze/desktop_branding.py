@@ -443,82 +443,17 @@ def inject_teams_picker_script(html: str) -> tuple[str, bool]:
     return upsert_marked_script(html, TEAMS_SCRIPT_MARK, teams_picker_script())
 
 
+def voice_selector_js_path() -> Path:
+    return branding_dir() / "voice" / "dragon-voice-selector.js"
+
+
 def voice_provider_script() -> str:
-    """GPT | Grok segmented control. Grok is additive; GPT stays."""
-    return (
-        f'<script {VOICE_SCRIPT_MARK}>\n'
-        "(function(){"
-        'var API="http://127.0.0.1:8654";'
-        'var KEY="dragon.voice.provider";'
-        "function $(sel,root){return (root||document).querySelector(sel);}"
-        "function current(){try{return localStorage.getItem(KEY)||'gpt';}catch(e){return 'gpt';}}"
-        "function persist(id){try{localStorage.setItem(KEY,id);}catch(e){}}"
-        "function option(id,label){"
-        'var b=document.createElement("button");b.type="button";'
-        'b.setAttribute("data-dragon-voice-option",id);'
-        'b.setAttribute("role","radio");b.textContent=label;'
-        "return b;"
-        "}"
-        "function paint(root,id){"
-        "root.querySelectorAll('[data-dragon-voice-option]').forEach(function(btn){"
-        "var on=btn.getAttribute('data-dragon-voice-option')===id;"
-        "btn.setAttribute('aria-checked',on?'true':'false');"
-        "btn.tabIndex=on?0:-1;"
-        "});"
-        'var status=$("[data-dragon-voice-status]",root);'
-        "if(status)status.textContent=id==='grok'?'Grok voice (xAI STT/TTS)':'GPT voice (OpenAI)';"
-        "}"
-        "function select(root,id,saveRemote){"
-        "if(id!=='gpt'&&id!=='grok')id='gpt';"
-        "persist(id);paint(root,id);"
-        "try{window.dispatchEvent(new CustomEvent('dragon-voice-provider',{detail:{provider:id}}));}catch(e){}"
-        "if(!saveRemote)return;"
-        "fetch(API+'/api/voice/selection',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})})"
-        ".then(function(r){return r.json();}).then(function(data){"
-        'var status=$("[data-dragon-voice-status]",root);'
-        "if(!status)return;"
-        "if(data.error){status.textContent=data.message||data.error;return;}"
-        "status.textContent=id==='grok'?'Grok voice selected. GPT stays available.':'GPT voice selected. Grok stays available.';"
-        "}).catch(function(){"
-        'var status=$("[data-dragon-voice-status]",root);'
-        "if(status)status.textContent='Saved here. Voice helper is not running on 127.0.0.1:8654.';"
-        "});"
-        "}"
-        "function mount(){"
-        'if(document.querySelector("[data-dragon-voice-provider]"))return;'
-        'var host=document.querySelector(\'[data-slot="aui_composer"]\')'
-        '||document.querySelector(\'[data-slot="composer"]\')'
-        '||document.querySelector("textarea")'
-        '||document.querySelector("form");'
-        "if(!host)return;"
-        'var root=document.createElement("div");'
-        'root.setAttribute("data-dragon-voice-provider","true");'
-        'root.setAttribute("role","radiogroup");'
-        'root.setAttribute("aria-label","Voice chat provider");'
-        'var legend=document.createElement("span");'
-        'legend.setAttribute("data-dragon-voice-legend","true");'
-        "legend.textContent='Voice';"
-        'var gpt=option("gpt","GPT");'
-        'var grok=option("grok","Grok");'
-        'var status=document.createElement("p");'
-        'status.setAttribute("data-dragon-voice-status","true");'
-        'status.setAttribute("role","status");'
-        "gpt.addEventListener('click',function(){select(root,'gpt',true);});"
-        "grok.addEventListener('click',function(){select(root,'grok',true);});"
-        "root.appendChild(legend);root.appendChild(gpt);root.appendChild(grok);root.appendChild(status);"
-        "if(host.parentNode&&host.tagName&&host.tagName.toLowerCase()==='textarea'){"
-        "host.parentNode.insertBefore(root,host);"
-        "}else{host.insertBefore(root,host.firstChild);}"
-        "var start=current();paint(root,start);"
-        "fetch(API+'/api/voice/selection').then(function(r){return r.json();}).then(function(data){"
-        "if(data&&data.provider){persist(data.provider);paint(root,data.provider);}"
-        "}).catch(function(){});"
-        "}"
-        'if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",mount);}else{mount();}'
-        "try{new MutationObserver(mount).observe(document.documentElement,{childList:true,subtree:true});}catch(e){}"
-        "})();"
-        "</script>"
-    )
+    """GPT | Grok selector plus overlay Grok duplex client. GPT stays."""
+    path = voice_selector_js_path()
+    body = path.read_text(encoding="utf-8").strip()
+    if VOICE_SCRIPT_MARK in body:
+        raise ValueError("voice selector JS must not include its own script mark")
+    return f"<script {VOICE_SCRIPT_MARK}>\n{body}\n</script>\n"
 
 
 def inject_voice_provider_script(html: str) -> tuple[str, bool]:
@@ -887,11 +822,23 @@ def self_test() -> int:
     if once.count(VOICE_SCRIPT_MARK) != 1 or "GPT" not in once or "Grok" not in once:
         print("FAIL: voice selector must inject GPT and Grok (GPT stays)", file=sys.stderr)
         return 1
+    if "Talk with Grok" not in once or "xai-client-secret." not in once:
+        print("FAIL: overlay must host Grok duplex (Talk + xai-client-secret)", file=sys.stderr)
+        return 1
+    if "input_audio_buffer.append" not in once or "grok-voice-latest" not in once:
+        print("FAIL: overlay must send official STS append events to grok-voice-latest", file=sys.stderr)
+        return 1
+    if not voice_selector_js_path().is_file():
+        print("FAIL: branding/voice/dragon-voice-selector.js missing", file=sys.stderr)
+        return 1
     if "[data-dragon-ai-teams-panel]" not in css:
         print("FAIL: overlay CSS must style the in-app Teams screen", file=sys.stderr)
         return 1
     if "[data-dragon-voice-provider]" not in css or "[aria-checked=" not in css:
         print("FAIL: overlay CSS must style the GPT | Grok voice selector", file=sys.stderr)
+        return 1
+    if "[data-dragon-grok-talk]" not in css:
+        print("FAIL: overlay CSS must style Talk with Grok", file=sys.stderr)
         return 1
     voice_meta = table.get("voice") or {}
     if voice_meta.get("options") != ["gpt", "grok"] or voice_meta.get("default") != "gpt":

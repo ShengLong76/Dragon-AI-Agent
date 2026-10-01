@@ -819,7 +819,7 @@ function Start-DragonAIVoiceChat {
             "--host", "127.0.0.1",
             "--port", "8654"
         ) -WindowStyle Hidden -ErrorAction SilentlyContinue | Out-Null
-        Write-LaunchLog "Voice helper on http://127.0.0.1:8654/api/voice (GPT + Grok)"
+        Write-LaunchLog "Voice helper on http://127.0.0.1:8654/api/voice (GPT + Grok duplex)"
     } catch {
         Write-LaunchLog "Voice helper skipped: $($_.Exception.Message)" "WARN"
     }

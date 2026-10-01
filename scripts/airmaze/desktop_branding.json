@@ -42,7 +42,7 @@
     "options": ["gpt", "grok"],
     "default": "gpt",
     "helper": "http://127.0.0.1:8654/api/voice",
-    "why": "Add Grok voice (xAI STT/TTS + grok-voice-latest) beside existing GPT-Live. Do not replace GPT."
+    "why": "Add Grok full-duplex (wss://api.x.ai/v1/realtime?model=grok-voice-latest) beside existing GPT-Live. Overlay Talk with Grok hosts duplex. Do not replace GPT."
   },
   "sidebar": {
     "userFacingBots": ["Personal Assistant"],
