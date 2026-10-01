@@ -253,10 +253,18 @@ const protocol = 'hermes://copilot-key/start';
             fail("injected CSS must hide the default Hermes sidebar bot")
         if "[data-dragon-ai-sidebar-brand]" not in css_txt or "Dragon AI" not in css_txt:
             fail("injected CSS must style the sidebar header lockup")
-        if "container-type: inline-size" not in css_txt or "clamp(" not in css_txt:
-            fail("injected CSS must scale the sidebar lockup with column width")
+        if "flex-wrap: wrap" not in css_txt or "min-width: max-content" not in css_txt:
+            fail("injected CSS must wrap Teams below a fixed-size logo")
+        if "18cqi" in css_txt:
+            fail("injected CSS must not shrink the sidebar logo with column width")
         if "--dragon-sidebar-control-height: 32px" not in css_txt:
             fail("injected CSS must size the sidebar logo to the Teams button")
+        if "flex: 0 0 32px" not in css_txt:
+            fail("injected CSS must reserve a 32px sidebar logo")
+        if '[role="alert"]' not in css_txt or "-webkit-line-clamp: 2" not in css_txt:
+            fail("injected CSS must contain/ellipsis center-column RPC error banners")
+        if "dragon-ai-agent-logo.svg" not in html:
+            fail("sidebar header script must use the transparent SVG mark")
         if "<rect" in mark_txt.lower() or "#0a0a0a" in mark_txt.lower():
             fail("copied SVG mark must not include a boxed black plate")
         if png_mark.is_file() and png_mark.read_bytes()[25] != 6:
@@ -338,17 +346,25 @@ def test_packaging_not_regressed() -> None:
         fail("dragon-ui.css must hide the default Hermes sidebar bot")
     if "[data-dragon-ai-sidebar-brand]" not in css or "Dragon AI" not in css:
         fail("dragon-ui.css must style the sidebar header lockup (Dragon AI)")
-    if "container-type: inline-size" not in css or "18cqi" not in css or "clamp(" not in css:
-        fail("sidebar lockup must scale with column width (container query / clamp)")
+    if "flex-wrap: wrap" not in css or "min-width: max-content" not in css:
+        fail("sidebar Teams must wrap below a fixed logo (not clip, not shrink the mark)")
+    if "18cqi" in css or "clamp(20px, 18cqi, 32px)" in css:
+        fail("sidebar logo must stay a fixed 32px (do not clamp/shrink)")
     if "--dragon-sidebar-control-height: 32px" not in css:
         fail("sidebar logo height must match the 32px Teams button")
+    if "flex: 0 0 32px" not in css:
+        fail("sidebar logo must reserve 32px matching Teams")
     if "[data-dragon-ai-sidebar-row]" not in css:
         fail("sidebar lockup and Teams must share one header row")
-    brand_img = css.split("[data-dragon-ai-sidebar-brand] img", 1)[-1][:500]
+    if '[role="alert"]' not in css or "text-overflow: ellipsis" not in css:
+        fail("dragon-ui.css must contain/ellipsis center-column RPC error banners")
+    brand_img = css.split("[data-dragon-ai-sidebar-brand] img", 1)[-1][:700]
     if "border: 0" not in brand_img and "border: none" not in brand_img:
         fail("sidebar logo must have no red border")
     if "transparent" not in brand_img:
         fail("sidebar logo must have a transparent background")
+    if "height: 32px" not in brand_img or "width: 32px" not in brand_img:
+        fail("sidebar logo must be 32px square matching Teams at full width")
     if "Personal Assistant" not in css:
         fail("dragon-ui.css must keep Personal Assistant as the visible sidebar bot")
     if "dragon-ai-agent-logo.png" not in apply_ps:

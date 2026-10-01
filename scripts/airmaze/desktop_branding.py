@@ -260,10 +260,20 @@ def sidebar_header_script() -> str:
         "(function(){"
         'var TITLE="Dragon AI";'
         'var ACCESSIBLE="Dragon AI Agent";'
+        'var LOGO="./dragon-ai-branding/dragon-ai-agent-logo.svg";'
+        "function pinLogo(img){"
+        "img.src=LOGO;"
+        'img.alt="";'
+        'img.setAttribute("aria-hidden","true");'
+        'img.setAttribute("data-dragon-ai-sidebar-logo","true");'
+        'img.style.cssText="display:block;height:32px;width:32px;max-width:32px;max-height:32px;border:0;outline:none;box-shadow:none;background:transparent;padding:0;margin:0;border-radius:0;";'
+        "}"
         "function mount(){"
         'var host=document.querySelector(\'[data-slot="sidebar-header"]\')'
         '||document.querySelector(\'[data-slot="sidebar-inner"]\');'
-        "if(!host||host.querySelector('[data-dragon-ai-sidebar-brand]'))return;"
+        "if(!host)return;"
+        'var existing=host.querySelector("[data-dragon-ai-sidebar-brand]");'
+        "if(existing){var old=existing.querySelector('img');if(old)pinLogo(old);return;}"
         'var row=document.createElement("div");'
         'row.setAttribute("data-dragon-ai-sidebar-row","true");'
         'var wrap=document.createElement("div");'
@@ -271,10 +281,7 @@ def sidebar_header_script() -> str:
         'wrap.setAttribute("role","img");'
         "wrap.setAttribute(\"aria-label\",ACCESSIBLE);"
         'var img=document.createElement("img");'
-        'img.src="./dragon-ai-branding/dragon-ai-agent-logo.png";'
-        'img.alt="";'
-        'img.setAttribute("aria-hidden","true");'
-        "img.setAttribute(\"data-dragon-ai-sidebar-logo\",\"true\");"
+        "pinLogo(img);"
         'var span=document.createElement("span");'
         'span.setAttribute("aria-hidden","true");'
         "span.textContent=TITLE;"
@@ -311,18 +318,39 @@ def inject_font_link(html: str) -> tuple[str, bool]:
     return link + "\n" + out, True
 
 
-def inject_sidebar_header_script(html: str) -> tuple[str, bool]:
-    if SIDEBAR_SCRIPT_MARK in html:
-        return html, False
-    script = sidebar_header_script()
+def _insert_before_close(html: str, snippet: str) -> tuple[str, bool]:
     lower = html.lower()
     idx = lower.find("</head>")
     if idx != -1:
-        return html[:idx] + script + "\n" + html[idx:], True
+        return html[:idx] + snippet + "\n" + html[idx:], True
     idx = lower.find("</body>")
     if idx != -1:
-        return html[:idx] + script + "\n" + html[idx:], True
-    return html + "\n" + script + "\n", True
+        return html[:idx] + snippet + "\n" + html[idx:], True
+    return html + "\n" + snippet + "\n", True
+
+
+def upsert_marked_script(html: str, mark: str, script: str) -> tuple[str, bool]:
+    """Replace a previously injected marked script so launch overlays refresh."""
+    start = html.find(f"<script {mark}>")
+    if start == -1:
+        mark_at = html.lower().find(mark.lower())
+        if mark_at == -1:
+            return _insert_before_close(html, script)
+        start = html.rfind("<script", 0, mark_at)
+        if start == -1:
+            return _insert_before_close(html, script)
+    end = html.find("</script>", start)
+    if end == -1:
+        return _insert_before_close(html, script)
+    end += len("</script>")
+    current = html[start:end]
+    if current == script:
+        return html, False
+    return html[:start] + script + html[end:], True
+
+
+def inject_sidebar_header_script(html: str) -> tuple[str, bool]:
+    return upsert_marked_script(html, SIDEBAR_SCRIPT_MARK, sidebar_header_script())
 
 
 def teams_picker_script() -> str:
@@ -409,17 +437,7 @@ def teams_picker_script() -> str:
 
 
 def inject_teams_picker_script(html: str) -> tuple[str, bool]:
-    if TEAMS_SCRIPT_MARK in html:
-        return html, False
-    script = teams_picker_script()
-    lower = html.lower()
-    idx = lower.find("</head>")
-    if idx != -1:
-        return html[:idx] + script + "\n" + html[idx:], True
-    idx = lower.find("</body>")
-    if idx != -1:
-        return html[:idx] + script + "\n" + html[idx:], True
-    return html + "\n" + script + "\n", True
+    return upsert_marked_script(html, TEAMS_SCRIPT_MARK, teams_picker_script())
 
 
 def inject_html_branding(html: str) -> tuple[str, bool]:
@@ -706,16 +724,22 @@ def self_test() -> int:
     if '[data-dragon-ai-sidebar-brand]' not in css or "Dragon AI" not in css:
         print("FAIL: overlay CSS must style the sidebar header lockup (Dragon AI)", file=sys.stderr)
         return 1
-    if "container-type: inline-size" not in css or "18cqi" not in css or "clamp(" not in css:
-        print("FAIL: sidebar lockup must scale with column width (container query / clamp)", file=sys.stderr)
+    if "flex-wrap: wrap" not in css or "min-width: max-content" not in css:
+        print("FAIL: sidebar Teams must wrap below a fixed logo, not shrink or clip", file=sys.stderr)
+        return 1
+    if "18cqi" in css or "clamp(20px, 18cqi, 32px)" in css:
+        print("FAIL: sidebar logo must stay a fixed 32px (do not clamp/shrink with column width)", file=sys.stderr)
         return 1
     if "--dragon-sidebar-control-height: 32px" not in css:
         print("FAIL: sidebar logo height must match the 32px Teams button at full column width", file=sys.stderr)
         return 1
+    if 'height: 32px' not in css or "flex: 0 0 32px" not in css:
+        print("FAIL: sidebar logo must be a reserved 32px square matching Teams", file=sys.stderr)
+        return 1
     if "[data-dragon-ai-sidebar-brand] img" in css and "height: 28px" in css.split("[data-dragon-ai-sidebar-brand] img", 1)[-1][:400]:
         print("FAIL: sidebar logo must not stay at 28px; match the Teams button", file=sys.stderr)
         return 1
-    brand_img_css = css.split("[data-dragon-ai-sidebar-brand] img", 1)[-1][:500] if "[data-dragon-ai-sidebar-brand] img" in css else ""
+    brand_img_css = css.split("[data-dragon-ai-sidebar-brand] img", 1)[-1][:700] if "[data-dragon-ai-sidebar-brand] img" in css else ""
     if "border: 0" not in brand_img_css and "border: none" not in brand_img_css:
         print("FAIL: sidebar logo must have no border", file=sys.stderr)
         return 1
@@ -724,6 +748,9 @@ def self_test() -> int:
         return 1
     if "#c41e3a" in brand_img_css.lower() or "#C41E3A" in brand_img_css:
         print("FAIL: sidebar logo must not use a red border or plate", file=sys.stderr)
+        return 1
+    if '[role="alert"]' not in css or "text-overflow: ellipsis" not in css or "-webkit-line-clamp: 2" not in css:
+        print("FAIL: overlay CSS must contain/ellipsis center-column RPC error banners", file=sys.stderr)
         return 1
     if "prefers-reduced-motion" not in css or "focus-visible" not in css:
         print("FAIL: overlay CSS must keep visible focus and reduced-motion", file=sys.stderr)
@@ -759,6 +786,14 @@ def self_test() -> int:
         return 1
     if once.count(SIDEBAR_SCRIPT_MARK) != 1 or "Dragon AI" not in once:
         print("FAIL: sidebar header script must inject Dragon AI once", file=sys.stderr)
+        return 1
+    if "dragon-ai-agent-logo.svg" not in once:
+        print("FAIL: sidebar header script must use the transparent SVG mark", file=sys.stderr)
+        return 1
+    stale = once.replace("dragon-ai-agent-logo.svg", "dragon-ai-agent-logo.png")
+    refreshed, refreshed_changed = inject_html_branding(stale)
+    if not refreshed_changed or "dragon-ai-agent-logo.svg" not in refreshed:
+        print("FAIL: overlay must refresh a stale PNG sidebar script to the SVG mark", file=sys.stderr)
         return 1
     if once.count(TEAMS_SCRIPT_MARK) != 1 or "Teams" not in once:
         print("FAIL: Teams picker script must inject into the desktop client", file=sys.stderr)
