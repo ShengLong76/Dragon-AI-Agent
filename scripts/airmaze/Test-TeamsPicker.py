@@ -174,6 +174,12 @@ def test_overlay_and_launch_wired() -> None:
     css = read(CSS)
     if "[data-dragon-ai-teams-panel]" not in css or "Teams" not in css:
         fail("dragon-ui.css must style the in-app Teams screen")
+    if "--dragon-ui-font-size-body: 16px" not in css:
+        fail("Teams overlay must share the 16px Grok Bot body size")
+    if "font-size: var(--dragon-ui-font-size-body)" not in css:
+        fail("Teams list rows must use the 16px body token, not 0.8125rem")
+    if "font-size: 0.8125rem" in css:
+        fail("Teams picker CSS must not keep Hermes 13px captions")
     launcher = read(LAUNCHER)
     if "teams_picker" not in launcher:
         fail("start-embedded.ps1 must start the Teams picker helper")

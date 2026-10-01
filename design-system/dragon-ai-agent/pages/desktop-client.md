@@ -29,17 +29,18 @@ Reuse the wizard colors already in `Onboard-Wizard.ps1` so packaging chrome and 
 | Foreground | `#F0F0F5` | `--color-foreground` | `240, 240, 245` |
 | Card / panel | `#282830` | `--color-card` | `40, 40, 48` |
 | Muted surface | `#32323A` | `--color-muted` | input `50, 50, 58` |
-| Muted text | `#A0A0AA` | `--color-muted-foreground` | `160, 160, 170` |
+| Muted text | `#C4C4CE` | `--color-muted-foreground` | wizard still `160, 160, 170`; overlay is brighter for Grok Bot contrast |
 | Border | `#50505A` | `--color-border` | `80, 80, 90` |
 | Destructive | `#DC4646` | `--color-destructive` | `220, 70, 70` |
 | Success | `#3CB45A` | `--color-ok` | `60, 180, 90` |
 | Pending | `#C8A028` | `--color-pending` | `200, 160, 40` |
 
-Text on `#1C1C20`: `#F0F0F5` and `#A0A0AA` both clear 4.5:1.
+Text on `#1C1C20`: `#F0F0F5` (~13.5:1) and `#C4C4CE` (~9.8:1) both clear 4.5:1. Hermes `--ui-text-tertiary` at 54% mix does not; the overlay replaces it with the muted token.
 
 ## Typography (locked)
 
 - Wordmark: **Syne 700**, `letter-spacing: 0.04em`, color `--color-foreground`
+- **Grok Bot parity (type + contrast, not a new face):** body / chat / composer **16px** / **1.55**; sidebar chrome **14px** / **1.4**; captions **13px**. Overlay remaps Hermes `--dt-base-size`, `--conversation-text-base-size`, and `--ui-text-*` to opaque `#F0F0F5` / `#C4C4CE` so chat is not 13px / 54% grey.
 - Composer / settings chrome the overlay already touches: same family, weight 400–600
 - Register the files as `Collapse` as well so leftover upstream wordmark rules cannot reload Collapse-Bold
 
@@ -54,7 +55,8 @@ The left-rail header above SESSIONS / BOTS is a brand lockup: decorative navy dr
 ## Surfaces this overlay may style
 
 - Empty-state wordmark, intro subtitle, and the front-facing dragon mark
-- Sidebar header brand lockup (logo + Dragon AI)
+- Sidebar header brand lockup (logo + Dragon AI) and sidebar/chat type size + contrast
+- In-app Teams picker button + dialog (`[data-dragon-ai-teams-*]`)
 - Composer placeholder + `:focus-visible` ring (`2px` solid `--color-ring`, offset `2px`)
 - Settings / About product copy (strings already in `desktop_branding.json`)
 - Shared CSS variables so a later branded Electron build can reuse them

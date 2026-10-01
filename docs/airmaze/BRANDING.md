@@ -58,7 +58,7 @@ This is the smallest durable path that actually changes what the user sees witho
 
 The Cursor skill is installed in-repo at `.cursor/skills/ui-ux-pro-max` (`npx ui-ux-pro-max-cli init --ai cursor`; paid brand/logo extras are not kept). Generator output: `design-system/dragon-ai-agent/MASTER.md`. Applied chrome: `pages/desktop-client.md` and `docs/airmaze/DESIGN.md`.
 
-Style is **AI-Native UI** (minimal chrome, single accent). Catalog Inter and AI purple are not shipped. Overlay tokens match the existing wizard: dark `#1C1C20` / `#282830`, crimson `#C41E3A`, Syne 700 on the wordmark, visible `:focus-visible`, `prefers-reduced-motion`. No new UI framework.
+Style is **AI-Native UI** (minimal chrome, single accent). Catalog Inter and AI purple are not shipped. Overlay tokens match the existing wizard: dark `#1C1C20` / `#282830`, crimson `#C41E3A`, Syne 700 on the wordmark, visible `:focus-visible`, `prefers-reduced-motion`. Sidebar / chat / Teams type is Grok Bot–sized (**16px** body, **14px** chrome, muted `#C4C4CE`) by remapping Hermes `--conversation-text-base-size` and `--ui-text-*` — no `Hermes.exe` rebuild. No new UI framework.
 
 ## What still requires a rebuilt Electron binary
 

@@ -26,14 +26,23 @@ Dark, quiet chrome. Composer focus uses crimson `#C41E3A`. Type is **Syne** (OFL
 | Background | `#1C1C20` |
 | Panel | `#282830` |
 | Text | `#F0F0F5` |
-| Muted text | `#A0A0AA` |
+| Muted text | `#C4C4CE` (was `#A0A0AA`; Grok Bot contrast) |
+| Body / chat / composer | `16px` / `1.55` |
+| Sidebar chrome | `14px` / `1.4` |
 | Wordmark face | Syne 700 |
+
+### Type and contrast (Grok Bot parity)
+
+James: Hermes desktop type is too small and low-contrast next to Cursor Grok Bot. Upstream `apps/desktop/src/styles.css` sets `body` and `--conversation-text-base-size` to **0.8125rem (13px)** and `--ui-text-tertiary` to a **54%** mix of `--ui-base`. That fails the skill’s 4.5:1 normal-text bar for secondary chrome.
+
+The overlay (still Syne + crimson, no rebuild) remaps those Hermes variables and sets explicit rules on sidebar, chat slots, composer, and the Teams picker so body copy is **16px / 1.55** with opaque `#F0F0F5` on `#1C1C20`. Muted chrome is `#C4C4CE`, not a transparent grey. Tray-icon contain-fit is untouched.
 
 Full token table and skill-vs-override notes: `design-system/dragon-ai-agent/` (`MASTER.md` = raw generator output, `pages/desktop-client.md` = what we ship).
 
 ## What changes for James
 
 - Empty-state **DRAGON AI AGENT** still Syne 700, now on the shared tokens (foreground, tracking), **in front of** a larger unboxed navy dragon.
+- Sidebar, chat, composer, and the in-app Teams picker use Grok Bot–sized type (16px body, 14px chrome) and stronger dark contrast (`#F0F0F5` / `#C4C4CE` on `#1C1C20`).
 - Composer **Give Dragon AI a task** keeps the copy; focus-visible uses the crimson ring.
 - Settings / About stay **Dragon AI Agent**.
 - Setup wizard colors stay the same RGB values, now named as this system.

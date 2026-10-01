@@ -10,4 +10,4 @@ The upstream Hermes empty-state wordmark is the **Collapse** display face (`font
 
 Syne is a free OFL geometric sans (variable, 400–800). The overlay uses **weight 700** on the wordmark, then the same family on composer and the product chrome it already touches. Files are registered as both `Syne` and `Collapse`, and unpacked `.wordmark` `font-family` is rewritten so UltraDragon does not keep drawing Collapse-Bold.
 
-`dragon-ui.css` also ships the applied design-system tokens (AI-Native UI, dark surfaces, crimson `#C41E3A`). See `docs/airmaze/DESIGN.md` and `design-system/dragon-ai-agent/pages/desktop-client.md`. Do not add Inter or a second family.
+`dragon-ui.css` also ships the applied design-system tokens (AI-Native UI, dark surfaces, crimson `#C41E3A`) and Grok Bot type/contrast (`16px` / `1.55` body, muted `#C4C4CE`). See `docs/airmaze/DESIGN.md` and `design-system/dragon-ai-agent/pages/desktop-client.md`. Do not add Inter or a second family.
