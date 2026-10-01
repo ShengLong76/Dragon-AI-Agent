@@ -1,0 +1,169 @@
+#!/bin/sh
+# Dragon AI Agent — gateway entrypoint wrapper.
+#
+# Official nousresearch/hermes-agent stage2 only recursively chowns
+# $HERMES_HOME/logs when the *top-level* data dir is not hermes-owned.
+# A warm bind mount (Windows Docker Desktop → /opt/data) can already be
+# hermes-owned while logs/agent.log and logs/errors.log stay root:root.
+# The supervised process then hits:
+#   PermissionError: [Errno 13] Permission denied: '/opt/data/logs/agent.log'
+# and hermes-airmaze-gw never becomes healthy.
+#
+# This wrapper always heals logs/ and backups/ (the dirs the UltraDragon
+# ops workaround chowned), then exec's the official dispatcher so s6 /
+# stage2 / s6-setuidgid hermes stay in the chain. Do not run gateway as root.
+#
+# Modes:
+#   (default)   heal, then hand off "$@" (compose: gateway run)
+#   --heal-only heal and exit 0
+#   --self-test offline heal contract (no Docker, no secrets)
+set -eu
+
+HERMES_HOME="${HERMES_HOME:-/opt/data}"
+
+path_has_symlink_component() {
+  path="$1"
+  root="${2:-$HERMES_HOME}"
+  while [ -n "$path" ] && [ "$path" != "/" ]; do
+    if [ -L "$path" ]; then
+      return 0
+    fi
+    if [ "$path" = "$root" ]; then
+      break
+    fi
+    parent="$(dirname "$path")"
+    if [ "$parent" = "$path" ]; then
+      break
+    fi
+    path="$parent"
+  done
+  return 1
+}
+
+heal_owner() {
+  if id hermes >/dev/null 2>&1; then
+    printf '%s\n' hermes
+    return
+  fi
+  id -un
+}
+
+heal_tree() {
+  target="$1"
+  if [ -z "$target" ]; then
+    return 0
+  fi
+  if [ -e "$HERMES_HOME" ] && path_has_symlink_component "$HERMES_HOME" "$HERMES_HOME"; then
+    echo "[dragon-gateway] refusing heal through symlink $HERMES_HOME" >&2
+    return 0
+  fi
+  if [ -e "$target" ] && path_has_symlink_component "$target" "$HERMES_HOME"; then
+    echo "[dragon-gateway] refusing heal through symlink $target" >&2
+    return 0
+  fi
+  if [ ! -e "$target" ]; then
+    mkdir -p "$target" || return 0
+  fi
+  owner="$(heal_owner)"
+  if [ "$(id -u)" = 0 ]; then
+    chown -R "${owner}:${owner}" "$target" 2>/dev/null || \
+      echo "[dragon-gateway] warning: chown $target failed (rootless or bind mount?)" >&2
+  fi
+  chmod -R u+rwX "$target" 2>/dev/null || true
+}
+
+heal_data_volume() {
+  if [ ! -e "$HERMES_HOME" ]; then
+    mkdir -p "$HERMES_HOME" || return 0
+  fi
+  if path_has_symlink_component "$HERMES_HOME" "$HERMES_HOME"; then
+    echo "[dragon-gateway] refusing heal through symlink $HERMES_HOME" >&2
+    return 0
+  fi
+  # Same trees the UltraDragon workaround repaired. Targeted — do not
+  # chown -R the whole bind mount (host files may live beside Hermes state).
+  heal_tree "$HERMES_HOME/logs"
+  heal_tree "$HERMES_HOME/backups"
+}
+
+hand_off() {
+  # Keep /init (or the official dispatcher that exec's it) in the chain.
+  if [ -x /opt/hermes/docker/entrypoint-dispatch.sh ]; then
+    exec /opt/hermes/docker/entrypoint-dispatch.sh "$@"
+  fi
+  if [ -x /init ] && [ -x /opt/hermes/docker/main-wrapper.sh ]; then
+    exec /init /opt/hermes/docker/main-wrapper.sh "$@"
+  fi
+  if [ -x /opt/hermes/docker/entrypoint.sh ]; then
+    exec /opt/hermes/docker/entrypoint.sh "$@"
+  fi
+  echo "[dragon-gateway] official image entrypoint not found; refusing to start gateway as root" >&2
+  exit 1
+}
+
+self_test() {
+  tmp="$(mktemp -d)"
+  # shellcheck disable=SC2064
+  trap "rm -rf \"$tmp\"" EXIT
+  HERMES_HOME="$tmp/data"
+  mkdir -p "$HERMES_HOME/logs" "$HERMES_HOME/backups"
+  printf 'stale\n' > "$HERMES_HOME/logs/agent.log"
+  printf 'stale\n' > "$HERMES_HOME/logs/errors.log"
+  chmod 000 "$HERMES_HOME/logs/agent.log" "$HERMES_HOME/logs/errors.log"
+  heal_data_volume
+  printf 'healed\n' >> "$HERMES_HOME/logs/agent.log" || {
+    echo "FAIL: could not append to healed agent.log" >&2
+    exit 1
+  }
+  printf 'healed\n' >> "$HERMES_HOME/logs/errors.log" || {
+    echo "FAIL: could not append to healed errors.log" >&2
+    exit 1
+  }
+  if [ ! -d "$HERMES_HOME/backups" ]; then
+    echo "FAIL: backups dir missing after heal" >&2
+    exit 1
+  fi
+
+  # Fresh empty home: wrapper must create writable logs/.
+  fresh="$tmp/fresh"
+  HERMES_HOME="$fresh"
+  heal_data_volume
+  printf 'fresh\n' >> "$fresh/logs/agent.log" || {
+    echo "FAIL: fresh compose home could not create agent.log" >&2
+    exit 1
+  }
+
+  # Symlink refuse: do not chown/chmod through logs → other tree.
+  evil="$tmp/evil"
+  mkdir -p "$evil"
+  printf 'secret\n' > "$evil/owned"
+  chmod 644 "$evil/owned"
+  HERMES_HOME="$tmp/sym"
+  mkdir -p "$HERMES_HOME"
+  ln -s "$evil" "$HERMES_HOME/logs"
+  heal_data_volume
+  if [ ! -L "$HERMES_HOME/logs" ]; then
+    echo "FAIL: symlink logs/ was replaced" >&2
+    exit 1
+  fi
+  if [ ! -f "$evil/owned" ] || [ ! -r "$evil/owned" ]; then
+    echo "FAIL: symlink target was disturbed" >&2
+    exit 1
+  fi
+  echo "OK  start-gateway.sh --self-test"
+}
+
+mode="${1:-}"
+case "$mode" in
+  --self-test)
+    self_test
+    exit 0
+    ;;
+  --heal-only)
+    heal_data_volume
+    exit 0
+    ;;
+esac
+
+heal_data_volume
+hand_off "$@"

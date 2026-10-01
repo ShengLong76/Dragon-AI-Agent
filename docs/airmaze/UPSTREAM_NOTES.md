@@ -79,6 +79,7 @@ Memory guidance (official image measurements): gateway ~300 MB idle; Xvnc+Xfce ~
 | `docker/sandbox-desktop.Dockerfile` | Builds `nousresearch/hermes-sandbox:desktop` (nikolaik base + TigerVNC/Xfce + Chromium + cua-driver + agent-browser) |
 | `docker/sandbox-desktop-smoke.sh` | Smoke checks for the sandbox desktop image |
 | Gateway Dockerfile (repo root) | `HERMES_BOT_DESKTOP=1` opt-in for `*-desktop` gateway tags |
+| `docker/stage2-hook.sh` | Recursively chowns `$HERMES_HOME/logs` only when the **top-level** `/opt/data` is not hermes-owned. Always heals `logs/gateways` (dir only), not `logs/agent.log`. Warm Windows bind mounts can leave root-owned `agent.log` → `PermissionError` and an unhealthy `hermes-airmaze-gw`. Dragon packaging heals `logs/` + `backups/` in `scripts/airmaze/start-gateway.sh` before exec'ing the official dispatcher. |
 
 ---
 

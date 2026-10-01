@@ -171,6 +171,7 @@ scripts/airmaze/
   desktop-loopback-proxy.py
   start-desktop-serve.sh
   start-desktop-proxy.sh
+  start-gateway.sh
   embedded_desktop_connection.py
   Set-EmbeddedDesktopConnection.ps1
   Onboard-Wizard.ps1

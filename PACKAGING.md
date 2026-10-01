@@ -65,6 +65,8 @@ Setting keys include `openUIOnStartupDisabled` = true, plus `startMinimized` / `
 
 The **Dragon AI Agent** shortcut targets `wscript.exe` + `scripts/airmaze/Start-DragonAI.vbs` (no console flash). The VBS sets `HERMES_DESKTOP_USER_DATA_DIR` to `%LOCALAPPDATA%\DragonAIAgent\electron-userdata` and `start-embedded.ps1` copies/provisions a private client at `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked`. That host starts Docker Desktop in the **tray** when `docker info` fails (already running is a no-op), starts the gateway **and** Desktop serve proxy, waits for host HTTP on `127.0.0.1:8642` and `127.0.0.1:8650/api/health`, wires Remote `connections.json` in Dragon userdata (standalone Hermes primary stays local), then launches the **private** desktop client. It does **not** open `:9119` or the Docker dashboard. Branding is refused outside `DragonAIAgent`. Missing Docker after a wait, or a missing client, is a MessageBox. `start-embedded.ps1` remains for debug. See `docs/airmaze/PRIVATE_DESKTOP.md`, `docs/airmaze/BRANDING.md` and `docs/airmaze/DOCKER_LAUNCH.md`. Verify with `python3 scripts/airmaze/Test-LaunchSmoke.py` (no secrets).
 
+Gateway compose wraps the official image entrypoint with `scripts/airmaze/start-gateway.sh` so a dirty root-owned `/opt/data/logs/agent.log` (or a fresh `compose up`) does not leave `hermes-airmaze-gw` unhealthy. The wrapper heals `logs/` + `backups/` then exec's the image dispatcher (`/init` stays in the chain). Offline: `sh scripts/airmaze/start-gateway.sh --self-test`. UltraDragon dirty-log steps: `docs/airmaze/EMBEDDED_GATEWAY.md`.
+
 ## Limitations
 
 - Quiet Docker/WSL install may still need reboot or UAC/UI clicks.

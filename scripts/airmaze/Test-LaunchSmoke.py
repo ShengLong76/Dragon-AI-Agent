@@ -94,6 +94,7 @@ REQUIRED_COMPOSE = (
     "127.0.0.1:8650:8650",
     "hermes-airmaze-desktop",
     "start-desktop-serve.sh",
+    "start-gateway.sh",
 )
 
 REQUIRED_INSTALLER = (
@@ -109,6 +110,7 @@ REQUIRED_INSTALLER = (
     "Install-DragonAIPrivateDesktop",
     "HERMES_DESKTOP_USER_DATA_DIR",
     "desktop\\win-unpacked",
+    "start-gateway.sh",
 )
 
 REQUIRED_VBS = (
@@ -226,6 +228,10 @@ def check_shortcuts() -> None:
             fail(f"{path.name} still CreateShortcut Bot Groups or Dashboard .lnk")
         if "Launching onboarding wizard" in text or "& $wizard @wizArgs" in text:
             fail(f"{path.name} still auto-launches WinForms Onboard-Wizard")
+        if "$sc1.TargetPath" in text and "Hermes.exe" in text.split("$sc1.TargetPath")[1][:200]:
+            fail(f"{path.name} Start Menu Dragon AI Agent.lnk must not target Hermes.exe")
+        if "$sc2.TargetPath = $targetWscript" not in text:
+            fail(f"{path.name} Start Menu Dragon AI Agent.lnk must stay wscript.exe")
         for name in RETIRED_START_MENU_LINKS:
             idx = text.find(name)
             while idx >= 0:
@@ -381,6 +387,11 @@ def main() -> int:
         proc = subprocess.run([sys.executable, str(private_test)], cwd=str(ROOT))
         if proc.returncode != 0:
             fail("Test-PrivateDesktop.py failed")
+    heal_test = ROOT / "scripts" / "airmaze" / "Test-GatewayVolumeHeal.py"
+    if heal_test.is_file():
+        proc = subprocess.run([sys.executable, str(heal_test)], cwd=str(ROOT))
+        if proc.returncode != 0:
+            fail("Test-GatewayVolumeHeal.py failed")
     run_host_smoke()
     print("SMOKE OK: opening Dragon AI Agent is wired to branded UI or a blocking error.")
     return 0

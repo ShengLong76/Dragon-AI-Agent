@@ -20,6 +20,10 @@ services:
     image: nousresearch/hermes-agent:latest-desktop
     container_name: hermes-airmaze-gw
     restart: unless-stopped
+    # Heal root-owned logs/backups on the Windows bind mount, then exec the
+    # official dispatcher (/init + stage2 + s6-setuidgid hermes). Do not drop
+    # /init from the chain and do not run gateway as root.
+    entrypoint: ["/bin/sh", "/opt/dragon/start-gateway.sh"]
     command: ["gateway", "run"]
     ports:
       - "127.0.0.1:8642:8642"
@@ -28,6 +32,7 @@ services:
       - "127.0.0.1:8650:8650"
     volumes:
       - ${HERMES_EMBEDDED_DATA:-${USERPROFILE}/.hermes-airmaze-embedded}:/opt/data
+      - ./scripts/airmaze/start-gateway.sh:/opt/dragon/start-gateway.sh:ro
     environment:
       HERMES_DASHBOARD: "1"
       HERMES_DASHBOARD_HOST: "0.0.0.0"
@@ -70,6 +75,7 @@ services:
     volumes:
       - ${HERMES_EMBEDDED_DATA:-${USERPROFILE}/.hermes-airmaze-embedded}:/opt/data
       - ./scripts/airmaze/start-desktop-serve.sh:/opt/dragon/start-desktop-serve.sh:ro
+      - ./scripts/airmaze/start-gateway.sh:/opt/dragon/start-gateway.sh:ro
     environment:
       HOME: /opt/data
       HERMES_HOME: /opt/data

@@ -155,6 +155,8 @@ docker compose -f docker-compose.embedded.yml logs -f --tail=100
 
 Compose file: `docker-compose.embedded.yml` (same ports/image intent as Option A). Override data dir with env `HERMES_EMBEDDED_DATA` if desired.
 
+The gateway service does **not** replace s6. `start-gateway.sh` heals `logs/` + `backups/` on the bind mount (root-owned `agent.log` is a known warm-volume miss in upstream stage2), then exec's the official image dispatcher so `/init` stays PID 1 and `gateway run` still drops to `hermes`.
+
 ---
 
 ## Config sketch (gateway / profile)
@@ -224,7 +226,19 @@ If the Screen pane says packages missing, you are on a slim tag — switch compo
 - [ ] **Open Dragon AI Agent** (Desktop / Start Menu / double-click `Start-DragonAI.vbs`): **no PowerShell console** (shortcut target is `wscript.exe`, not Hide-ConsoleWindow after a flash). Desktop client window only. Docker engine stopped → launcher starts **Docker Desktop in the tray** (no Containers dashboard) and waits; MessageBox only if it stays down. Dashboard `:9119` must **not** auto-open. A healthy `docker compose up` must not exit 1 from CLI stderr. Log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`.
 - [ ] From Windows: `http://127.0.0.1:8642/` does not connection-close (Bearer `dragon-local` if asked). `http://127.0.0.1:9119/` serves the dashboard login (user `dragon`).
 - [ ] Desktop serve: `http://127.0.0.1:8650/api/health` returns 200 with header `X-Hermes-Session-Token: dragon-local`. `GET /api/ws` without Upgrade may 404 — that is normal; the client uses a WebSocket upgrade + `?token=`.
-- [ ] Offline wiring check (no secrets): `python3 scripts/airmaze/Test-LaunchSmoke.py` (includes `Test-DesktopServeAdapter.py`) or `powershell -File scripts\airmaze\start-embedded.ps1 -Smoke`
+- [ ] Offline wiring check (no secrets): `python3 scripts/airmaze/Test-LaunchSmoke.py` (includes `Test-DesktopServeAdapter.py` and `start-gateway.sh --self-test`) or `powershell -File scripts\airmaze\start-embedded.ps1 -Smoke`
+- [ ] **Dirty / root-owned logs (UltraDragon re-smoke).** After a normal start (or a fresh `docker compose -f docker-compose.embedded.yml up -d`), simulate the 2026-10-01 crash without a manual chown:
+
+```powershell
+docker exec -u 0 hermes-airmaze-gw sh -c "mkdir -p /opt/data/logs /opt/data/backups; touch /opt/data/logs/agent.log /opt/data/logs/errors.log; chown root:root /opt/data/logs/agent.log /opt/data/logs/errors.log /opt/data/backups; chmod 644 /opt/data/logs/agent.log /opt/data/logs/errors.log"
+docker restart hermes-airmaze-gw
+# Wait for health (compose start_period is 40s). Expect healthy, not PermissionError.
+docker inspect --format "{{.State.Health.Status}}" hermes-airmaze-gw
+# Host health (no secrets beyond the local placeholder):
+Invoke-WebRequest http://127.0.0.1:8642/health -UseBasicParsing
+```
+
+  Then open Start Menu **Dragon AI Agent** (not `%LOCALAPPDATA%\DragonAIAgent\Dragon AI Agent Client.lnk`). Confirm the `.lnk` target is `wscript.exe` + `Start-DragonAI.vbs`. Client window opens. Compose/health failures still fail closed (dialog, no silent Hermes.exe). Docker engine down starts Docker Desktop in the tray.
 - [ ] After a normal Dragon AI Agent start, `%LOCALAPPDATA%\DragonAIAgent\electron-userdata\connections.json` has Remote `embedded-linux` → `http://127.0.0.1:8650` as primary (token value is the placeholder, not a production secret). Standalone `%APPDATA%\Hermes\connections.json` primary stays local.
 - [ ] Screen pane on the **Embedded Linux** Remote offers Start / live preview (not “No bot screen on this host” — that message is **This device** on Windows)
 - [ ] `hermes computer-use screen status` (in container) → installed / running
