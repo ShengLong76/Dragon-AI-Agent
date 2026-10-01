@@ -14,7 +14,7 @@
     {"id": "computer-use", "displayName": "Computer use"},
     {"id": "browser", "displayName": "Browser"}
   ],
-  "version": "2.1.0",
+  "version": "2.2.0",
   "bots": [
     {
       "id": "content-strategist",
@@ -73,10 +73,17 @@
   ],
   "connectors": [
     {
+      "id": "seoagent",
+      "type": "cli",
+      "displayName": "SEOagent (seoagent.com)",
+      "description": "Free Skill: npm install -g @seoagent-official/seoagent then seoagent init. Autopilot is optional and paid.",
+      "configTemplate": "connectors/seoagent.json"
+    },
+    {
       "id": "dataforseo",
       "type": "mcp_server",
       "displayName": "DataForSEO",
-      "description": "Live SERP, keyword, backlink, and on-page data for SEO Specialist. James-locked Marketing default.",
+      "description": "Live SERP, keyword, backlink, and on-page data for SEO Specialist. James-locked Marketing default. Separate from SEOagent.",
       "configTemplate": "connectors/dataforseo.json"
     }
   ]

@@ -68,14 +68,16 @@ Vendored under `.cursor/skills/understand-anything/` and `.cursor-plugin/plugin.
 
 How to run the first scan later: `docs/airmaze/UNDERSTAND_ANYTHING.md`.
 
-## Claude SEO (adapted skill notes on SEO Specialist)
+## SEOAgent (seoagent.com) on SEO Specialist
 
-Marketing Team **SEO Specialist** ships a thin Hermes skill pack adapted from AgriciDaniel/claude-seo. The Claude Code plugin, 19 agents, and Playwright installer are **not** vendored. DataForSEO MCP is the official `dataforseo-mcp-server` package (operator credentials stay local).
+Marketing Team **SEO Specialist** ships Hermes instructions for the official SEOAgent CLI/Skill. The Claude Code plugin marketplace and Autopilot cloud runtime are **not** vendored. DataForSEO MCP stays a separate connector.
 
 | Item | Value |
 |------|--------|
-| Project | https://github.com/AgriciDaniel/claude-seo |
-| License | MIT © 2026 agricidaniel |
+| Product | https://seoagent.com |
+| Project | https://github.com/Baxter-Inc/seoagent-npm |
+| Package | `@seoagent-official/seoagent` |
+| License | MIT © 2026 Baxter Inc |
 | Adapted path | `bot-groups/marketing-team/bots/seo-specialist/skills/` |
 | Design | `docs/airmaze/SEOAGENT.md` |
 

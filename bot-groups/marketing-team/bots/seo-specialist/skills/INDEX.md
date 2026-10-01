@@ -1,15 +1,16 @@
-# SEOagent skill index (claude-seo, adapted)
+# SEOagent (seoagent.com)
 
-Use these notes on the **SEO Specialist** seat only. They are a thin Hermes map of [AgriciDaniel/claude-seo](https://github.com/AgriciDaniel/claude-seo) leaves — not `/seo` slash commands and not extra Teams bots.
+Hermes instructions for the **SEO Specialist** seat. Product: [seoagent.com](https://seoagent.com) — MIT CLI `@seoagent-official/seoagent` ([Baxter-Inc/seoagent-npm](https://github.com/Baxter-Inc/seoagent-npm)).
 
-Prefer **DataForSEO** (`dataforseo` tool / `seo-dataforseo.md`) for volumes, SERPs, difficulty, and backlinks. Do not invent rankings. Do not change a live site without the operator.
+Not a seventh Marketing bot. Not claude-seo `/seo` slash commands.
 
-| Skill | When |
-|-------|------|
-| `seo-audit` | Whole-site scored audit |
-| `seo-page` | One URL |
-| `seo-technical` | Crawl / index / CWV / security only |
-| `seo-content-brief` | Outline + keyword notes for Content Strategist |
-| `seo-dataforseo` | Live DataForSEO MCP calls |
+| Path | Role |
+|------|------|
+| `SKILL.md` | What to run (`seoagent init`) and free vs Autopilot |
+| `ATTRIBUTION.md` | MIT notice |
 
-Handoff: narrative stays with Content Strategist; paid amplification with Paid Media; measurement with Marketing Analyst.
+**Free Skill (ship this):** `npm install -g @seoagent-official/seoagent` then `seoagent init` in the operator’s site repo (or `npx -y @seoagent-official/seoagent@latest init`). Uses the agent’s own model/keys.
+
+**Autopilot:** $49/site/month after a 7-day trial. Optional. Not required.
+
+**DataForSEO:** separate Marketing connector. Keep it; do not treat it as the SEOagent identity.

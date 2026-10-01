@@ -209,9 +209,9 @@ This repo's base is the Dragon AI **desktop agent** packaging (gateway, Bot Scre
 
 ## Marketing Team — SEOagent (SEO Specialist only)
 
-James locked [AgriciDaniel/claude-seo](https://github.com/AgriciDaniel/claude-seo) (MIT) as the SEO source. That is a **tool + thin skill pack** on **SEO Specialist**, not a seventh seat and not a Claude Code plugin install. Design: [`docs/airmaze/SEOAGENT.md`](SEOAGENT.md).
+James locked [seoagent.com](https://seoagent.com) / `@seoagent-official/seoagent` (MIT) as the SEOagent tool on **SEO Specialist**. Not a seventh seat. Free Skill: `npm install -g @seoagent-official/seoagent` then `seoagent init`. Autopilot ($49/site/month) is optional. Design: [`docs/airmaze/SEOAGENT.md`](SEOAGENT.md).
 
-Live data default is **DataForSEO** (`connectors/dataforseo.json` → `npx -y dataforseo-mcp-server`). Buffer / Brevo stay the locked defaults for Social / Lifecycle and are not wired here. Deploy copies `bots/seo-specialist/skills/` onto that profile only.
+**DataForSEO** (`connectors/dataforseo.json`) stays as a separate connector. Buffer / Brevo stay the locked defaults for Social / Lifecycle and are not wired here. Deploy copies `bots/seo-specialist/skills/` onto that profile only.
 
 ## Tests
 

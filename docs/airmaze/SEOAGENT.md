@@ -1,13 +1,15 @@
 # Marketing Team — SEOagent on SEO Specialist
 
-James locked **[AgriciDaniel/claude-seo](https://github.com/AgriciDaniel/claude-seo)** (MIT) as the SEO source. SEOagent is a **tool + thin skill pack on the existing SEO Specialist seat**. Not a seventh Marketing bot. Not a Claude Code plugin install.
+James locked **[seoagent.com](https://seoagent.com)** / npm **`@seoagent-official/seoagent`** (MIT, [Baxter-Inc/seoagent-npm](https://github.com/Baxter-Inc/seoagent-npm)) as the SEOagent tool. It lives on the existing **SEO Specialist** seat. Not a seventh Marketing bot.
+
+The free **Skill** tier ships first (local CLI + agent’s own model/keys). **Autopilot is not free** ($49/site/month after a 7-day no-card trial). Do not pretend Autopilot is free.
 
 ## Decision
 
 | Keep | Change |
 |------|--------|
-| Six Cos Marketing seats | SEO Specialist `tools` gains `seoagent` and `dataforseo` |
-| Buffer / Brevo / DataForSEO as locked Marketing defaults | DataForSEO is the live SERP/keyword/backlink MCP. Buffer / Brevo stay on Social / Lifecycle (unchanged this PR) |
+| Six Cos Marketing seats | SEO Specialist `tools` includes `seoagent` (plus `computer-use` / `browser`) |
+| Buffer / Brevo / DataForSEO as locked Marketing defaults | DataForSEO connector **stays**. SEOagent identity is seoagent.com, not claude-seo `/seo` commands |
 | Other seats’ tools (`computer-use`, `browser`) | Unchanged |
 
 Seats stay:
@@ -21,11 +23,10 @@ Seats stay:
 
 ## Task plan
 
-1. Design this note (adapted vs Claude-Code-only).
-2. Failing tests: six seats; SEO Specialist has `seoagent` + `dataforseo` + `skills/`; others unchanged; deploy copies skills + connector.
-3. Thin Dragon skill pack + DataForSEO connector + SOUL pointers.
-4. Deploy copies `bots/<id>/skills/` when present.
-5. Docs: DataForSEO setup, UltraDragon re-apply Marketing Team.
+1. Design this note (free Skill vs paid Autopilot; adapted vs left out).
+2. Tests: six seats; `seoagent` on SEO Specialist only; `seoagent init` docs; DataForSEO connector kept; no claude-seo leaves.
+3. Hermes skill instructions + `connectors/seoagent.json` + keep `connectors/dataforseo.json`.
+4. UltraDragon: re-apply Marketing Team.
 
 ## How Marketing bots declare tools today
 
@@ -33,82 +34,69 @@ Same contract as Real Estate (`docs/airmaze/BOT_GROUPS.md`):
 
 - `bots[].tools` — ids the bot may use
 - Optional `connectors[]` + `connectors/*.json` — non-secret placeholders
-- Deploy writes tools into `%LOCALAPPDATA%\hermes\profiles\<bot-id>\bot.meta.json`
+- Deploy writes tools into `%LOCALAPPDATA%\hermes\profiles\<bot-id>\bot.meta.json` and copies `bots/<id>/skills/` when present
 
-Hermes built-ins already on every Marketing seat: `computer-use`, `browser`.
+## What SEO Specialist runs (free Skill)
 
-## What was adapted (Hermes / Dragon)
+Install path (Node.js ≥ 20), official docs:
 
-From claude-seo **skill prompts only**, rewritten as short Hermes-facing notes under `bot-groups/marketing-team/bots/seo-specialist/skills/`:
-
-| Adapted file | Upstream leaf |
-|--------------|---------------|
-| `INDEX.md` | Hub `skills/seo` (workflow map, not `/seo` slash router) |
-| `seo-audit.md` | `skills/seo-audit` |
-| `seo-page.md` | `skills/seo-page` |
-| `seo-technical.md` | `skills/seo-technical` |
-| `seo-content-brief.md` | `skills/seo-content-brief` |
-| `seo-dataforseo.md` | `skills/seo-dataforseo` + DataForSEO extension |
-
-Live data prefers **DataForSEO** (`npx -y dataforseo-mcp-server`, env `DATAFORSEO_USERNAME` / `DATAFORSEO_PASSWORD`). SearchApi / Anthropic-only paths are not the default.
-
-Tool ids on SEO Specialist: `computer-use`, `browser`, `seoagent`, `dataforseo`.
-
-## Claude-Code-only (not vendored)
-
-Do **not** copy these into Dragon:
-
-- `.claude-plugin/` marketplace + `/plugin install claude-seo@…`
-- `install.sh` / `install.ps1` isolated Python + Playwright Chromium
-- 19 parallel Claude Code **agents** (`agents/*.md`) as Teams seats
-- `/seo` slash commands, `/seo setup`, `/seo doctor`
-- Extensions: Firecrawl, Ahrefs, Banana / image-gen, Profound, Matomo, Bing, SE Ranking, Unlighthouse
-- SQLite drift DB, FLOW prompt dump, maps geo-grid runners
-
-Operators who want the full Claude Code plugin install it from AgriciDaniel/claude-seo themselves. Dragon only needs the thin pack + DataForSEO MCP.
-
-## DataForSEO setup (UltraDragon)
-
-1. Account at [app.dataforseo.com/register](https://app.dataforseo.com/register). API Access → username (email) + API password.
-2. After apply, placeholder is `%LOCALAPPDATA%\DragonAIAgent\connectors\marketing-team\dataforseo.json`.
-3. Add the MCP server in the agent desktop / Hermes MCP settings (not Bot Screen `:8650`):
-
-```json
-{
-  "mcpServers": {
-    "dataforseo": {
-      "command": "npx",
-      "args": ["-y", "dataforseo-mcp-server"],
-      "env": {
-        "DATAFORSEO_USERNAME": "<account-email>",
-        "DATAFORSEO_PASSWORD": "<api-password>",
-        "ENABLED_MODULES": "SERP,KEYWORDS_DATA,ONPAGE,DATAFORSEO_LABS,BACKLINKS,DOMAIN_ANALYTICS,BUSINESS_DATA,CONTENT_ANALYSIS,AI_OPTIMIZATION"
-      }
-    }
-  }
-}
+```bash
+npm install -g @seoagent-official/seoagent
+seoagent init
 ```
 
-4. Node.js ≥ 20 on the machine that runs `npx`. Never commit credentials.
+One-shot without a global install:
 
-## What is still missing
+```bash
+npx -y @seoagent-official/seoagent@latest init
+```
 
-- Auto-inject of `mcpServers` into embedded Hermes `config.yaml` (same gap as Real Estate MCP stubs).
-- Buffer / Brevo connectors on the other seats (locked defaults; out of scope).
-- Full claude-seo leaf set and parallel agents.
+Non-interactive: `seoagent init --yes --domain example.com`.
+
+`init` scaffolds `.seoagent/` (audits, strategy, briefs, content, roadmap) and installs the project-local Skill. The agent uses **its own model/keys**. No seoagent.com account is required for that tier.
+
+Useful local commands after init: `seoagent status`, `seoagent keywords --peek "…"`, `seoagent okf scaffold`, `seoagent menu`. Do not invent rankings. Do not publish without the operator.
+
+Hermes notes: `bot-groups/marketing-team/bots/seo-specialist/skills/` (`INDEX.md`, `SKILL.md`).
+
+## Autopilot (optional, paid)
+
+| | Free Skill | Autopilot |
+|--|------------|-----------|
+| Price | $0 | **$49 / site / month** (7-day trial, no card; then paid) |
+| Where | Local CLI + `.seoagent/` | seoagent.com cloud + inbox |
+| Needs | Node + `init` + the agent’s model | `seoagent login`, often GSC |
+| What | Audit, strategy, briefs, drafts, OKF in-repo | Cloud research, GSC analysis, queued actions, `seoagent process` / `sync` |
+
+`seoagent upgrade` opens pricing. Dragon does **not** require Autopilot to ship. Do not run `seoagent login` unless the operator asks.
+
+## DataForSEO (kept, separate)
+
+`connectors/dataforseo.json` remains the James-locked SERP/keyword MCP (`npx -y dataforseo-mcp-server`). It is **not** the SEOagent tool identity. Autopilot’s cloud keyword feed also uses DataForSEO on their side; UltraDragon can still attach the MCP for live numbers without buying Autopilot.
+
+## What was left out
+
+- AgriciDaniel/claude-seo slash commands (`/seo audit`, 26 leaves, 19 agents) — replaced as SEOagent identity
+- Claude Code / Codex **plugin marketplace** (`/plugin marketplace add Baxter-Inc/seoagent-npm`)
+- Vendoring the full upstream SKILL bundle + `references/` library (hundreds of lines); `init` installs that into the **operator’s site repo**
+- Treating `seoagent process` (Claude Agent SDK) as the default Hermes path
+- CMS auto-publish, Firecrawl deep crawl, cloud image autopilot
+- Shipping Autopilot as if it were included
 
 ## How UltraDragon picks up the change
 
 Apply overwrites group-owned files (`SOUL.md`, `bot.yaml`, `profile.yaml`, `bot.meta.json`, `skills/`) and recopies connectors.
 
 1. Copy this revision into `%LOCALAPPDATA%\DragonAIAgent\` (or install a build of this branch). Restart **Dragon AI Agent**.
-2. **Teams → Marketing Team → Apply / Launch** (re-apply is fine). Or `Deploy-BotGroup.ps1 -BotGroupId marketing-team`.
+2. **Teams → Marketing Team → Apply / Launch** (re-apply is fine).
 3. BOTS **MARKETING TEAM** still shows **exactly six** seats. No SEOagent row.
-4. SEO Specialist `bot.meta.json` `tools` includes `seoagent` and `dataforseo`. Profile folder has `skills/INDEX.md`.
-5. Wire DataForSEO MCP as above.
+4. SEO Specialist `bot.meta.json` `tools` includes `seoagent`. Profile has `skills/SKILL.md`.
+5. On the site repo the operator wants audited: `npm install -g @seoagent-official/seoagent` then `seoagent init` (or npx). Optional: wire DataForSEO MCP from `connectors/marketing-team/dataforseo.json`.
 
 ## Tests
 
 ```bash
 python3 scripts/airmaze/Test-BotGroups.py
+python3 scripts/airmaze/Test-TeamsPicker.py
+python3 scripts/airmaze/Test-LaunchSmoke.py
 ```

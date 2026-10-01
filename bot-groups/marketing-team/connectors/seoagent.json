@@ -1,0 +1,15 @@
+{
+  "id": "seoagent",
+  "type": "cli",
+  "displayName": "SEOagent (seoagent.com)",
+  "status": "placeholder",
+  "cli": {
+    "package": "@seoagent-official/seoagent",
+    "install": ["npm", "install", "-g", "@seoagent-official/seoagent"],
+    "init": ["seoagent", "init"],
+    "npx": ["npx", "-y", "@seoagent-official/seoagent@latest", "init"]
+  },
+  "docs": "https://seoagent.com",
+  "source": "https://github.com/Baxter-Inc/seoagent-npm",
+  "notes": "Free Skill: npm install -g @seoagent-official/seoagent then seoagent init (or npx) in the site repo. Uses the agent’s own model/keys. Autopilot is $49/site/month and optional. No secrets in this file. Setup: docs/airmaze/SEOAGENT.md."
+}
