@@ -30,30 +30,92 @@
       || querySlot("sidebar")
       || document.querySelector('[data-sidebar="sidebar"]');
   }
-  function findSessionsBotsStrip() {
-    var nodes = document.querySelectorAll('[role="tab"],button,a');
-    var row = null;
+  function labelOf(el) {
+    return (el.textContent || "").replace(/\s+/g, " ").trim();
+  }
+  function findBotsTab() {
+    var tabs = document.querySelectorAll('[role="tab"]');
+    var fallback = null;
     var i;
-    for (i = 0; i < nodes.length; i++) {
-      var t = (nodes[i].textContent || "").replace(/\s+/g, " ").trim();
-      if (/^(bots|sessions)$/i.test(t)) {
-        row = nodes[i].parentElement || nodes[i];
-        if (/^bots$/i.test(t)) return row;
-      }
+    for (i = 0; i < tabs.length; i++) {
+      var t = labelOf(tabs[i]);
+      if (/^bots$/i.test(t)) return tabs[i];
+      if (/^sessions$/i.test(t)) fallback = fallback || tabs[i];
     }
-    return row;
+    var nodes = document.querySelectorAll("button, a, [role='tablist'] *");
+    for (i = 0; i < nodes.length; i++) {
+      if (/^bots$/i.test(labelOf(nodes[i]))) return nodes[i];
+    }
+    return fallback;
+  }
+  function findTabStrip(tab) {
+    var node = tab;
+    var hops = 0;
+    while (node && hops < 8) {
+      var parent = node.parentElement;
+      if (!parent) break;
+      var kids = parent.children;
+      var bots = 0;
+      var sessions = 0;
+      var i;
+      for (i = 0; i < kids.length; i++) {
+        var t = labelOf(kids[i]);
+        if (/^bots$/i.test(t)) bots += 1;
+        if (/^sessions$/i.test(t)) sessions += 1;
+      }
+      if (bots && sessions) return parent;
+      node = parent;
+      hops += 1;
+    }
+    return tab.parentElement || tab;
+  }
+  function lockupHeight() {
+    var row = document.querySelector("[data-dragon-ai-sidebar-row]");
+    if (row && row.getBoundingClientRect) {
+      var height = row.getBoundingClientRect().height;
+      if (height > 24) return Math.max(96, Math.ceil(height + 8));
+    }
+    return 96;
+  }
+  function ensureClearance(strip, height) {
+    var parent = strip && strip.parentElement;
+    if (!parent) return null;
+    var spacer = document.querySelector("[data-dragon-ai-sidebar-clearance]");
+    if (!spacer) {
+      spacer = document.createElement("div");
+      spacer.setAttribute("data-dragon-ai-sidebar-clearance", "true");
+    }
+    if (spacer.parentElement !== parent || spacer.nextSibling !== strip) {
+      parent.insertBefore(spacer, strip);
+    }
+    spacer.style.cssText = "display:block;width:100%;height:" + height + "px;min-height:" + height + "px;flex:0 0 " + height + "px;pointer-events:none;background:transparent;border:0;";
+    return spacer;
   }
   function pinFixedHost(host) {
-    var top = 48;
-    var strip = findSessionsBotsStrip();
-    if (strip && strip.getBoundingClientRect) {
-      var box = strip.getBoundingClientRect();
-      if (box && box.bottom > 0) {
-        top = Math.max(8, Math.round(box.bottom + 8));
+    var tab = findBotsTab();
+    var strip = tab ? findTabStrip(tab) : null;
+    var roster = document.querySelector('[data-slot="bots-roster"]');
+    var height = lockupHeight();
+    var top = 96;
+    var left = 0;
+    var width = 256;
+    if (strip) {
+      var spacer = ensureClearance(strip, height);
+      if (spacer && spacer.getBoundingClientRect) {
+        var box = spacer.getBoundingClientRect();
+        top = Math.max(0, Math.round(box.top));
+        left = Math.max(0, Math.round(box.left));
+        if (box.width > 80) width = Math.round(box.width);
+        roster = null;
       }
     }
+    if (roster && roster.getBoundingClientRect) {
+      var rail = roster.getBoundingClientRect();
+      left = Math.max(0, Math.round(rail.left));
+      if (rail.width > 80) width = Math.round(rail.width);
+    }
     host.setAttribute("data-dragon-ai-sidebar-fixed", "true");
-    host.style.cssText = "position:fixed;z-index:40;top:" + top + "px;left:0;width:16rem;max-width:16rem;min-width:16rem;box-sizing:border-box;margin:0;padding:0;pointer-events:none;background:transparent;border:0;";
+    host.style.cssText = "position:fixed;z-index:40;top:" + top + "px;left:" + left + "px;width:" + width + "px;max-width:" + width + "px;min-width:" + width + "px;box-sizing:border-box;margin:0;padding:0;pointer-events:none;background:transparent;border:0;";
   }
   function ensureFixedHost() {
     var existing = document.querySelector("[data-dragon-ai-sidebar-fixed]");
@@ -107,6 +169,7 @@
     wrap.appendChild(span);
     row.appendChild(wrap);
     host.insertBefore(row, host.firstChild);
+    if (host.getAttribute("data-dragon-ai-sidebar-fixed")) pinFixedHost(host);
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", mount);

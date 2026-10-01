@@ -11,7 +11,7 @@ Upstream still *defines* those slots in `sidebar.tsx`. `ContribController` only 
 `sidebar-header.js` / `teams-picker.js`:
 
 1. **Column hosts first:** `sidebar-header`, `data-sidebar="header"`, `sidebar-inner`, `sidebar-container`, `sidebar`. Prepend the lockup. Keep `@container` wrap so Marketplace drops below the logo when that rail is narrow.
-2. **Else body fixed overlay:** `[data-dragon-ai-sidebar-fixed]` on `document.body`. Park it **below** the Sessions / Bots strip (measure the Bots chip, default `top: 48px`) so those tabs stay visible and clickable. Width rules: `16rem` min/max on the host and the row.
+2. **Else body fixed overlay:** `[data-dragon-ai-sidebar-fixed]` on `document.body`. Insert `[data-dragon-ai-sidebar-clearance]` **above** the Sessions / Bots tab row, then pin the overlay into that spacer so the **BOTS tab stays visible and clickable**. Default CSS/JS `top: 96px` and `lockupHeight` **96** (wrapped Marketplace is taller than 48px) — never `top: 48px` on the tab, never measure the tab strip as the overlay box. Width follows the rail (fallback `16rem`). Sidebar bot names and middle session/agent names share **16px** body.
 3. **Skip `sidebar-wrapper` as a column.** It is the window shell. Treating it as a rail makes a full-width top bar and collapses the lockup.
 
 `dragon-ui.css`:

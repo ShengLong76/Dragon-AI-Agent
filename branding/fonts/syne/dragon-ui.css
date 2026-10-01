@@ -196,8 +196,9 @@ body,
    matches the Teams Marketplace button height at full width. When a real
    sidebar column shrinks, @container wrap drops Marketplace below the logo.
    Hermes sidebar-wrapper is the full app shell — never a column host.
-   Fallback is a body overlay [data-dragon-ai-sidebar-fixed] parked below
-   the Sessions / Bots strip (do not cover those tabs). Do not set
+   Fallback is a body overlay [data-dragon-ai-sidebar-fixed] pinned into
+   [data-dragon-ai-sidebar-clearance] above the Sessions / Bots strip
+   (never cover those tabs; default top: 96px, never 48px). Do not set
    container-type on the fixed row (it collapses to ~24px). Overlay wrap
    uses @media (max-width: 1100px). */
 [data-slot="sidebar-inner"],
@@ -212,7 +213,7 @@ body,
 [data-dragon-ai-sidebar-fixed] {
   position: fixed;
   z-index: 40;
-  top: 48px;
+  top: 96px;
   left: 0;
   width: 16rem;
   max-width: 16rem;
@@ -223,6 +224,16 @@ body,
   pointer-events: none;
   background: transparent;
   border: 0;
+}
+
+[data-dragon-ai-sidebar-clearance] {
+  display: block;
+  width: 100%;
+  min-height: 96px;
+  pointer-events: none;
+  background: transparent;
+  border: 0;
+  flex: 0 0 auto;
 }
 
 [data-dragon-ai-sidebar-fixed] [data-dragon-ai-sidebar-row] {
@@ -486,14 +497,34 @@ body,
   -webkit-line-clamp: 2;
 }
 
-/* Sidebar + chat: Hermes menu/chat copy is 0.8125rem / 54% grey. */
+/* Sidebar chrome (group labels, chrome copy) stays 14px. Name chips below. */
 [data-slot="sidebar"],
 [data-slot="sidebar-inner"],
-[data-slot="sidebar-header"],
-[data-sidebar="menu-button"] {
+[data-slot="sidebar-header"] {
   font-size: var(--dragon-ui-font-size-ui);
   line-height: var(--dragon-ui-line-height-ui);
   color: var(--color-foreground);
+}
+
+/* Sidebar bot names and middle session/agent names must match (Grok 16px).
+   Hermes paints chips as text-[0.8125rem] (13px) and menu-button at 14px;
+   Personal Assistant then looks smaller than Dragon AI Tester. */
+[data-slot="bots-roster"] [data-roster-key],
+[data-slot="bots-roster"] [data-roster-key] span,
+[data-roster-key] span,
+[data-sidebar="menu-button"],
+[data-sidebar="menu-button"] span,
+[data-slot="sidebar-menu-button"],
+[data-slot="sidebar-menu-button"] span,
+[role="dialog"] span[class*="truncate"],
+[role="dialog"] span.font-medium,
+[role="listbox"] span,
+[role="option"],
+[role="option"] span,
+span[class*="text-[0.8125rem]"].font-medium,
+span[class*="text-[0.8125rem]"][class*="truncate"] {
+  font-size: var(--dragon-ui-font-size-body) !important;
+  line-height: var(--dragon-ui-line-height-body);
 }
 
 [data-sidebar="group-label"] {

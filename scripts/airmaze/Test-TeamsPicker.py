@@ -176,8 +176,13 @@ def test_overlay_and_launch_wired() -> None:
         fail("sidebar control must not be labeled Teams (use Teams Marketplace)")
     if "findColumnHost" not in picker_js or "data-dragon-ai-sidebar-fixed" not in picker_js:
         fail("Teams Marketplace must try column hosts then the body fixed overlay")
-    if "findSessionsBotsStrip" not in picker_js:
-        fail("fixed overlay must sit below Sessions / Bots so those tabs stay clickable")
+    if "findBotsTab" not in picker_js or "data-dragon-ai-sidebar-clearance" not in picker_js:
+        fail("fixed overlay must reserve clearance so the BOTS tab stays clickable")
+    picker_compact = picker_js.replace(" ", "")
+    if "vartop=96" not in picker_compact or "return96" not in picker_compact:
+        fail("Teams Marketplace overlay must default to 96px clearance (not cover BOTS)")
+    if "vartop=48" in picker_compact or "return48" in picker_compact:
+        fail("Teams Marketplace overlay must not use 48px (covers BOTS)")
     if 'data-slot="sidebar-wrapper"' in picker_js:
         fail("Teams Marketplace must not treat sidebar-wrapper as a column host")
     if "finishApply" not in picker_js or "location.reload" not in picker_js:

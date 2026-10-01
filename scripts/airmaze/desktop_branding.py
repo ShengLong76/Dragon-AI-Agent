@@ -796,8 +796,8 @@ def self_test() -> int:
     if "findColumnHost" not in once or "data-dragon-ai-sidebar-fixed" not in once:
         print("FAIL: sidebar inject must try column hosts then body data-dragon-ai-sidebar-fixed", file=sys.stderr)
         return 1
-    if "findSessionsBotsStrip" not in once:
-        print("FAIL: sidebar inject must park the overlay below Sessions / Bots", file=sys.stderr)
+    if "findBotsTab" not in once or "data-dragon-ai-sidebar-clearance" not in once:
+        print("FAIL: sidebar inject must reserve clearance so the overlay does not cover BOTS", file=sys.stderr)
         return 1
     if re.search(r'querySelector\(\s*[\'"]\[data-slot="sidebar-wrapper"\]', once):
         print("FAIL: sidebar inject must not treat sidebar-wrapper as a column host", file=sys.stderr)
