@@ -1,6 +1,8 @@
 (function () {
+  // Expected DOM order: lockup → Teams Marketplace → Sessions/Bots
   var API = "http://127.0.0.1:8653";
   var LABEL = "Teams Marketplace";
+  var CHROME_STYLE = "display:flex;flex-direction:column;align-items:stretch;width:100%;min-height:96px;box-sizing:border-box;margin:0;padding:0;flex:0 0 auto;order:-1;position:relative;z-index:1;pointer-events:auto;background:transparent;border:0;";
   function $(sel, root) { return (root || document).querySelector(sel); }
   function querySlot(name) {
     return document.querySelector('[data-slot="' + name + '"]');
@@ -52,45 +54,134 @@
     }
     return tab.parentElement || tab;
   }
+  function isAppShell(el) {
+    if (!el) return true;
+    var slot = el.getAttribute && el.getAttribute("data-slot");
+    if (slot === "sidebar-wrapper") return true;
+    var tag = (el.tagName || "").toLowerCase();
+    return tag === "body" || tag === "html";
+  }
+  function isTabRow(el) {
+    if (!el || !el.children) return false;
+    var bots = 0;
+    var sessions = 0;
+    var i;
+    for (i = 0; i < el.children.length; i++) {
+      var t = labelOf(el.children[i]);
+      if (/^bots$/i.test(t)) bots += 1;
+      if (/^sessions$/i.test(t)) sessions += 1;
+    }
+    return !!(bots && sessions);
+  }
+  function looksHorizontalChrome(el) {
+    if (isTabRow(el)) return true;
+    try {
+      var cs = window.getComputedStyle(el);
+      var dir = cs && cs.flexDirection;
+      if (dir === "row" || dir === "row-reverse") {
+        var box = el.getBoundingClientRect && el.getBoundingClientRect();
+        if (box && box.height > 0 && box.height < 72) return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+  function findInFlowColumn() {
+    var tab = findBotsTab();
+    if (!tab) return null;
+    var strip = findTabStrip(tab);
+    if (!strip) return null;
+    var roster = document.querySelector('[data-slot="bots-roster"]');
+    var node = strip.parentElement;
+    var hops = 0;
+    var fallback = null;
+    while (node && hops < 14) {
+      if (isAppShell(node)) break;
+      if (!looksHorizontalChrome(node) && node.contains(strip)) {
+        if (roster && node.contains(roster)) return node;
+        if (node.children && node.children.length >= 2) fallback = fallback || node;
+      }
+      node = node.parentElement;
+      hops += 1;
+    }
+    return fallback;
+  }
   function lockupHeight() {
-    var row = document.querySelector("[data-dragon-ai-sidebar-row]");
-    if (row && row.getBoundingClientRect) {
-      var height = row.getBoundingClientRect().height;
+    var measured = document.querySelector("[data-dragon-ai-sidebar-chrome]")
+      || document.querySelector("[data-dragon-ai-sidebar-row]");
+    if (measured && measured.getBoundingClientRect) {
+      var height = measured.getBoundingClientRect().height;
       if (height > 24) return Math.max(96, Math.ceil(height + 8));
     }
     return 96;
   }
-  function ensureClearance(strip, height) {
-    var parent = strip && strip.parentElement;
+  function pinChrome(chrome) {
+    chrome.setAttribute("data-dragon-ai-sidebar-chrome", "true");
+    chrome.removeAttribute("data-dragon-ai-sidebar-fixed");
+    chrome.style.cssText = CHROME_STYLE;
+  }
+  function bumpStickyStrip(strip, height) {
+    if (!strip) return;
+    try {
+      var cs = window.getComputedStyle(strip);
+      if (!cs) return;
+      if (cs.position !== "sticky" && cs.position !== "absolute" && cs.position !== "fixed") return;
+      if (strip.getAttribute("data-dragon-ai-tab-offset") === String(height)) return;
+      strip.setAttribute("data-dragon-ai-tab-offset", String(height));
+      strip.style.top = height + "px";
+    } catch (e) {}
+  }
+  function ensureInFlowHost() {
+    var column = findInFlowColumn();
+    if (!column) return null;
+    var chrome = document.querySelector("[data-dragon-ai-sidebar-chrome]");
+    if (!chrome) chrome = document.createElement("div");
+    pinChrome(chrome);
+    if (chrome.parentElement !== column || column.firstElementChild !== chrome) {
+      column.insertBefore(chrome, column.firstChild);
+    }
+    var spacer = document.querySelector("[data-dragon-ai-sidebar-clearance]");
+    if (spacer && spacer.parentElement) spacer.parentElement.removeChild(spacer);
+    var fixed = document.querySelector("[data-dragon-ai-sidebar-fixed]");
+    if (fixed && fixed !== chrome) {
+      var row = document.querySelector("[data-dragon-ai-sidebar-row]");
+      if (row && !chrome.contains(row)) chrome.insertBefore(row, chrome.firstChild);
+      if (fixed.parentElement) fixed.parentElement.removeChild(fixed);
+    }
+    var tab = findBotsTab();
+    bumpStickyStrip(tab ? findTabStrip(tab) : null, lockupHeight());
+    return chrome;
+  }
+  function ensureClearance(height) {
+    var column = findInFlowColumn();
+    var tab = findBotsTab();
+    var strip = tab ? findTabStrip(tab) : null;
+    var parent = column || (strip && strip.parentElement);
     if (!parent) return null;
     var spacer = document.querySelector("[data-dragon-ai-sidebar-clearance]");
     if (!spacer) {
       spacer = document.createElement("div");
       spacer.setAttribute("data-dragon-ai-sidebar-clearance", "true");
     }
-    if (spacer.parentElement !== parent || spacer.nextSibling !== strip) {
-      parent.insertBefore(spacer, strip);
+    if (spacer.parentElement !== parent || parent.firstElementChild !== spacer) {
+      parent.insertBefore(spacer, parent.firstChild);
     }
-    spacer.style.cssText = "display:block;width:100%;height:" + height + "px;min-height:" + height + "px;flex:0 0 " + height + "px;pointer-events:none;background:transparent;border:0;";
+    spacer.style.cssText = "display:block;width:100%;height:" + height + "px;min-height:" + height + "px;flex:0 0 auto;order:-1;pointer-events:none;background:transparent;border:0;";
+    bumpStickyStrip(strip, height);
     return spacer;
   }
   function pinFixedHost(host) {
-    var tab = findBotsTab();
-    var strip = tab ? findTabStrip(tab) : null;
     var roster = document.querySelector('[data-slot="bots-roster"]');
     var height = lockupHeight();
-    var top = 96;
+    var top = 0;
     var left = 0;
     var width = 256;
-    if (strip) {
-      var spacer = ensureClearance(strip, height);
-      if (spacer && spacer.getBoundingClientRect) {
-        var box = spacer.getBoundingClientRect();
-        top = Math.max(0, Math.round(box.top));
-        left = Math.max(0, Math.round(box.left));
-        if (box.width > 80) width = Math.round(box.width);
-        roster = null;
-      }
+    var spacer = ensureClearance(height);
+    if (spacer && spacer.getBoundingClientRect) {
+      var box = spacer.getBoundingClientRect();
+      top = Math.max(0, Math.round(box.top));
+      left = Math.max(0, Math.round(box.left));
+      if (box.width > 80) width = Math.round(box.width);
+      roster = null;
     }
     if (roster && roster.getBoundingClientRect) {
       var rail = roster.getBoundingClientRect();
@@ -113,7 +204,7 @@
     return host;
   }
   function findDragonSidebarHost() {
-    return findColumnHost() || ensureFixedHost();
+    return findColumnHost() || ensureInFlowHost() || ensureFixedHost();
   }
   function place(root) {
     var row = document.querySelector("[data-dragon-ai-sidebar-row]");

@@ -191,16 +191,21 @@ body,
 }
 
 /* dragon-ai-lockup-wrap:1
+   dragon-ai-sidebar-chrome-order:1
+   Expected DOM order: lockup → Teams Marketplace → Sessions/Bots
    Sidebar header lockup above SESSIONS / BOTS.
    Logo stays a fixed 32px transparent SVG (no plate / no red border) and
    matches the Teams Marketplace button height. The Marketplace control
    sits under the logo. Hermes sidebar-wrapper is the full app shell —
-   never a column host. Fallback is a body overlay
+   never a column host. Prefer in-flow [data-dragon-ai-sidebar-chrome]
+   on the Sessions-zone column. Fallback is a body overlay
    [data-dragon-ai-sidebar-fixed] pinned into
-   [data-dragon-ai-sidebar-clearance] above the Sessions / Bots strip
-   (must not cover BOTS; default top: 96px, never 48px). Do not set
-   container-type on the fixed row (it collapses to ~24px). Overlay wrap
-   uses @media (max-width: 1100px). */
+   [data-dragon-ai-sidebar-clearance] as the first child of that column
+   (must not cover BOTS; default top: 0 at the reserved rail top, never
+   96px below the tabs, never 48px on the tab). Clearance/chrome
+   min-height 96px for the stacked lockup. Do not set container-type on
+   the fixed row (it collapses to ~24px). Overlay wrap uses
+   @media (max-width: 1100px). */
 [data-slot="sidebar-inner"],
 [data-slot="sidebar-header"] {
   container-type: inline-size;
@@ -210,10 +215,28 @@ body,
   overflow: visible !important;
 }
 
+[data-dragon-ai-sidebar-chrome] {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  min-height: 96px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 auto;
+  order: -1;
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+  background: transparent;
+  border: 0;
+}
+
 [data-dragon-ai-sidebar-fixed] {
   position: fixed;
   z-index: 40;
-  top: 96px;
+  top: 0;
   left: 0;
   width: 16rem;
   max-width: 16rem;
@@ -234,6 +257,7 @@ body,
   background: transparent;
   border: 0;
   flex: 0 0 auto;
+  order: -1;
 }
 
 [data-dragon-ai-sidebar-fixed] [data-dragon-ai-sidebar-row] {

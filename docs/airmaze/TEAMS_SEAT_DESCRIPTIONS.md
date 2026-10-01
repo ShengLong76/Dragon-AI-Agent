@@ -57,7 +57,7 @@ Each seat card shows a **left icon** beside the title + brief (Grok Bot marketpl
 
 User-facing label is **Teams Marketplace** (sidebar button, dialog title, `aria-label`). Internal `data-dragon-ai-teams-*` ids stay.
 
-The control sits **under** the 32px dragon logo (column lockup; mark size does not change). In-flow only — **must not cover BOTS** (header overflow hidden; hide the lockup on an icon-rail). The panel opens from that control with a fade + slight slide/scale. Do not set required state from `transitionend`. `prefers-reduced-motion` already shortens motion. Panel background is **black** (`#000`). Seat cards keep the 4-column grid, 12px radius, left icon, brief + hover, and use layered shadows for elevation.
+The control sits **under** the 32px dragon logo (column lockup; mark size does not change). Chrome order is lockup → **Teams Marketplace** → Sessions / Bots. Prefer in-flow `[data-dragon-ai-sidebar-chrome]` on the Sessions-zone column — **must not cover BOTS** (fixed host is `pointer-events: none`; hide the lockup on an icon-rail). The panel opens from that control with a fade + slight slide/scale. Do not set required state from `transitionend`. `prefers-reduced-motion` already shortens motion. Panel background is **black** (`#000`). Seat cards keep the 4-column grid, 12px radius, left icon, brief + hover, and use layered shadows for elevation. Host: `docs/airmaze/SIDEBAR_HOST.md`.
 
 Marketplace type uses the **16px body** contrast tokens (`--dragon-ui-font-size-body`, `--color-foreground` / `--color-muted-foreground`). Sidebar bot-name vs session-list matching stays on the inject/branding PR.
 

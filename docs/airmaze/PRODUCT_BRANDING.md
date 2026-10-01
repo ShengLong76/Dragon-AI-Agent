@@ -25,7 +25,7 @@ UI UX Pro Max: decorative-beside-text (`aria-hidden`); Color Contrast (High). No
 
 Upstream chrome *defined* `data-slot="sidebar-header"` / `sidebar-inner`. Live UltraDragon Hermes does not paint those — only `sidebar-wrapper`, and that node is the full app shell.
 
-**Do:** at overlay time, inject a brand lockup (CSS + `sidebar-header.js` / `teams-picker.js`). Try column hosts first (`sidebar-header`, `sidebar-inner`, `sidebar-container`, `sidebar`). If those are absent, mount a body overlay `[data-dragon-ai-sidebar-fixed]` **below** the Sessions / Bots strip so those tabs stay visible and clickable. Do **not** treat `sidebar-wrapper` as a column. Design: `docs/airmaze/SIDEBAR_HOST.md`.
+**Do:** at overlay time, inject a brand lockup (CSS + `sidebar-header.js` / `teams-picker.js`). Order is lockup → **Teams Marketplace** → Sessions / Bots. Try column hosts first (`sidebar-header`, `sidebar-inner`, `sidebar-container`, `sidebar`). If those are absent, prepend in-flow `[data-dragon-ai-sidebar-chrome]` on the Sessions-zone column so the native strip and everything below move down. Only if that column cannot be found, mount a body overlay `[data-dragon-ai-sidebar-fixed]` pinned into a first-child clearance spacer **above** the Sessions / Bots strip (tabs stay visible and clickable). Do **not** treat `sidebar-wrapper` as a column. Design: `docs/airmaze/SIDEBAR_HOST.md`.
 
 Do not cover SESSIONS / BOTS. Do not restyle Bot Screen.
 
