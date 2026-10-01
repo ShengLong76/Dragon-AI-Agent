@@ -41,11 +41,48 @@ path_has_symlink_component() {
 }
 
 heal_owner() {
+  if [ -n "${DRAGON_HEAL_OWNER:-}" ] && id "$DRAGON_HEAL_OWNER" >/dev/null 2>&1; then
+    printf '%s\n' "$DRAGON_HEAL_OWNER"
+    return
+  fi
   if id hermes >/dev/null 2>&1; then
     printf '%s\n' hermes
     return
   fi
   id -un
+}
+
+runtime_can_write() {
+  target="$1"
+  owner="$2"
+  probe="$target/.dragon-write-probe"
+  if command -v s6-setuidgid >/dev/null 2>&1 && [ "$owner" = "hermes" ]; then
+    s6-setuidgid hermes sh -c "echo w > \"$probe\"" >/dev/null 2>&1 || return 1
+  elif command -v su >/dev/null 2>&1; then
+    su -s /bin/sh "$owner" -c "echo w > \"$probe\"" >/dev/null 2>&1 || return 1
+  else
+    return 0
+  fi
+  rm -f "$probe" 2>/dev/null || true
+  return 0
+}
+
+ensure_runtime_writable() {
+  target="$1"
+  owner="$2"
+  if [ "$(id -u)" != 0 ] || [ ! -d "$target" ]; then
+    return 0
+  fi
+  if ! id "$owner" >/dev/null 2>&1; then
+    return 0
+  fi
+  if runtime_can_write "$target" "$owner"; then
+    return 0
+  fi
+  # Bind mounts that ignore chown still need the hermes process to append
+  # agent.log. Open the targeted tree only (not the whole volume).
+  echo "[dragon-gateway] $owner cannot write $target after chown; opening a+rwX" >&2
+  chmod -R a+rwX "$target" 2>/dev/null || true
 }
 
 heal_tree() {
@@ -70,6 +107,7 @@ heal_tree() {
       echo "[dragon-gateway] warning: chown $target failed (rootless or bind mount?)" >&2
   fi
   chmod -R u+rwX "$target" 2>/dev/null || true
+  ensure_runtime_writable "$target" "$owner"
 }
 
 heal_data_volume() {
@@ -87,6 +125,10 @@ heal_data_volume() {
 }
 
 hand_off() {
+  # Test-only override so CI can prove heal-then-exec without the official image.
+  if [ -n "${DRAGON_HANDOFF_DISPATCH:-}" ] && [ -x "$DRAGON_HANDOFF_DISPATCH" ]; then
+    exec "$DRAGON_HANDOFF_DISPATCH" "$@"
+  fi
   # Keep /init (or the official dispatcher that exec's it) in the chain.
   if [ -x /opt/hermes/docker/entrypoint-dispatch.sh ]; then
     exec /opt/hermes/docker/entrypoint-dispatch.sh "$@"

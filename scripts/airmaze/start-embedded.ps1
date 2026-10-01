@@ -59,7 +59,7 @@ $script:WinFormsOk = $false
 $script:LaunchForm = $null
 $script:LaunchStatus = $null
 $script:DashboardUrl = $DashboardUrl
-$script:ApiKey = "dragon-local"
+$script:ApiKey = "dragon-local-key"
 $script:DesktopServeUrl = $DesktopServeUrl
 $script:DesktopSessionToken = $DesktopSessionToken
 

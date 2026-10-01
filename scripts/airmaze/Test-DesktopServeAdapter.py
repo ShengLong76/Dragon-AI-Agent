@@ -138,8 +138,12 @@ def test_compose_and_scripts() -> None:
         fail("gateway must wrap official entrypoint with start-gateway.sh (heal root-owned logs)")
     if "\n    user:" in compose:
         fail("compose must not pin user: (stage2/heal need root, then official drop to hermes)")
-    if "API_SERVER_KEY: " in compose and "dragon-local" not in compose:
-        fail("compose lost local-only key placeholder")
+    if "API_SERVER_KEY: " in compose and "dragon-local-key" not in compose:
+        fail("compose lost local-only API_SERVER_KEY placeholder (must be ≥16 chars)")
+    key_line = next((ln for ln in compose.splitlines() if "API_SERVER_KEY:" in ln), "")
+    key_val = key_line.split(":", 1)[-1].strip().strip('"')
+    if key_val and len(key_val) < 16:
+        fail(f"API_SERVER_KEY {key_val!r} is shorter than 16 chars (current image will not bind :8642)")
 
     gateway = read(GATEWAY_SH)
     for token in (
@@ -151,6 +155,8 @@ def test_compose_and_scripts() -> None:
         "logs/agent.log",
         "backups",
         "refusing to start gateway as root",
+        "DRAGON_HANDOFF_DISPATCH",
+        "ensure_runtime_writable",
     ):
         if token not in gateway:
             fail(f"start-gateway.sh missing {token!r}")

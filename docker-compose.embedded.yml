@@ -48,7 +48,9 @@ services:
       API_SERVER_ENABLED: "true"
       API_SERVER_HOST: "0.0.0.0"
       API_SERVER_PORT: "8642"
-      API_SERVER_KEY: "dragon-local"
+      # Current -desktop image refuses keys shorter than 16 chars (api_server
+      # never binds :8642). Loopback-only placeholder, not a production secret.
+      API_SERVER_KEY: "dragon-local-key"
       API_SERVER_CORS_ORIGINS: "*"
     deploy:
       resources:

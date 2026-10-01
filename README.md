@@ -160,6 +160,7 @@ scripts/airmaze/
   Test-LaunchSmoke.py
   Test-WindowsLaunchParse.py
   Test-DesktopServeAdapter.py
+  Test-GatewayVolumeHeal.py
   Test-UnderstandAnything.py
   Test-BotGroups.py
   bot_groups.py

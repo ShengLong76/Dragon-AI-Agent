@@ -121,7 +121,7 @@ docker run -d `
   -e HERMES_DASHBOARD_BASIC_AUTH_SECRET=dragon-local-dashboard-session-secret `
   -e API_SERVER_ENABLED=true `
   -e API_SERVER_HOST=0.0.0.0 `
-  -e API_SERVER_KEY=dragon-local `
+  -e API_SERVER_KEY=dragon-local-key `
   nousresearch/hermes-agent:latest-desktop `
   gateway run
 ```
@@ -130,7 +130,7 @@ Notes:
 
 - Option A starts **only** `gateway run` + dashboard. It is **not** enough for Desktop Bot Screen (no loopback `hermes serve` on `:8650`). Use Option B (compose) for Screen.
 - Map secrets via the volume (`/opt/data` ↔ `%USERPROFILE%\.hermes-airmaze-embedded`), not via this package.
-- The OpenAI-compatible API (`8642`) defaults to `127.0.0.1` **inside** the container. Without `API_SERVER_ENABLED=true` and `API_SERVER_HOST=0.0.0.0`, Windows `127.0.0.1:8642` is docker-proxy only and HTTP connection-closes. Host publish stays `127.0.0.1`. Local compose uses `API_SERVER_KEY=dragon-local` (min 8 chars).
+- The OpenAI-compatible API (`8642`) defaults to `127.0.0.1` **inside** the container. Without `API_SERVER_ENABLED=true` and `API_SERVER_HOST=0.0.0.0`, Windows `127.0.0.1:8642` is docker-proxy only and HTTP connection-closes. Host publish stays `127.0.0.1`. Local compose uses `API_SERVER_KEY=dragon-local-key` (current `-desktop` image refuses keys shorter than 16 chars; `dragon-local` alone leaves `:8642` closed and the healthcheck never passes).
 - Dashboard on a non-loopback bind (`0.0.0.0` inside the container, required for `-p 9119:9119`) needs `HERMES_DASHBOARD_BASIC_AUTH_USERNAME` + `_PASSWORD` (not `_USER`). Wrong names → “no auth providers” crash-loop.
 
 Stop / remove:
@@ -224,7 +224,7 @@ If the Screen pane says packages missing, you are on a slim tag — switch compo
 - [ ] `docker version` shows Server (Linux engine)
 - [ ] `docker pull nousresearch/hermes-agent:latest-desktop` succeeds
 - [ ] **Open Dragon AI Agent** (Desktop / Start Menu / double-click `Start-DragonAI.vbs`): **no PowerShell console** (shortcut target is `wscript.exe`, not Hide-ConsoleWindow after a flash). Desktop client window only. Docker engine stopped → launcher starts **Docker Desktop in the tray** (no Containers dashboard) and waits; MessageBox only if it stays down. Dashboard `:9119` must **not** auto-open. A healthy `docker compose up` must not exit 1 from CLI stderr. Log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`.
-- [ ] From Windows: `http://127.0.0.1:8642/` does not connection-close (Bearer `dragon-local` if asked). `http://127.0.0.1:9119/` serves the dashboard login (user `dragon`).
+- [ ] From Windows: `http://127.0.0.1:8642/health` does not connection-close (Bearer `dragon-local-key` if asked). `http://127.0.0.1:9119/` serves the dashboard login (user `dragon`).
 - [ ] Desktop serve: `http://127.0.0.1:8650/api/health` returns 200 with header `X-Hermes-Session-Token: dragon-local`. `GET /api/ws` without Upgrade may 404 — that is normal; the client uses a WebSocket upgrade + `?token=`.
 - [ ] Offline wiring check (no secrets): `python3 scripts/airmaze/Test-LaunchSmoke.py` (includes `Test-DesktopServeAdapter.py` and `start-gateway.sh --self-test`) or `powershell -File scripts\airmaze\start-embedded.ps1 -Smoke`
 - [ ] **Dirty / root-owned logs (UltraDragon re-smoke).** After a normal start (or a fresh `docker compose -f docker-compose.embedded.yml up -d`), simulate the 2026-10-01 crash without a manual chown:
@@ -236,6 +236,7 @@ docker restart hermes-airmaze-gw
 docker inspect --format "{{.State.Health.Status}}" hermes-airmaze-gw
 # Host health (no secrets beyond the local placeholder):
 Invoke-WebRequest http://127.0.0.1:8642/health -UseBasicParsing
+# If asked for a Bearer token, use API_SERVER_KEY dragon-local-key (16+ chars). Desktop token stays dragon-local.
 ```
 
   Then open Start Menu **Dragon AI Agent** (not `%LOCALAPPDATA%\DragonAIAgent\Dragon AI Agent Client.lnk`). Confirm the `.lnk` target is `wscript.exe` + `Start-DragonAI.vbs`. Client window opens. Compose/health failures still fail closed (dialog, no silent Hermes.exe). Docker engine down starts Docker Desktop in the tray.
