@@ -153,13 +153,25 @@ body,
 
 /* Sidebar header lockup above SESSIONS / BOTS.
    One row: transparent dragon (no red border / no plate) + Dragon AI + Teams.
-   Logo height matches the Teams button. */
+   Tracks the resizable sidebar column (container query); logo height stays
+   matched to the Teams button as the column shrinks. */
+[data-slot="sidebar-inner"],
+[data-slot="sidebar-header"] {
+  container-type: inline-size;
+  min-width: 0;
+}
+
 [data-dragon-ai-sidebar-row] {
   --dragon-sidebar-control-height: 32px;
+  --dragon-sidebar-control-height: clamp(20px, 18cqi, 32px);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   padding: 8px 12px;
   background: transparent;
   background-color: transparent;
@@ -171,6 +183,8 @@ body,
   align-items: center;
   gap: 8px;
   box-sizing: border-box;
+  flex: 1 1 auto;
+  min-width: 0;
   min-height: var(--dragon-sidebar-control-height);
   padding: 0;
   color: var(--color-foreground);
@@ -183,8 +197,10 @@ body,
 [data-dragon-ai-sidebar-brand] img {
   height: var(--dragon-sidebar-control-height);
   width: auto;
+  max-width: min(32px, 28cqi);
+  max-height: var(--dragon-sidebar-control-height);
   object-fit: contain;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   padding: 0;
   margin: 0;
   border: 0 !important;
@@ -198,16 +214,22 @@ body,
 [data-dragon-ai-sidebar-brand] span {
   font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: clamp(0.75rem, 5cqi, 1rem);
   letter-spacing: 0.02em;
   color: var(--color-foreground);
   line-height: 1.2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* In-app Teams picker (sidebar button + dialog). */
 [data-dragon-ai-teams-root] {
   padding: 0;
   margin-left: auto;
+  flex: 0 1 auto;
+  min-width: 0;
   background: transparent;
 }
 
@@ -217,6 +239,7 @@ body,
   box-sizing: border-box;
   height: var(--dragon-sidebar-control-height, 32px);
   min-height: var(--dragon-sidebar-control-height, 32px);
+  max-width: 100%;
   padding: 0 12px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
@@ -224,8 +247,20 @@ body,
   color: var(--color-foreground);
   font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
   font-weight: 700;
-  font-size: 0.875rem;
+  font-size: clamp(0.75rem, 4.5cqi, 0.875rem);
   cursor: pointer;
+}
+
+@container (max-width: 11rem) {
+  [data-dragon-ai-teams-root] {
+    margin-left: 0;
+    flex: 1 1 100%;
+  }
+
+  [data-dragon-ai-teams-open] {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 [data-dragon-ai-teams-open]:focus-visible,

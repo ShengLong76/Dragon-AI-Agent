@@ -706,8 +706,11 @@ def self_test() -> int:
     if '[data-dragon-ai-sidebar-brand]' not in css or "Dragon AI" not in css:
         print("FAIL: overlay CSS must style the sidebar header lockup (Dragon AI)", file=sys.stderr)
         return 1
+    if "container-type: inline-size" not in css or "18cqi" not in css or "clamp(" not in css:
+        print("FAIL: sidebar lockup must scale with column width (container query / clamp)", file=sys.stderr)
+        return 1
     if "--dragon-sidebar-control-height: 32px" not in css:
-        print("FAIL: sidebar logo height must match the 32px Teams button", file=sys.stderr)
+        print("FAIL: sidebar logo height must match the 32px Teams button at full column width", file=sys.stderr)
         return 1
     if "[data-dragon-ai-sidebar-brand] img" in css and "height: 28px" in css.split("[data-dragon-ai-sidebar-brand] img", 1)[-1][:400]:
         print("FAIL: sidebar logo must not stay at 28px; match the Teams button", file=sys.stderr)
