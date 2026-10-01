@@ -1,0 +1,237 @@
+#!/usr/bin/env python3
+"""Tests first: first-run default chat LLM + image LLM.
+
+James: wizard pickers write Hermes gateway config so chat and
+profile Generate work without hand-editing YAML.
+No secrets. Safe on Linux CI.
+"""
+
+from __future__ import annotations
+
+import pathlib
+import sys
+import tempfile
+
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+SCRIPTS = ROOT / "scripts" / "airmaze"
+ENGINE = SCRIPTS / "gateway_models.py"
+APPLY = SCRIPTS / "Apply-GatewayModels.ps1"
+WIZARD = SCRIPTS / "Onboard-Wizard.ps1"
+LAUNCHER = SCRIPTS / "start-embedded.ps1"
+INSTALL = SCRIPTS / "install.ps1"
+SETUP = ROOT / "installer" / "DragonAIAgentSetup.ps1"
+DESIGN = ROOT / "docs" / "airmaze" / "FIRST_RUN_MODELS.md"
+PLAN = ROOT / "docs" / "airmaze" / "FIRST_RUN_MODELS_PLAN.md"
+SETUP_GUIDE = ROOT / "docs" / "airmaze" / "SETUP_GUIDE.md"
+README = ROOT / "README.md"
+CHANGELOG = ROOT / "CHANGELOG.md"
+
+DEFAULT_CHAT = "grok-4.6"
+DEFAULT_IMAGE = "grok-imagine-image"
+CHAT_CHOICES = ("grok-4.6", "grok-4.5", "grok-4.3")
+IMAGE_CHOICES = ("grok-imagine-image", "grok-imagine-image-quality", "grok-imagine-image-2.0")
+
+
+def fail(msg: str) -> None:
+    print(f"FAIL: {msg}", file=sys.stderr)
+    raise SystemExit(1)
+
+
+def read(path: pathlib.Path) -> str:
+    if not path.is_file():
+        fail(f"missing {path}")
+    return path.read_text(encoding="utf-8")
+
+
+def load_engine():
+    if not ENGINE.is_file():
+        fail("gateway_models.py must exist")
+    sys.path.insert(0, str(SCRIPTS))
+    import gateway_models as gm  # noqa: WPS433
+
+    return gm
+
+
+def _mapping(text: str) -> dict:
+    """Tiny indent parser for the keys this feature writes."""
+    root: dict = {}
+    stack: list[tuple[int, dict]] = [(-1, root)]
+    for raw in text.splitlines():
+        if not raw.strip() or raw.lstrip().startswith("#"):
+            continue
+        indent = len(raw) - len(raw.lstrip(" "))
+        if ":" not in raw:
+            continue
+        key, _, rest = raw.lstrip(" ").partition(":")
+        key = key.strip()
+        value = rest.strip().strip("'\"")
+        while stack and indent <= stack[-1][0]:
+            stack.pop()
+        parent = stack[-1][1]
+        if value:
+            parent[key] = value
+        else:
+            child: dict = {}
+            parent[key] = child
+            stack.append((indent, child))
+    return root
+
+
+def test_design_recorded() -> None:
+    design = read(DESIGN)
+    for needle in (
+        "principal.provider",
+        "image_gen.provider",
+        "grok-imagine-image",
+        "grok-4.6",
+        "Onboard-Wizard",
+        "XAI_API_KEY",
+        "Dragon AI Agent",
+    ):
+        if needle not in design:
+            fail(f"FIRST_RUN_MODELS.md must document {needle!r}")
+    plan = read(PLAN)
+    if "gateway_models.py" not in plan or "Tests first" not in plan:
+        fail("FIRST_RUN_MODELS_PLAN.md must name the engine and tests-first order")
+    print("OK  design + plan recorded")
+
+
+def test_defaults_and_apply(gm) -> None:
+    if gm.DEFAULT_CHAT_MODEL != DEFAULT_CHAT:
+        fail(f"product chat default must be {DEFAULT_CHAT}, got {gm.DEFAULT_CHAT_MODEL}")
+    if gm.DEFAULT_IMAGE_MODEL != DEFAULT_IMAGE:
+        fail(f"product image default must be {DEFAULT_IMAGE}, got {gm.DEFAULT_IMAGE_MODEL}")
+    chat_ids = [c["id"] for c in gm.chat_catalog()]
+    image_ids = [c["id"] for c in gm.image_catalog()]
+    for mid in CHAT_CHOICES:
+        if mid not in chat_ids:
+            fail(f"chat catalog missing {mid}")
+    for mid in IMAGE_CHOICES:
+        if mid not in image_ids:
+            fail(f"image catalog missing {mid}")
+    with tempfile.TemporaryDirectory(prefix="dragon-models-") as tmp:
+        home = pathlib.Path(tmp) / "embedded"
+        home.mkdir()
+        result = gm.apply_models(home)
+        cfg = home / "config.yaml"
+        if not cfg.is_file():
+            fail("apply must write config.yaml")
+        data = _mapping(cfg.read_text(encoding="utf-8"))
+        principal = data.get("principal") or {}
+        image = data.get("image_gen") or {}
+        if principal.get("provider") != "xai" or principal.get("model") != DEFAULT_CHAT:
+            fail(f"defaults must write principal xai/{DEFAULT_CHAT}, got {principal}")
+        if image.get("provider") != "xai":
+            fail(f"image_gen.provider must be xai, got {image}")
+        if image.get("model") != DEFAULT_IMAGE:
+            fail(f"image_gen.model must be {DEFAULT_IMAGE}, got {image}")
+        nested = image.get("xai") or {}
+        if nested.get("model") != DEFAULT_IMAGE:
+            fail(f"image_gen.xai.model must be {DEFAULT_IMAGE}, got {nested}")
+        written = cfg.read_text(encoding="utf-8").lower()
+        if "api_key" in written or "xai_api_key" in written:
+            fail("apply must not write API keys into config.yaml")
+        if result.get("chatModel") != DEFAULT_CHAT or result.get("imageModel") != DEFAULT_IMAGE:
+            fail(f"apply result must report selected models, got {result}")
+    print("OK  defaults write principal + image_gen Grok Imagine shape")
+
+
+def json_ish(value) -> str:
+    return str(value).lower()
+
+
+def test_quality_variant_and_merge(gm) -> None:
+    with tempfile.TemporaryDirectory(prefix="dragon-models-merge-") as tmp:
+        home = pathlib.Path(tmp)
+        existing = home / "config.yaml"
+        existing.write_text(
+            "bot_desktop:\n  geometry: \"1440x900\"\n  auto_start: true\n\nprincipal:\n  provider: openai\n  model: gpt-4o\n",
+            encoding="utf-8",
+        )
+        skipped = gm.apply_models(home, overwrite=False)
+        kept = _mapping(existing.read_text(encoding="utf-8"))
+        if (kept.get("principal") or {}).get("model") != "gpt-4o":
+            fail("--if-missing must not overwrite an existing principal.model")
+        if skipped.get("wrote") is True:
+            fail("if-missing on a complete-enough config should not report wrote=true")
+        gm.apply_models(
+            home,
+            chat_model="grok-4.3",
+            image_model="grok-imagine-image-quality",
+            overwrite=True,
+        )
+        data = _mapping(existing.read_text(encoding="utf-8"))
+        if (data.get("bot_desktop") or {}).get("geometry") != "1440x900":
+            fail("merge must keep bot_desktop")
+        if (data.get("principal") or {}).get("model") != "grok-4.3":
+            fail("overwrite must set selected chat model")
+        image = data.get("image_gen") or {}
+        if image.get("model") != "grok-imagine-image-quality":
+            fail("overwrite must set Grok Imagine quality variant")
+        if (image.get("xai") or {}).get("model") != "grok-imagine-image-quality":
+            fail("image_gen.xai.model must match the selected Imagine variant")
+        gm.apply_models(home, image_model="grok-imagine-image-2.0", overwrite=True)
+        again = _mapping(existing.read_text(encoding="utf-8"))
+        if (again.get("image_gen") or {}).get("model") != "grok-imagine-image-2.0":
+            fail("must persist grok-imagine-image-2.0")
+    print("OK  quality variants + merge preserve unrelated keys")
+
+
+def test_wizard_and_launch_wired() -> None:
+    wizard = read(WIZARD)
+    if '"models"' not in wizard and "'models'" not in wizard:
+        fail("wizard resume order must include a models step")
+    if "welcome" not in wizard or "email" not in wizard:
+        fail("existing onboarding steps must stay")
+    if "Default chat LLM" not in wizard or "Default image LLM" not in wizard:
+        fail("wizard must show both model pickers")
+    if "Grok Imagine" not in wizard or "grok-imagine-image" not in wizard:
+        fail("wizard must surface Grok Imagine")
+    if "Grok (xAI)" not in wizard and "xAI Grok" not in wizard:
+        fail("wizard must label the chat default as Grok / xAI")
+    if "Hermes Agent" in wizard:
+        fail("wizard copy must say Dragon AI Agent, not Hermes Agent")
+    if "XAI_API_KEY" not in wizard:
+        fail("wizard must say it reuses xAI OAuth / XAI_API_KEY")
+    if "Apply-GatewayModels" not in wizard and "gateway_models.py" not in wizard:
+        fail("wizard must persist choices through the gateway_models engine")
+    if "Choose a Team" not in wizard:
+        fail("Teams path must stay on the welcome step")
+    apply = read(APPLY)
+    if "gateway_models.py" not in apply:
+        fail("Apply-GatewayModels.ps1 must call gateway_models.py")
+    launcher = read(LAUNCHER)
+    if "gateway_models" not in launcher and "Apply-GatewayModels" not in launcher:
+        fail("start-embedded.ps1 must apply model defaults before compose up")
+    for path in (INSTALL, SETUP):
+        text = read(path)
+        if "gateway_models.py" not in text:
+            fail(f"{path.name} must install gateway_models.py")
+        if "Apply-GatewayModels.ps1" not in text:
+            fail(f"{path.name} must install Apply-GatewayModels.ps1")
+    guide = read(SETUP_GUIDE)
+    if "Default chat LLM" not in guide or "Grok Imagine" not in guide:
+        fail("SETUP_GUIDE.md must document the Models step")
+    readme = read(README)
+    if "image LLM" not in readme.lower() and "Grok Imagine" not in readme:
+        fail("README onboarding snippet must mention image LLM / Grok Imagine")
+    log = read(CHANGELOG)
+    if "Grok Imagine" not in log:
+        fail("CHANGELOG.md must mention first-run Grok Imagine")
+    print("OK  wizard pickers + launch/install + docs wired")
+
+
+def main() -> int:
+    test_design_recorded()
+    gm = load_engine()
+    if hasattr(gm, "self_test") and gm.self_test() != 0:
+        fail("gateway_models --self-test failed")
+    test_defaults_and_apply(gm)
+    test_quality_variant_and_merge(gm)
+    test_wizard_and_launch_wired()
+    print("SMOKE OK: first-run writes Grok + Grok Imagine into Hermes gateway config.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
