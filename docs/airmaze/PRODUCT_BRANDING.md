@@ -91,7 +91,7 @@ Built-in Teams Marketplace (one click): **Real Estate Lead Gen**, **Marketing Te
 
 1. Inject a **Teams Marketplace** button + dialog into the unpacked desktop client (`desktop_branding.py` / `dragon-ui.css`). The control sits under the 32px logo; the panel is black and opens with a fade + slight slide/scale.
 2. Loopback helper `teams_picker.py` on `127.0.0.1:8653` (`GET /api/teams`, `POST /api/teams/apply`, `POST /api/teams/import`). Not Bot Screen `:8650`.
-3. Launch starts the helper (`start-embedded.ps1`). First-run wizard has **Choose a Team**. `Select-BotGroup.ps1` window title is **Teams Marketplace**; Import file remains.
+3. Launch starts the helper (`start-embedded.ps1`). First-run wizard has **Teams Marketplace**. `Select-BotGroup.ps1` window title is **Teams Marketplace**; Import file remains.
 4. Helper always unions the bundled catalog so Marketing / Trading show even if GitHub is stale.
 
 Do not add a Hermes team. Do not restyle Bot Screen.

@@ -79,6 +79,14 @@
   --color-ok: #3cb45a;
   --color-pending: #c8a028;
 
+  /* 16px body contrast tokens — Marketplace chrome matches the
+     inject/branding PR. Do not restyle sidebar bot names here. */
+  --dragon-ui-font-size-body: 16px;
+  --dragon-ui-font-size-ui: 14px;
+  --dragon-ui-font-size-caption: 13px;
+  --dragon-ui-line-height-body: 1.55;
+  --dragon-ui-line-height-ui: 1.4;
+
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 16px;
@@ -154,14 +162,15 @@ body,
 /* Sidebar header lockup above SESSIONS / BOTS.
    Logo stays a fixed 32px transparent SVG (no plate / no red border) and
    matches the Teams Marketplace button height. The Marketplace control
-   always sits under the logo — the mark does not shrink. */
+   always sits under the logo — the mark does not shrink. In-flow only:
+   must not cover BOTS (no overflow paint over the tab strip). */
 [data-slot="sidebar-inner"],
 [data-slot="sidebar-header"] {
   container-type: inline-size;
   min-width: 0;
   height: auto !important;
   max-height: none !important;
-  overflow: visible !important;
+  overflow: hidden !important;
 }
 
 [data-dragon-ai-sidebar-row] {
@@ -176,7 +185,7 @@ body,
   max-width: 100%;
   min-width: 0;
   padding: 8px 12px;
-  overflow: visible;
+  overflow: hidden;
   background: transparent;
   background-color: transparent;
   border: 0;
@@ -225,7 +234,7 @@ body,
 [data-dragon-ai-sidebar-brand] span {
   font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: var(--dragon-ui-font-size-body);
   letter-spacing: 0.02em;
   color: var(--color-foreground);
   line-height: 1.2;
@@ -241,6 +250,7 @@ body,
   margin-left: 0;
   flex: 1 1 100%;
   width: 100%;
+  max-width: 100%;
   min-width: max-content;
   background: transparent;
 }
@@ -250,20 +260,28 @@ body,
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  height: 32px;
+  height: auto;
   min-height: 32px;
   width: 100%;
   flex-shrink: 0;
   max-width: 100%;
-  padding: 0 12px;
+  padding: 6px 12px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
   background: var(--color-card);
   color: var(--color-foreground);
   font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
   font-weight: 700;
-  font-size: 0.8125rem;
+  font-size: var(--dragon-ui-font-size-body);
+  line-height: var(--dragon-ui-line-height-ui);
   cursor: pointer;
+}
+
+/* Icon-rail / collapsed column: hide lockup so the BOTS tab stays clickable. */
+@container (max-width: 4.5rem) {
+  [data-dragon-ai-sidebar-row] {
+    display: none;
+  }
 }
 
 @container (max-width: 14rem) {
@@ -310,6 +328,8 @@ body,
   border-radius: 12px;
   background: #000;
   color: var(--color-foreground);
+  font-size: var(--dragon-ui-font-size-body);
+  line-height: var(--dragon-ui-line-height-body);
   box-shadow: 0 24px 64px #000000e6, 0 2px 0 #ffffff14;
   opacity: 0;
   visibility: hidden;
@@ -330,13 +350,16 @@ body,
   margin: 0 0 6px;
   font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
   font-weight: 700;
-  font-size: 1.125rem;
+  font-size: var(--dragon-ui-font-size-body);
+  line-height: var(--dragon-ui-line-height-body);
+  color: var(--color-foreground);
 }
 
 [data-dragon-ai-teams-panel] header p,
 [data-dragon-ai-teams-status] {
   color: var(--color-muted-foreground);
-  font-size: 0.875rem;
+  font-size: var(--dragon-ui-font-size-ui);
+  line-height: var(--dragon-ui-line-height-ui);
 }
 
 [data-dragon-ai-teams-list] {
@@ -384,8 +407,8 @@ body,
 [data-dragon-ai-team-seats] span {
   display: block;
   color: var(--color-muted-foreground);
-  font-size: 0.8125rem;
-  line-height: 1.4;
+  font-size: var(--dragon-ui-font-size-ui);
+  line-height: var(--dragon-ui-line-height-ui);
   height: auto;
   overflow-wrap: anywhere;
 }
@@ -435,7 +458,9 @@ body,
   display: block;
   font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
   font-weight: 700;
-  font-size: 0.875rem;
+  font-size: var(--dragon-ui-font-size-body);
+  line-height: var(--dragon-ui-line-height-ui);
+  color: var(--color-foreground);
 }
 
 [data-dragon-ai-team-seats] li[data-dragon-ai-seat-detail] {
@@ -463,8 +488,8 @@ body,
   border-radius: 12px;
   background: #0a0a0a;
   color: var(--color-foreground);
-  font-size: 0.8125rem;
-  line-height: 1.45;
+  font-size: var(--dragon-ui-font-size-ui);
+  line-height: var(--dragon-ui-line-height-ui);
   white-space: pre-wrap;
   box-shadow: var(--dragon-card-shadow-hover);
 }
@@ -485,7 +510,8 @@ body,
   display: block;
   margin: 8px 0;
   color: var(--color-muted-foreground);
-  font-size: 0.875rem;
+  font-size: var(--dragon-ui-font-size-ui);
+  line-height: var(--dragon-ui-line-height-ui);
 }
 
 [data-dragon-ai-teams-close] {
@@ -496,6 +522,7 @@ body,
   border-radius: 6px;
   background: var(--color-primary);
   color: var(--color-on-primary);
+  font-size: var(--dragon-ui-font-size-body);
   font-weight: 700;
   cursor: pointer;
 }

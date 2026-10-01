@@ -83,7 +83,7 @@ The client does **not** hard-code that `groups` list. The file in GitHub is the 
 **Repo:** https://github.com/ShengLong76/airmaze-agent  
 **Path:** `bot-groups/` on `main`  
 **Engine:** `scripts/airmaze/bot_groups.py` (Dragon overlay; Linux-safe)  
-**UI:** in-app **Teams Marketplace** dialog in the Dragon AI desktop (sidebar button under the logo, overlay + `teams_picker.py` on `127.0.0.1:8653`). First-run wizard has **Choose a Team**. `Select-BotGroup.ps1` remains the WinForms **dropdown** (ComboBox) fallback, same crimson / dark chrome. Import from file stays. Not a restyle.
+**UI:** in-app **Teams Marketplace** dialog in the Dragon AI desktop (sidebar button under the logo, overlay + `teams_picker.py` on `127.0.0.1:8653`). First-run wizard has **Teams Marketplace**. `Select-BotGroup.ps1` remains the WinForms **dropdown** (ComboBox) fallback, same crimson / dark chrome. Import from file stays. Not a restyle.
 
 On open, the dropdown calls `list_groups`:
 

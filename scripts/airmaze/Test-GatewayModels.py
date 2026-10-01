@@ -200,8 +200,8 @@ def test_wizard_and_launch_wired() -> None:
         fail("wizard must say it reuses xAI OAuth / XAI_API_KEY")
     if "Apply-GatewayModels" not in wizard and "gateway_models.py" not in wizard:
         fail("wizard must persist choices through the gateway_models engine")
-    if "Choose a Team" not in wizard:
-        fail("Teams path must stay on the welcome step")
+    if "Teams Marketplace" not in wizard:
+        fail("Teams Marketplace path must stay on the welcome step")
     apply = read(APPLY)
     if "gateway_models.py" not in apply:
         fail("Apply-GatewayModels.ps1 must call gateway_models.py")

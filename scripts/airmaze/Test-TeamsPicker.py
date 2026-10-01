@@ -210,6 +210,12 @@ def test_overlay_and_launch_wired() -> None:
         fail("dragon-ui.css must style the in-app Teams Marketplace screen")
     if "flex-direction: column" not in css:
         fail("Teams Marketplace control must sit under the logo")
+    if "must not cover BOTS" not in css:
+        fail("Marketplace lockup must not cover BOTS")
+    if "--dragon-ui-font-size-body: 16px" not in css:
+        fail("Marketplace chrome must use the 16px body token")
+    if "font-size: var(--dragon-ui-font-size-body)" not in css:
+        fail("Marketplace control must use the 16px body token")
     if "background: #000" not in css.split("[data-dragon-ai-teams-panel] {", 1)[-1].split("}", 1)[0]:
         fail("marketplace panel must use a black background")
     if "opacity" not in css.split("[data-dragon-ai-teams-panel] {", 1)[-1]:
@@ -224,8 +230,10 @@ def test_overlay_and_launch_wired() -> None:
     if "content-strategist" not in launcher:
         fail("Teams helper must prefer the Cos Marketing pack over a stale InstallRoot stub")
     wizard = read(WIZARD)
-    if "Teams" not in wizard:
-        fail("first-run wizard must offer Teams selection")
+    if "Teams Marketplace" not in wizard:
+        fail("first-run wizard must offer Teams Marketplace")
+    if "Choose a Team" in wizard:
+        fail("wizard must not keep a Teams label; use Teams Marketplace")
     select = read(SELECT)
     if "Teams" not in select:
         fail("Select-BotGroup must present Teams (not a hidden PowerShell-only path)")
