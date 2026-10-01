@@ -55,7 +55,7 @@ The left-rail header above SESSIONS / BOTS is a brand lockup: decorative navy dr
 
 - Empty-state wordmark, intro subtitle, and the front-facing dragon mark
 - Sidebar header brand lockup (logo + Dragon AI)
-- In-app **Teams** popup (checkbox list, Launch / Import / Export, Syne + crimson)
+- In-app **Teams** marketplace popup (checkbox list, Details / Install, Launch / Import / Export, Syne + crimson)
 - Composer placeholder + `:focus-visible` ring (`2px` solid `--color-ring`, offset `2px`)
 - Settings / About product copy (strings already in `desktop_branding.json`)
 - Shared CSS variables so a later branded Electron build can reuse them

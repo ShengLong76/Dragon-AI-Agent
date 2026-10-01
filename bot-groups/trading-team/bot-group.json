@@ -5,6 +5,15 @@
   "name": "Trading Team",
   "displayName": "Trading Team",
   "departmentJob": "Research notes, news scan, risk review, and a trade journal for a discretionary desk. Not brokerage, not auto-trading.",
+  "blurb": "Research notes, news scan, risk review, and a trade journal. Not a broker.",
+  "detail": "Discretionary desk recipe pack. Four seats: Market Researcher, Trade Journal, Risk Analyst, and News Scanner. Does not place orders or auto-trade.",
+  "author": "Dragon AI",
+  "seats": 4,
+  "featured": true,
+  "requiredConnectors": [
+    {"id": "computer-use", "displayName": "Computer use"},
+    {"id": "browser", "displayName": "Browser"}
+  ],
   "version": "2.0.0",
   "bots": [
     {

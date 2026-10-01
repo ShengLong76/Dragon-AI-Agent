@@ -266,6 +266,11 @@ def main() -> int:
         proc = subprocess.run([sys.executable, str(teams_test)], cwd=str(ROOT))
         if proc.returncode != 0:
             fail("Test-TeamsPicker.py failed")
+    marketplace_test = ROOT / "scripts" / "airmaze" / "Test-TeamsMarketplace.py"
+    if marketplace_test.is_file():
+        proc = subprocess.run([sys.executable, str(marketplace_test)], cwd=str(ROOT))
+        if proc.returncode != 0:
+            fail("Test-TeamsMarketplace.py failed")
     run_host_smoke()
     print("SMOKE OK: opening Dragon AI Agent is wired to branded UI or a blocking error.")
     return 0

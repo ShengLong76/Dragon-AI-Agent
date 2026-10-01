@@ -12,14 +12,16 @@ This note agrees the surface before code. Plan: `docs/airmaze/TEAMS_POPUP_PLAN.m
 
 Keep: catalog / Cos rosters, Personal Assistant not a team, apply files a named section (not UNASSIGNED), close + reload after apply. Syne + crimson stay.
 
+**Marketplace (same popup):** browse GitHub `bot-groups/catalog.json` with blurb, detail, seats, author, and required connectors. **Details → Install** applies one pack. **Export** strips secrets so the zip is catalog-ready. Design: `docs/airmaze/TEAMS_MARKETPLACE.md`. Not a second window.
+
 ## Popup, not dropdown
 
 **Do:**
 
 1. Overlay: roomier `role="dialog"` popup (centered, backdrop, scrollable list). Not a `<select>` and not one-click cards that apply immediately.
 2. WinForms fallback (`Select-BotGroup.ps1`): **CheckedListBox** popup. Not ComboBox.
-3. List every picker team from the existing helper (`GET /api/teams` / `list_teams`). Same source as today.
-4. Each row is a native checkbox + team name + department job.
+3. List every picker team from the GitHub catalog (`GET /api/marketplace` with `GET /api/teams` fallback). Same `bot-groups/` source as today.
+4. Each row is a native checkbox + name + blurb + seats + author + required connectors. **Details** opens the longer pack copy; **Install** applies that one pack.
 
 Do not restyle Bot Screen. Do not add a Hermes team.
 
@@ -28,7 +30,7 @@ Do not restyle Bot Screen. Do not add a Hermes team.
 | Control | Behavior |
 |---------|----------|
 | **Launch** | Apply every checked team, then close the popup and reload the roster (same `finishApply` / `location.reload` as today). |
-| **Export** | Write the existing repo-format group file (`bot-group.json` + `bots/`). Overlay downloads a zip from `POST /api/teams/export`. WinForms still uses a folder picker + `bot_groups.export_group`. |
+| **Export** | Write the existing repo-format group file (`bot-group.json` + `bots/`), **secrets scrubbed** (keys, passwords, personal emails, local paths). Overlay downloads a zip from `POST /api/teams/export`. |
 | **Import** | Same custom zip/JSON path as today (`POST /api/teams/import` / Import file). Visible in the action row next to Export. |
 
 Singular one-bot import/export stays the existing off-by-default toggle on the WinForms window. Not a create-a-bot path.
@@ -52,10 +54,13 @@ Do not invent a merged “Teams” section.
 
 1. `desktop_branding.py` injects the popup script. `dragon-ui.css` styles it (Syne 700, dark `#1C1C20`, crimson `#C41E3A`, visible `:focus-visible`).
 2. Helper `teams_picker.py` on `:8653`:
-   - `GET /api/teams` — unchanged list
+   - `GET /api/teams` and `GET /api/marketplace` — catalog browse (marketplace fields)
+   - `GET /api/marketplace/<id>` — pack detail
+   - `POST /api/marketplace/install` — `{id}` → existing apply path
    - `POST /api/teams/apply` — `{id}` as today, or `{ids:[…]}` for Launch
    - `POST /api/teams/import` — unchanged
-   - `POST /api/teams/export` — `{id}` or `{ids:[…]}` → zip (repo format)
+   - `POST /api/teams/export` — `{id}` or `{ids:[…]}` → scrubbed zip
+   - `POST /api/teams/publish` — scrubbed zip + `catalog-entry.json`
 3. First-run **Choose a Team** still opens `Select-BotGroup.ps1` (now the popup).
 
 ## Out of scope

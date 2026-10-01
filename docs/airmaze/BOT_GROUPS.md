@@ -74,14 +74,14 @@ Catalog (repo root of the overlay): `bot-groups/catalog.json`
 }
 ```
 
-The client does **not** hard-code that `groups` list. The file in GitHub is the list. The in-app Teams picker unions the bundled catalog so Real Estate Lead Gen, Marketing Team, and Trading Team stay visible when GitHub is stale. Personal Assistant stays the default one-bot profile (preinstalled); it is not listed as a team.
+The client does **not** hard-code that `groups` list. The file in GitHub is the list. The in-app Teams marketplace popup unions the bundled catalog so Real Estate Lead Gen, Marketing Team, and Trading Team stay visible when GitHub is stale. Catalog v1 listing fields (`blurb`, `detail`, `author`, `seats`, `requiredConnectors`, `featured`) are documented in `TEAMS_MARKETPLACE.md`. Personal Assistant stays the default one-bot profile (preinstalled); it is not listed as a team.
 
 ## How the client lists and deploys from GitHub
 
 **Repo:** https://github.com/ShengLong76/airmaze-agent  
 **Path:** `bot-groups/` on `main`  
 **Engine:** `scripts/airmaze/bot_groups.py` (Dragon overlay; Linux-safe)  
-**UI:** in-app **Teams** popup in the Dragon AI desktop (sidebar button, overlay + `teams_picker.py` on `127.0.0.1:8653`). Checkboxes + **Launch** / **Import** / **Export**. First-run wizard has **Choose a Team**. `Select-BotGroup.ps1` is the WinForms **popup list** (CheckedListBox) fallback, same crimson / dark chrome. Not a restyle. Design: `docs/airmaze/TEAMS_POPUP.md`.
+**UI:** in-app **Teams** marketplace popup in the Dragon AI desktop (sidebar button, overlay + `teams_picker.py` on `127.0.0.1:8653`). Browse catalog fields + checkboxes + **Details / Install** + **Launch** / **Import** / **Export**. First-run wizard has **Choose a Team**. `Select-BotGroup.ps1` is the WinForms **popup list** (CheckedListBox) fallback, same crimson / dark chrome. Not a restyle. Design: `docs/airmaze/TEAMS_POPUP.md`, `docs/airmaze/TEAMS_MARKETPLACE.md`.
 
 On open, the popup calls `list_groups` / `list_teams`:
 
@@ -183,6 +183,7 @@ This repo's base is the Dragon AI **desktop agent** packaging (gateway, Bot Scre
 |------|------|------|
 | `bot-groups/` | Catalog + group files (the GitHub list) | **Customization.** Upstream desktop/hermes-agent has no `bot-groups/`. A sync of the base does not contain this tree; keep it. |
 | `scripts/airmaze/bot_groups.py` | List / deploy / export / toggle | **Customization.** New file. |
+| `scripts/airmaze/team_marketplace.py` | Marketplace listing + secret scrub + publish | **Customization.** New file. |
 | `scripts/airmaze/Select-BotGroup.ps1` | Teams popup UI | **Customization.** New file. |
 | `scripts/airmaze/Deploy-BotGroup.ps1` | Deploy wrapper | **Customization.** New file. |
 | `scripts/airmaze/Export-BotGroup.ps1` | Export wrapper | **Customization.** New file. |

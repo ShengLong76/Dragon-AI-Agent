@@ -61,17 +61,27 @@ def is_picker_team(group: dict[str, Any]) -> bool:
     return True
 
 
-def present_team(group: dict[str, Any]) -> dict[str, Any]:
+def present_team(group: dict[str, Any], listing: dict[str, Any] | None = None) -> dict[str, Any]:
     section = bg.ui_section_for_group(group)
-    bots = group.get("bots") if isinstance(group.get("bots"), list) else []
-    return {
+    bots = [b for b in (group.get("bots") or []) if isinstance(b, dict) and b.get("id")]
+    out: dict[str, Any] = {
         "id": group.get("id"),
         "name": group.get("name"),
         "displayName": team_label(group),
         "departmentJob": group.get("departmentJob") or "",
-        "botCount": len([b for b in bots if isinstance(b, dict) and b.get("id")]),
+        "botCount": len(bots),
         "uiSection": section,
     }
+    try:
+        import team_marketplace as tm  # noqa: WPS433
+
+        fields = tm.listing_fields(listing or {}, group)
+        out.update(fields)
+        out["seatCount"] = fields["seats"]
+        out["bots"] = [{"id": b["id"], "title": str(b.get("title") or b["id"])} for b in bots]
+    except Exception:
+        pass
+    return out
 
 
 def _bundled_entries(payload_root: Path | str) -> list[dict[str, Any]]:
@@ -120,7 +130,7 @@ def list_teams(
             }
         if not is_picker_team(group):
             continue
-        teams.append(present_team(group))
+        teams.append(present_team(group, entry))
     return {
         "kind": "dragon-teams",
         "source": listed.get("source"),
@@ -214,13 +224,17 @@ def export_teams(
     for team_id in ids:
         _refuse_non_team(team_id)
     dest_path = Path(dest)
+    import team_marketplace as tm  # noqa: WPS433
+
     if len(ids) == 1:
-        return bg.export_group(
+        result = tm.export_catalog_pack(
             ids[0],
             dest_path,
-            install_root=install_root,
             payload_root=payload_root,
+            install_root=install_root,
+            include_catalog_entry=False,
         )
+        return str(result["path"])
     folder = dest_path.with_suffix("") if dest_path.suffix.lower() == ".zip" else dest_path
     folder.mkdir(parents=True, exist_ok=True)
     for team_id in ids:
@@ -230,6 +244,7 @@ def export_teams(
             install_root=install_root,
             payload_root=payload_root,
         )
+    tm.scrub_pack_dir(folder)
     if dest_path.suffix.lower() != ".zip":
         return str(folder)
     if dest_path.exists():
@@ -238,6 +253,7 @@ def export_teams(
         for path in folder.rglob("*"):
             if path.is_file():
                 zf.write(path, path.relative_to(folder).as_posix())
+    tm._rewrite_zip(dest_path, dest_path, scrub=True, catalog_entry=None)
     return str(dest_path)
 
 
@@ -316,6 +332,20 @@ def make_handler(
                 status, body = _json_bytes(list_teams(payload_root, install_root))
                 self._send(status, body)
                 return
+            import team_marketplace as tm  # noqa: WPS433
+
+            if path in ("/api/marketplace", "/marketplace"):
+                status, body = _json_bytes(tm.list_marketplace(payload_root, install_root))
+                self._send(status, body)
+                return
+            if path.startswith("/api/marketplace/") or path.startswith("/marketplace/"):
+                pack_id = path.rstrip("/").rsplit("/", 1)[-1].strip()
+                if pack_id in {"", "install", "publish"}:
+                    self._send(404, b'{"error":"not found"}\n')
+                    return
+                status, body = _json_bytes(tm.get_marketplace_pack(pack_id, payload_root, install_root))
+                self._send(status, body)
+                return
             if path in ("/api/health", "/health"):
                 self._send(200, b'{"ok":true,"service":"dragon-teams"}\n')
                 return
@@ -333,6 +363,48 @@ def make_handler(
             if not isinstance(data, dict):
                 data = {}
             try:
+                if path in ("/api/marketplace/install", "/marketplace/install"):
+                    team_id = str(data.get("id") or data.get("teamId") or "").strip()
+                    if not team_id:
+                        raise ValueError("missing team id")
+                    import team_marketplace as tm  # noqa: WPS433
+
+                    result = tm.install_pack(
+                        team_id,
+                        payload_root=payload_root,
+                        install_root=install_root,
+                        desktop_profiles_root=desktop_root,
+                        embedded_profiles_root=embedded_root,
+                    )
+                    status, body = _json_bytes(result)
+                    self._send(status, body)
+                    return
+                if path in ("/api/teams/publish", "/teams/publish"):
+                    ids = requested_team_ids(data)
+                    if not ids:
+                        raise ValueError("missing team id")
+                    import team_marketplace as tm  # noqa: WPS433
+
+                    filename = f"{ids[0]}.zip"
+                    with tempfile.TemporaryDirectory(prefix="dragon-teams-publish-") as tmp:
+                        dest = Path(tmp) / filename
+                        result = tm.publish_pack(
+                            ids[0],
+                            dest,
+                            payload_root=payload_root,
+                            install_root=install_root,
+                        )
+                        blob = Path(result["path"]).read_bytes()
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/zip")
+                    self.send_header("Content-Length", str(len(blob)))
+                    self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Expose-Headers", "Content-Disposition")
+                    self.send_header("Cache-Control", "no-store")
+                    self.end_headers()
+                    self.wfile.write(blob)
+                    return
                 if path in ("/api/teams/apply", "/teams/apply"):
                     ids = requested_team_ids(data)
                     if not ids:

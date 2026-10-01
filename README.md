@@ -15,7 +15,7 @@ Compatible with the open-source agent desktop stack (separate desktop client). T
 | Docker Desktop | Detect; quiet install when possible; else open download page. Configured to **start minimized to the system tray** (no dashboard window on launch). |
 | Embedded gateway | `docker compose` pull + `up -d` for the packaged embedded gateway image (see `THIRD_PARTY_NOTICES.md`). |
 | Ports | `127.0.0.1:8650` (Desktop Remote / Bot Screen), `127.0.0.1:8642` (OpenAI API), `127.0.0.1:9119` (browser dashboard). Local credentials: see `docs/airmaze/EMBEDDED_GATEWAY.md`. |
-| **Bot groups / Teams** | In-app **Teams** popup (sidebar + first-run) lists Real Estate Lead Gen, Marketing Team, and Trading Team with checkboxes. **Launch** applies the checked packs (each into its own named section). **Import** and **Export** sit on the same popup. Personal Assistant is already installed and is not a Teams row. Singular bot import/export is an optional toggle, off by default. |
+| **Bot groups / Teams** | In-app **Teams** marketplace popup (sidebar + first-run) browses GitHub catalog packs (Real Estate Lead Gen, Marketing Team, Trading Team): brief, detail, seats, author, required connectors. **Install** / **Launch** files bots under that name, not Unassigned. **Export** scrubs secrets. Import stays. Personal Assistant is already installed and is not a Teams row. |
 | **Onboarding** | First-run **Dragon AI Agent Setup** wizard (email / CRM / telephony + optional integrations). Secrets via Windows DPAPI. Markdown guide: `docs/airmaze/SETUP_GUIDE.md`. Real Estate bots stay `needs_setup` until required steps succeed. |
 | Agent desktop | Discovers on-disk `Hermes.exe` (including `%LOCALAPPDATA%\hermes\hermes-agent\apps\desktop\release\win-unpacked\Hermes.exe`) and shows it as **Dragon AI Agent**. Launch overlays unpacked renderer chrome (empty state **DRAGON AI AGENT** in front of a larger unboxed navy dragon, sidebar header **Dragon AI**, **Give Dragon AI a task**, settings product name, **Syne** wordmark, sidebar **Personal Assistant** only — Hermes bot excluded) then opens the window (or a blocking error if Docker/client is missing). Dashboard login: `dragon` / `dragon-local`. |
 
@@ -57,7 +57,7 @@ python3 scripts/airmaze/Test-LaunchSmoke.py
 
 A **bot group** is a department-level set of bots (a security team, a research team, a real-estate team). Each bot has a **title**, **description**, and **tools**. Bots exist because a group defines them — there is no Grokbot-style create-a-bot path. Deploy and import file those bots into a **named BOTS section** labeled with the pack display name (not UNASSIGNED). Design: [`docs/airmaze/BOT_GROUPS.md`](docs/airmaze/BOT_GROUPS.md).
 
-The Teams popup fetches `bot-groups/catalog.json` from https://github.com/ShengLong76/airmaze-agent. It does not hard-code the list. Check one or more teams and click **Launch**. When GitHub is unreachable, the last cache then the bundled catalog is used. Design: [`docs/airmaze/TEAMS_POPUP.md`](docs/airmaze/TEAMS_POPUP.md).
+The Teams marketplace popup fetches `bot-groups/catalog.json` from https://github.com/ShengLong76/airmaze-agent. It does not hard-code the list. Browse a pack, **Install**, or check one or more teams and click **Launch**. **Export** writes a scrubbed catalog-ready zip. When GitHub is unreachable, the last cache then the bundled catalog is used. Design: [`docs/airmaze/TEAMS_POPUP.md`](docs/airmaze/TEAMS_POPUP.md), [`docs/airmaze/TEAMS_MARKETPLACE.md`](docs/airmaze/TEAMS_MARKETPLACE.md).
 
 ### Catalog (`bot-groups/catalog.json`)
 

@@ -13,7 +13,7 @@ After `docs/airmaze/PRODUCT_BRANDING.md`. Tests first. No Electron rebuild.
 4. **Sidebar header** — `dragon-ui.css` + inject script/HTML in the overlay pack.
 5. **App icon** — copy circular ICO to unpacked `resources/icon.ico`; stamp `Hermes.exe` when possible; keep `.lnk` IconLocation; set Client.lnk AppUserModelID.
 6. **Named UI section on import** — deploy/import stamps `ui_meta.hermes-bots.sectionId` / `sectionName` so the BOTS pane files the pack under its display name, not UNASSIGNED. Re-apply updates the same `sec-dragon-<id>`. Cover Apply-Profile / Import-Profile shims (they already call Import-BotGroup).
-7. **In-app Teams picker** — overlay **popup** (checkboxes + Launch / Import / Export) + `127.0.0.1:8653` helper. Catalog teams: Real Estate Lead Gen, Marketing Team, Trading Team. Personal Assistant is the default preinstall, not a team. Launch applies each selected roster into its named section. First-run **Choose a Team**. See `TEAMS_POPUP.md`.
+7. **In-app Teams marketplace popup** — overlay **popup** (catalog browse + Details/Install + checkboxes + Launch / Import / Export) + `127.0.0.1:8653` helper. Catalog teams: Real Estate Lead Gen, Marketing Team, Trading Team. Personal Assistant is the default preinstall, not a team. Export scrubs secrets. First-run **Choose a Team**. See `TEAMS_POPUP.md` and `TEAMS_MARKETPLACE.md`.
 8. **Self-review + PR** against `main`. James merges.
 
 ## Verify (Linux CI)
@@ -22,6 +22,7 @@ After `docs/airmaze/PRODUCT_BRANDING.md`. Tests first. No Electron rebuild.
 python3 scripts/airmaze/Test-ExcludeHermesBot.py
 python3 scripts/airmaze/Test-BotGroups.py
 python3 scripts/airmaze/Test-TeamsPicker.py
+python3 scripts/airmaze/Test-TeamsMarketplace.py
 python3 scripts/airmaze/Test-DesktopBranding.py
 python3 scripts/airmaze/Test-LaunchSmoke.py
 ```
@@ -34,5 +35,5 @@ python3 scripts/airmaze/Test-LaunchSmoke.py
 4. Taskbar / running window uses the Dragon ICO (not the purple Hermes square).
 5. BOTS list has no Hermes row. If an old box still has one: delete `%LOCALAPPDATA%\hermes\profiles\hermes` and `...\default` plus the same names under `%USERPROFILE%\.hermes-airmaze-embedded\profiles\`, then relaunch.
 6. Deploy or re-apply a bot group (e.g. Real Estate). Those bots sit under a named section matching the pack display name — not UNASSIGNED.
-7. Sidebar **Teams** opens a popup listing Real Estate Lead Gen, Marketing Team, Trading Team with checkboxes. Personal Assistant is already installed. Launch / Import / Export. Each launched team files under its own name.
+7. Sidebar **Teams** opens a marketplace popup listing Real Estate Lead Gen, Marketing Team, Trading Team with checkboxes plus blurb/seats/author. Personal Assistant is already installed. Details → Install, or Launch / Import / Export. Each launched team files under its own name.
 8. Bot Screen Remote still Embedded Linux `http://127.0.0.1:8650`.

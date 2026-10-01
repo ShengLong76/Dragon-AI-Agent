@@ -2,6 +2,13 @@
   "kind": "bot-group-catalog",
   "schemaVersion": 1,
   "product": "Dragon AI Agent",
+  "marketplace": {
+    "version": 1,
+    "kind": "teams-marketplace",
+    "hosting": "github",
+    "path": "bot-groups",
+    "note": "Recipe packs. No payments, no live logins, no secrets."
+  },
   "repository": {
     "owner": "ShengLong76",
     "name": "airmaze-agent",
@@ -15,6 +22,10 @@
       "departmentJob": "General-purpose personal assistant for research, drafting, scheduling, reminders, and computer-use on a virtualized desktop. Neutral; no business-specific instructions.",
       "path": "personal-assistant",
       "picker": false,
+      "featured": false,
+      "seats": 1,
+      "author": "Dragon AI",
+      "blurb": "Default one-bot profile. Already installed; not a Teams marketplace row.",
       "tags": [
         "general",
         "minimal",
@@ -26,12 +37,39 @@
       "name": "Real Estate Cold Call Lead Refresher",
       "displayName": "Real Estate Lead Gen",
       "departmentJob": "Outbound real-estate department: refresh stale leads, warm them with CAN-SPAM email toward a TCPA consent form, write cold-call scripts, and sequence follow-ups.",
+      "blurb": "Refresh stale leads, warm them, write scripts, and follow up.",
+      "detail": "Outbound real-estate recipe pack. Four seats: Lead Sourcer, Email Warmer, Cold Call Script Writer, and Follow-up Sequencer. Connector placeholders only (CRM, email, TCPA consent form, dialer, property data). No live CRM or mailbox logins and no API keys in the pack.",
+      "author": "Dragon AI",
+      "seats": 4,
+      "featured": true,
+      "requiredConnectors": [
+        {
+          "id": "crm",
+          "displayName": "CRM"
+        },
+        {
+          "id": "email",
+          "displayName": "Email"
+        },
+        {
+          "id": "consent-form",
+          "displayName": "TCPA consent form"
+        },
+        {
+          "id": "dialer",
+          "displayName": "Dialer"
+        },
+        {
+          "id": "property-data",
+          "displayName": "Property data"
+        }
+      ],
       "path": "real-estate-cold-call-lead-refresher",
       "tags": [
         "real-estate",
         "outbound",
         "multi-bot",
-        "example"
+        "featured"
       ]
     },
     {
@@ -39,11 +77,27 @@
       "name": "Marketing Team",
       "displayName": "Marketing Team",
       "departmentJob": "Content, SEO, social, paid, lifecycle, and measurement for a marketing desk.",
+      "blurb": "Six Cos seats for content, SEO, social, paid, lifecycle, and measurement.",
+      "detail": "Marketing desk recipe pack. Exactly six Cos seats: Content Strategist, SEO Specialist, Social Media Manager, Paid Media Specialist, Lifecycle Marketer, and Marketing Analyst. No seventh seat. Browser and computer-use tools only in this tree. Not a live Buffer/Brevo login pack.",
+      "author": "Dragon AI",
+      "seats": 6,
+      "featured": true,
+      "requiredConnectors": [
+        {
+          "id": "computer-use",
+          "displayName": "Computer use"
+        },
+        {
+          "id": "browser",
+          "displayName": "Browser"
+        }
+      ],
       "path": "marketing-team",
       "tags": [
         "marketing",
         "copy",
-        "multi-bot"
+        "multi-bot",
+        "featured"
       ]
     },
     {
@@ -51,11 +105,27 @@
       "name": "Trading Team",
       "displayName": "Trading Team",
       "departmentJob": "Research notes, news scan, risk review, and a trade journal for a discretionary desk. Not brokerage, not auto-trading.",
+      "blurb": "Research notes, news scan, risk review, and a trade journal. Not a broker.",
+      "detail": "Discretionary desk recipe pack. Four seats: Market Researcher, Trade Journal, Risk Analyst, and News Scanner. Summarizes public context the operator provides. Does not place orders, hold brokerage credentials, or auto-trade.",
+      "author": "Dragon AI",
+      "seats": 4,
+      "featured": true,
+      "requiredConnectors": [
+        {
+          "id": "computer-use",
+          "displayName": "Computer use"
+        },
+        {
+          "id": "browser",
+          "displayName": "Browser"
+        }
+      ],
       "path": "trading-team",
       "tags": [
         "trading",
         "research",
-        "multi-bot"
+        "multi-bot",
+        "featured"
       ]
     }
   ]

@@ -166,7 +166,7 @@ function Show-TeamsPopup {
     $title.Location = New-Object System.Drawing.Point(20, 10)
     $title.AutoSize = $true
     $sub = New-Object System.Windows.Forms.Label
-    $sub.Text = "Check teams to load. Personal Assistant is already installed. Launch files each team under its own name. Import and Export stay on this popup."
+    $sub.Text = "Marketplace catalog. Check teams to Launch. Personal Assistant is already installed. Export strips secrets. Import stays on this popup."
     $sub.ForeColor = [System.Drawing.Color]::FromArgb(255, 220, 220)
     $sub.Location = New-Object System.Drawing.Point(20, 40)
     $sub.Size = New-Object System.Drawing.Size(670, 32)
@@ -191,7 +191,12 @@ function Show-TeamsPopup {
     $list.BorderStyle = "FixedSingle"
     foreach ($g in $groups) {
         $label = if ($g.displayName) { [string]$g.displayName } else { [string]$g.name }
-        [void]$list.Items.Add(("{0} — {1}" -f $label, $g.departmentJob))
+        $blurb = if ($g.blurb) { [string]$g.blurb } else { [string]$g.departmentJob }
+        $bits = @()
+        if ($g.seats) { $bits += ("{0} seats" -f $g.seats) }
+        if ($g.author) { $bits += [string]$g.author }
+        $suffix = if ($bits.Count) { " ({0})" -f ($bits -join " · ") } else { "" }
+        [void]$list.Items.Add(("{0} — {1}{2}" -f $label, $blurb, $suffix))
     }
     $form.Controls.Add($list)
     $script:TeamsList = $list

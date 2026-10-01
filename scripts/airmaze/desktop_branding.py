@@ -379,39 +379,86 @@ var panel=document.createElement("div");
 panel.setAttribute("data-dragon-ai-teams-panel","true");
 panel.setAttribute("role","dialog");
 panel.setAttribute("aria-modal","true");
-panel.setAttribute("aria-label","Teams");
+panel.setAttribute("aria-label","Teams marketplace");
 panel.hidden=true;
-panel.innerHTML='<header><h2>Teams</h2><p>Check the teams to load. Personal Assistant is already installed. Each team files under its own name, not Unassigned.</p></header><div data-dragon-ai-teams-list></div><p data-dragon-ai-teams-status role="status"></p><div data-dragon-ai-teams-actions><button type="button" data-dragon-ai-teams-launch>Launch</button><button type="button" data-dragon-ai-teams-export>Export</button><label data-dragon-ai-teams-import-label>Import<input type="file" accept=".zip,.json,application/json,application/zip" data-dragon-ai-teams-import></label><button type="button" data-dragon-ai-teams-close>Close</button></div>';
+panel.innerHTML='<header><h2>Teams</h2><p>Browse the GitHub catalog. Check teams to Launch. Personal Assistant is already installed. Each team files under its own name, not Unassigned. Recipe packs — no live logins.</p></header><div data-dragon-ai-teams-browse><div data-dragon-ai-teams-list></div></div><section data-dragon-ai-teams-detail hidden><button type="button" data-dragon-ai-teams-back>Back</button><h3 data-dragon-ai-teams-detail-title></h3><p data-dragon-ai-teams-detail-meta></p><p data-dragon-ai-teams-detail-blurb></p><p data-dragon-ai-teams-detail-body></p><p data-dragon-ai-teams-detail-connectors></p><button type="button" data-dragon-ai-teams-install>Install</button></section><p data-dragon-ai-teams-status role="status"></p><div data-dragon-ai-teams-actions><button type="button" data-dragon-ai-teams-launch>Launch</button><button type="button" data-dragon-ai-teams-export>Export</button><label data-dragon-ai-teams-import-label>Import<input type="file" accept=".zip,.json,application/json,application/zip" data-dragon-ai-teams-import></label><button type="button" data-dragon-ai-teams-close>Close</button></div>';
+var catalog=[];
+var detailId="";
 function setStatus(t){var s=$("[data-dragon-ai-teams-status]",panel);if(s)s.textContent=t||"";}
-function show(){backdrop.hidden=false;backdrop.removeAttribute("hidden");panel.hidden=false;panel.removeAttribute("hidden");load();var first=$("input[type=\\"checkbox\\"]",panel);if(first)first.focus();}
-function hide(){panel.hidden=true;panel.setAttribute("hidden","");backdrop.hidden=true;backdrop.setAttribute("hidden","");}
+function browseEl(){return $("[data-dragon-ai-teams-browse]",panel);}
+function detailEl(){return $("[data-dragon-ai-teams-detail]",panel);}
+function showBrowse(){var b=browseEl(),d=detailEl();if(b){b.hidden=false;b.removeAttribute("hidden");}if(d){d.hidden=true;d.setAttribute("hidden","");}detailId="";}
+function show(){backdrop.hidden=false;backdrop.removeAttribute("hidden");panel.hidden=false;panel.removeAttribute("hidden");showBrowse();load();var first=$("input[type=\\"checkbox\\"]",panel);if(first)first.focus();}
+function hide(){panel.hidden=true;panel.setAttribute("hidden","");backdrop.hidden=true;backdrop.setAttribute("hidden","");showBrowse();}
 function reloadRoster(){hide();try{location.reload();}catch(e){try{window.location.href=window.location.href;}catch(e2){}}}
 function finishApply(){hide();reloadRoster();}
 function selectedIds(){return $all("input[type=\\"checkbox\\"]:checked",panel).map(function(box){return box.getAttribute("data-dragon-ai-team-id")||box.value;}).filter(Boolean);}
+function connectorText(team){return (team.requiredConnectors||[]).map(function(c){return (c&&c.displayName)||(c&&c.id)||c;}).filter(Boolean).join(", ");}
+function findTeam(id){return catalog.filter(function(t){return t.id===id;})[0]||null;}
+function showDetail(id){
+var team=findTeam(id);if(!team){setStatus("Pack not in catalog.");return;}
+detailId=id;
+var d=detailEl(),b=browseEl();
+if(b){b.hidden=true;b.setAttribute("hidden","");}
+if(d){d.hidden=false;d.removeAttribute("hidden");}
+var title=$("[data-dragon-ai-teams-detail-title]",panel);
+var meta=$("[data-dragon-ai-teams-detail-meta]",panel);
+var blurb=$("[data-dragon-ai-teams-detail-blurb]",panel);
+var body=$("[data-dragon-ai-teams-detail-body]",panel);
+var cons=$("[data-dragon-ai-teams-detail-connectors]",panel);
+if(title)title.textContent=team.displayName||team.name||id;
+if(meta)meta.textContent=(team.seats||team.botCount||0)+" seats · "+(team.author||"Dragon AI");
+if(blurb)blurb.textContent=team.blurb||team.departmentJob||"";
+if(body)body.textContent=team.detail||team.blurb||"";
+if(cons)cons.textContent=connectorText(team)?("Required connectors: "+connectorText(team)):"Required connectors: none listed";
+setStatus("Review the pack, then Install, or go Back and Launch checked teams.");
+}
 function row(team){
 var id=team.id||"";
+var wrap=document.createElement("div");
+wrap.setAttribute("data-dragon-ai-team-row","true");
 var label=document.createElement("label");
-label.setAttribute("data-dragon-ai-team-row","true");
 var box=document.createElement("input");
 box.type="checkbox";
 box.setAttribute("data-dragon-ai-team-id",id);
 box.value=id;
 var copy=document.createElement("span");
-copy.innerHTML="<strong></strong><span></span>";
+copy.innerHTML="<strong></strong><span></span><small></small><small></small>";
 copy.querySelector("strong").textContent=team.displayName||team.name||id;
-copy.querySelector("span").textContent=team.departmentJob||"";
+copy.querySelector("span").textContent=team.blurb||team.departmentJob||"";
+var meta=(team.seats||team.botCount||0)+" seats · "+(team.author||"Dragon AI");
+copy.querySelectorAll("small")[0].textContent=meta;
+copy.querySelectorAll("small")[1].textContent=connectorText(team);
 label.appendChild(box);
 label.appendChild(copy);
-return label;
+var details=document.createElement("button");
+details.type="button";
+details.setAttribute("data-dragon-ai-teams-open-detail","true");
+details.textContent="Details";
+details.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();showDetail(id);});
+wrap.appendChild(label);
+wrap.appendChild(details);
+return wrap;
 }
 function load(){
-setStatus("Loading teams…");
-fetch(API+"/api/teams").then(function(r){return r.json();}).then(function(data){
+setStatus("Loading marketplace…");
+var url=API+"/api/marketplace";
+fetch(url).then(function(r){if(!r.ok)throw new Error("marketplace");return r.json();}).catch(function(){return fetch(API+"/api/teams").then(function(r){return r.json();});}).then(function(data){
 var list=$("[data-dragon-ai-teams-list]",panel);if(!list)return;
 list.textContent="";
-(data.teams||[]).forEach(function(t){list.appendChild(row(t));});
-setStatus((data.teams||[]).length?"Check one or more teams, then Launch.":"No teams listed.");
+catalog=data.teams||[];
+catalog.forEach(function(t){list.appendChild(row(t));});
+setStatus(catalog.length?"Check teams to Launch, or open Details to Install.":"No teams listed.");
 }).catch(function(){setStatus("Teams helper is not running on 127.0.0.1:8653.");});
+}
+function installOne(){
+if(!detailId){setStatus("Open Details, then Install.");return;}
+setStatus("Installing "+detailId+"…");
+fetch(API+"/api/marketplace/install",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:detailId})})
+.then(function(r){return r.json();}).then(function(data){
+if(data.error){setStatus(data.message||data.error);return;}
+finishApply();
+}).catch(function(){setStatus("Install failed. Is the Teams helper running?");});
 }
 function launch(){
 var ids=selectedIds();
@@ -442,7 +489,7 @@ a.download=out.name;
 document.body.appendChild(a);
 a.click();
 a.remove();
-setStatus("Exported "+out.name+" (re-importable group file).");
+setStatus("Exported "+out.name+" (catalog-ready; secrets stripped).");
 }).catch(function(err){setStatus(err&&err.message?err.message:"Export failed.");});
 }
 function importFile(file){
@@ -465,6 +512,10 @@ backdrop.addEventListener("click",hide);
 $("[data-dragon-ai-teams-close]",panel).addEventListener("click",hide);
 $("[data-dragon-ai-teams-launch]",panel).addEventListener("click",launch);
 $("[data-dragon-ai-teams-export]",panel).addEventListener("click",exportSelected);
+var back=$("[data-dragon-ai-teams-back]",panel);
+if(back)back.addEventListener("click",function(){showBrowse();setStatus("Check teams to Launch, or open Details to Install.");});
+var inst=$("[data-dragon-ai-teams-install]",panel);
+if(inst)inst.addEventListener("click",installOne);
 var inp=$("[data-dragon-ai-teams-import]",panel);
 if(inp)inp.addEventListener("change",function(){importFile(inp.files&&inp.files[0]);});
 document.addEventListener("keydown",function(ev){if(ev.key==="Escape"&&!panel.hidden)hide();});
