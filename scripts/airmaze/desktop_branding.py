@@ -809,6 +809,12 @@ def self_test() -> int:
     if "findColumnHost" not in once or "data-dragon-ai-sidebar-fixed" not in once:
         print("FAIL: sidebar inject must try column hosts then body data-dragon-ai-sidebar-fixed", file=sys.stderr)
         return 1
+    if "findInFlowColumn" not in once or "data-dragon-ai-sidebar-chrome" not in once:
+        print("FAIL: sidebar inject must prefer in-flow chrome above Sessions/Bots", file=sys.stderr)
+        return 1
+    if "lockup → Teams Marketplace → Sessions/Bots" not in once:
+        print("FAIL: sidebar inject must document DOM order lockup → Teams Marketplace → Sessions/Bots", file=sys.stderr)
+        return 1
     if "findBotsTab" not in once or "data-dragon-ai-sidebar-clearance" not in once:
         print("FAIL: sidebar inject must reserve clearance so the overlay does not cover BOTS", file=sys.stderr)
         return 1

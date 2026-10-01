@@ -154,11 +154,17 @@ function Install-DragonAIDesktopFontPack {
     if ($sidebarSnippet -notmatch 'data-dragon-ai-sidebar-fixed' -or $sidebarSnippet -notmatch 'findDragonSidebarHost' -or $sidebarSnippet -notmatch 'findColumnHost') {
         throw "Apply-DesktopBranding: sidebar-header.js is missing the body fixed-overlay fallback host"
     }
+    if ($sidebarSnippet -notmatch 'findInFlowColumn' -or $sidebarSnippet -notmatch 'data-dragon-ai-sidebar-chrome') {
+        throw "Apply-DesktopBranding: sidebar-header.js must prefer in-flow chrome above Sessions/Bots"
+    }
     if ($sidebarSnippet -notmatch 'findBotsTab' -or $sidebarSnippet -notmatch 'data-dragon-ai-sidebar-clearance') {
         throw "Apply-DesktopBranding: sidebar-header.js must reserve clearance so the overlay does not cover BOTS"
     }
     if ($teamsSnippet -notmatch 'data-dragon-ai-sidebar-fixed' -or $teamsSnippet -notmatch 'findDragonSidebarHost' -or $teamsSnippet -notmatch 'Teams Marketplace') {
         throw "Apply-DesktopBranding: teams-picker.js is missing the fixed-overlay host or Teams Marketplace label"
+    }
+    if ($teamsSnippet -notmatch 'findInFlowColumn' -or $teamsSnippet -notmatch 'data-dragon-ai-sidebar-chrome') {
+        throw "Apply-DesktopBranding: teams-picker.js must prefer in-flow chrome above Sessions/Bots"
     }
     if ($teamsSnippet -notmatch 'findBotsTab' -or $teamsSnippet -notmatch 'data-dragon-ai-sidebar-clearance') {
         throw "Apply-DesktopBranding: teams-picker.js must reserve clearance so the overlay does not cover BOTS"

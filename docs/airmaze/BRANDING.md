@@ -18,7 +18,7 @@ Internal protocol, image, and path names stay Hermes/AirMaze where changing them
 | Electron **window title** | Packaging wrap: all visible Hermes windows → **Dragon AI Agent** (`SetTitleForPids`) |
 | Empty state heading | Overlay: **DRAGON AI AGENT** (was `HERMES AGENT` in `apps/desktop/src/components/chat/intro.tsx`), Syne 700, **in front of** a larger unboxed navy dragon |
 | Empty state mark | Overlay: James’s navy PNG with the black plate punched; no boxed background |
-| Sidebar header | Overlay: navy dragon + **Dragon AI** + **Teams Marketplace**. Column hosts first; else body `[data-dragon-ai-sidebar-fixed]` in a clearance spacer above Sessions / Bots (do not cover those tabs). Sidebar and middle session names share 16px (`docs/airmaze/SIDEBAR_HOST.md`) |
+| Sidebar header | Overlay: navy dragon + **Dragon AI** + **Teams Marketplace** above Sessions / Bots (order: lockup → Teams Marketplace → Sessions/Bots). Column hosts first; else in-flow `[data-dragon-ai-sidebar-chrome]` on the Sessions-zone column; else body `[data-dragon-ai-sidebar-fixed]` in a first-child clearance spacer (do not cover those tabs). Sidebar and middle session names share 16px (`docs/airmaze/SIDEBAR_HOST.md`) |
 | Bots sidebar | **Exclude** the built-in default **Hermes** agent (purge `profiles\\hermes` / `default`; CSS hide of `data-roster-key` `::default` is the backstop). **Personal Assistant** stays |
 | Bot groups in BOTS | Deploy/import stamps `sectionId` / `sectionName` so the pack sits in a named section (not UNASSIGNED) |
 | Running app / taskbar icon | Contain-max Dragon ICO (dragon fills the Windows slot; no pixel bump) copied over `resources/icon.ico`; stamp `Hermes.exe` when a PE stamper is available. Design: `docs/airmaze/TRAY_ICON.md` |
