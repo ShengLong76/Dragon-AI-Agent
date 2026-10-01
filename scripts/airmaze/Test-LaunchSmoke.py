@@ -8,6 +8,7 @@ Optionally invokes pwsh/powershell -Smoke when a host is present.
 from __future__ import annotations
 
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -116,9 +117,32 @@ def require_tokens(path: pathlib.Path, tokens: tuple[str, ...], label: str) -> N
     print(f"OK  {label}: {path.relative_to(ROOT)}")
 
 
+# PowerShell @{ } keys are case-insensitive. A PascalCase sibling of
+# openUIOnStartupDisabled is a parse/runtime failure on launch.
+HASHTABLE_PASCAL_TRAY_KEY = re.compile(r"(?m)^\s*OpenUIOnStartupDisabled\s*=")
+
+
+def check_no_case_insensitive_tray_key_dupes() -> None:
+    paths = (LAUNCHER,) + INSTALLERS
+    for path in paths:
+        if not path.is_file():
+            fail(f"missing {path}")
+        text = path.read_text(encoding="utf-8")
+        if HASHTABLE_PASCAL_TRAY_KEY.search(text):
+            fail(
+                f"{path.name} sets PascalCase OpenUIOnStartupDisabled; "
+                "PowerShell hashtables are case-insensitive and this duplicates "
+                "openUIOnStartupDisabled"
+            )
+        if text.count("openUIOnStartupDisabled") < 1:
+            fail(f"{path.name} must keep camelCase openUIOnStartupDisabled")
+    print("OK  tray settings hashtable keys")
+
+
 def check_docker_launch_design() -> None:
     design = ROOT / "docs" / "airmaze" / "DOCKER_LAUNCH.md"
     plan = ROOT / "docs" / "airmaze" / "DOCKER_LAUNCH_PLAN.md"
+    packaging = ROOT / "PACKAGING.md"
     for path in (design, plan):
         if not path.is_file():
             fail(f"missing {path}")
@@ -126,6 +150,13 @@ def check_docker_launch_design() -> None:
     for needle in ("Start-DockerIfNeeded", "openUIOnStartupDisabled", "tray", "docker info"):
         if needle not in text:
             fail(f"DOCKER_LAUNCH.md must document {needle!r}")
+    if "OpenUIOnStartupDisabled" in text:
+        fail("DOCKER_LAUNCH.md must not document PascalCase OpenUIOnStartupDisabled")
+    plan_text = plan.read_text(encoding="utf-8")
+    if "OpenUIOnStartupDisabled" in plan_text:
+        fail("DOCKER_LAUNCH_PLAN.md must not document PascalCase OpenUIOnStartupDisabled")
+    if packaging.is_file() and "OpenUIOnStartupDisabled" in packaging.read_text(encoding="utf-8"):
+        fail("PACKAGING.md must not list PascalCase OpenUIOnStartupDisabled (hashtable-unsafe)")
     print("OK  docker launch design")
 
 
@@ -229,6 +260,7 @@ def run_host_smoke() -> None:
 def main() -> int:
     require_tokens(FINDER, REQUIRED_FINDER, "finder")
     check_docker_launch_design()
+    check_no_case_insensitive_tray_key_dupes()
     check_vbs()
     check_launcher()
     check_shortcuts()

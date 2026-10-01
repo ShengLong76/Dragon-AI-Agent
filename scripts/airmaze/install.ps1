@@ -88,8 +88,10 @@ function Set-DockerTrayOnlySettings {
     Ensure-Dir $DockerSettingsDir
 
     $patch = @{
+        # Docker Desktop settings.json / settings-store.json use camelCase.
+        # Do not also set OpenUIOnStartupDisabled: PowerShell hashtables are
+        # case-insensitive and a second key is a parse/runtime failure.
         openUIOnStartupDisabled = $true
-        OpenUIOnStartupDisabled = $true
         openAtLogin             = $true
         autoStart               = $true
         startMinimized          = $true
