@@ -11,7 +11,6 @@ few large facets with no boxed field. Pillow for raster/ICO only.
 
 from __future__ import annotations
 
-import io
 from collections import deque
 from pathlib import Path
 
@@ -153,9 +152,11 @@ def main() -> int:
     mid = _punch_plate(mid)
     big.save(HERE / "dragon-ai-agent-logo.png")
     mid.save(HERE / "dragon-ai-agent-logo-256.png")
-    buf = io.BytesIO()
-    mid.save(buf, format="ICO", sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
-    (HERE / "dragon-ai-agent-logo.ico").write_bytes(buf.getvalue())
+    try:
+        from tray_icon import contain_fit_max, write_ico
+    except ImportError:
+        from branding.tray_icon import contain_fit_max, write_ico  # type: ignore
+    write_ico(contain_fit_max(big, 256), HERE / "dragon-ai-agent-logo.ico")
     # Keep a local copy so later rebuilds do not depend on the agent asset path.
     if ref is not None and ref.resolve() != (HERE / "james-dragon-mark.jpg").resolve():
         (HERE / "james-dragon-mark.jpg").write_bytes(ref.read_bytes())
