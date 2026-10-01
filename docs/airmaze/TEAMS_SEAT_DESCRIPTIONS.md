@@ -45,7 +45,9 @@ Same brief + hover fields. Briefs stay Cos’s one-liners. Hover restates charte
 
 Seats are **cards** in a **4-column CSS grid** (`grid-template-columns: repeat(4, 1fr)`). Marketing’s six seats wrap to a second row; Real Estate / Trading fill one row. Do not paint empty cells to force a 4×4 board.
 
-Each seat card (and the team Apply control) uses the same contemporary radius (`12px`) and a dark-surface shadow. Hover/focus lifts the shadow slightly without a layout-shifting scale. Syne + crimson focus ring stay. This lives in `dragon-ui.css` on this branch — not stacked on PR #14’s popup.
+Each seat card (and the team Launch / Install control) uses the same contemporary radius (`12px`) and a dark-surface shadow. Hover/focus lifts the shadow slightly without a layout-shifting scale. Syne + crimson focus ring stay. This lives in `dragon-ui.css` **inside** the Teams Marketplace popup.
+
+This 4-column seat grid now lives **inside** the Teams Marketplace popup (`docs/airmaze/TEAMS_POPUP.md`) — not a left-rail dropdown.
 
 Card text wraps (`min-width: 0`; no nowrap clamp on the brief).
 
@@ -57,7 +59,7 @@ Each seat card shows a **left icon** beside the title + brief (Grok Bot marketpl
 
 User-facing label is **Teams Marketplace** (sidebar button, dialog title, `aria-label`). Internal `data-dragon-ai-teams-*` ids stay.
 
-The control sits **under** the 32px dragon logo (column lockup; mark size does not change). Chrome order is lockup → **Teams Marketplace** → Sessions / Bots. Prefer in-flow `[data-dragon-ai-sidebar-chrome]` on the Sessions-zone column — **must not cover BOTS** (fixed host is `pointer-events: none`; hide the lockup on an icon-rail). The panel opens from that control with a fade + slight slide/scale. Do not set required state from `transitionend`. `prefers-reduced-motion` already shortens motion. Panel background is **black** (`#000`). Seat cards keep the 4-column grid, 12px radius, left icon, brief + hover, and use layered shadows for elevation. Host: `docs/airmaze/SIDEBAR_HOST.md`.
+The control sits **under** the 32px dragon logo (column lockup; mark size does not change). Chrome order is lockup → **Teams Marketplace** → Sessions / Bots. Prefer in-flow `[data-dragon-ai-sidebar-chrome]` on the Sessions-zone column — **must not cover BOTS** (fixed host is `pointer-events: none`; hide the lockup on an icon-rail). The control opens a **roomy centered popup** (backdrop, not a cramped sidebar dropdown) with a fade + slight slide/scale. Do not set required state from `transitionend`. `prefers-reduced-motion` already shortens motion. Panel background is **black** (`#000`). Seat cards keep the 4-column grid, 12px radius, left icon, brief + hover, and use layered shadows for elevation. Host: `docs/airmaze/SIDEBAR_HOST.md`.
 
 Marketplace type uses the **16px body** contrast tokens (`--dragon-ui-font-size-body`, `--color-foreground` / `--color-muted-foreground`). Sidebar bot-name vs session-list matching stays on the inject/branding PR.
 

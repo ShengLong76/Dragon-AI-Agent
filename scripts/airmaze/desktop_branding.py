@@ -944,6 +944,9 @@ def self_test() -> int:
     if "[data-dragon-ai-teams-panel]" not in css:
         print("FAIL: overlay CSS must style the in-app Teams screen", file=sys.stderr)
         return 1
+    if "[data-dragon-ai-teams-backdrop]" not in css or "left: 50%" not in css:
+        print("FAIL: overlay CSS must style a centered Teams Marketplace popup", file=sys.stderr)
+        return 1
     if "[data-dragon-ai-seat-tooltip]" not in css:
         print("FAIL: overlay CSS must style seat hover/focus detail", file=sys.stderr)
         return 1

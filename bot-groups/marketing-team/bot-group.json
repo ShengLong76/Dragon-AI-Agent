@@ -5,6 +5,15 @@
   "name": "Marketing Team",
   "displayName": "Marketing Team",
   "departmentJob": "Content, SEO, social, paid, lifecycle, and measurement for a marketing desk.",
+  "blurb": "Six Cos seats for content, SEO, social, paid, lifecycle, and measurement.",
+  "detail": "Marketing desk recipe pack. Exactly six Cos seats: Content Strategist, SEO Specialist, Social Media Manager, Paid Media Specialist, Lifecycle Marketer, and Marketing Analyst. No seventh seat.",
+  "author": "Dragon AI",
+  "seats": 6,
+  "featured": true,
+  "requiredConnectors": [
+    {"id": "computer-use", "displayName": "Computer use"},
+    {"id": "browser", "displayName": "Browser"}
+  ],
   "version": "2.1.0",
   "bots": [
     {

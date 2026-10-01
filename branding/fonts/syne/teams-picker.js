@@ -4,6 +4,9 @@
   var LABEL = "Teams Marketplace";
   var CHROME_STYLE = "display:flex;flex-direction:column;align-items:stretch;width:100%;min-height:96px;box-sizing:border-box;margin:0;padding:0;flex:0 0 auto;order:-1;position:relative;z-index:1;pointer-events:auto;background:transparent;border:0;";
   function $(sel, root) { return (root || document).querySelector(sel); }
+  function $all(sel, root) {
+    return Array.prototype.slice.call((root || document).querySelectorAll(sel));
+  }
   function querySlot(name) {
     return document.querySelector('[data-slot="' + name + '"]');
   }
@@ -239,13 +242,20 @@
     open.setAttribute("aria-haspopup", "dialog");
     open.setAttribute("aria-expanded", "false");
     open.setAttribute("aria-label", LABEL);
+    var backdrop = document.createElement("div");
+    backdrop.setAttribute("data-dragon-ai-teams-backdrop", "true");
+    backdrop.hidden = true;
+    backdrop.setAttribute("hidden", "");
     var panel = document.createElement("div");
     panel.setAttribute("data-dragon-ai-teams-panel", "true");
     panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-modal", "true");
     panel.setAttribute("aria-label", LABEL);
     panel.setAttribute("aria-hidden", "true");
     panel.hidden = true;
-    panel.innerHTML = '<header><h2>Teams Marketplace</h2><p>Apply a multi-bot team. Personal Assistant is already installed. Bots file under that team name, not Unassigned. Each seat shows a brief; hover or focus a seat for details.</p></header><div data-dragon-ai-teams-list></div><label>Import custom zip or JSON<input type="file" accept=".zip,.json,application/json,application/zip" data-dragon-ai-teams-import></label><p data-dragon-ai-teams-status role="status"></p><button type="button" data-dragon-ai-teams-close>Close</button>';
+    panel.innerHTML = '<header><h2>Teams Marketplace</h2><p>Browse the GitHub catalog. Check teams to Launch. Personal Assistant is already installed. Each team files under its own name, not Unassigned. Each seat shows a brief; hover or focus a seat for details. Recipe packs — no live logins.</p></header><div data-dragon-ai-teams-browse><div data-dragon-ai-teams-list></div></div><section data-dragon-ai-teams-detail hidden><button type="button" data-dragon-ai-teams-back>Back</button><h3 data-dragon-ai-teams-detail-title></h3><p data-dragon-ai-teams-detail-meta></p><p data-dragon-ai-teams-detail-blurb></p><p data-dragon-ai-teams-detail-body></p><p data-dragon-ai-teams-detail-connectors></p><ul data-dragon-ai-teams-detail-seats data-dragon-ai-team-seats></ul><button type="button" data-dragon-ai-teams-install data-dragon-ai-team-apply="true">Install</button></section><p data-dragon-ai-teams-status role="status"></p><div data-dragon-ai-teams-actions><button type="button" data-dragon-ai-teams-launch>Launch</button><button type="button" data-dragon-ai-teams-export>Export</button><label data-dragon-ai-teams-import-label>Import<input type="file" accept=".zip,.json,application/json,application/zip" data-dragon-ai-teams-import></label><button type="button" data-dragon-ai-teams-close>Close</button></div>';
+    var catalog = [];
+    var detailId = "";
     function setStatus(t) {
       var s = $("[data-dragon-ai-teams-status]", panel);
       if (s) s.textContent = t || "";
@@ -258,25 +268,35 @@
         return false;
       }
     }
-    function placePanel() {
-      var logo = document.querySelector("[data-dragon-ai-sidebar-brand]")
-        || document.querySelector("[data-dragon-ai-sidebar-logo]");
-      var r = (logo || open).getBoundingClientRect();
-      var top = Math.max(12, Math.round(r.bottom + 8));
-      panel.style.top = top + "px";
-      panel.style.left = "12px";
+    function browseEl() { return $("[data-dragon-ai-teams-browse]", panel); }
+    function detailEl() { return $("[data-dragon-ai-teams-detail]", panel); }
+    function showBrowse() {
+      var b = browseEl();
+      var d = detailEl();
+      if (b) { b.hidden = false; b.removeAttribute("hidden"); }
+      if (d) { d.hidden = true; d.setAttribute("hidden", ""); }
+      detailId = "";
+    }
+    function firstFocusable() {
+      return $('input[type="checkbox"]', panel)
+        || $("[data-dragon-ai-teams-launch]", panel)
+        || $("[data-dragon-ai-teams-close]", panel);
     }
     function show() {
       if (hideTimer) { clearTimeout(hideTimer); hideTimer = 0; }
+      backdrop.hidden = false;
+      backdrop.removeAttribute("hidden");
       panel.hidden = false;
       panel.removeAttribute("hidden");
       panel.setAttribute("aria-hidden", "false");
       open.setAttribute("aria-expanded", "true");
-      placePanel();
+      showBrowse();
       load();
       requestAnimationFrame(function () {
         requestAnimationFrame(function () {
           panel.setAttribute("data-dragon-ai-teams-visible", "true");
+          var first = firstFocusable();
+          if (first && first.focus) first.focus();
         });
       });
     }
@@ -290,6 +310,10 @@
         if (panel.getAttribute("data-dragon-ai-teams-visible") === "true") return;
         panel.hidden = true;
         panel.setAttribute("hidden", "");
+        backdrop.hidden = true;
+        backdrop.setAttribute("hidden", "");
+        showBrowse();
+        if (open && open.focus) open.focus();
       }, reducedMotion() ? 0 : 220);
     }
     function reloadRoster() {
@@ -299,80 +323,197 @@
       }
     }
     function finishApply() { hide(); reloadRoster(); }
+    function selectedIds() {
+      return $all('input[type="checkbox"]:checked', panel).map(function (box) {
+        return box.getAttribute("data-dragon-ai-team-id") || box.value;
+      }).filter(Boolean);
+    }
+    function connectorText(team) {
+      return (team.requiredConnectors || []).map(function (c) {
+        return (c && c.displayName) || (c && c.id) || c;
+      }).filter(Boolean).join(", ");
+    }
+    function findTeam(id) {
+      return catalog.filter(function (t) { return t.id === id; })[0] || null;
+    }
+    function seatItem(team, bot, i) {
+      var li = document.createElement("li");
+      li.setAttribute("data-dragon-ai-seat-id", bot.id || "");
+      var icon = document.createElement("img");
+      icon.setAttribute("data-dragon-ai-seat-icon", "true");
+      icon.setAttribute("aria-hidden", "true");
+      icon.alt = "";
+      var iconId = String(bot.id || "seat").replace(/[^a-z0-9-]/gi, "");
+      icon.src = "./dragon-ai-branding/teams/" + (iconId || "seat") + ".svg";
+      icon.addEventListener("error", function () {
+        if (icon.dataset.fallback) return;
+        icon.dataset.fallback = "1";
+        icon.src = "./dragon-ai-branding/teams/seat.svg";
+      });
+      var copy = document.createElement("div");
+      copy.setAttribute("data-dragon-ai-seat-copy", "true");
+      var name = document.createElement("strong");
+      name.textContent = bot.title || bot.id || "";
+      var brief = document.createElement("span");
+      brief.textContent = bot.description || "";
+      copy.appendChild(name);
+      copy.appendChild(brief);
+      li.appendChild(icon);
+      li.appendChild(copy);
+      if (bot.descriptionDetail) {
+        li.setAttribute("data-dragon-ai-seat-detail", "true");
+        li.tabIndex = 0;
+        var tipId = "dragon-seat-tip-" + (team.id || "team") + "-" + (bot.id || i);
+        li.setAttribute("aria-describedby", tipId);
+        var tip = document.createElement("div");
+        tip.id = tipId;
+        tip.setAttribute("role", "tooltip");
+        tip.setAttribute("data-dragon-ai-seat-tooltip", "true");
+        tip.textContent = bot.descriptionDetail;
+        li.appendChild(tip);
+      }
+      return li;
+    }
+    function fillSeats(list, team) {
+      list.textContent = "";
+      (team.bots || []).forEach(function (bot, i) {
+        list.appendChild(seatItem(team, bot, i));
+      });
+    }
+    function showDetail(id) {
+      var team = findTeam(id);
+      if (!team) { setStatus("Pack not in catalog."); return; }
+      detailId = id;
+      var d = detailEl();
+      var b = browseEl();
+      if (b) { b.hidden = true; b.setAttribute("hidden", ""); }
+      if (d) { d.hidden = false; d.removeAttribute("hidden"); }
+      var title = $("[data-dragon-ai-teams-detail-title]", panel);
+      var meta = $("[data-dragon-ai-teams-detail-meta]", panel);
+      var blurb = $("[data-dragon-ai-teams-detail-blurb]", panel);
+      var body = $("[data-dragon-ai-teams-detail-body]", panel);
+      var cons = $("[data-dragon-ai-teams-detail-connectors]", panel);
+      var seats = $("[data-dragon-ai-teams-detail-seats]", panel);
+      if (title) title.textContent = team.displayName || team.name || id;
+      if (meta) meta.textContent = (team.seats || team.botCount || 0) + " seats · " + (team.author || "Dragon AI");
+      if (blurb) blurb.textContent = team.blurb || team.departmentJob || "";
+      if (body) body.textContent = team.detail || team.blurb || "";
+      if (cons) {
+        cons.textContent = connectorText(team)
+          ? ("Required connectors: " + connectorText(team))
+          : "Required connectors: none listed";
+      }
+      if (seats) fillSeats(seats, team);
+      setStatus("Review the pack, then Install, or go Back and Launch checked teams.");
+    }
     function card(team) {
       var wrap = document.createElement("article");
       wrap.setAttribute("data-dragon-ai-team-id", team.id || "");
-      var b = document.createElement("button");
-      b.type = "button";
-      b.setAttribute("data-dragon-ai-team-apply", "true");
-      b.innerHTML = "<strong></strong><span></span>";
-      b.querySelector("strong").textContent = team.displayName || team.name || team.id;
-      b.querySelector("span").textContent = team.departmentJob || "";
-      b.addEventListener("click", function () { apply(team.id); });
-      wrap.appendChild(b);
+      wrap.setAttribute("data-dragon-ai-team-row", "true");
+      var label = document.createElement("label");
+      var box = document.createElement("input");
+      box.type = "checkbox";
+      box.setAttribute("data-dragon-ai-team-id", team.id || "");
+      box.value = team.id || "";
+      var copy = document.createElement("span");
+      copy.innerHTML = "<strong></strong><span></span><small></small><small></small>";
+      copy.querySelector("strong").textContent = team.displayName || team.name || team.id;
+      copy.querySelector("span").textContent = team.blurb || team.departmentJob || "";
+      copy.querySelectorAll("small")[0].textContent =
+        (team.seats || team.botCount || 0) + " seats · " + (team.author || "Dragon AI");
+      copy.querySelectorAll("small")[1].textContent = connectorText(team);
+      label.appendChild(box);
+      label.appendChild(copy);
+      var details = document.createElement("button");
+      details.type = "button";
+      details.setAttribute("data-dragon-ai-teams-open-detail", "true");
+      details.textContent = "Details";
+      details.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        showDetail(team.id);
+      });
+      wrap.appendChild(label);
+      wrap.appendChild(details);
       var seats = document.createElement("ul");
       seats.setAttribute("data-dragon-ai-team-seats", "true");
-      (team.bots || []).forEach(function (bot, i) {
-        var li = document.createElement("li");
-        li.setAttribute("data-dragon-ai-seat-id", bot.id || "");
-        var icon = document.createElement("img");
-        icon.setAttribute("data-dragon-ai-seat-icon", "true");
-        icon.setAttribute("aria-hidden", "true");
-        icon.alt = "";
-        var iconId = String(bot.id || "seat").replace(/[^a-z0-9-]/gi, "");
-        icon.src = "./dragon-ai-branding/teams/" + (iconId || "seat") + ".svg";
-        icon.addEventListener("error", function () {
-          if (icon.dataset.fallback) return;
-          icon.dataset.fallback = "1";
-          icon.src = "./dragon-ai-branding/teams/seat.svg";
-        });
-        var copy = document.createElement("div");
-        copy.setAttribute("data-dragon-ai-seat-copy", "true");
-        var name = document.createElement("strong");
-        name.textContent = bot.title || bot.id || "";
-        var brief = document.createElement("span");
-        brief.textContent = bot.description || "";
-        copy.appendChild(name);
-        copy.appendChild(brief);
-        li.appendChild(icon);
-        li.appendChild(copy);
-        if (bot.descriptionDetail) {
-          li.setAttribute("data-dragon-ai-seat-detail", "true");
-          li.tabIndex = 0;
-          var tipId = "dragon-seat-tip-" + (team.id || "team") + "-" + (bot.id || i);
-          li.setAttribute("aria-describedby", tipId);
-          var tip = document.createElement("div");
-          tip.id = tipId;
-          tip.setAttribute("role", "tooltip");
-          tip.setAttribute("data-dragon-ai-seat-tooltip", "true");
-          tip.textContent = bot.descriptionDetail;
-          li.appendChild(tip);
-        }
-        seats.appendChild(li);
-      });
+      fillSeats(seats, team);
       if (seats.childNodes.length) wrap.appendChild(seats);
       return wrap;
     }
     function load() {
-      setStatus("Loading teams…");
-      fetch(API + "/api/teams").then(function (r) { return r.json(); }).then(function (data) {
+      setStatus("Loading marketplace…");
+      fetch(API + "/api/marketplace").then(function (r) {
+        if (!r.ok) throw new Error("marketplace");
+        return r.json();
+      }).catch(function () {
+        return fetch(API + "/api/teams").then(function (r) { return r.json(); });
+      }).then(function (data) {
         var list = $("[data-dragon-ai-teams-list]", panel);
         if (!list) return;
         list.textContent = "";
-        (data.teams || []).forEach(function (t) { list.appendChild(card(t)); });
-        setStatus((data.teams || []).length ? "Pick a team to apply." : "No teams listed.");
-      }).catch(function () { setStatus("Teams Marketplace helper is not running on 127.0.0.1:8653."); });
+        catalog = data.teams || [];
+        catalog.forEach(function (t) { list.appendChild(card(t)); });
+        setStatus(catalog.length ? "Check teams to Launch, or open Details to Install." : "No teams listed.");
+      }).catch(function () {
+        setStatus("Teams Marketplace helper is not running on 127.0.0.1:8653.");
+      });
     }
-    function apply(id) {
-      setStatus("Applying " + id + "…");
-      fetch(API + "/api/teams/apply", {
+    function installOne() {
+      if (!detailId) { setStatus("Open Details, then Install."); return; }
+      setStatus("Installing " + detailId + "…");
+      fetch(API + "/api/marketplace/install", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: id })
+        body: JSON.stringify({ id: detailId })
       }).then(function (r) { return r.json(); }).then(function (data) {
         if (data.error) { setStatus(data.message || data.error); return; }
         finishApply();
-      }).catch(function () { setStatus("Apply failed. Is the Teams Marketplace helper running?"); });
+      }).catch(function () { setStatus("Install failed. Is the Teams Marketplace helper running?"); });
+    }
+    function launch() {
+      var ids = selectedIds();
+      if (!ids.length) { setStatus("Check one or more teams to launch."); return; }
+      setStatus("Launching " + ids.length + " team" + (ids.length === 1 ? "" : "s") + "…");
+      fetch(API + "/api/teams/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: ids })
+      }).then(function (r) { return r.json(); }).then(function (data) {
+        if (data.error) { setStatus(data.message || data.error); return; }
+        finishApply();
+      }).catch(function () { setStatus("Launch failed. Is the Teams Marketplace helper running?"); });
+    }
+    function exportSelected() {
+      var ids = selectedIds();
+      if (!ids.length) { setStatus("Check one or more teams to export."); return; }
+      setStatus("Exporting…");
+      fetch(API + "/api/teams/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: ids })
+      }).then(function (r) {
+        if (!r.ok) {
+          return r.json().then(function (data) {
+            throw new Error(data.message || data.error || "Export failed.");
+          });
+        }
+        var name = "dragon-teams.zip";
+        var header = r.headers.get("Content-Disposition") || "";
+        var match = /filename="?([^"]+)"?/.exec(header);
+        if (match) name = match[1];
+        return r.blob().then(function (blob) { return { blob: blob, name: name }; });
+      }).then(function (out) {
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(out.blob);
+        a.download = out.name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setStatus("Exported " + out.name + " (catalog-ready; secrets stripped).");
+      }).catch(function (err) {
+        setStatus(err && err.message ? err.message : "Export failed.");
+      });
     }
     function importFile(file) {
       if (!file) return;
@@ -394,16 +535,32 @@
       reader.readAsArrayBuffer(file);
     }
     open.addEventListener("click", show);
+    backdrop.addEventListener("click", hide);
     $("[data-dragon-ai-teams-close]", panel).addEventListener("click", hide);
-    try {
-      window.addEventListener("resize", function () {
-        if (panel.getAttribute("data-dragon-ai-teams-visible") === "true") placePanel();
+    $("[data-dragon-ai-teams-launch]", panel).addEventListener("click", launch);
+    $("[data-dragon-ai-teams-export]", panel).addEventListener("click", exportSelected);
+    var back = $("[data-dragon-ai-teams-back]", panel);
+    if (back) {
+      back.addEventListener("click", function () {
+        showBrowse();
+        setStatus("Check teams to Launch, or open Details to Install.");
       });
-    } catch (e) {}
+    }
+    var inst = $("[data-dragon-ai-teams-install]", panel);
+    if (inst) inst.addEventListener("click", installOne);
     var inp = $("[data-dragon-ai-teams-import]", panel);
     if (inp) inp.addEventListener("change", function () { importFile(inp.files && inp.files[0]); });
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape" && !panel.hidden) hide();
+    });
     root.appendChild(open);
-    if (document.body) { document.body.appendChild(panel); } else { root.appendChild(panel); }
+    if (document.body) {
+      document.body.appendChild(backdrop);
+      document.body.appendChild(panel);
+    } else {
+      root.appendChild(backdrop);
+      root.appendChild(panel);
+    }
     place(root);
   }
   if (document.readyState === "loading") {

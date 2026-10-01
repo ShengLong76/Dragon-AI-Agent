@@ -468,6 +468,31 @@ body,
   outline-offset: 2px;
 }
 
+[data-dragon-ai-teams-backdrop] {
+  position: fixed;
+  inset: 0;
+  z-index: 79;
+  background: #000000b3;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+body:has([data-dragon-ai-teams-panel][data-dragon-ai-teams-visible]) [data-dragon-ai-teams-backdrop],
+[data-dragon-ai-teams-backdrop]:not([hidden]) {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+[data-dragon-ai-teams-backdrop][hidden],
+[data-dragon-ai-teams-panel][hidden],
+[data-dragon-ai-teams-detail][hidden],
+[data-dragon-ai-teams-browse][hidden] {
+  display: none !important;
+}
+
 [data-dragon-ai-teams-panel] {
   --dragon-card-shadow:
     0 1px 0 #ffffff1f,
@@ -481,12 +506,14 @@ body,
     0 28px 56px #000000e0;
   position: fixed;
   z-index: 80;
-  top: 88px;
-  left: 12px;
-  width: min(72rem, calc(100vw - 24px));
-  max-height: calc(100vh - 100px);
+  top: 50%;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  width: min(72rem, calc(100vw - 48px));
+  max-height: min(48rem, calc(100vh - 48px));
   overflow: auto;
-  padding: 16px;
+  padding: 20px 22px 16px;
   border: 1px solid var(--color-border);
   border-radius: 12px;
   background: #000;
@@ -497,8 +524,8 @@ body,
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transform: translateY(-10px) scale(0.98);
-  transform-origin: top left;
+  transform: translate(-50%, -50%) translateY(-10px) scale(0.98);
+  transform-origin: center center;
   transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
 }
 
@@ -506,7 +533,7 @@ body,
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  transform: translateY(0) scale(1);
+  transform: translate(-50%, -50%) translateY(0) scale(1);
 }
 
 [data-dragon-ai-teams-panel] h2 {
@@ -528,13 +555,14 @@ body,
 [data-dragon-ai-teams-list] {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   margin: 12px 0;
 }
 
-[data-dragon-ai-teams-list] article {
-  display: flex;
-  flex-direction: column;
+[data-dragon-ai-teams-list] article,
+[data-dragon-ai-team-row] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
   padding: 12px;
   border: 1px solid #ffffff14;
@@ -544,10 +572,32 @@ body,
   box-shadow: var(--dragon-card-shadow);
 }
 
-[data-dragon-ai-teams-list] button,
+[data-dragon-ai-team-row] > [data-dragon-ai-team-seats] {
+  grid-column: 1 / -1;
+}
+
+[data-dragon-ai-team-row] > label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+[data-dragon-ai-team-row] input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.2rem;
+  accent-color: var(--color-primary);
+}
+
 [data-dragon-ai-team-apply] {
-  display: block;
-  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  width: auto;
   text-align: left;
   padding: 10px 12px;
   border: 1px solid var(--color-border);
@@ -560,14 +610,15 @@ body,
   cursor: pointer;
 }
 
-[data-dragon-ai-teams-list] button strong,
+[data-dragon-ai-team-row] strong,
 [data-dragon-ai-team-apply] strong {
   display: block;
   font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
   font-weight: 700;
 }
 
-[data-dragon-ai-teams-list] button span,
+[data-dragon-ai-team-row] span span,
+[data-dragon-ai-team-row] small,
 [data-dragon-ai-team-apply] span,
 [data-dragon-ai-team-seats] span {
   display: block;
@@ -690,6 +741,96 @@ body,
   font-size: var(--dragon-ui-font-size-ui);
   font-weight: 700;
   cursor: pointer;
+}
+
+[data-dragon-ai-teams-detail] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 14px 0 10px;
+  min-height: 12rem;
+  overflow: auto;
+}
+
+[data-dragon-ai-teams-detail-title] {
+  margin: 0;
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: var(--dragon-ui-font-size-body);
+}
+
+[data-dragon-ai-teams-install] {
+  align-self: flex-start;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+[data-dragon-ai-teams-back],
+[data-dragon-ai-teams-open-detail] {
+  align-self: flex-start;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-card);
+  color: var(--color-foreground);
+  font-weight: 700;
+  font-size: var(--dragon-ui-font-size-ui);
+  cursor: pointer;
+}
+
+[data-dragon-ai-teams-actions] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+[data-dragon-ai-teams-actions] button,
+[data-dragon-ai-teams-import-label] {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-card);
+  color: var(--color-foreground);
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: var(--dragon-ui-font-size-ui);
+  cursor: pointer;
+}
+
+[data-dragon-ai-teams-launch] {
+  border: 0;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+[data-dragon-ai-teams-import-label] {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-foreground);
+}
+
+[data-dragon-ai-teams-import-label] input {
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+}
+
+[data-dragon-ai-teams-actions] [data-dragon-ai-teams-close] {
+  margin-top: 0;
+  margin-left: auto;
 }
 
 /* Center-column RPC / load-error banners stay inside the chat pane.

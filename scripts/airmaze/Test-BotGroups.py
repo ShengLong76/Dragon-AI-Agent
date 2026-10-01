@@ -749,18 +749,22 @@ def test_no_profiles_ui() -> None:
         if not path.is_file():
             fail(f"missing {path.name}")
     select = read(SELECT)
-    if "ComboBox" not in select:
-        fail("Select-BotGroup.ps1 must be a dropdown (WinForms ComboBox)")
+    if "CheckedListBox" not in select:
+        fail("Select-BotGroup.ps1 must be a popup list (WinForms CheckedListBox)")
+    if "ComboBox" in select:
+        fail("Select-BotGroup.ps1 must not stay a ComboBox dropdown")
+    if "Launch" not in select or "Export" not in select:
+        fail("WinForms Teams popup must keep Launch and Export")
     if "bot_groups.py" not in select:
-        fail("dropdown must call bot_groups.py (repo list), not a baked menu")
+        fail("popup must call bot_groups.py (repo list), not a baked menu")
     if "choose a profile" in select.lower() or "Dragon AI Agent Profiles" in select:
-        fail("dropdown still presents a Profiles UI")
+        fail("popup still presents a Profiles UI")
     if "Create a bot" in select or "Grokbot" in select:
         fail("do not add a standalone create-a-bot path")
     if "196, 30, 58" not in select and "196,30,58" not in select and "#C41E3A" not in select:
-        fail("dropdown must keep wizard crimson; do not restyle")
+        fail("popup must keep wizard crimson; do not restyle")
     if "allowSingularBotImportExport" not in select:
-        fail("dropdown must expose the singular toggle")
+        fail("popup must expose the singular toggle")
     if "Hermes" in select and "do not add a Hermes bot" not in select.lower():
         fail("bot group UI must not bring a Hermes bot back")
     for path in INSTALLERS:
