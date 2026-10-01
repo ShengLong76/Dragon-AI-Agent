@@ -275,6 +275,64 @@ function Test-DragonAISkipBrandingFile {
     return -not ($ok -contains $ext)
 }
 
+function Get-DragonAIAppIconSource {
+    $here = $PSScriptRoot
+    if ([string]::IsNullOrWhiteSpace($here)) {
+        $here = Split-Path -Parent $MyInvocation.MyCommand.Path
+    }
+    $root = Split-Path -Parent (Split-Path -Parent $here)
+    foreach ($ico in @(
+        (Join-Path $root "branding\dragon-ai-agent-logo.ico"),
+        (Join-Path $root "installer\winres\icon.ico")
+    )) {
+        if (Test-Path -LiteralPath $ico) { return $ico }
+    }
+    return $null
+}
+
+function Copy-DragonAIAppIcon {
+    <#
+      Copy the sidebar-mark ICO onto Hermes electron-builder icon.ico paths.
+      Prefer branding\dragon-ai-agent-logo.ico (installer already ships it).
+    #>
+    param([Parameter(Mandatory = $true)][string]$ExePath)
+    $ico = Get-DragonAIAppIconSource
+    if (-not $ico) { return @{ copied = $false } }
+    $exeDir = Split-Path -Parent $ExePath
+    $resourcesDir = Join-Path $exeDir "resources"
+    New-Item -ItemType Directory -Force -Path $resourcesDir | Out-Null
+    $dests = New-Object System.Collections.Generic.List[string]
+    foreach ($dest in @(
+        (Join-Path $resourcesDir "icon.ico"),
+        (Join-Path $exeDir "icon.ico")
+    )) {
+        Copy-Item -LiteralPath $ico -Destination $dest -Force
+        $dests.Add($dest)
+    }
+    foreach ($rel in @("app", "app.asar.unpacked")) {
+        $parent = Join-Path $resourcesDir $rel
+        if (Test-Path -LiteralPath $parent -PathType Container) {
+            $dest = Join-Path $parent "icon.ico"
+            Copy-Item -LiteralPath $ico -Destination $dest -Force
+            $dests.Add($dest)
+        }
+    }
+    if (Test-Path -LiteralPath $resourcesDir -PathType Container) {
+        Get-ChildItem -LiteralPath $resourcesDir -Recurse -Filter "icon.ico" -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -notmatch '\\node_modules\\' } |
+            ForEach-Object {
+                Copy-Item -LiteralPath $ico -Destination $_.FullName -Force
+                $dests.Add($_.FullName)
+            }
+    }
+    $rcedit = Get-Command rcedit -ErrorAction SilentlyContinue
+    if (-not $rcedit) { $rcedit = Get-Command rcedit-x64 -ErrorAction SilentlyContinue }
+    if ($rcedit) {
+        try { & $rcedit.Source $ExePath --set-icon $ico | Out-Null } catch {}
+    }
+    return @{ copied = $true; source = $ico; paths = @($dests) }
+}
+
 function Invoke-DragonAIDesktopBrandingOverlay {
     param(
         [string]$ExePath = "",
@@ -370,23 +428,7 @@ function Invoke-DragonAIDesktopBrandingOverlay {
     }
 
     if ($ExePath) {
-        $scriptDir = $PSScriptRoot
-        if ([string]::IsNullOrWhiteSpace($scriptDir)) {
-            $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-        }
-        $icoCandidates = @(
-            (Join-Path (Split-Path -Parent (Split-Path -Parent $scriptDir)) "installer\winres\icon.ico"),
-            (Join-Path (Split-Path -Parent (Split-Path -Parent $scriptDir)) "branding\dragon-ai-agent-logo.ico")
-        )
-        foreach ($ico in $icoCandidates) {
-            if (Test-Path -LiteralPath $ico) {
-                $resourcesDir = Join-Path (Split-Path -Parent $ExePath) "resources"
-                New-Item -ItemType Directory -Force -Path $resourcesDir | Out-Null
-                Copy-Item -LiteralPath $ico -Destination (Join-Path $resourcesDir "icon.ico") -Force
-                Copy-Item -LiteralPath $ico -Destination (Join-Path (Split-Path -Parent $ExePath) "icon.ico") -Force
-                break
-            }
-        }
+        Copy-DragonAIAppIcon -ExePath $ExePath | Out-Null
     }
 
     if ($ExePath) {

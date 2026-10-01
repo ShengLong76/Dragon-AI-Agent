@@ -316,18 +316,15 @@ function Repair-DragonAIProductShortcuts {
     try {
         $wsh = New-Object -ComObject WScript.Shell
         foreach ($p in $paths) {
-            $existing = $null
-            if (Test-Path -LiteralPath $p) {
-                $existing = $wsh.CreateShortcut($p)
-                if ($existing.TargetPath -like "*wscript.exe" -and $existing.Arguments -like "*Start-DragonAI.vbs*") {
-                    continue
-                }
-            }
             $dir = Split-Path -Parent $p
             if ($dir -and -not (Test-Path -LiteralPath $dir)) {
                 New-Item -ItemType Directory -Force -Path $dir | Out-Null
             }
             $sc = $wsh.CreateShortcut($p)
+            $alreadyHosted = $false
+            if (Test-Path -LiteralPath $p) {
+                $alreadyHosted = ($sc.TargetPath -like "*wscript.exe" -and $sc.Arguments -like "*Start-DragonAI.vbs*")
+            }
             $sc.TargetPath = $wscript
             $sc.Arguments = $startArgs
             $sc.WorkingDirectory = $InstallRoot
@@ -335,7 +332,9 @@ function Repair-DragonAIProductShortcuts {
             $sc.WindowStyle = 1
             if (Test-Path -LiteralPath $ico) { $sc.IconLocation = "$ico,0" }
             $sc.Save()
-            Write-LaunchLog "Repaired product shortcut: $p"
+            if (-not $alreadyHosted) {
+                Write-LaunchLog "Repaired product shortcut: $p"
+            }
         }
     } catch {
         Write-LaunchLog "Shortcut repair skipped: $($_.Exception.Message)" "WARN"

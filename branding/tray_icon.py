@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Contain-max the Dragon mark into the Windows tray / taskbar slot.
+"""Contain-max the sidebar Dragon mark into the Windows tray / taskbar slot.
 
 Windows owns the cell size. Do not pick a fixed display pixel size.
-Scale the dragon uniformly to the largest width and height that fit
-the slot (CSS object-fit: contain at max scale). No crop, no stretch.
+Scale the transparent navy low-poly dragon uniformly to the largest
+width and height that fit the slot (CSS object-fit: contain at max
+scale). No crop, no stretch. Same ICO for taskbar and shortcuts.
 
 Rebuild:
   python3 branding/tray_icon.py
@@ -14,6 +15,7 @@ from __future__ import annotations
 import argparse
 import io
 import math
+import sys
 from pathlib import Path
 
 from PIL import Image
@@ -24,6 +26,7 @@ BADGE_SOURCE = ROOT / "installer" / "winres" / "icon-source.png"
 WINRES_ICO = ROOT / "installer" / "winres" / "icon.ico"
 NAVY_PNG = HERE / "dragon-ai-agent-logo.png"
 BRAND_ICO = HERE / "dragon-ai-agent-logo.ico"
+SIDEBAR_MARK = NAVY_PNG
 
 # Frames Windows may request for tray / taskbar / shortcuts.
 # These are slot sizes, not a "draw the icon at 48px" bump.
@@ -118,6 +121,19 @@ def write_ico(im: Image.Image, dest: Path, sizes: tuple[int, ...] = ICO_SLOT_SIZ
     return dest
 
 
+def load_sidebar_mark() -> Image.Image:
+    """Transparent navy low-poly dragon used in the sidebar lockup.
+
+    Reads larger in the Windows tray/taskbar slot than the circular
+    copper badge (no plate, no leftover rim).
+    """
+    if SIDEBAR_MARK.is_file():
+        return Image.open(SIDEBAR_MARK).convert("RGBA")
+    if BRAND_ICO.is_file():
+        return Image.open(BRAND_ICO).convert("RGBA")
+    raise FileNotFoundError("sidebar mark missing (dragon-ai-agent-logo.png / .ico)")
+
+
 def _load_badge_source() -> Image.Image:
     if BADGE_SOURCE.is_file():
         return Image.open(BADGE_SOURCE).convert("RGBA")
@@ -127,17 +143,15 @@ def _load_badge_source() -> Image.Image:
 
 
 def rebuild() -> dict[str, str]:
-    badge = _load_badge_source()
-    if not BADGE_SOURCE.is_file():
-        badge.save(BADGE_SOURCE)
-    dragon = isolate_dragon_artwork(badge)
+    dragon = load_sidebar_mark()
     write_ico(dragon, WINRES_ICO)
-    summary = {"taskbar": str(WINRES_ICO.relative_to(ROOT)), "fit": "contain-max"}
-    if NAVY_PNG.is_file():
-        navy = Image.open(NAVY_PNG).convert("RGBA")
-        write_ico(navy, BRAND_ICO)
-        summary["shortcuts"] = str(BRAND_ICO.relative_to(ROOT))
-    return summary
+    write_ico(dragon, BRAND_ICO)
+    return {
+        "taskbar": str(WINRES_ICO.relative_to(ROOT)),
+        "shortcuts": str(BRAND_ICO.relative_to(ROOT)),
+        "source": "sidebar-mark",
+        "fit": "contain-max",
+    }
 
 
 def self_test() -> int:

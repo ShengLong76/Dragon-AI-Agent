@@ -316,6 +316,14 @@ function Install-PackageFiles([string]$Root) {
         }
     }
 
+    $winresSrc = Join-Path $Root "installer\winres\icon.ico"
+    if (Test-Path -LiteralPath $winresSrc) {
+        $winresDstDir = Join-Path $InstallRoot "installer\winres"
+        Ensure-Dir $winresDstDir
+        Copy-Item -LiteralPath $winresSrc -Destination (Join-Path $winresDstDir "icon.ico") -Force
+        Write-Log "Copied installer/winres/icon.ico (taskbar/tray ICO)"
+    }
+
     $fontsSrc = Join-Path $Root "branding\fonts"
     if (-not (Test-Path -LiteralPath $fontsSrc)) {
         $fontsSrc = Join-Path $PSScriptRoot "..\..\branding\fonts"

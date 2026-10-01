@@ -5,6 +5,10 @@ Windows owns the slot. We must not pick a fixed display pixel size.
 The dragon artwork scales uniformly to the largest size that fits the
 cell (object-fit: contain at max scale). No crop, no stretch.
 
+The live ICO is the transparent sidebar mark (navy low-poly), not the
+circular copper badge. Apply must copy that ICO onto Hermes resource
+paths the running desktop client actually reads.
+
 No secrets. Safe on Linux CI.
 """
 
@@ -12,6 +16,7 @@ from __future__ import annotations
 
 import struct
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -19,9 +24,15 @@ BRANDING = ROOT / "branding"
 SCRIPTS = ROOT / "scripts" / "airmaze"
 WINRES_ICO = ROOT / "installer" / "winres" / "icon.ico"
 BRAND_ICO = BRANDING / "dragon-ai-agent-logo.ico"
+SIDEBAR_PNG = BRANDING / "dragon-ai-agent-logo.png"
 NOTE = ROOT / "docs" / "airmaze" / "TRAY_ICON.md"
 LAUNCHER = ROOT / "scripts" / "airmaze" / "start-embedded.ps1"
+APPLY = SCRIPTS / "Apply-DesktopBranding.ps1"
 TABLE = SCRIPTS / "desktop_branding.json"
+INSTALLERS = (
+    ROOT / "scripts" / "airmaze" / "install.ps1",
+    ROOT / "installer" / "DragonAIAgentSetup.ps1",
+)
 
 # Slots Windows actually requests. Not a display-size bump.
 REQUIRED_ICO_SIZES = {(16, 16), (24, 24), (32, 32), (48, 48), (256, 256)}
@@ -33,6 +44,13 @@ FORBIDDEN_FIXED_PX = (
     "iconSize: 48",
     "width: 48px",
     "height: 48px",
+)
+
+NAVY = (49, 74, 115)  # #314A73
+COPPER_HINTS = (
+    (196, 165, 116),  # #C4A574
+    (232, 195, 106),  # #E8C36A
+    (184, 134, 58),  # #B8863A
 )
 
 
@@ -52,6 +70,41 @@ def ico_sizes(path: Path) -> set[tuple[int, int]]:
         width, height = struct.unpack_from("<BB", data, off)
         sizes.add((256 if width == 0 else width, 256 if height == 0 else height))
     return sizes
+
+
+def iter_ico_frames(path: Path):
+    try:
+        from PIL import Image
+    except ImportError:
+        fail("Pillow is required to inspect ICO frames")
+    sizes = ico_sizes(path)
+    for size in sorted(sizes):
+        im = Image.open(path)
+        im.size = size
+        im.load()
+        yield size, im.convert("RGBA")
+
+
+def _near(c: tuple[int, int, int], target: tuple[int, int, int], tol: int) -> bool:
+    return all(abs(a - b) <= tol for a, b in zip(c, target))
+
+
+def count_navy_and_copper(im) -> tuple[int, int]:
+    navy = 0
+    copper = 0
+    px = im.load()
+    w, h = im.size
+    step = max(1, min(w, h) // 64)
+    for y in range(0, h, step):
+        for x in range(0, w, step):
+            r, g, b, a = px[x, y]
+            if a <= 32:
+                continue
+            if _near((r, g, b), NAVY, 28):
+                navy += 1
+            if any(_near((r, g, b), hint, 36) for hint in COPPER_HINTS):
+                copper += 1
+    return navy, copper
 
 
 def test_engine_contain_max() -> None:
@@ -95,35 +148,60 @@ def test_shipped_icos_contain_max() -> None:
     sys.path.insert(0, str(BRANDING))
     import tray_icon as tray  # noqa: WPS433
 
-    try:
-        from PIL import Image
-    except ImportError:
-        fail("Pillow is required to inspect ICO frames")
-
     for path, label in ((WINRES_ICO, "taskbar/winres"), (BRAND_ICO, "shortcut/branding")):
         sizes = ico_sizes(path)
         missing = REQUIRED_ICO_SIZES - sizes
         if missing:
             fail(f"{label} ICO missing Windows slot frames {sorted(missing)} (have {sorted(sizes)})")
-        im = Image.open(path).convert("RGBA")
-        bbox = tray.opaque_bbox(im)
-        if bbox is None:
-            fail(f"{label} ICO has no opaque artwork")
-        l, t, r, b = bbox
-        fw, fh = r - l, b - t
-        w, h = im.size
-        fill = max(fw / w, fh / h)
-        if fill < 0.92:
-            fail(
-                f"{label} dragon does not contain-max the slot "
-                f"(long-axis fill {fill:.3f} on {fw}x{fh} in {w}x{h})"
-            )
-        if abs(fw / w - 1) < 0.001 and abs(fh / h - 1) < 0.001:
-            # Full-bleed on both axes is fine (square art).
-            pass
-        elif min(fw / w, fh / h) < 0.05:
-            fail(f"{label} ICO looks cropped or empty on one axis")
+        for size, im in iter_ico_frames(path):
+            bbox = tray.opaque_bbox(im)
+            if bbox is None:
+                fail(f"{label} ICO {size} has no opaque artwork")
+            l, t, r, b = bbox
+            fw, fh = r - l, b - t
+            w, h = im.size
+            fill = max(fw / w, fh / h)
+            if fill < 0.92:
+                fail(
+                    f"{label} {size} dragon does not contain-max the slot "
+                    f"(long-axis fill {fill:.3f} on {fw}x{fh} in {w}x{h})"
+                )
+            if fw > w or fh > h:
+                fail(f"{label} {size} overflowed the slot")
+            if min(fw / w, fh / h) < 0.05:
+                fail(f"{label} {size} looks cropped or empty on one axis")
+    if WINRES_ICO.read_bytes() != BRAND_ICO.read_bytes():
+        fail("taskbar winres ICO and shortcut branding ICO must be the same enlarged sidebar mark")
     print("OK  shipped ICO frames contain-max the slot")
+
+
+def test_sidebar_mark_is_source() -> None:
+    sys.path.insert(0, str(BRANDING))
+    import tray_icon as tray  # noqa: WPS433
+
+    engine = (BRANDING / "tray_icon.py").read_text(encoding="utf-8")
+    if "load_sidebar_mark" not in engine and "dragon-ai-agent-logo.png" not in engine:
+        fail("tray_icon.py must load the transparent sidebar PNG as the ICO source")
+    if "def rebuild" in engine:
+        rebuild_src = engine.split("def rebuild", 1)[-1].split("def ", 1)[0]
+        if "isolate_dragon_artwork" in rebuild_src:
+            fail("rebuild() must not isolate the circular copper badge for the shipped ICO")
+        if "dragon-ai-agent-logo.png" not in rebuild_src and "load_sidebar_mark" not in rebuild_src:
+            fail("rebuild() must write ICOs from the sidebar mark")
+    if not SIDEBAR_PNG.is_file():
+        fail("branding/dragon-ai-agent-logo.png (sidebar mark) is missing")
+
+    for path, label in ((WINRES_ICO, "taskbar/winres"), (BRAND_ICO, "shortcut/branding")):
+        navy = copper = 0
+        for _size, im in iter_ico_frames(path):
+            n, c = count_navy_and_copper(im)
+            navy += n
+            copper += c
+        if navy < 8:
+            fail(f"{label} ICO is not the navy sidebar mark (navy samples={navy})")
+        if copper > 2:
+            fail(f"{label} ICO still has circular-badge copper remnant (copper samples={copper})")
+    print("OK  shipped ICOs are the navy sidebar mark")
 
 
 def test_no_fixed_pixel_bump() -> None:
@@ -138,12 +216,107 @@ def test_no_fixed_pixel_bump() -> None:
         fail("docs/airmaze/TRAY_ICON.md must name contain-max")
     if "object-fit" not in note and "contain" not in note.lower():
         fail("design note must describe contain-fit")
+    if "sidebar" not in note.lower():
+        fail("design note must name the transparent sidebar mark as the ICO source")
+    if "iconcache" not in note.lower() and "icon cache" not in note.lower():
+        fail("design note must tell Cos how to refresh the Windows icon cache")
+    if "relaunch" not in note.lower() and "close" not in note.lower():
+        fail("design note must tell Cos to close Hermes.exe and relaunch")
     if "22rem" in engine or "sidebar" in engine and "32px" in engine:
         fail("tray sizer must not retune empty-state or sidebar chrome")
     table = TABLE.read_text(encoding="utf-8")
     if "contain-max" not in table and "containMax" not in table:
         fail("desktop_branding.json must record tray contain-max")
+    if "sidebar" not in table.lower() and "sidebar-mark" not in table.lower():
+        fail("desktop_branding.json must record the sidebar mark as the tray source")
     print("OK  no fixed pixel bump")
+
+
+def test_apply_copies_hermes_icon_paths() -> None:
+    sys.path.insert(0, str(SCRIPTS))
+    import desktop_branding as db  # noqa: WPS433
+
+    src = db.icon_source()
+    if src is None or src.name != "dragon-ai-agent-logo.ico":
+        fail("icon_source() must prefer branding/dragon-ai-agent-logo.ico (installer already ships it)")
+
+    stale = b"\x00\x00\x01\x00STALE-HERMES-ICON"
+    with tempfile.TemporaryDirectory(prefix="dragon-ico-apply-") as tmp:
+        unpacked = Path(tmp) / "win-unpacked"
+        resources = unpacked / "resources"
+        asar_unpacked = resources / "app.asar.unpacked"
+        app_dir = resources / "app"
+        asar_unpacked.mkdir(parents=True)
+        app_dir.mkdir(parents=True)
+        exe = unpacked / "Hermes.exe"
+        exe.write_bytes(b"MZ")
+        (asar_unpacked / "icon.ico").write_bytes(stale)
+        (app_dir / "icon.ico").write_bytes(stale)
+        (resources / "icon.ico").write_bytes(stale)
+
+        summary = db.stamp_app_icon(exe)
+        if summary.get("copied") is not True:
+            fail(f"stamp_app_icon did not copy: {summary}")
+
+        dests = [
+            resources / "icon.ico",
+            unpacked / "icon.ico",
+            asar_unpacked / "icon.ico",
+            app_dir / "icon.ico",
+        ]
+        src_bytes = src.read_bytes()
+        for dest in dests:
+            if not dest.is_file():
+                fail(f"apply must copy the Dragon ICO to {dest.relative_to(unpacked)}")
+            got = dest.read_bytes()
+            if got == stale:
+                fail(f"apply left a stale icon at {dest.relative_to(unpacked)}")
+            if got[:4] != b"\x00\x00\x01\x00" or got != src_bytes:
+                fail(f"apply did not install the sidebar ICO at {dest.relative_to(unpacked)}")
+
+        dest_fn = getattr(db, "icon_destinations", None)
+        if dest_fn is None:
+            fail("desktop_branding.py must expose icon_destinations(exe_path)")
+        named = {p.name for p in dest_fn(exe)}
+        if "icon.ico" not in named:
+            fail("icon_destinations must include icon.ico paths")
+
+    apply_ps = APPLY.read_text(encoding="utf-8")
+    if "dragon-ai-agent-logo.ico" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must copy branding/dragon-ai-agent-logo.ico")
+    brand_at = apply_ps.find("dragon-ai-agent-logo.ico")
+    winres_at = apply_ps.find("installer\\winres\\icon.ico")
+    if winres_at >= 0 and brand_at > winres_at:
+        fail("Apply-DesktopBranding.ps1 must prefer the sidebar branding ICO over winres")
+    if "app.asar.unpacked" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must copy the ICO onto app.asar.unpacked when that folder exists")
+    if "icon.ico" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must copy icon.ico")
+    if 'Join-Path $resourcesDir "icon.ico"' not in apply_ps and "resources\\icon.ico" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must copy the ICO to Hermes resources\\icon.ico")
+    print("OK  apply copies ICO onto Hermes resource paths")
+
+
+def test_installer_and_shortcuts() -> None:
+    for path in INSTALLERS:
+        text = path.read_text(encoding="utf-8")
+        if "installer\\winres\\icon.ico" not in text and "installer/winres/icon.ico" not in text:
+            fail(f"{path.name} must copy installer\\winres\\icon.ico into the install root")
+        if "dragon-ai-agent-logo.ico" not in text:
+            fail(f"{path.name} must still ship branding\\dragon-ai-agent-logo.ico for shortcuts")
+    launcher = LAUNCHER.read_text(encoding="utf-8")
+    fn = launcher.split("function Repair-DragonAIProductShortcuts", 1)[-1]
+    skip = fn.split("function ", 1)[0]
+    if "continue" in skip:
+        before, after = skip.split("continue", 1)
+        if "IconLocation" not in before:
+            fail(
+                "Repair-DragonAIProductShortcuts must refresh IconLocation "
+                "on an already-wscript shortcut (do not continue first)"
+            )
+    if "IconLocation" not in skip:
+        fail("Repair-DragonAIProductShortcuts must set shortcut IconLocation")
+    print("OK  installer ships winres ICO; shortcuts refresh IconLocation")
 
 
 def test_overlay_and_docker_untouched() -> None:
@@ -175,7 +348,10 @@ def test_self() -> None:
 def main() -> int:
     test_engine_contain_max()
     test_shipped_icos_contain_max()
+    test_sidebar_mark_is_source()
     test_no_fixed_pixel_bump()
+    test_apply_copies_hermes_icon_paths()
+    test_installer_and_shortcuts()
     test_overlay_and_docker_untouched()
     test_self()
     print("SMOKE OK: tray/taskbar dragon contain-maxes the Windows slot.")

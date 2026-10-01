@@ -11,7 +11,7 @@ After `docs/airmaze/PRODUCT_BRANDING.md`. Tests first. No Electron rebuild.
    - `Test-LaunchSmoke.py` / installer copy list: new scripts, icon stamp, exclude hook before launch.
 3. **Exclude Hermes** — engine + launch/install/sync hooks. Catalog unchanged.
 4. **Sidebar header** — `dragon-ui.css` + inject script/HTML in the overlay pack.
-5. **App icon** — contain-max the dragon into the Windows tray/taskbar slot (no fixed pixel bump); copy that ICO to unpacked `resources/icon.ico`; stamp `Hermes.exe` when possible; keep `.lnk` IconLocation; set Client.lnk AppUserModelID. See `docs/airmaze/TRAY_ICON.md`.
+5. **App icon** — contain-max the transparent sidebar mark into the Windows tray/taskbar slot (no fixed pixel bump); copy that ICO to Hermes `resources/icon.ico` and sibling unpacked `icon.ico` paths; stamp `Hermes.exe` when possible; keep `.lnk` IconLocation; set Client.lnk AppUserModelID. See `docs/airmaze/TRAY_ICON.md`.
 6. **Named UI section on import** — deploy/import stamps `ui_meta.hermes-bots.sectionId` / `sectionName` so the BOTS pane files the pack under its display name, not UNASSIGNED. Re-apply updates the same `sec-dragon-<id>`. Cover Apply-Profile / Import-Profile shims (they already call Import-BotGroup).
 7. **In-app Teams picker** — overlay dialog + `127.0.0.1:8653` helper. Catalog teams: Real Estate Lead Gen, Marketing Team, Trading Team. Personal Assistant is the default preinstall, not a team. Import from file stays. First-run **Choose a Team**.
 8. **Self-review + PR** against `main`. James merges.

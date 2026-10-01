@@ -55,7 +55,7 @@ Full token table and skill-vs-override notes: `design-system/dragon-ai-agent/` (
 - Opening Dragon AI Agent starts Docker Desktop in the **tray** when the engine is down (no Containers dashboard). Design: `docs/airmaze/DOCKER_LAUNCH.md`.
 - Teams Marketplace lists each pack’s seats as 4-column cards under the team name, with a left-side icon, a brief line, and hover/focus detail. Marketing SEO Specialist copy is seoagent.com. Design: `docs/airmaze/TEAMS_SEAT_DESCRIPTIONS.md`.
 - Voice chat shows **GPT** and **Grok** as two options. GPT voice is unchanged (`gpt-live`). Grok is additive overlay full duplex (`grok-voice-latest`). Design: `docs/airmaze/VOICE.md`.
-- The running-app / taskbar dragon **contain-maxes** the Windows slot (no fixed pixel size). Design: `docs/airmaze/TRAY_ICON.md`.
+- The running-app / taskbar dragon is the **transparent sidebar mark**, contain-maxed into the Windows slot (no fixed pixel size, no copper badge rim). Design: `docs/airmaze/TRAY_ICON.md`.
 
 ## What does not change
 
