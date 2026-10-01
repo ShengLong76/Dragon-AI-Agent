@@ -278,22 +278,33 @@ body,
 
 [data-dragon-ai-teams-open]:focus-visible,
 [data-dragon-ai-teams-panel] button:focus-visible,
-[data-dragon-ai-teams-panel] input:focus-visible {
+[data-dragon-ai-teams-panel] input:focus-visible,
+[data-dragon-ai-team-row]:focus-within {
   outline: 2px solid var(--color-ring);
   outline-offset: 2px;
+}
+
+[data-dragon-ai-teams-backdrop] {
+  position: fixed;
+  inset: 0;
+  z-index: 79;
+  background: #00000099;
 }
 
 [data-dragon-ai-teams-panel] {
   position: fixed;
   z-index: 80;
-  top: 12px;
-  left: 12px;
-  width: min(28rem, calc(100vw - 24px));
-  max-height: calc(100vh - 24px);
-  overflow: auto;
-  padding: 16px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  width: min(44rem, calc(100vw - 48px));
+  max-height: min(40rem, calc(100vh - 48px));
+  overflow: hidden;
+  padding: 20px 22px 16px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--color-background);
   color: var(--color-foreground);
   box-shadow: 0 16px 40px #00000080;
@@ -303,7 +314,7 @@ body,
   margin: 0 0 6px;
   font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
   font-weight: 700;
-  font-size: 1.125rem;
+  font-size: 1.25rem;
 }
 
 [data-dragon-ai-teams-panel] header p,
@@ -316,14 +327,20 @@ body,
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin: 12px 0;
+  margin: 14px 0 10px;
+  min-height: 12rem;
+  max-height: min(22rem, 50vh);
+  overflow: auto;
+  padding-right: 4px;
 }
 
-[data-dragon-ai-teams-list] button {
-  display: block;
+[data-dragon-ai-team-row] {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
   width: 100%;
-  text-align: left;
-  padding: 10px 12px;
+  margin: 0;
+  padding: 12px 14px;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-card);
@@ -331,35 +348,70 @@ body,
   cursor: pointer;
 }
 
-[data-dragon-ai-teams-list] button strong {
+[data-dragon-ai-team-row] input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.2rem;
+  accent-color: var(--color-primary);
+}
+
+[data-dragon-ai-team-row] strong {
   display: block;
   font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
   font-weight: 700;
 }
 
-[data-dragon-ai-teams-list] button span {
+[data-dragon-ai-team-row] span span {
   display: block;
   color: var(--color-muted-foreground);
   font-size: 0.8125rem;
 }
 
-[data-dragon-ai-teams-panel] label {
-  display: block;
-  margin: 8px 0;
-  color: var(--color-muted-foreground);
+[data-dragon-ai-teams-actions] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+[data-dragon-ai-teams-actions] button,
+[data-dragon-ai-teams-import-label] {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-card);
+  color: var(--color-foreground);
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+[data-dragon-ai-teams-launch] {
+  border: 0;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+[data-dragon-ai-teams-import-label] {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-foreground);
   font-size: 0.875rem;
 }
 
+[data-dragon-ai-teams-import-label] input {
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+}
+
 [data-dragon-ai-teams-close] {
-  margin-top: 8px;
-  min-height: 32px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 6px;
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-  font-weight: 700;
-  cursor: pointer;
+  margin-left: auto;
 }
 
 /* Center-column RPC / load-error banners stay inside the chat pane.

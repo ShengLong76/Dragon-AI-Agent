@@ -16,6 +16,7 @@ import base64
 import json
 import sys
 import tempfile
+import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -128,6 +129,25 @@ def list_teams(
     }
 
 
+def requested_team_ids(data: dict[str, Any] | None) -> list[str]:
+    ids: list[str] = []
+    payload = data if isinstance(data, dict) else {}
+    raw = payload.get("ids")
+    if isinstance(raw, list):
+        ids.extend(str(item).strip() for item in raw if str(item).strip())
+    single = str(payload.get("id") or payload.get("teamId") or "").strip()
+    if single and single not in ids:
+        ids.insert(0, single)
+    return ids
+
+
+def _refuse_non_team(team_id: str) -> None:
+    if bg.is_excluded_bot(team_id):
+        raise ValueError("that team is excluded from Dragon AI Agent")
+    if is_default_profile(team_id):
+        raise ValueError("Personal Assistant is the default profile, not a Teams pack")
+
+
 def apply_team(
     team_id: str,
     payload_root: Path | str,
@@ -136,10 +156,7 @@ def apply_team(
     embedded_profiles_root: Path | str | None = None,
     fetcher: Any | None = None,
 ) -> dict[str, Any]:
-    if bg.is_excluded_bot(team_id):
-        raise ValueError("that team is excluded from Dragon AI Agent")
-    if is_default_profile(team_id):
-        raise ValueError("Personal Assistant is the default profile, not a Teams pack")
+    _refuse_non_team(team_id)
     result = bg.deploy_group(
         team_id,
         payload_root=payload_root,
@@ -150,6 +167,78 @@ def apply_team(
     )
     result["displayName"] = team_label(result)
     return result
+
+
+def apply_teams(
+    team_ids: list[str],
+    payload_root: Path | str,
+    install_root: Path | str,
+    desktop_profiles_root: Path | str,
+    embedded_profiles_root: Path | str | None = None,
+    fetcher: Any | None = None,
+) -> dict[str, Any]:
+    """Launch each selected pack into its own named section. No merged roster."""
+    ids = [str(item).strip() for item in team_ids if str(item).strip()]
+    if not ids:
+        raise ValueError("missing team id")
+    for team_id in ids:
+        _refuse_non_team(team_id)
+    applied = [
+        apply_team(
+            team_id,
+            payload_root=payload_root,
+            install_root=install_root,
+            desktop_profiles_root=desktop_profiles_root,
+            embedded_profiles_root=embedded_profiles_root,
+            fetcher=fetcher,
+        )
+        for team_id in ids
+    ]
+    return {
+        "kind": "dragon-teams-apply",
+        "applied": applied,
+        "ids": [item.get("id") for item in applied],
+        "displayNames": [item.get("displayName") for item in applied],
+    }
+
+
+def export_teams(
+    team_ids: list[str],
+    dest: Path | str,
+    payload_root: Path | str,
+    install_root: Path | str,
+) -> str:
+    ids = [str(item).strip() for item in team_ids if str(item).strip()]
+    if not ids:
+        raise ValueError("missing team id")
+    for team_id in ids:
+        _refuse_non_team(team_id)
+    dest_path = Path(dest)
+    if len(ids) == 1:
+        return bg.export_group(
+            ids[0],
+            dest_path,
+            install_root=install_root,
+            payload_root=payload_root,
+        )
+    folder = dest_path.with_suffix("") if dest_path.suffix.lower() == ".zip" else dest_path
+    folder.mkdir(parents=True, exist_ok=True)
+    for team_id in ids:
+        bg.export_group(
+            team_id,
+            folder / team_id,
+            install_root=install_root,
+            payload_root=payload_root,
+        )
+    if dest_path.suffix.lower() != ".zip":
+        return str(folder)
+    if dest_path.exists():
+        dest_path.unlink()
+    with zipfile.ZipFile(dest_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for path in folder.rglob("*"):
+            if path.is_file():
+                zf.write(path, path.relative_to(folder).as_posix())
+    return str(dest_path)
 
 
 def import_team_file(
@@ -245,18 +334,51 @@ def make_handler(
                 data = {}
             try:
                 if path in ("/api/teams/apply", "/teams/apply"):
-                    team_id = str(data.get("id") or data.get("teamId") or "").strip()
-                    if not team_id:
+                    ids = requested_team_ids(data)
+                    if not ids:
                         raise ValueError("missing team id")
-                    result = apply_team(
-                        team_id,
-                        payload_root=payload_root,
-                        install_root=install_root,
-                        desktop_profiles_root=desktop_root,
-                        embedded_profiles_root=embedded_root,
-                    )
+                    if len(ids) == 1:
+                        result = apply_team(
+                            ids[0],
+                            payload_root=payload_root,
+                            install_root=install_root,
+                            desktop_profiles_root=desktop_root,
+                            embedded_profiles_root=embedded_root,
+                        )
+                    else:
+                        result = apply_teams(
+                            ids,
+                            payload_root=payload_root,
+                            install_root=install_root,
+                            desktop_profiles_root=desktop_root,
+                            embedded_profiles_root=embedded_root,
+                        )
                     status, body = _json_bytes(result)
                     self._send(status, body)
+                    return
+                if path in ("/api/teams/export", "/teams/export"):
+                    ids = requested_team_ids(data)
+                    if not ids:
+                        raise ValueError("missing team id")
+                    filename = f"{ids[0]}.zip" if len(ids) == 1 else "dragon-teams.zip"
+                    with tempfile.TemporaryDirectory(prefix="dragon-teams-export-") as tmp:
+                        dest = Path(tmp) / filename
+                        export_teams(
+                            ids,
+                            dest,
+                            payload_root=payload_root,
+                            install_root=install_root,
+                        )
+                        blob = Path(dest).read_bytes()
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/zip")
+                    self.send_header("Content-Length", str(len(blob)))
+                    self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Expose-Headers", "Content-Disposition")
+                    self.send_header("Cache-Control", "no-store")
+                    self.end_headers()
+                    self.wfile.write(blob)
                     return
                 if path in ("/api/teams/import", "/teams/import"):
                     if data.get("path"):
@@ -325,6 +447,18 @@ def self_test() -> int:
     if not is_picker_team({"id": "marketing-team", "bots": [{"id": "a"}, {"id": "b"}]}):
         print("FAIL: multi-bot packs must stay in the Teams picker", file=sys.stderr)
         return 1
+    try:
+        apply_teams([], ".", ".", ".")
+        print("FAIL: apply_teams must require at least one team id", file=sys.stderr)
+        return 1
+    except ValueError:
+        pass
+    if requested_team_ids({"ids": ["marketing-team", "trading-team"]}) != [
+        "marketing-team",
+        "trading-team",
+    ]:
+        print("FAIL: apply/export must accept ids[] for Launch", file=sys.stderr)
+        return 1
     print("OK  teams_picker self-test")
     return 0
 
@@ -348,6 +482,11 @@ def main(argv: list[str] | None = None) -> int:
     p_imp.add_argument("--install", required=True)
     p_imp.add_argument("--desktop", required=True)
     p_imp.add_argument("--embedded", default="")
+    p_exp = sub.add_parser("export")
+    p_exp.add_argument("--id", action="append", dest="ids", required=True)
+    p_exp.add_argument("--out", required=True)
+    p_exp.add_argument("--payload", required=True)
+    p_exp.add_argument("--install", required=True)
     p_serve = sub.add_parser("serve")
     p_serve.add_argument("--payload", required=True)
     p_serve.add_argument("--install", required=True)
@@ -389,6 +528,9 @@ def main(argv: list[str] | None = None) -> int:
                 indent=2,
             )
         )
+        return 0
+    if args.cmd == "export":
+        print(export_teams(args.ids, args.out, args.payload, args.install))
         return 0
     if args.cmd == "serve":
         serve(

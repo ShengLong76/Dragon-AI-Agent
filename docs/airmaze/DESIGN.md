@@ -41,6 +41,7 @@ Full token table and skill-vs-override notes: `design-system/dragon-ai-agent/` (
 - Sidebar under Embedded Linux lists **Personal Assistant** only on a fresh install. The built-in default Hermes agent is **excluded** from the product (purged from `hermes\\profiles\\default` and `hermes`, never redeployed). CSS hide of `[data-roster-key$="::default"]` stays as a backstop so a leftover reserved row stays hidden. Real Estate / Marketing / Trading arrive only when chosen from Teams (or import).
 - Sidebar header above SESSIONS / BOTS shows the navy dragon + **Dragon AI** (accessible name **Dragon AI Agent**). The mark is a fixed 32px transparent SVG (no plate / no red border), matched to the Teams button height. Narrowing the rail wraps Teams below the logo instead of shrinking or clipping the lockup.
 - Imported / deployed bot groups file into a named BOTS section labeled with the pack display name. They are not left under UNASSIGNED.
+- Sidebar **Teams** is a roomy popup (checkboxes + Launch / Import / Export), not a dropdown. Launching several teams files each pack into its own named section. Design: `docs/airmaze/TEAMS_POPUP.md`.
 - First-run setup has a **Models** step (after Welcome) for default chat LLM + default image LLM. Product defaults are Grok (xAI) + Grok Imagine. Design: `docs/airmaze/FIRST_RUN_MODELS.md`.
 - Opening Dragon AI Agent starts Docker Desktop in the **tray** when the engine is down (no Containers dashboard). Design: `docs/airmaze/DOCKER_LAUNCH.md`.
 

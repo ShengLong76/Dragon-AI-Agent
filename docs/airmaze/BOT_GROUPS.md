@@ -81,13 +81,13 @@ The client does **not** hard-code that `groups` list. The file in GitHub is the 
 **Repo:** https://github.com/ShengLong76/airmaze-agent  
 **Path:** `bot-groups/` on `main`  
 **Engine:** `scripts/airmaze/bot_groups.py` (Dragon overlay; Linux-safe)  
-**UI:** in-app **Teams** dialog in the Dragon AI desktop (sidebar button, overlay + `teams_picker.py` on `127.0.0.1:8653`). First-run wizard has **Choose a Team**. `Select-BotGroup.ps1` remains the WinForms **dropdown** (ComboBox) fallback, same crimson / dark chrome. Import from file stays. Not a restyle.
+**UI:** in-app **Teams** popup in the Dragon AI desktop (sidebar button, overlay + `teams_picker.py` on `127.0.0.1:8653`). Checkboxes + **Launch** / **Import** / **Export**. First-run wizard has **Choose a Team**. `Select-BotGroup.ps1` is the WinForms **popup list** (CheckedListBox) fallback, same crimson / dark chrome. Not a restyle. Design: `docs/airmaze/TEAMS_POPUP.md`.
 
-On open, the dropdown calls `list_groups`:
+On open, the popup calls `list_groups` / `list_teams`:
 
 1. `GET https://raw.githubusercontent.com/ShengLong76/airmaze-agent/main/bot-groups/catalog.json`
 2. Write the response to `%LOCALAPPDATA%\DragonAIAgent\bot-groups\cache\catalog.json`
-3. Fill the ComboBox from `groups[]` (name + department job). No baked-in ids in the client.
+3. Fill the popup list from `groups[]` (name + department job). No baked-in ids in the client.
 
 To stay current, every open refetches. A successful fetch replaces the cache. Adding a group in this repo (catalog entry + folder) shows up the next time the UI opens. The client does not ship a second list.
 
@@ -100,7 +100,7 @@ To stay current, every open refetches. A successful fetch replaces the cache. Ad
 
 **Deploy (no manual file handling):**
 
-1. User picks a group in the dropdown and clicks **Deploy**
+1. User checks one or more teams in the popup and clicks **Launch**
 2. Client fetches that group's `bot-group.json` and each bot's `SOUL.md` / `bot.yaml` from the same GitHub tree (or cache/bundle)
 3. Each bot is written to the **existing desktop picker path** `%LOCALAPPDATA%\hermes\profiles\<bot-id>\` (title, description, tools in `bot.meta.json`; soul + yaml as today)
 4. File every bot in that pack into a **named BOTS section** labeled with the group display name (see below). They must not land under UNASSIGNED.
@@ -183,7 +183,7 @@ This repo's base is the Dragon AI **desktop agent** packaging (gateway, Bot Scre
 |------|------|------|
 | `bot-groups/` | Catalog + group files (the GitHub list) | **Customization.** Upstream desktop/hermes-agent has no `bot-groups/`. A sync of the base does not contain this tree; keep it. |
 | `scripts/airmaze/bot_groups.py` | List / deploy / export / toggle | **Customization.** New file. |
-| `scripts/airmaze/Select-BotGroup.ps1` | Dropdown UI | **Customization.** New file. |
+| `scripts/airmaze/Select-BotGroup.ps1` | Teams popup UI | **Customization.** New file. |
 | `scripts/airmaze/Deploy-BotGroup.ps1` | Deploy wrapper | **Customization.** New file. |
 | `scripts/airmaze/Export-BotGroup.ps1` | Export wrapper | **Customization.** New file. |
 | `scripts/airmaze/Import-BotGroup.ps1` | Re-import exported group (or one bot if toggled) | **Customization.** New file. |

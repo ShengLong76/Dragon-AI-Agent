@@ -15,7 +15,7 @@ Compatible with the open-source agent desktop stack (separate desktop client). T
 | Docker Desktop | Detect; quiet install when possible; else open download page. Configured to **start minimized to the system tray** (no dashboard window on launch). |
 | Embedded gateway | `docker compose` pull + `up -d` for the packaged embedded gateway image (see `THIRD_PARTY_NOTICES.md`). |
 | Ports | `127.0.0.1:8650` (Desktop Remote / Bot Screen), `127.0.0.1:8642` (OpenAI API), `127.0.0.1:9119` (browser dashboard). Local credentials: see `docs/airmaze/EMBEDDED_GATEWAY.md`. |
-| **Bot groups / Teams** | In-app **Teams** screen (sidebar + first-run) lists Personal Assistant, Real Estate Lead Gen, Marketing Team, and Trading Team and applies one with a click. Bots file under that name, not Unassigned. Import from file stays for custom zips. The Start Menu dropdown still lists groups from this GitHub repo (`bot-groups/`). Singular bot import/export is an optional toggle, off by default. |
+| **Bot groups / Teams** | In-app **Teams** popup (sidebar + first-run) lists Real Estate Lead Gen, Marketing Team, and Trading Team with checkboxes. **Launch** applies the checked packs (each into its own named section). **Import** and **Export** sit on the same popup. Personal Assistant is already installed and is not a Teams row. Singular bot import/export is an optional toggle, off by default. |
 | **Onboarding** | First-run **Dragon AI Agent Setup** wizard (email / CRM / telephony + optional integrations). Secrets via Windows DPAPI. Markdown guide: `docs/airmaze/SETUP_GUIDE.md`. Real Estate bots stay `needs_setup` until required steps succeed. |
 | Agent desktop | Discovers on-disk `Hermes.exe` (including `%LOCALAPPDATA%\hermes\hermes-agent\apps\desktop\release\win-unpacked\Hermes.exe`) and shows it as **Dragon AI Agent**. Launch overlays unpacked renderer chrome (empty state **DRAGON AI AGENT** in front of a larger unboxed navy dragon, sidebar header **Dragon AI**, **Give Dragon AI a task**, settings product name, **Syne** wordmark, sidebar **Personal Assistant** only — Hermes bot excluded) then opens the window (or a blocking error if Docker/client is missing). Dashboard login: `dragon` / `dragon-local`. |
 
@@ -53,23 +53,25 @@ python3 scripts/airmaze/Test-LaunchSmoke.py
 
 ---
 
-## Bot groups (dropdown from this GitHub repo)
+## Bot groups (Teams popup from this GitHub repo)
 
 A **bot group** is a department-level set of bots (a security team, a research team, a real-estate team). Each bot has a **title**, **description**, and **tools**. Bots exist because a group defines them — there is no Grokbot-style create-a-bot path. Deploy and import file those bots into a **named BOTS section** labeled with the pack display name (not UNASSIGNED). Design: [`docs/airmaze/BOT_GROUPS.md`](docs/airmaze/BOT_GROUPS.md).
 
-The dropdown fetches `bot-groups/catalog.json` from https://github.com/ShengLong76/airmaze-agent. It does not hard-code the list. Choosing a group deploys its bots. When GitHub is unreachable, the last cache then the bundled catalog is used.
+The Teams popup fetches `bot-groups/catalog.json` from https://github.com/ShengLong76/airmaze-agent. It does not hard-code the list. Check one or more teams and click **Launch**. When GitHub is unreachable, the last cache then the bundled catalog is used. Design: [`docs/airmaze/TEAMS_POPUP.md`](docs/airmaze/TEAMS_POPUP.md).
 
 ### Catalog (`bot-groups/catalog.json`)
 
 | Id | Name | Bots |
 |----|------|------|
-| `personal-assistant` | Personal Assistant | 1 — general PA (sidebar default) |
-| `real-estate-cold-call-lead-refresher` | Real Estate Cold Call Lead Refresher | 4 — Lead Sourcer, Email Warmer, Cold Call Script Writer, Follow-up Sequencer |
+| `personal-assistant` | Personal Assistant | 1 — general PA (sidebar default; not a Teams row) |
+| `real-estate-cold-call-lead-refresher` | Real Estate Lead Gen | 4 — Lead Sourcer, Email Warmer, Cold Call Script Writer, Follow-up Sequencer |
+| `marketing-team` | Marketing Team | 6 — Cos marketing roster |
+| `trading-team` | Trading Team | 4 — Cos trading roster |
 
 ### Scripts
 
 ```powershell
-# Dropdown (lists from GitHub)
+# Teams popup (lists from GitHub)
 .\scripts\airmaze\Select-BotGroup.ps1
 
 # Deploy one group with no manual file handling
@@ -201,11 +203,12 @@ design-system/dragon-ai-agent/   (UI UX Pro Max MASTER + desktop-client override
 3. `docs/airmaze/EMBEDDED_GATEWAY.md` — ports (`:8650` Desktop serve), compose, UltraDragon re-smoke
 4. `docs/airmaze/UPSTREAM_NOTES.md` — Linux-gateway-only + Desktop token/WS vs `gateway run`
 5. `docs/airmaze/SETUP_GUIDE.md` — first-run onboarding (email / CRM / telephony) + Real Estate flow
-6. `docs/airmaze/BOT_GROUPS.md` — bot groups (data model, GitHub dropdown, export, singular toggle)
-7. `docs/airmaze/BRANDING.md` — Dragon AI Agent vs Hermes (window wrap + unpacked UI overlay vs Electron rebuild)
-8. `docs/airmaze/DESIGN.md` — UI UX Pro Max design system applied to overlay chrome (Syne, dark + crimson)
-9. `docs/airmaze/UNDERSTAND_ANYTHING.md` — MIT Understand-Anything skill (`/understand`, `/understand-dashboard`); first scan later; `.ua/` gitignored
-10. `PACKAGING.md` — how this release was built
+6. `docs/airmaze/BOT_GROUPS.md` — bot groups (data model, GitHub list, export, singular toggle)
+7. `docs/airmaze/TEAMS_POPUP.md` — Teams popup (checkboxes, Launch, Import, Export)
+8. `docs/airmaze/BRANDING.md` — Dragon AI Agent vs Hermes (window wrap + unpacked UI overlay vs Electron rebuild)
+9. `docs/airmaze/DESIGN.md` — UI UX Pro Max design system applied to overlay chrome (Syne, dark + crimson)
+10. `docs/airmaze/UNDERSTAND_ANYTHING.md` — MIT Understand-Anything skill (`/understand`, `/understand-dashboard`); first scan later; `.ua/` gitignored
+11. `PACKAGING.md` — how this release was built
 
 ---
 

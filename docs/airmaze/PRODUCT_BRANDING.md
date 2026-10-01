@@ -85,13 +85,13 @@ Do not restyle the BOTS pane. Do not invent a second groups UI. The upstream sec
 
 James: pick a bot team from the **Dragon AI UI** (sidebar / first-run / settings-adjacent), not only `Import-Profile.ps1`.
 
-Built-in Teams picker (one click): **Real Estate Lead Gen**, **Marketing Team**, **Trading Team** — multi-bot packs only. **Personal Assistant** is the default single-bot profile (preinstalled); it is not a team. Apply files those bots under that display name — not Unassigned. **Import from file** stays for custom zip/JSON.
+Built-in Teams **popup** (not a dropdown): **Real Estate Lead Gen**, **Marketing Team**, **Trading Team** — multi-bot packs only. Each row is a checkbox (multi-select). **Launch** applies every checked pack into its own named section. **Personal Assistant** is the default single-bot profile (preinstalled); it is not a team. **Import** and **Export** sit together on the popup. Export writes the same repo-format group file as `Export-BotGroup.ps1`. Design: `docs/airmaze/TEAMS_POPUP.md`.
 
 **Do (packaging overlay; no Electron rebuild):**
 
-1. Inject a **Teams** button + dialog into the unpacked desktop client (`desktop_branding.py` / `dragon-ui.css`).
-2. Loopback helper `teams_picker.py` on `127.0.0.1:8653` (`GET /api/teams`, `POST /api/teams/apply`, `POST /api/teams/import`). Not Bot Screen `:8650`.
-3. Launch starts the helper (`start-embedded.ps1`). First-run wizard has **Choose a Team**. `Select-BotGroup.ps1` window title is **Teams**; Import file remains.
+1. Inject a **Teams** button + roomy popup into the unpacked desktop client (`desktop_branding.py` / `dragon-ui.css`).
+2. Loopback helper `teams_picker.py` on `127.0.0.1:8653` (`GET /api/teams`, `POST /api/teams/apply` with `id` or `ids[]`, `POST /api/teams/import`, `POST /api/teams/export`). Not Bot Screen `:8650`.
+3. Launch starts the helper (`start-embedded.ps1`). First-run wizard has **Choose a Team**. `Select-BotGroup.ps1` is the WinForms **CheckedListBox** popup; Import + Export remain.
 4. Helper always unions the bundled catalog so Marketing / Trading show even if GitHub is stale.
 
 Do not add a Hermes team. Do not restyle Bot Screen.
