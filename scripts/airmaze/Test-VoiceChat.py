@@ -288,6 +288,10 @@ def test_overlay_selector_coexists(vc) -> None:
     js = read(VOICE_JS)
     if "Talk with Grok" not in js or "xai-client-secret." not in js:
         fail("branding/voice/dragon-voice-selector.js must host duplex")
+    if "Start conversation" not in js or "findComposerAction" not in js:
+        fail("Talk with Grok must integrate Start conversation into the composer action")
+    if "data-dragon-ai-composer-action" not in js:
+        fail("Start conversation must mount in data-dragon-ai-composer-action")
     html = "<html><head></head><body></body></html>"
     once, changed = db.inject_html_branding(html)
     twice, changed2 = db.inject_html_branding(once)
@@ -304,6 +308,11 @@ def test_overlay_selector_coexists(vc) -> None:
         fail("voice selector CSS must style the selected option")
     if "[data-dragon-grok-talk]" not in css:
         fail("dragon-ui.css must style Talk with Grok")
+    if "dragon-ai-composer-chrome:1" not in css or "[data-dragon-ai-composer-action]" not in css:
+        fail("dragon-ui.css must stamp composer chrome and the action cluster")
+    talk_rule = css.split("[data-dragon-grok-talk] {", 1)
+    if len(talk_rule) < 2 or "var(--color-primary)" in talk_rule[1].split("}", 1)[0]:
+        fail("Talk / Start conversation must not keep a crimson bordered island")
     table = json.loads(read(TABLE))
     voice = table.get("voice") or {}
     if voice.get("options") != ["gpt", "grok"]:

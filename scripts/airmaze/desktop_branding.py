@@ -725,8 +725,17 @@ def self_test() -> int:
     if "container-type: inline-size" not in css or "@container" not in css:
         print("FAIL: dragon-ui.css must ship container wrap rules for the Teams button", file=sys.stderr)
         return 1
-    if "flex-wrap: wrap" not in css or "min-width: max-content" not in css:
-        print("FAIL: sidebar Teams must wrap below a fixed logo, not shrink or clip", file=sys.stderr)
+    if "flex-direction: column" not in css or "min-width: max-content" in css:
+        print("FAIL: sidebar Teams must stack under the logo with the full label visible", file=sys.stderr)
+        return 1
+    if "dragon-ai-marketplace-label:1" not in css or "dragon-ai-marketplace-blue:1" not in css:
+        print("FAIL: dragon-ui.css must stamp Marketplace label + blue button", file=sys.stderr)
+        return 1
+    if "#2563eb" not in css.lower() or "dragon-ai-logo-clearance:1" not in css:
+        print("FAIL: Marketplace must be blue and the logo must keep reserved clearance", file=sys.stderr)
+        return 1
+    if "dragon-ai-composer-chrome:1" not in css:
+        print("FAIL: dragon-ui.css must stamp composer chrome", file=sys.stderr)
         return 1
     if "rgba(196,30,58" in css.replace(" ", "") or "rgba(196, 30, 58" in css:
         print("FAIL: overlay CSS must not paint a crimson lockup border", file=sys.stderr)
@@ -855,6 +864,9 @@ def self_test() -> int:
         return 1
     if "Talk with Grok" not in once or "xai-client-secret." not in once:
         print("FAIL: overlay must host Grok duplex (Talk + xai-client-secret)", file=sys.stderr)
+        return 1
+    if "Start conversation" not in once or "findComposerAction" not in once:
+        print("FAIL: overlay must integrate Start conversation into the composer action", file=sys.stderr)
         return 1
     if "input_audio_buffer.append" not in once or "grok-voice-latest" not in once:
         print("FAIL: overlay must send official STS append events to grok-voice-latest", file=sys.stderr)

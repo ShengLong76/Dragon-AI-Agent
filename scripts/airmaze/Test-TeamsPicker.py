@@ -229,6 +229,14 @@ def test_overlay_and_launch_wired() -> None:
         fail("dragon-ui.css must style the in-app Teams Marketplace screen")
     if "flex-direction: column" not in css:
         fail("Teams Marketplace control must sit under the logo")
+    if "dragon-ai-marketplace-label:1" not in css or "min-width: max-content" in css:
+        fail("Teams Marketplace label must fit in full (no max-content clip)")
+    if "dragon-ai-marketplace-blue:1" not in css or "#2563eb" not in css.lower():
+        fail("Teams Marketplace sidebar button must be filled blue")
+    if "dragon-ai-logo-clearance:1" not in css or "--dragon-logo-clearance: 12px" not in css:
+        fail("logo lockup must reserve gap so Marketplace does not overlay the dragon")
+    if "Math.max(256" not in picker_js.replace(" ", ""):
+        fail("Teams overlay width must stay at least 16rem so the label is not clipped")
     if "must not cover BOTS" not in css:
         fail("Marketplace lockup must not cover BOTS")
     if "--dragon-ui-font-size-body: 16px" not in css:

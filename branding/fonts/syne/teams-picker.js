@@ -180,13 +180,13 @@
       var box = spacer.getBoundingClientRect();
       top = Math.max(0, Math.round(box.top));
       left = Math.max(0, Math.round(box.left));
-      if (box.width > 80) width = Math.round(box.width);
+      if (box.width > 80) width = Math.max(256, Math.round(box.width));
       roster = null;
     }
     if (roster && roster.getBoundingClientRect) {
       var rail = roster.getBoundingClientRect();
       left = Math.max(0, Math.round(rail.left));
-      if (rail.width > 80) width = Math.round(rail.width);
+      if (rail.width > 80) width = Math.max(256, Math.round(rail.width));
     }
     host.setAttribute("data-dragon-ai-sidebar-fixed", "true");
     host.style.cssText = "position:fixed;z-index:40;top:" + top + "px;left:" + left + "px;width:" + width + "px;max-width:" + width + "px;min-width:" + width + "px;box-sizing:border-box;margin:0;padding:0;pointer-events:none;background:transparent;border:0;";

@@ -33,7 +33,7 @@ When that lands, this package can write `voice_chat_mode: grok-live` instead of 
 
 ## What James sees
 
-In the desktop voice chat chrome, a **GPT | Grok** control sits with the composer. Both options are always listed. The active one is the crimson selected state. With **Grok** selected, **Talk with Grok** starts overlay full duplex.
+In the desktop voice chat chrome, a **GPT | Grok** control sits with the composer (no persistent crimson outline around the box). Both options are always listed. The active one is the crimson selected state. With **Grok** selected, **Start conversation** on the right-side composer action starts overlay full duplex (`Talk with Grok`).
 
 | Option | What it uses | Auth |
 |--------|----------------|------|

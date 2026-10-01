@@ -209,8 +209,17 @@ function Install-DragonAIDesktopFontPack {
                 throw "Apply-DesktopBranding: failed to copy dragon-ui.css into $dest"
             }
             $sheet = [System.IO.File]::ReadAllText($sheetPath)
-            if ($sheet -notmatch "dragon-ai-lockup-wrap:1" -or $sheet -notmatch "flex-wrap:\s*wrap") {
-                throw "Apply-DesktopBranding: copied dragon-ui.css is missing Teams wrap rules ($sheetPath)"
+            if ($sheet -notmatch "dragon-ai-lockup-wrap:1" -or $sheet -notmatch "dragon-ai-marketplace-label:1") {
+                throw "Apply-DesktopBranding: copied dragon-ui.css is missing Teams label/wrap stamps ($sheetPath)"
+            }
+            if ($sheet -notmatch "dragon-ai-marketplace-blue:1" -or $sheet -notmatch "2563eb") {
+                throw "Apply-DesktopBranding: copied dragon-ui.css is missing the blue Teams Marketplace button ($sheetPath)"
+            }
+            if ($sheet -notmatch "dragon-ai-logo-clearance:1" -or $sheet -notmatch "dragon-logo-clearance") {
+                throw "Apply-DesktopBranding: copied dragon-ui.css is missing logo clearance ($sheetPath)"
+            }
+            if ($sheet -notmatch "dragon-ai-composer-chrome:1") {
+                throw "Apply-DesktopBranding: copied dragon-ui.css is missing composer chrome stamp ($sheetPath)"
             }
             $copiedCss++
             $cssMark = "/* dragon-ai-ui-face */"

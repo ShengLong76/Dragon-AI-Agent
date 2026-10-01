@@ -3,8 +3,8 @@
   var TITLE = "Dragon AI";
   var ACCESSIBLE = "Dragon AI Agent";
   var LOGO = "./dragon-ai-branding/dragon-ai-agent-logo.svg";
-  var LOCKUP_STYLE = "display:flex;align-items:center;gap:8px;box-sizing:border-box;padding:0;margin:0;color:inherit;background:transparent;background-color:transparent;border:0;border-width:0;border-style:none;outline:none;box-shadow:none;";
-  var LOGO_STYLE = "display:block;height:32px;width:32px;max-width:32px;max-height:32px;border:0;border-width:0;border-style:none;outline:none;box-shadow:none;background:transparent;padding:0;margin:0;border-radius:0;";
+  var LOCKUP_STYLE = "display:flex;align-items:center;gap:8px;box-sizing:border-box;padding:0 0 8px;margin:0 0 4px;flex:0 0 auto;position:relative;z-index:2;isolation:isolate;color:inherit;background:transparent;background-color:transparent;border:0;border-width:0;border-style:none;outline:none;box-shadow:none;";
+  var LOGO_STYLE = "display:block;height:32px;width:32px;max-width:32px;max-height:32px;border:0;border-width:0;border-style:none;outline:none;box-shadow:none;background:transparent;padding:0;margin:0;border-radius:0;position:relative;z-index:2;flex:0 0 32px;";
   var CHROME_STYLE = "display:flex;flex-direction:column;align-items:stretch;width:100%;min-height:96px;box-sizing:border-box;margin:0;padding:0;flex:0 0 auto;order:-1;position:relative;z-index:1;pointer-events:auto;background:transparent;border:0;";
   function pinLogo(img) {
     img.src = LOGO;
@@ -197,13 +197,13 @@
       var box = spacer.getBoundingClientRect();
       top = Math.max(0, Math.round(box.top));
       left = Math.max(0, Math.round(box.left));
-      if (box.width > 80) width = Math.round(box.width);
+      if (box.width > 80) width = Math.max(256, Math.round(box.width));
       roster = null;
     }
     if (roster && roster.getBoundingClientRect) {
       var rail = roster.getBoundingClientRect();
       left = Math.max(0, Math.round(rail.left));
-      if (rail.width > 80) width = Math.round(rail.width);
+      if (rail.width > 80) width = Math.max(256, Math.round(rail.width));
     }
     host.setAttribute("data-dragon-ai-sidebar-fixed", "true");
     host.style.cssText = "position:fixed;z-index:40;top:" + top + "px;left:" + left + "px;width:" + width + "px;max-width:" + width + "px;min-width:" + width + "px;box-sizing:border-box;margin:0;padding:0;pointer-events:none;background:transparent;border:0;";
