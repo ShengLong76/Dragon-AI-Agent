@@ -137,15 +137,15 @@ function Initialize-BotGroupWinForms {
 
 function Show-BotGroupDropdown {
     $listed = Get-ListedGroups
-    $groups = @($listed.groups)
-    if ($groups.Count -eq 0) { throw "No bot groups listed." }
+    $groups = @($listed.groups | Where-Object { $_.id -ne "personal-assistant" })
+    if ($groups.Count -eq 0) { throw "No bot teams listed." }
 
     $settingsRaw = Invoke-BotGroups -EngineArgs @("settings", "--install", $InstallRoot)
     $settings = $settingsRaw | ConvertFrom-Json
     $singularOn = [bool]$settings.allowSingularBotImportExport
 
     $form = New-Object System.Windows.Forms.Form
-    $form.Text = "Dragon AI Agent — Bot Groups"
+    $form.Text = "Dragon AI Agent — Teams"
     $form.Size = New-Object System.Drawing.Size(640, 420)
     $form.StartPosition = "CenterScreen"
     $form.BackColor = $script:BrandBack
@@ -164,7 +164,7 @@ function Show-BotGroupDropdown {
     $title.Location = New-Object System.Drawing.Point(20, 10)
     $title.AutoSize = $true
     $sub = New-Object System.Windows.Forms.Label
-    $sub.Text = "Deploy a bot group from github.com/ShengLong76/airmaze-agent"
+    $sub.Text = "Pick a multi-bot team (Real Estate Lead Gen, Marketing Team, Trading Team). Personal Assistant is already installed. Import file still works."
     $sub.ForeColor = [System.Drawing.Color]::FromArgb(255, 220, 220)
     $sub.Location = New-Object System.Drawing.Point(20, 40)
     $sub.AutoSize = $true
@@ -173,7 +173,7 @@ function Show-BotGroupDropdown {
     $form.Controls.Add($header)
 
     $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Text = "Bot group"
+    $lbl.Text = "Team"
     $lbl.ForeColor = $script:BrandMuted
     $lbl.Location = New-Object System.Drawing.Point(24, 92)
     $lbl.AutoSize = $true
@@ -310,21 +310,21 @@ if (Initialize-BotGroupWinForms) {
     $listed = Get-ListedGroups
     Write-Host ""
     Write-Host "========================================"
-    Write-Host " Dragon AI Agent — choose a bot group"
+    Write-Host " Dragon AI Agent — Teams"
     Write-Host "========================================"
+    $entries = @($listed.groups | Where-Object { $_.id -ne "personal-assistant" })
     $i = 1
-    foreach ($e in @($listed.groups)) {
+    foreach ($e in $entries) {
         Write-Host ("  [{0}] {1}" -f $i, $e.name)
         Write-Host ("      {0}" -f $e.departmentJob)
         $i++
     }
-    Write-Host "  [Enter] default = first listed group (Personal Assistant when present)"
+    Write-Host "  [Enter] cancel — Personal Assistant is already installed"
     Write-Host ""
     $ans = Read-Host "Selection"
-    $entries = @($listed.groups)
     if ([string]::IsNullOrWhiteSpace($ans)) {
-        $chosen = $entries | Where-Object { $_.id -eq "personal-assistant" } | Select-Object -First 1
-        if (-not $chosen) { $chosen = $entries[0] }
+        Write-Dragon "No team selected. Personal Assistant stays."
+        return
     } elseif ($ans -match '^\d+$') {
         $n = [int]$ans
         if ($n -ge 1 -and $n -le $entries.Count) { $chosen = $entries[$n - 1] }

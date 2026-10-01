@@ -1,0 +1,7 @@
+slug: news-scanner
+display_name: News Scanner
+description: >
+  Summarizes public market news and calendars. Not personalized investment advice.
+
+browser:
+  headed: true

@@ -34,7 +34,9 @@ REQUIRED_LAUNCHER = (
     "SilentHost",
     "OpenDashboard",
     "StartDocker",
-    "engine unavailable",
+    "Start-DockerIfNeeded",
+    "Set-DockerTrayOnlySettings",
+    "openUIOnStartupDisabled",
     "DebugConsole",
     "Invoke-NativeDocker",
     "Repair-DragonAIProductShortcuts",
@@ -46,6 +48,9 @@ REQUIRED_LAUNCHER = (
     "X-Hermes-Session-Token",
     "8650",
     "Apply-DragonAIDesktopUiBranding",
+    "Exclude-DragonAIHermesBots",
+    "teams_picker",
+    "8653",
 )
 
 REQUIRED_FINDER = (
@@ -111,6 +116,19 @@ def require_tokens(path: pathlib.Path, tokens: tuple[str, ...], label: str) -> N
     print(f"OK  {label}: {path.relative_to(ROOT)}")
 
 
+def check_docker_launch_design() -> None:
+    design = ROOT / "docs" / "airmaze" / "DOCKER_LAUNCH.md"
+    plan = ROOT / "docs" / "airmaze" / "DOCKER_LAUNCH_PLAN.md"
+    for path in (design, plan):
+        if not path.is_file():
+            fail(f"missing {path}")
+    text = design.read_text(encoding="utf-8")
+    for needle in ("Start-DockerIfNeeded", "openUIOnStartupDisabled", "tray", "docker info"):
+        if needle not in text:
+            fail(f"DOCKER_LAUNCH.md must document {needle!r}")
+    print("OK  docker launch design")
+
+
 def check_launcher() -> None:
     require_tokens(LAUNCHER, REQUIRED_LAUNCHER, "launcher")
     text = LAUNCHER.read_text(encoding="utf-8")
@@ -120,8 +138,24 @@ def check_launcher() -> None:
         fail("launcher still opens the dashboard without -OpenDashboard")
     if "Start-Process `$script:DashboardUrl" in text or "Start-Process $script:DashboardUrl" in text:
         fail("splash/status form still auto-opens the :9119 dashboard")
-    if "if ($StartDocker)" not in text:
-        fail("launcher still auto-starts Docker Desktop without -StartDocker opt-in")
+    if "if ($StartDocker)" in text and "does not auto-start Docker unless you pass -StartDocker" in text:
+        fail("launcher must start Docker Desktop when the engine is down (not only -StartDocker)")
+    if "Start-DockerIfNeeded" not in text:
+        fail("launcher must reuse Start-DockerIfNeeded (do not invent a second starter)")
+    if "if (-not (Start-DockerIfNeeded))" not in text:
+        fail("normal launch must call Start-DockerIfNeeded when docker info fails")
+    if "Set-DockerTrayOnlySettings" not in text or "openUIOnStartupDisabled" not in text:
+        fail("launch-time Docker start must patch tray-only settings (no dashboard window)")
+    if "WindowStyle Hidden" not in text and "WindowStyle Minimized" not in text:
+        fail("Docker Desktop.exe must start Hidden/Minimized (tray-only)")
+    if "does not auto-start Docker unless you pass -StartDocker" in text:
+        fail("default launch must auto-start Docker; -StartDocker is no longer required")
+    if "no auto-start unless -StartDocker" in text:
+        fail("launch plan must say Docker starts in the tray when the engine is down")
+    if "Starting Docker Desktop (system tray)" not in text:
+        fail("Start-DockerIfNeeded must tell James Docker is starting in the tray")
+    if "Start-Process `$script:DashboardUrl" in text:
+        fail("splash/status form still auto-opens the :9119 dashboard")
     if "Show-DragonDialog" not in text:
         fail("launcher throws without a user-visible dialog helper")
     if '$ErrorActionPreference = "Continue"' not in text:
@@ -138,6 +172,8 @@ def check_shortcuts() -> None:
             fail(f"{path.name} still points Dragon AI Agent.lnk at powershell.exe")
         if "Start-DragonAI.vbs" not in text:
             fail(f"{path.name} missing windowless Start-DragonAI.vbs host")
+        if "openUIOnStartupDisabled" not in text or "Set-DockerTrayOnlySettings" not in text:
+            fail(f"{path.name} must keep tray-only Docker settings")
 
 
 def check_vbs() -> None:
@@ -149,8 +185,10 @@ def check_vbs() -> None:
         fail("VBS host must Run powershell hidden (window style 0)")
     if "CreateShortcut" not in text:
         fail("VBS host must rewrite product shortcuts to wscript (old powershell .lnk flashes)")
-    if "-StartDocker" in text and 'Do not pass -StartDocker' not in text:
-        fail("VBS product host must not pass -StartDocker (fail-closed)")
+    if " -StartDocker" in text.replace("Do not pass -StartDocker", "").replace("fail-closed", ""):
+        fail("VBS product host must not pass -StartDocker; default launch starts Docker itself")
+    if "fail-closed" in text.lower():
+        fail("VBS comment still describes fail-closed Docker; launch now starts Docker in the tray")
 
 
 def check_compose_auth() -> None:
@@ -190,6 +228,7 @@ def run_host_smoke() -> None:
 
 def main() -> int:
     require_tokens(FINDER, REQUIRED_FINDER, "finder")
+    check_docker_launch_design()
     check_vbs()
     check_launcher()
     check_shortcuts()
@@ -217,6 +256,16 @@ def main() -> int:
         proc = subprocess.run([sys.executable, str(bot_groups_test)], cwd=str(ROOT))
         if proc.returncode != 0:
             fail("Test-BotGroups.py failed")
+    exclude_test = ROOT / "scripts" / "airmaze" / "Test-ExcludeHermesBot.py"
+    if exclude_test.is_file():
+        proc = subprocess.run([sys.executable, str(exclude_test)], cwd=str(ROOT))
+        if proc.returncode != 0:
+            fail("Test-ExcludeHermesBot.py failed")
+    teams_test = ROOT / "scripts" / "airmaze" / "Test-TeamsPicker.py"
+    if teams_test.is_file():
+        proc = subprocess.run([sys.executable, str(teams_test)], cwd=str(ROOT))
+        if proc.returncode != 0:
+            fail("Test-TeamsPicker.py failed")
     run_host_smoke()
     print("SMOKE OK: opening Dragon AI Agent is wired to branded UI or a blocking error.")
     return 0

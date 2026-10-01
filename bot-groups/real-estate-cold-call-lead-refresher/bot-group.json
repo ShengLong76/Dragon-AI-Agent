@@ -3,6 +3,7 @@
   "schemaVersion": 1,
   "id": "real-estate-cold-call-lead-refresher",
   "name": "Real Estate Cold Call Lead Refresher",
+  "displayName": "Real Estate Lead Gen",
   "departmentJob": "Outbound real-estate department that refreshes stale leads, warms them with CAN-SPAM email toward a TCPA consent form, writes cold-call scripts, and sequences follow-ups.",
   "version": "1.1.0",
   "bots": [

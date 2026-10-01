@@ -1,0 +1,7 @@
+slug: market-researcher
+display_name: Market Researcher
+description: >
+  Summarizes public market context and writes research notes. Does not place orders.
+
+browser:
+  headed: true

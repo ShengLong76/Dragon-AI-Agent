@@ -117,9 +117,111 @@ function Save-DragonAIDesktopPointer {
         if (-not (Test-Path -LiteralPath $ico)) { $ico = Join-Path $InstallRoot "dragon-ai-agent-logo.ico" }
         if (Test-Path -LiteralPath $ico) { $sc.IconLocation = "$ico,0" }
         $sc.Save()
+        # Taskbar grouping: match upstream Hermes.exe AppUserModelID so the
+        # Dragon ICO on this .lnk can represent the running process.
+        Set-DragonAIShortcutAppUserModelId -LnkPath $lnkPath -AppUserModelId "com.nousresearch.hermes"
     } catch {}
 
     return $pointer
+}
+
+function Set-DragonAIShortcutAppUserModelId {
+    param(
+        [Parameter(Mandatory = $true)][string]$LnkPath,
+        [string]$AppUserModelId = "com.nousresearch.hermes"
+    )
+    if (-not (Test-Path -LiteralPath $LnkPath)) { return $false }
+    try {
+        if (-not ("DragonAIShortcutAumid" -as [type])) {
+            Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.ComTypes;
+
+[ComImport, Guid("00021401-0000-0000-C000-000000000046")]
+public class DragonAIShellLinkCoClass {}
+
+[ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("000214F9-0000-0000-C000-000000000046")]
+public interface IDragonAIShellLinkW {
+    void GetPath([Out, MarshalAs(UnmanagedType.LPWStr)] System.Text.StringBuilder pszFile, int cchMaxPath, IntPtr pfd, uint fFlags);
+    void GetIDList(out IntPtr ppidl);
+    void SetIDList(IntPtr pidl);
+    void GetDescription([Out, MarshalAs(UnmanagedType.LPWStr)] System.Text.StringBuilder pszName, int cchMaxName);
+    void SetDescription([MarshalAs(UnmanagedType.LPWStr)] string pszName);
+    void GetWorkingDirectory([Out, MarshalAs(UnmanagedType.LPWStr)] System.Text.StringBuilder pszDir, int cchMaxPath);
+    void SetWorkingDirectory([MarshalAs(UnmanagedType.LPWStr)] string pszDir);
+    void GetArguments([Out, MarshalAs(UnmanagedType.LPWStr)] System.Text.StringBuilder pszArgs, int cchMaxPath);
+    void SetArguments([MarshalAs(UnmanagedType.LPWStr)] string pszArgs);
+    void GetHotkey(out short pwHotkey);
+    void SetHotkey(short wHotkey);
+    void GetShowCmd(out int piShowCmd);
+    void SetShowCmd(int iShowCmd);
+    void GetIconLocation([Out, MarshalAs(UnmanagedType.LPWStr)] System.Text.StringBuilder pszIconPath, int cchIconPath, out int piIcon);
+    void SetIconLocation([MarshalAs(UnmanagedType.LPWStr)] string pszIconPath, int iIcon);
+    void SetRelativePath([MarshalAs(UnmanagedType.LPWStr)] string pszPathRel, uint dwReserved);
+    void Resolve(IntPtr hwnd, uint fFlags);
+    void SetPath([MarshalAs(UnmanagedType.LPWStr)] string pszFile);
+}
+
+[StructLayout(LayoutKind.Sequential, Pack = 4)]
+public struct DragonAIPROPERTYKEY { public Guid fmtid; public uint pid; }
+
+[StructLayout(LayoutKind.Sequential)]
+public struct DragonAIPROPVARIANT {
+    public ushort vt;
+    public ushort wReserved1, wReserved2, wReserved3;
+    public IntPtr pszVal;
+}
+
+[ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99")]
+public interface IDragonAIPropertyStore {
+    uint GetCount(out uint cProps);
+    uint GetAt(uint iProp, out DragonAIPROPERTYKEY pkey);
+    uint GetValue(ref DragonAIPROPERTYKEY key, out DragonAIPROPVARIANT pv);
+    uint SetValue(ref DragonAIPROPERTYKEY key, ref DragonAIPROPVARIANT pv);
+    uint Commit();
+}
+
+public static class DragonAIShortcutAumid {
+    public static void Set(string lnkPath, string appId) {
+        var link = (IDragonAIShellLinkW)new DragonAIShellLinkCoClass();
+        var persist = (IPersistFile)link;
+        persist.Load(lnkPath, 0);
+        var store = (IDragonAIPropertyStore)link;
+        var key = new DragonAIPROPERTYKEY {
+            fmtid = new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3"),
+            pid = 5
+        };
+        var pv = new DragonAIPROPVARIANT { vt = 31, pszVal = Marshal.StringToCoTaskMemUni(appId) };
+        store.SetValue(ref key, ref pv);
+        store.Commit();
+        persist.Save(lnkPath, true);
+        Marshal.FreeCoTaskMem(pv.pszVal);
+    }
+}
+"@
+        }
+        [DragonAIShortcutAumid]::Set($LnkPath, $AppUserModelId)
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+function Exclude-DragonAIHermesBots {
+    $engine = Join-Path $PSScriptRoot "exclude_hermes_bot.py"
+    if (-not (Test-Path -LiteralPath $engine)) { return $false }
+    $desktop = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "hermes\profiles" } else { "" }
+    $embedded = if ($env:USERPROFILE) { Join-Path $env:USERPROFILE ".hermes-airmaze-embedded\profiles" } else { "" }
+    $py = Get-Command python3 -ErrorAction SilentlyContinue
+    if (-not $py) { $py = Get-Command python -ErrorAction SilentlyContinue }
+    if (-not $py) { return $false }
+    try {
+        & $py.Source $engine purge --desktop $desktop --embedded $embedded | Out-Null
+        return $true
+    } catch {
+        return $false
+    }
 }
 
 function Set-DragonAIMainWindowTitle {
@@ -222,7 +324,23 @@ function Start-HermesDesktopClient {
     )
     $wd = Split-Path -Parent $ExePath
     # Overlay empty-state / composer / settings copy before the window opens.
+    Exclude-DragonAIHermesBots | Out-Null
     Apply-DragonAIDesktopUiBranding -ExePath $ExePath | Out-Null
+    try {
+        $picker = Join-Path $PSScriptRoot "teams_picker.py"
+        $py = Get-Command python3 -ErrorAction SilentlyContinue
+        if (-not $py) { $py = Get-Command python -ErrorAction SilentlyContinue }
+        $install = Join-Path $env:LOCALAPPDATA "DragonAIAgent"
+        $desktop = Join-Path $env:LOCALAPPDATA "hermes\profiles"
+        $embedded = Join-Path $env:USERPROFILE ".hermes-airmaze-embedded\profiles"
+        if ($py -and (Test-Path -LiteralPath $picker)) {
+            Start-Process -FilePath $py.Source -ArgumentList @(
+                $picker, "serve", "--payload", $install, "--install", $install,
+                "--desktop", $desktop, "--embedded", $embedded,
+                "--host", "127.0.0.1", "--port", "8653"
+            ) -WindowStyle Hidden -ErrorAction SilentlyContinue | Out-Null
+        }
+    } catch {}
     Start-Process -FilePath $ExePath -WorkingDirectory $wd -ErrorAction Stop
     Set-DragonAIMainWindowTitle -Title "Dragon AI Agent" | Out-Null
     return $true

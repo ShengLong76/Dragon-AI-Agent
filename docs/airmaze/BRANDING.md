@@ -18,7 +18,10 @@ Internal protocol, image, and path names stay Hermes/AirMaze where changing them
 | Electron **window title** | Packaging wrap: all visible Hermes windows → **Dragon AI Agent** (`SetTitleForPids`) |
 | Empty state heading | Overlay: **DRAGON AI AGENT** (was `HERMES AGENT` in `apps/desktop/src/components/chat/intro.tsx`), Syne 700, **in front of** a larger unboxed navy dragon |
 | Empty state mark | Overlay: James’s navy PNG with the black plate punched; no boxed background |
-| Bots sidebar | Overlay: hide the built-in default **Hermes** agent (`data-roster-key` `::default`). **Personal Assistant** stays |
+| Sidebar header | Overlay: navy dragon + **Dragon AI** above SESSIONS / BOTS (accessible name **Dragon AI Agent**) |
+| Bots sidebar | **Exclude** the built-in default **Hermes** agent (purge `profiles\\hermes` / `default`; CSS hide of `data-roster-key` `::default` is the backstop). **Personal Assistant** stays |
+| Bot groups in BOTS | Deploy/import stamps `sectionId` / `sectionName` so the pack sits in a named section (not UNASSIGNED) |
+| Running app / taskbar icon | Copy the Dragon ICO over `resources/icon.ico` and stamp `Hermes.exe` when a PE stamper is available |
 | Composer placeholder | Overlay: **Give Dragon AI a task** (was `Give Hermes a task`) |
 | Settings / About / setup product copy | Overlay: **Dragon AI Agent** wherever the renderer said **Hermes Agent** (and About / appName chrome) |
 | In-window UI font | Overlay: **Syne** (SIL OFL 1.1, weight **700** on the wordmark) replacing upstream **Collapse** / Collapse-Bold, then composer and settings chrome |
@@ -31,7 +34,7 @@ The shipped client is still upstream `Hermes.exe` (`…\win-unpacked\Hermes.exe`
 
 Upstream `electron-builder` packs most of the app into `resources/app.asar` (integrity-protected — do not rewrite that archive) and **unpacks `dist/**`** to `resources/app.asar.unpacked/dist`. The empty-state wordmark, composer placeholders, and settings strings live in that unpacked renderer.
 
-`Apply-DesktopBranding.ps1` / `desktop_branding.py` run from `Start-HermesDesktopClient` (every launch, idempotent) and rewrite those files in place. Table: `scripts/airmaze/desktop_branding.json`. Offline check: `python3 scripts/airmaze/Test-DesktopBranding.py`.
+`Apply-DesktopBranding.ps1` / `desktop_branding.py` run from `Start-HermesDesktopClient` (every launch, idempotent) and rewrite those files in place. Table: `scripts/airmaze/desktop_branding.json`. The same pass injects the sidebar header lockup and copies the Dragon ICO to `resources/icon.ico`. Offline check: `python3 scripts/airmaze/Test-DesktopBranding.py`. Launch also runs `exclude_hermes_bot.py` so leftover Hermes profile folders are dropped, not only hidden.
 
 ### UI font (Syne) — empty-state wordmark first
 

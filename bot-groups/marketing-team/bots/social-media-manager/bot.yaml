@@ -1,0 +1,7 @@
+slug: social-media-manager
+display_name: Social Media Manager
+description: >
+  Channel calendar, posts, and community replies the operator approves.
+
+browser:
+  headed: true

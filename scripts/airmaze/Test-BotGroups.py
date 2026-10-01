@@ -46,6 +46,29 @@ PROTECTED = (
 )
 GITHUB_RAW_PREFIX = "https://raw.githubusercontent.com/ShengLong76/airmaze-agent/"
 REPO = "ShengLong76/airmaze-agent"
+COS_ROSTERS = {
+    "marketing-team": [
+        "content-strategist",
+        "seo-specialist",
+        "social-media-manager",
+        "paid-media-specialist",
+        "lifecycle-marketer",
+        "marketing-analyst",
+    ],
+    "real-estate-cold-call-lead-refresher": [
+        "lead-sourcer",
+        "email-warmer",
+        "cold-call-script-writer",
+        "follow-up-sequencer",
+    ],
+    "trading-team": [
+        "market-researcher",
+        "trade-journal",
+        "risk-analyst",
+        "news-scanner",
+    ],
+}
+STALE_MARKETING_IDS = ("copywriter", "campaign-sequencer")
 
 
 def fail(msg: str) -> None:
@@ -142,8 +165,8 @@ def sample_group() -> dict:
 
 def write_group_tree(root: pathlib.Path, group: dict) -> pathlib.Path:
     folder = root / group["id"]
-    (folder / "bots" / "email-warmer").mkdir(parents=True)
-    (folder / "bots" / "lead-sourcer").mkdir(parents=True)
+    (folder / "bots" / "email-warmer").mkdir(parents=True, exist_ok=True)
+    (folder / "bots" / "lead-sourcer").mkdir(parents=True, exist_ok=True)
     (folder / "bot-group.json").write_text(json.dumps(group, indent=2), encoding="utf-8")
     (folder / "bots" / "email-warmer" / "SOUL.md").write_text("# Email Warmer\nWarm leads.\n", encoding="utf-8")
     (folder / "bots" / "email-warmer" / "bot.yaml").write_text("slug: email-warmer\n", encoding="utf-8")
@@ -165,6 +188,9 @@ def test_design_doc() -> None:
         "bot-groups/",
         "upstream sync",
         "profile.json",
+        "UNASSIGNED",
+        "sectionId",
+        "sectionName",
     ):
         if needle not in text:
             fail(f"BOT_GROUPS.md must document {needle!r}")
@@ -328,6 +354,108 @@ def test_deploy_group(bg) -> None:
     print("OK  deploy one group (create + update existing)")
 
 
+def test_deploy_files_named_ui_section(bg) -> None:
+    with tempfile.TemporaryDirectory(prefix="dragon-bg-sec-") as tmp:
+        tmp_path = pathlib.Path(tmp)
+        payload = tmp_path / "payload" / "bot-groups"
+        install = tmp_path / "install"
+        desktop = tmp_path / "hermes-profiles"
+        payload.mkdir(parents=True)
+        (payload / "catalog.json").write_text(json.dumps(sample_catalog()), encoding="utf-8")
+        write_group_tree(payload, sample_group())
+        result = bg.deploy_group(
+            "real-estate-cold-call-lead-refresher",
+            payload_root=tmp_path / "payload",
+            install_root=install,
+            desktop_profiles_root=desktop,
+        )
+        section_id = "sec-dragon-real-estate-cold-call-lead-refresher"
+        section_name = "Real Estate Cold Call Lead Refresher"
+        if (result.get("uiSection") or {}).get("sectionId") != section_id:
+            fail(f"deploy must report uiSection {section_id}, got {result.get('uiSection')}")
+        for bot_id in ("email-warmer", "lead-sourcer"):
+            profile = (desktop / bot_id / "profile.yaml").read_text(encoding="utf-8")
+            if "sectionId:" not in profile or section_id not in profile:
+                fail(f"{bot_id} profile.yaml must stamp sectionId {section_id}")
+            if section_name not in profile:
+                fail(f"{bot_id} must be labeled {section_name!r}, not UNASSIGNED")
+            if "section:unassigned" in profile.lower():
+                fail(f"{bot_id} must not be filed under UNASSIGNED")
+            meta = json.loads((desktop / bot_id / "bot.meta.json").read_text(encoding="utf-8"))
+            if meta.get("sectionId") != section_id or meta.get("sectionName") != section_name:
+                fail(f"{bot_id} bot.meta.json missing UI section: {meta}")
+        marketing = {
+            "kind": "bot-group",
+            "schemaVersion": 1,
+            "id": "marketing-team",
+            "name": "Marketing Team",
+            "departmentJob": "Outbound marketing.",
+            "bots": [
+                {
+                    "id": "copywriter",
+                    "title": "Copywriter",
+                    "description": "Writes campaigns.",
+                    "tools": ["browser"],
+                    "soul": "bots/copywriter/SOUL.md",
+                    "config": "bots/copywriter/bot.yaml",
+                }
+            ],
+        }
+        mdir = payload / "marketing-team"
+        (mdir / "bots" / "copywriter").mkdir(parents=True)
+        (mdir / "bot-group.json").write_text(json.dumps(marketing), encoding="utf-8")
+        (mdir / "bots" / "copywriter" / "SOUL.md").write_text("# Copy\n", encoding="utf-8")
+        (mdir / "bots" / "copywriter" / "bot.yaml").write_text("slug: copywriter\n", encoding="utf-8")
+        marketing_result = bg.deploy_group(
+            "marketing-team",
+            payload_root=tmp_path / "payload",
+            install_root=install,
+            desktop_profiles_root=desktop,
+        )
+        marketing_ids = [b.get("id") for b in marketing_result.get("bots") or []]
+        if marketing_ids != COS_ROSTERS["marketing-team"]:
+            fail(f"stub Marketing pack must deploy Cos's 6 bots, got {marketing_ids}")
+        for bot_id in COS_ROSTERS["marketing-team"]:
+            mprofile = (desktop / bot_id / "profile.yaml").read_text(encoding="utf-8")
+            if "sec-dragon-marketing-team" not in mprofile or "Marketing Team" not in mprofile:
+                fail(f"{bot_id} must file under MARKETING TEAM, not UNASSIGNED")
+        for stale in STALE_MARKETING_IDS:
+            if (desktop / stale).exists():
+                fail(f"Marketing Team must not deploy stub {stale}")
+        warmer_after = (desktop / "email-warmer" / "profile.yaml").read_text(encoding="utf-8")
+        if section_id not in warmer_after:
+            fail("a second group must not steal the Real Estate section id")
+        renamed = sample_group()
+        renamed["name"] = "Real Estate Lead Gen"
+        (payload / renamed["id"] / "bot-group.json").write_text(json.dumps(renamed, indent=2), encoding="utf-8")
+        bg.deploy_group(
+            "real-estate-cold-call-lead-refresher",
+            payload_root=tmp_path / "payload",
+            install_root=install,
+            desktop_profiles_root=desktop,
+        )
+        reapplied = (desktop / "email-warmer" / "profile.yaml").read_text(encoding="utf-8")
+        if section_id not in reapplied:
+            fail("re-apply must keep the stable section id")
+        if "Real Estate Lead Gen" not in reapplied:
+            fail("re-apply must update the section display name")
+        exported = pathlib.Path(bg.export_group("real-estate-cold-call-lead-refresher", tmp_path / "exported", install, tmp_path / "payload"))
+        imported_desktop = tmp_path / "imported-profiles"
+        imported = bg.import_bundle(exported, install_root=tmp_path / "install2", desktop_profiles_root=imported_desktop)
+        if (imported.get("uiSection") or {}).get("sectionName") != "Real Estate Lead Gen":
+            fail(f"import must file bots under the pack display name, got {imported.get('uiSection')}")
+        imported_profile = (imported_desktop / "email-warmer" / "profile.yaml").read_text(encoding="utf-8")
+        if section_id not in imported_profile or "Real Estate Lead Gen" not in imported_profile:
+            fail("Import-BotGroup path must stamp the named UI section")
+        apply_shim = SCRIPTS / "Apply-Profile.ps1"
+        import_shim = SCRIPTS / "Import-Profile.ps1"
+        if "Import-BotGroup" not in apply_shim.read_text(encoding="utf-8"):
+            fail("Apply-Profile must call Import-BotGroup so leftover profiles get a named section")
+        if "Import-BotGroup" not in import_shim.read_text(encoding="utf-8"):
+            fail("Import-Profile must call Import-BotGroup so leftover profiles get a named section")
+    print("OK  deploy/import files bots into a named UI section (not UNASSIGNED)")
+
+
 def test_export_reimport(bg) -> None:
     with tempfile.TemporaryDirectory(prefix="dragon-bg-ex-") as tmp:
         tmp_path = pathlib.Path(tmp)
@@ -462,6 +590,8 @@ def test_repo_catalog_converted() -> None:
         fail("catalog must keep Personal Assistant")
     if "real-estate-cold-call-lead-refresher" not in ids:
         fail("catalog must keep the Real Estate example")
+    if "marketing-team" not in ids or "trading-team" not in ids:
+        fail("catalog must list Marketing Team and Trading Team")
     if any(g.get("id") == "hermes" or "hermes" in str(g.get("name", "")).lower() for g in groups):
         fail("do not add a Hermes bot back")
     re_group = json.loads(read(REAL_ESTATE))
@@ -483,6 +613,135 @@ def test_repo_catalog_converted() -> None:
     if (ROOT / "profiles" / "catalog.json").is_file():
         fail("do not leave a second profiles catalog")
     print("OK  repo catalog is bot groups (PA + Real Estate / Email Warmer)")
+
+
+def _group_bot_ids(group_id: str) -> list[str]:
+    manifest = ROOT / "bot-groups" / group_id / "bot-group.json"
+    data = json.loads(read(manifest))
+    return [str(b.get("id")) for b in data.get("bots") or [] if b.get("id")]
+
+
+def test_bundled_team_rosters() -> None:
+    for group_id, expected in COS_ROSTERS.items():
+        ids = _group_bot_ids(group_id)
+        if ids != expected:
+            fail(f"{group_id} roster must be {expected}, got {ids}")
+        bots_dir = ROOT / "bot-groups" / group_id / "bots"
+        for bot_id in expected:
+            if not (bots_dir / bot_id / "SOUL.md").is_file():
+                fail(f"{group_id} missing soul for {bot_id}")
+            if not (bots_dir / bot_id / "bot.yaml").is_file():
+                fail(f"{group_id} missing bot.yaml for {bot_id}")
+        for stale in STALE_MARKETING_IDS:
+            if stale in ids or (bots_dir / stale).exists():
+                fail(f"Marketing Team must not ship stub bot {stale}")
+    print("OK  bundled Cos rosters (Marketing 6 / Real Estate 4 / Trading 4)")
+
+
+def test_deploy_full_roster_replaces_stale(bg) -> None:
+    with tempfile.TemporaryDirectory(prefix="dragon-bg-roster-") as tmp:
+        tmp_path = pathlib.Path(tmp)
+        payload = tmp_path / "payload"
+        install = tmp_path / "install"
+        desktop = tmp_path / "hermes-profiles"
+        groups = payload / "bot-groups"
+        groups.mkdir(parents=True)
+        stub = {
+            "kind": "bot-group",
+            "schemaVersion": 1,
+            "id": "marketing-team",
+            "name": "Marketing Team",
+            "displayName": "Marketing Team",
+            "departmentJob": "Stub.",
+            "bots": [
+                {
+                    "id": "copywriter",
+                    "title": "Copywriter",
+                    "description": "Wrong stub.",
+                    "tools": ["browser"],
+                    "soul": "bots/copywriter/SOUL.md",
+                    "config": "bots/copywriter/bot.yaml",
+                },
+                {
+                    "id": "campaign-sequencer",
+                    "title": "Campaign Sequencer",
+                    "description": "Wrong stub.",
+                    "tools": ["browser"],
+                    "soul": "bots/campaign-sequencer/SOUL.md",
+                    "config": "bots/campaign-sequencer/bot.yaml",
+                },
+            ],
+        }
+        stub_dir = groups / "marketing-team"
+        (stub_dir / "bots" / "copywriter").mkdir(parents=True)
+        (stub_dir / "bots" / "campaign-sequencer").mkdir(parents=True)
+        (stub_dir / "bot-group.json").write_text(json.dumps(stub), encoding="utf-8")
+        (stub_dir / "bots" / "copywriter" / "SOUL.md").write_text("# Stub\n", encoding="utf-8")
+        (stub_dir / "bots" / "copywriter" / "bot.yaml").write_text("slug: copywriter\n", encoding="utf-8")
+        (stub_dir / "bots" / "campaign-sequencer" / "SOUL.md").write_text("# Stub\n", encoding="utf-8")
+        (stub_dir / "bots" / "campaign-sequencer" / "bot.yaml").write_text("slug: campaign-sequencer\n", encoding="utf-8")
+        (groups / "catalog.json").write_text(
+            json.dumps({"kind": "bot-group-catalog", "groups": [{"id": "marketing-team", "path": "marketing-team"}]}),
+            encoding="utf-8",
+        )
+        desktop.mkdir(parents=True)
+        for stale_id, title in (("copywriter", "Copywriter"), ("campaign-sequencer", "Campaign Sequencer")):
+            dest = desktop / stale_id
+            dest.mkdir(parents=True)
+            (dest / "bot.meta.json").write_text(
+                json.dumps(
+                    {
+                        "id": stale_id,
+                        "title": title,
+                        "bot_group_id": "marketing-team",
+                        "sectionId": "sec-dragon-marketing-team",
+                        "sectionName": "Marketing Team",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (dest / "profile.yaml").write_text(
+                "# dragon-ai-ui-section\nui_meta:\n  hermes-bots:\n    sectionId: \"sec-dragon-marketing-team\"\n    sectionName: \"Marketing Team\"\n",
+                encoding="utf-8",
+            )
+        expanded = [b["id"] for b in bg._load_group_folder(stub_dir).get("bots") or []]
+        if expanded != COS_ROSTERS["marketing-team"]:
+            fail(f"a stub Marketing folder must expand to Cos's 6 bots, got {expanded}")
+        extra = stub_dir / "bots" / "seo-specialist"
+        extra.mkdir()
+        (extra / "SOUL.md").write_text("# Extra on disk\n", encoding="utf-8")
+        (extra / "bot.yaml").write_text("slug: seo-specialist\ndisplay_name: SEO Specialist\n", encoding="utf-8")
+        if "seo-specialist" not in bg._folder_roster_ids(stub_dir):
+            fail("deploy must pick up bots/ folders missing from bot-group.json")
+        result = bg.deploy_group(
+            "marketing-team",
+            payload_root=ROOT,
+            install_root=install,
+            desktop_profiles_root=desktop,
+        )
+        created = set(result.get("created") or []) | set(result.get("updated") or [])
+        for bot_id in COS_ROSTERS["marketing-team"]:
+            if bot_id not in created and not (desktop / bot_id / "profile.yaml").is_file():
+                fail(f"apply Marketing Team must deploy {bot_id}")
+            profile = (desktop / bot_id / "profile.yaml").read_text(encoding="utf-8")
+            if "sec-dragon-marketing-team" not in profile or "Marketing Team" not in profile:
+                fail(f"{bot_id} must file under MARKETING TEAM")
+        for stale in STALE_MARKETING_IDS:
+            if (desktop / stale).exists():
+                fail(f"re-apply must clear stale Marketing stub {stale}")
+        if "copywriter" not in (result.get("removed") or []):
+            fail("deploy must report removed stub bots")
+        for group_id, expected in COS_ROSTERS.items():
+            deployed = bg.deploy_group(
+                group_id,
+                payload_root=ROOT,
+                install_root=tmp_path / f"install-{group_id}",
+                desktop_profiles_root=tmp_path / f"desktop-{group_id}",
+            )
+            ids = [b["id"] for b in deployed.get("bots") or []]
+            if ids != expected:
+                fail(f"deploy {group_id} must install {expected}, got {ids}")
+    print("OK  deploy full Cos rosters and replace stale Marketing stubs")
 
 
 def test_no_profiles_ui() -> None:
@@ -574,9 +833,12 @@ def main() -> int:
     test_list_from_github(bg)
     test_list_offline_cache_then_bundle(bg)
     test_deploy_group(bg)
+    test_deploy_files_named_ui_section(bg)
     test_export_reimport(bg)
     test_singular_toggle(bg)
     test_repo_catalog_converted()
+    test_bundled_team_rosters()
+    test_deploy_full_roster_replaces_stale(bg)
     test_no_profiles_ui()
     test_desktop_agent_untouched()
     test_customization_paths()

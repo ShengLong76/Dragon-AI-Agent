@@ -34,11 +34,26 @@ Bots stay **`needs_setup`** until required wizard steps **email + CRM + telephon
 ## Step 1 — Welcome
 
 - Launch **Dragon AI Agent Setup** from the Start Menu (or re-run `Onboard-Wizard.ps1`).
-- You can **Skip wizard**; bots remain `needs_setup` until you complete required connections later.
+- You can **Skip wizard**; bots remain `needs_setup` until you complete required connections later. Skipping still writes Grok / Grok Imagine defaults if the gateway config has no chat or image model yet.
 
 ---
 
-## Step 2 — Connect email
+## Step 2 — Default chat LLM and default image LLM
+
+Pick the models Dragon AI Agent should use. Product defaults (preselected):
+
+| Picker | Default | Written keys |
+|--------|---------|----------------|
+| **Default chat LLM** | Grok (xAI) `grok-4.6` | `principal.provider: xai`, `principal.model` |
+| **Default image LLM** | **Grok Imagine** `grok-imagine-image` | `image_gen.provider: xai`, `image_gen.model`, `image_gen.xai.model` |
+
+Also listed: `grok-4.5`, `grok-4.3`, and Imagine quality variants `grok-imagine-image-quality` / `grok-imagine-image-2.0`.
+
+Choices land in `%USERPROFILE%\.hermes-airmaze-embedded\config.yaml` (the Docker volume). This step does **not** ask for a new key — it reuses the xAI Grok login already on the PC (OAuth or `XAI_API_KEY`). After a change, restart the gateway if Edit profile → Generate still says no image model.
+
+---
+
+## Step 3 — Connect email
 
 Choose **Gmail**, **Outlook / Microsoft 365**, or **generic SMTP**.
 
@@ -52,7 +67,7 @@ Choose **Gmail**, **Outlook / Microsoft 365**, or **generic SMTP**.
 
 ---
 
-## Step 3 — Connect CRM (Vtiger)
+## Step 4 — Connect CRM (Vtiger)
 
 | Field | Notes |
 |-------|--------|
@@ -64,7 +79,7 @@ The wizard tries webservice **challenge + login**, then `listtypes` for Leads/Co
 
 ---
 
-## Step 4 — Connect telephony
+## Step 5 — Connect telephony
 
 | Field | Notes |
 |-------|--------|
@@ -76,7 +91,7 @@ Twilio must validate for the step to succeed; voice keys are stored even if you 
 
 ---
 
-## Step 5 — Optional integrations
+## Step 6 — Optional integrations
 
 - **Property data** — API base URL + key (Lead Sourcer enrichment)  
 - **Dialer** — API base URL + key + optional from-number  
@@ -85,7 +100,7 @@ Each step has **Skip for now**.
 
 ---
 
-## Step 6 — Review & finish
+## Step 7 — Review & finish
 
 The summary shows **connected / skipped / failed** only — no secret values. Finish writes connector placeholders and updates bot readiness:
 

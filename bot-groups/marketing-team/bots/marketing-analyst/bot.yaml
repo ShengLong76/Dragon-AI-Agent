@@ -1,0 +1,7 @@
+slug: marketing-analyst
+display_name: Marketing Analyst
+description: >
+  Measures campaign performance from numbers the operator provides. Does not invent metrics.
+
+browser:
+  headed: true

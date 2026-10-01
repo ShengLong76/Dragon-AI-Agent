@@ -5,11 +5,12 @@
 
 .DESCRIPTION
   This is the Desktop / Start Menu "Dragon AI Agent" entrypoint.
-  It requires Docker Desktop to already be running (fail-closed), brings the
+  It checks whether Docker is running and starts Docker Desktop in the
+  system tray when it is not (no Containers dashboard). Then it brings the
   gateway up, waits until the API is reachable on the Windows host, then
   launches the Dragon AI Agent desktop (on-disk Hermes.exe). Failures
-  (engine down, compose errors, missing client) show a MessageBox / popup
-  and exit non-zero. Pass -StartDocker to opt in to auto-starting Desktop.
+  (engine still down after a wait, compose errors, missing client) show a
+  MessageBox / popup and exit non-zero. -StartDocker is kept as an alias.
 
   The installed Desktop / Start Menu shortcut runs Start-DragonAI.vbs (wscript)
   so no PowerShell console flashes. Use this .ps1 directly for debugging
@@ -421,6 +422,45 @@ function Test-TcpOpen {
     }
 }
 
+function Set-DockerTrayOnlySettings {
+    $dir = Join-Path $env:APPDATA "Docker"
+    try {
+        if (-not (Test-Path -LiteralPath $dir)) {
+            New-Item -ItemType Directory -Force -Path $dir | Out-Null
+        }
+    } catch {
+        Write-LaunchLog "Could not create Docker settings dir: $($_.Exception.Message)" "WARN"
+        return
+    }
+    $patch = @{
+        openUIOnStartupDisabled = $true
+        OpenUIOnStartupDisabled = $true
+        startMinimized          = $true
+        minimizeToTray          = $true
+        displayedOnboarding     = $true
+    }
+    foreach ($name in @("settings.json", "settings-store.json")) {
+        $file = Join-Path $dir $name
+        try {
+            $obj = $null
+            if (Test-Path -LiteralPath $file) {
+                $raw = Get-Content -LiteralPath $file -Raw -ErrorAction Stop
+                if (-not [string]::IsNullOrWhiteSpace($raw)) {
+                    $obj = $raw | ConvertFrom-Json -ErrorAction Stop
+                }
+            }
+            if ($null -eq $obj) { $obj = [pscustomobject]@{} }
+            foreach ($k in $patch.Keys) {
+                $obj | Add-Member -MemberType NoteProperty -Name $k -Value $patch[$k] -Force
+            }
+            Set-Content -LiteralPath $file -Value ($obj | ConvertTo-Json -Depth 20) -Encoding UTF8
+            Write-LaunchLog "Patched Docker tray-only settings: $file"
+        } catch {
+            Write-LaunchLog "Could not patch $file : $($_.Exception.Message)" "WARN"
+        }
+    }
+}
+
 function Start-DockerIfNeeded {
     Fix-DockerPath
     if (Get-Command docker -ErrorAction SilentlyContinue) {
@@ -430,6 +470,7 @@ function Start-DockerIfNeeded {
     if (-not $exe) {
         return $false
     }
+    Set-DockerTrayOnlySettings
     Update-LaunchStatus "Starting Docker Desktop (system tray). This can take a minute..."
     try {
         Start-Process -FilePath $exe -WindowStyle Hidden -ErrorAction Stop
@@ -482,6 +523,15 @@ function Start-GatewayContainer {
     $data = Join-Path $env:USERPROFILE ".hermes-airmaze-embedded"
     if (-not (Test-Path $data)) { New-Item -ItemType Directory -Force -Path $data | Out-Null }
     $env:HERMES_EMBEDDED_DATA = $data
+    $applyModels = Join-Path $PSScriptRoot "Apply-GatewayModels.ps1"
+    if (Test-Path -LiteralPath $applyModels) {
+        try {
+            & $applyModels -Home $data -IfMissing | Out-Null
+            Write-LaunchLog "Applied default chat/image LLMs if gateway config was missing them"
+        } catch {
+            Write-LaunchLog "Gateway model defaults skipped: $($_.Exception.Message)" "WARN"
+        }
+    }
 
     if (-not (Test-DockerEngine)) {
         throw "Docker engine is not running (docker info failed). Start Docker Desktop from the system tray, wait until it is ready, then open Dragon AI Agent again."
@@ -560,6 +610,7 @@ function Sync-EmbeddedGatewayProfiles {
     New-Item -ItemType Directory -Force -Path $destRoot | Out-Null
     $n = 0
     Get-ChildItem -LiteralPath $srcRoot -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+        if ($_.Name -in @("default", "hermes")) { return }
         $dest = Join-Path $destRoot $_.Name
         New-Item -ItemType Directory -Force -Path $dest | Out-Null
         foreach ($name in @("SOUL.md", "bot.yaml", "profile.yaml", "config.yaml", "bot.meta.json")) {
@@ -693,6 +744,64 @@ function Test-OnboardingNeedsUi {
     }
 }
 
+function Exclude-DragonAIHermesBots {
+    $engine = Join-Path $PSScriptRoot "exclude_hermes_bot.py"
+    if (-not (Test-Path -LiteralPath $engine)) {
+        $engine = Join-Path $InstallRoot "scripts\airmaze\exclude_hermes_bot.py"
+    }
+    if (-not (Test-Path -LiteralPath $engine)) { return }
+    $desktop = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "hermes\profiles" } else { "" }
+    $embedded = if ($env:USERPROFILE) { Join-Path $env:USERPROFILE ".hermes-airmaze-embedded\profiles" } else { "" }
+    $py = Get-Command python3 -ErrorAction SilentlyContinue
+    if (-not $py) { $py = Get-Command python -ErrorAction SilentlyContinue }
+    if (-not $py) { return }
+    try {
+        & $py.Source $engine purge --desktop $desktop --embedded $embedded | Out-Null
+        Write-LaunchLog "Excluded leftover Hermes bot profiles (default/hermes)"
+    } catch {
+        Write-LaunchLog "Hermes exclude skipped: $($_.Exception.Message)" "WARN"
+    }
+}
+
+function Start-DragonAITeamsPicker {
+    $engine = Join-Path $PSScriptRoot "teams_picker.py"
+    if (-not (Test-Path -LiteralPath $engine)) {
+        $engine = Join-Path $InstallRoot "scripts\airmaze\teams_picker.py"
+    }
+    if (-not (Test-Path -LiteralPath $engine)) { return }
+    $py = Get-Command python3 -ErrorAction SilentlyContinue
+    if (-not $py) { $py = Get-Command python -ErrorAction SilentlyContinue }
+    if (-not $py) { return }
+    $desktop = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "hermes\profiles" } else { Join-Path $InstallRoot "hermes-profiles" }
+    $embedded = if ($env:USERPROFILE) { Join-Path $env:USERPROFILE ".hermes-airmaze-embedded\profiles" } else { "" }
+    $payload = $InstallRoot
+    $scriptTree = Join-Path $PSScriptRoot "..\.."
+    $cosMark = "bot-groups\marketing-team\bots\content-strategist\SOUL.md"
+    if (Test-Path -LiteralPath (Join-Path $scriptTree $cosMark)) {
+        $payload = (Resolve-Path -LiteralPath $scriptTree).Path
+    } elseif (-not (Test-Path -LiteralPath (Join-Path $payload $cosMark))) {
+        if (Test-Path -LiteralPath (Join-Path $payload "bot-groups\catalog.json")) {
+            # keep InstallRoot
+        } elseif (Test-Path -LiteralPath (Join-Path $scriptTree "bot-groups\catalog.json")) {
+            $payload = (Resolve-Path -LiteralPath $scriptTree).Path
+        }
+    }
+    try {
+        Start-Process -FilePath $py.Source -ArgumentList @(
+            $engine, "serve",
+            "--payload", $payload,
+            "--install", $InstallRoot,
+            "--desktop", $desktop,
+            "--embedded", $embedded,
+            "--host", "127.0.0.1",
+            "--port", "8653"
+        ) -WindowStyle Hidden -ErrorAction SilentlyContinue | Out-Null
+        Write-LaunchLog "Teams picker helper on http://127.0.0.1:8653/api/teams"
+    } catch {
+        Write-LaunchLog "Teams picker helper skipped: $($_.Exception.Message)" "WARN"
+    }
+}
+
 function Start-OnboardingIfNeeded {
     if ($NoWizard) { return }
     if (-not (Test-OnboardingNeedsUi)) { return }
@@ -722,7 +831,7 @@ function Get-LaunchPlan {
             "require desktop client (win-unpacked Hermes.exe on disk)",
             "overlay unpacked Electron UI chrome to Dragon AI Agent before launch",
             "launch Dragon AI Agent desktop only (not $DashboardUrl)",
-            "fail-closed if Docker engine is down (no auto-start unless -StartDocker)",
+            "start Docker Desktop in the tray when docker info fails (already running is a no-op)",
             "first-run Onboard-Wizard if welcome is still pending",
             "docker CLI stderr progress is not a terminating error",
             "Desktop Remote → $($script:DesktopServeUrl) (token mode; not :8642)",
@@ -755,6 +864,9 @@ function Invoke-Smoke {
         "SilentHost",
         "OpenDashboard",
         "StartDocker",
+        "Start-DockerIfNeeded",
+        "Set-DockerTrayOnlySettings",
+        "openUIOnStartupDisabled",
         "DebugConsole",
         "New-LaunchStatusForm",
         "Invoke-NativeDocker",
@@ -764,7 +876,10 @@ function Invoke-Smoke {
         "Set-EmbeddedDesktopRemoteConnection",
         "X-Hermes-Session-Token",
         "8650",
-        "Apply-DragonAIDesktopUiBranding"
+        "Apply-DragonAIDesktopUiBranding",
+        "Exclude-DragonAIHermesBots",
+        "teams_picker",
+        "8653"
     )
     foreach ($token in $required) {
         if ($text -notlike "*$token*") {
@@ -815,18 +930,16 @@ try {
 
     Update-LaunchStatus "Checking Docker..."
     Fix-DockerPath
-    $engineUp = (Get-Command docker -ErrorAction SilentlyContinue) -and (Test-DockerEngine)
-    if (-not $engineUp) {
-        if ($StartDocker) {
-            if (-not (Start-DockerIfNeeded)) {
-                throw "Docker Desktop did not become ready after -StartDocker. Start it from the system tray, wait until it is ready, then open Dragon AI Agent again."
-            }
-        } else {
-            throw "Docker Desktop is not running (engine unavailable). Start Docker Desktop from the system tray, wait until it is ready, then open Dragon AI Agent again. This launcher does not auto-start Docker unless you pass -StartDocker."
-        }
+    if ($StartDocker) {
+        Write-LaunchLog "StartDocker is the default launch path; starting Docker in the tray if needed"
+    }
+    if (-not (Start-DockerIfNeeded)) {
+        throw "Docker Desktop did not become ready. Start it from the system tray, wait until it is ready, then open Dragon AI Agent again."
     }
 
     Start-GatewayContainer -ComposePath $compose
+    Exclude-DragonAIHermesBots
+    Start-DragonAITeamsPicker
     try { Sync-EmbeddedGatewayProfiles | Out-Null } catch {
         Write-LaunchLog "Profile sync skipped: $($_.Exception.Message)" "WARN"
     }

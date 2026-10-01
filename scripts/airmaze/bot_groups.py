@@ -35,7 +35,59 @@ MANIFEST_NAME = "bot-group.json"
 LEGACY_MANIFEST_NAME = "profile.json"
 SETTINGS_NAME = "bot-group-settings.json"
 ACTIVE_NAME = "active-bot-group.json"
+UI_SECTIONS_NAME = "bot-ui-sections.json"
+UI_SECTION_MARK = "# dragon-ai-ui-section"
+UI_SECTION_PREFIX = "sec-dragon-"
 DEFAULT_TIMEOUT_SEC = 8
+STALE_TEAM_BOTS = {
+    "marketing-team": ("copywriter", "campaign-sequencer"),
+}
+CANONICAL_ROSTERS: dict[str, list[dict[str, str]]] = {
+    "marketing-team": [
+        {
+            "id": "content-strategist",
+            "title": "Content Strategist",
+            "description": "Owns narrative, positioning, and campaign briefs for the marketing desk.",
+        },
+        {
+            "id": "seo-specialist",
+            "title": "SEO Specialist",
+            "description": "Technical and on-page search work: briefs, audits, and keyword notes.",
+        },
+        {
+            "id": "social-media-manager",
+            "title": "Social Media Manager",
+            "description": "Channel calendar, posts, and community replies the operator approves.",
+        },
+        {
+            "id": "paid-media-specialist",
+            "title": "Paid Media Specialist",
+            "description": "Paid search and social plans. Does not spend real money without the operator.",
+        },
+        {
+            "id": "lifecycle-marketer",
+            "title": "Lifecycle Marketer",
+            "description": "Nurture, onboarding, and retention sequences after a campaign or signup.",
+        },
+        {
+            "id": "marketing-analyst",
+            "title": "Marketing Analyst",
+            "description": "Measures campaign performance from numbers the operator provides. Does not invent metrics.",
+        },
+    ],
+    "real-estate-cold-call-lead-refresher": [
+        {"id": "lead-sourcer", "title": "Lead Sourcer", "description": "Finds and refreshes outbound real-estate leads."},
+        {"id": "email-warmer", "title": "Email Warmer", "description": "CAN-SPAM warming sequences toward a TCPA consent form."},
+        {"id": "cold-call-script-writer", "title": "Cold Call Script Writer", "description": "Writes cold-call openers and talk tracks."},
+        {"id": "follow-up-sequencer", "title": "Follow-up Sequencer", "description": "Plans multi-touch follow-up sequences."},
+    ],
+    "trading-team": [
+        {"id": "market-researcher", "title": "Market Researcher", "description": "Summarizes public market context. Does not place orders."},
+        {"id": "trade-journal", "title": "Trade Journal", "description": "Logs discretionary trades. Not a broker."},
+        {"id": "risk-analyst", "title": "Risk Analyst", "description": "Flags concentration and sizing notes. Not a broker."},
+        {"id": "news-scanner", "title": "News Scanner", "description": "Summarizes public market news. Not investment advice."},
+    ],
+}
 
 
 class GitHubUnreachable(Exception):
@@ -101,6 +153,77 @@ def save_settings(install_root: Path | str, settings: dict[str, Any]) -> Path:
     return path
 
 
+def is_excluded_bot(bot_id: str, title: str = "", meta: dict[str, Any] | None = None) -> bool:
+    """Skip the stock Hermes bot. Consult exclude_hermes_bot when present."""
+    try:
+        from exclude_hermes_bot import is_excluded_profile  # noqa: WPS433
+    except ImportError:
+        here = str(Path(__file__).resolve().parent)
+        if here not in sys.path:
+            sys.path.insert(0, here)
+        try:
+            from exclude_hermes_bot import is_excluded_profile  # noqa: WPS433
+        except ImportError:
+            return str(bot_id or "").strip().lower() in {"default", "hermes"}
+    return is_excluded_profile(bot_id, title=title, meta=meta)
+
+
+def ui_section_id(group_id: str) -> str:
+    raw = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in str(group_id or "").strip().lower())
+    clean = "-".join(part for part in raw.split("-") if part) or "group"
+    return f"{UI_SECTION_PREFIX}{clean}"
+
+
+def ui_section_for_group(group: dict[str, Any]) -> dict[str, str]:
+    return {
+        "sectionId": ui_section_id(str(group.get("id") or "")),
+        "sectionName": str(
+            group.get("displayName") or group.get("name") or group.get("id") or ""
+        ).strip(),
+    }
+
+
+def _yaml_scalar(value: Any) -> str:
+    return json.dumps("" if value is None else str(value), ensure_ascii=False)
+
+
+def stamp_profile_ui_section(path: Path, bot: dict[str, Any], section: dict[str, str]) -> None:
+    """Write sectionId/sectionName so the BOTS pane files this bot (not UNASSIGNED)."""
+    text = path.read_text(encoding="utf-8") if path.is_file() else ""
+    if UI_SECTION_MARK in text:
+        text = text.split(UI_SECTION_MARK, 1)[0].rstrip() + "\n"
+    title = str(bot.get("title") or bot.get("id") or "")
+    description = str(bot.get("description") or "")
+    block = (
+        f"{UI_SECTION_MARK}\n"
+        f"ui_meta:\n"
+        f"  hermes-bots:\n"
+        f"    title: {_yaml_scalar(title)}\n"
+        f"    description: {_yaml_scalar(description)}\n"
+        f"    sectionId: {_yaml_scalar(section['sectionId'])}\n"
+        f"    sectionName: {_yaml_scalar(section['sectionName'])}\n"
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text((text.rstrip() + "\n\n" + block).lstrip("\n"), encoding="utf-8")
+
+
+def _record_ui_section(install: Path, section: dict[str, str]) -> None:
+    path = install / UI_SECTIONS_NAME
+    data: dict[str, Any] = {"key": "bot-sections-v1", "sections": []}
+    if path.is_file():
+        try:
+            loaded = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                data.update(loaded)
+        except (OSError, json.JSONDecodeError):
+            pass
+    sections = [s for s in (data.get("sections") or []) if isinstance(s, dict) and s.get("id") != section["sectionId"]]
+    sections.append({"id": section["sectionId"], "name": section["sectionName"]})
+    data["key"] = "bot-sections-v1"
+    data["sections"] = sections
+    _write_json(path, data)
+
+
 def _as_list(value: Any) -> list[Any]:
     if value is None:
         return []
@@ -156,6 +279,9 @@ def normalize_manifest(data: dict[str, Any]) -> dict[str, Any]:
         "version": str(data.get("version") or "1.0.0"),
         "bots": bots_out,
     }
+    display = str(data.get("displayName") or "").strip()
+    if display:
+        out["displayName"] = display
     if data.get("connectors"):
         out["connectors"] = data["connectors"]
     return out
@@ -182,14 +308,21 @@ def normalize_catalog(data: dict[str, Any]) -> dict[str, Any]:
     for raw in _as_list(entries):
         if not isinstance(raw, dict):
             continue
-        groups.append(
-            {
-                "id": str(raw.get("id") or ""),
-                "name": str(raw.get("name") or raw.get("displayName") or raw.get("id") or ""),
-                "departmentJob": str(raw.get("departmentJob") or raw.get("description") or ""),
-                "path": str(raw.get("path") or raw.get("id") or ""),
-            }
-        )
+        entry = {
+            "id": str(raw.get("id") or ""),
+            "name": str(raw.get("name") or raw.get("displayName") or raw.get("id") or ""),
+            "departmentJob": str(raw.get("departmentJob") or raw.get("description") or ""),
+            "path": str(raw.get("path") or raw.get("id") or ""),
+        }
+        display = str(raw.get("displayName") or "").strip()
+        if display:
+            entry["displayName"] = display
+        if raw.get("picker") is False:
+            entry["picker"] = False
+        tags = raw.get("tags")
+        if isinstance(tags, list) and tags:
+            entry["tags"] = [str(t) for t in tags if t]
+        groups.append(entry)
     return {
         "kind": KIND_CATALOG,
         "schemaVersion": int(data.get("schemaVersion") or SCHEMA_VERSION),
@@ -222,11 +355,192 @@ def _find_manifest(folder: Path) -> Path | None:
     return None
 
 
+def _title_from_id(bot_id: str) -> str:
+    special = {
+        "seo-specialist": "SEO Specialist",
+    }
+    if bot_id in special:
+        return special[bot_id]
+    return " ".join(part.capitalize() for part in str(bot_id).replace("_", "-").split("-") if part)
+
+
+def _disk_bot(folder: Path, bot_id: str) -> dict[str, Any]:
+    bot_dir = folder / "bots" / bot_id
+    soul = f"bots/{bot_id}/SOUL.md" if (bot_dir / "SOUL.md").is_file() else ""
+    config = f"bots/{bot_id}/bot.yaml" if (bot_dir / "bot.yaml").is_file() else ""
+    title = _title_from_id(bot_id)
+    description = ""
+    cfg = bot_dir / "bot.yaml"
+    if cfg.is_file():
+        for line in cfg.read_text(encoding="utf-8").splitlines():
+            if line.startswith("display_name:"):
+                title = line.split(":", 1)[1].strip().strip("'\"") or title
+            if line.startswith("description:"):
+                description = line.split(":", 1)[1].strip().strip(">'\"") or description
+    return {
+        "id": bot_id,
+        "title": title,
+        "description": description,
+        "tools": ["computer-use", "browser"],
+        "soul": soul,
+        "config": config,
+    }
+
+
+def _merge_disk_bots(folder: Path, group: dict[str, Any]) -> dict[str, Any]:
+    """Union bot-group.json with bots/ so a partial manifest cannot drop Cos's roster."""
+    bots_dir = folder / "bots"
+    by_id: dict[str, dict[str, Any]] = {}
+    for bot in group.get("bots") or []:
+        if isinstance(bot, dict) and bot.get("id"):
+            by_id[str(bot["id"])] = bot
+    if bots_dir.is_dir():
+        for child in sorted(bots_dir.iterdir()):
+            if not child.is_dir() or child.name.startswith("."):
+                continue
+            disk = _disk_bot(folder, child.name)
+            if child.name not in by_id:
+                by_id[child.name] = disk
+            else:
+                existing = by_id[child.name]
+                if not existing.get("soul"):
+                    existing["soul"] = disk["soul"]
+                if not existing.get("config"):
+                    existing["config"] = disk["config"]
+                if not existing.get("title"):
+                    existing["title"] = disk["title"]
+    ordered: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for bot in group.get("bots") or []:
+        bot_id = str(bot.get("id") or "")
+        if bot_id and bot_id in by_id and bot_id not in seen:
+            ordered.append(by_id[bot_id])
+            seen.add(bot_id)
+    for bot_id, bot in by_id.items():
+        if bot_id not in seen:
+            ordered.append(bot)
+    group["bots"] = ordered
+    return group
+
+
 def _load_group_folder(folder: Path) -> dict[str, Any]:
     manifest = _find_manifest(folder)
     if not manifest:
         raise FileNotFoundError(f"no {MANIFEST_NAME} in {folder}")
-    return normalize_manifest(_read_json(manifest))
+    return _ensure_canonical_roster(_merge_disk_bots(folder, normalize_manifest(_read_json(manifest))), folder)
+
+
+def _engine_bundle_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def _folder_roster_ids(folder: Path) -> list[str]:
+    manifest = _find_manifest(folder)
+    if not manifest:
+        return []
+    try:
+        group = _merge_disk_bots(folder, normalize_manifest(_read_json(manifest)))
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        return []
+    return [str(b.get("id")) for b in group.get("bots") or [] if b.get("id")]
+
+
+def _roster_score(folder: Path, group_id: str) -> tuple[int, int, int]:
+    ids = set(_folder_roster_ids(folder))
+    want = {str(b["id"]) for b in CANONICAL_ROSTERS.get(group_id, [])}
+    stale = set(STALE_TEAM_BOTS.get(group_id, ()))
+    return (len(ids & want), 0 if ids & stale and not (ids & want) else 1, len(ids))
+
+
+def _ensure_canonical_roster(group: dict[str, Any], folder: Path | None = None) -> dict[str, Any]:
+    """Replace Copywriter/Campaign Sequencer stubs with Cos's full pack."""
+    gid = str(group.get("id") or "")
+    want = CANONICAL_ROSTERS.get(gid)
+    if not want:
+        return group
+    stale = set(STALE_TEAM_BOTS.get(gid, ()))
+    by_id = {
+        str(b["id"]): b
+        for b in (group.get("bots") or [])
+        if isinstance(b, dict) and b.get("id") and b["id"] not in stale
+    }
+    ordered: list[dict[str, Any]] = []
+    for spec in want:
+        bot_id = spec["id"]
+        existing = by_id.get(bot_id, {})
+        soul = str(existing.get("soul") or f"bots/{bot_id}/SOUL.md")
+        config = str(existing.get("config") or f"bots/{bot_id}/bot.yaml")
+        if folder is not None and "\n" not in soul and not (folder / soul).is_file():
+            soul = (
+                f"# {spec['title']}\n\n"
+                f"You are **{spec['title']}**, part of {group.get('displayName') or group.get('name') or gid}.\n"
+                f"{spec.get('description') or ''}\n"
+            )
+        if folder is not None and "\n" not in config and not (folder / config).is_file():
+            config = (
+                f"slug: {bot_id}\n"
+                f"display_name: {spec['title']}\n"
+                f"description: {spec.get('description') or ''}\n"
+            )
+        ordered.append(
+            {
+                "id": bot_id,
+                "title": str(existing.get("title") or spec["title"]),
+                "description": str(existing.get("description") or spec.get("description") or ""),
+                "tools": list(existing.get("tools") or spec.get("tools") or ["computer-use", "browser"]),
+                "soul": soul,
+                "config": config,
+            }
+        )
+    group["bots"] = ordered
+    return group
+
+
+def _profile_belongs_to_group(dest: Path, group_id: str, section: dict[str, str]) -> bool:
+    meta_path = dest / "bot.meta.json"
+    if meta_path.is_file():
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, TypeError):
+            meta = {}
+        if isinstance(meta, dict):
+            if str(meta.get("bot_group_id") or "") == group_id:
+                return True
+            if str(meta.get("sectionId") or "") == section.get("sectionId"):
+                return True
+    profile = dest / "profile.yaml"
+    if profile.is_file():
+        text = profile.read_text(encoding="utf-8")
+        section_id = section.get("sectionId") or ""
+        if section_id and section_id in text:
+            return True
+    return False
+
+
+def _clear_stale_group_bots(
+    desktop: Path,
+    embedded: Path | None,
+    group_id: str,
+    keep_ids: set[str],
+    section: dict[str, str],
+) -> list[str]:
+    """Drop leftover stubs (e.g. Copywriter) when re-applying Cos's roster."""
+    removed: list[str] = []
+    roots = [desktop]
+    if embedded is not None:
+        roots.append(Path(embedded))
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for dest in list(root.iterdir()):
+            if not dest.is_dir() or dest.name in keep_ids:
+                continue
+            if not _profile_belongs_to_group(dest, group_id, section):
+                continue
+            shutil.rmtree(dest)
+            if dest.name not in removed:
+                removed.append(dest.name)
+    return removed
 
 
 def list_groups(
@@ -267,13 +581,16 @@ def list_groups(
 
 def _candidate_group_dirs(group_id: str, rel: str, payload: Path, install: Path) -> list[Path]:
     rel_os = rel.replace("/", "/")
+    engine = _engine_bundle_root()
     return [
+        engine / REPO_PATH / rel_os,
+        engine / REPO_PATH / group_id,
         payload / REPO_PATH / rel_os,
-        install / REPO_PATH / "cache" / rel_os,
+        payload / REPO_PATH / group_id,
         install / REPO_PATH / "imported" / group_id,
+        install / REPO_PATH / "cache" / rel_os,
         payload / "profiles" / rel_os,
         install / REPO_PATH / "applied" / group_id,
-        payload / REPO_PATH / group_id,
         payload / "profiles" / group_id,
     ]
 
@@ -343,9 +660,28 @@ def resolve_group_dir(
     payload = Path(payload_root)
     install = Path(install_root)
     rel = _catalog_rel(group_id, payload, install)
-    for folder in _candidate_group_dirs(group_id, rel, payload, install):
-        if _find_manifest(folder):
-            return folder
+    found = [folder for folder in _candidate_group_dirs(group_id, rel, payload, install) if _find_manifest(folder)]
+
+    def _is_under(path: Path, root: Path) -> bool:
+        try:
+            path.resolve().relative_to(root.resolve())
+            return True
+        except ValueError:
+            return False
+
+    def _is_stale(folder: Path) -> bool:
+        ids = set(_folder_roster_ids(folder))
+        want = {str(item["id"]) for item in CANONICAL_ROSTERS.get(group_id, [])}
+        stale = set(STALE_TEAM_BOTS.get(group_id, ()))
+        return bool(stale) and bool(ids & stale) and not (ids & want)
+
+    payload_found = [folder for folder in found if _is_under(folder, payload)]
+    if payload_found and not _is_stale(payload_found[0]):
+        return payload_found[0]
+    if found:
+        if group_id in CANONICAL_ROSTERS:
+            return max(found, key=lambda folder: _roster_score(folder, group_id))
+        return found[0]
     if fetcher is not None:
         return _fetch_group_tree(group_id, rel, install, fetcher, repo, ref)
     try:
@@ -374,7 +710,7 @@ def _copy_bot_files(group_dir: Path, bot: dict[str, Any], dest: Path) -> None:
         (dest / "profile.yaml").write_text(str(cfg_rel), encoding="utf-8")
 
 
-def _write_bot_meta(dest: Path, bot: dict[str, Any], group_id: str) -> None:
+def _write_bot_meta(dest: Path, bot: dict[str, Any], group_id: str, section: dict[str, str] | None = None) -> None:
     meta = {
         "id": bot["id"],
         "title": bot["title"],
@@ -383,6 +719,9 @@ def _write_bot_meta(dest: Path, bot: dict[str, Any], group_id: str) -> None:
         "tools": list(bot.get("tools") or []),
         "bot_group_id": group_id,
     }
+    if section:
+        meta["sectionId"] = section["sectionId"]
+        meta["sectionName"] = section["sectionName"]
     _write_json(dest / "bot.meta.json", meta)
 
 
@@ -451,25 +790,44 @@ def deploy_group(
         group["id"] = group_id
     created: list[str] = []
     updated: list[str] = []
+    skipped: list[str] = []
+    section = ui_section_for_group(group)
     for bot in group["bots"]:
         bot_id = bot.get("id")
         if not bot_id:
             continue
+        if is_excluded_bot(bot_id, title=str(bot.get("title") or "")):
+            skipped.append(bot_id)
+            continue
         dest = desktop / bot_id
         existed = dest.is_dir() and any(dest.iterdir())
         _copy_bot_files(group_dir, bot, dest)
-        _write_bot_meta(dest, bot, group["id"])
+        stamp_profile_ui_section(dest / "profile.yaml", bot, section)
+        if (dest / "bot.yaml").is_file():
+            stamp_profile_ui_section(dest / "bot.yaml", bot, section)
+        _write_bot_meta(dest, bot, group["id"], section)
         _mirror_embedded(desktop, bot_id, Path(embedded_profiles_root) if embedded_profiles_root else None)
         (updated if existed else created).append(bot_id)
+    keep_ids = {b["id"] for b in group["bots"] if b.get("id") and b["id"] not in skipped}
+    removed = _clear_stale_group_bots(
+        desktop,
+        Path(embedded_profiles_root) if embedded_profiles_root else None,
+        group["id"],
+        keep_ids,
+        section,
+    )
     _copy_connectors(group_dir, group, install)
     _keep_applied_copy(group_dir, group, install)
+    _record_ui_section(install, section)
+    applied_bots = [b["id"] for b in group["bots"] if b.get("id") and b["id"] not in skipped]
     active = {
         "botGroupId": group["id"],
         "name": group["name"],
         "departmentJob": group["departmentJob"],
         "appliedAt": datetime.now(timezone.utc).isoformat(),
-        "bots": [b["id"] for b in group["bots"] if b.get("id")],
+        "bots": applied_bots,
         "desktopRoot": str(desktop),
+        "uiSection": section,
     }
     _write_json(install / ACTIVE_NAME, active)
     # One-time bridge for the setup wizard until it reads botGroupId.
@@ -491,7 +849,10 @@ def deploy_group(
         "departmentJob": group["departmentJob"],
         "created": created,
         "updated": updated,
-        "bots": group["bots"],
+        "skipped": skipped,
+        "removed": removed,
+        "uiSection": section,
+        "bots": [b for b in group["bots"] if b.get("id") and b["id"] not in skipped],
     }
 
 
