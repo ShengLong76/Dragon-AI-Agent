@@ -5,6 +5,7 @@ All notable changes to Dragon AI Agent (packaging/distribution) are documented h
 ## [Unreleased]
 
 ### Added
+- **First-run default chat + image LLMs.** Setup wizard step after Welcome (and launch if missing) writes Grok (xAI) `grok-4.6` and **Grok Imagine** `grok-imagine-image` into `%USERPROFILE%\\.hermes-airmaze-embedded\\config.yaml` (`principal` + `image_gen`). Reuses existing xAI OAuth / `XAI_API_KEY`. Check: `python3 scripts/airmaze/Test-GatewayModels.py`. Design: `docs/airmaze/FIRST_RUN_MODELS.md`.
 - **In-app Teams picker.** Sidebar **Teams** (and first-run **Choose a Team**) lists Personal Assistant, Real Estate Lead Gen, Marketing Team, and Trading Team. One click apply. Import from file stays for custom zips. Helper is loopback `127.0.0.1:8653` (not Bot Screen `:8650`). Check: `python3 scripts/airmaze/Test-TeamsPicker.py`.
 - **Imported bot groups file into a named BOTS section.** Deploy / import / Apply-Profile stamps `profile.yaml` `ui_meta.hermes-bots.sectionId` + `sectionName` (stable `sec-dragon-<group-id>`, label = pack display name) so Email Warmer and friends sit under “Real Estate Lead Gen” (or Marketing Team, …) instead of **UNASSIGNED**. Re-apply updates the same section. Check: `python3 scripts/airmaze/Test-BotGroups.py`. Design: `docs/airmaze/BOT_GROUPS.md`, `docs/airmaze/PRODUCT_BRANDING.md`.
 - **Sidebar header brand lockup.** Overlay injects the navy dragon + **Dragon AI** above SESSIONS / BOTS (accessible name Dragon AI Agent). No Electron rebuild.

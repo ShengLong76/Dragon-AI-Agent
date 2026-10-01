@@ -482,6 +482,15 @@ function Start-GatewayContainer {
     $data = Join-Path $env:USERPROFILE ".hermes-airmaze-embedded"
     if (-not (Test-Path $data)) { New-Item -ItemType Directory -Force -Path $data | Out-Null }
     $env:HERMES_EMBEDDED_DATA = $data
+    $applyModels = Join-Path $PSScriptRoot "Apply-GatewayModels.ps1"
+    if (Test-Path -LiteralPath $applyModels) {
+        try {
+            & $applyModels -Home $data -IfMissing | Out-Null
+            Write-LaunchLog "Applied default chat/image LLMs if gateway config was missing them"
+        } catch {
+            Write-LaunchLog "Gateway model defaults skipped: $($_.Exception.Message)" "WARN"
+        }
+    }
 
     if (-not (Test-DockerEngine)) {
         throw "Docker engine is not running (docker info failed). Start Docker Desktop from the system tray, wait until it is ready, then open Dragon AI Agent again."

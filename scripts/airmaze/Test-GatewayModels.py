@@ -152,8 +152,13 @@ def test_quality_variant_and_merge(gm) -> None:
         kept = _mapping(existing.read_text(encoding="utf-8"))
         if (kept.get("principal") or {}).get("model") != "gpt-4o":
             fail("--if-missing must not overwrite an existing principal.model")
-        if skipped.get("wrote") is True:
-            fail("if-missing on a complete-enough config should not report wrote=true")
+        if (kept.get("image_gen") or {}).get("provider") != "xai":
+            fail("--if-missing must still fill a missing image_gen block")
+        if skipped.get("wrote") is not True:
+            fail("if-missing should write when image_gen is absent")
+        noop = gm.apply_models(home, overwrite=False)
+        if noop.get("wrote") is True:
+            fail("if-missing on a complete config must not write again")
         gm.apply_models(
             home,
             chat_model="grok-4.3",

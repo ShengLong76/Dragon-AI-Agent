@@ -99,11 +99,12 @@ Singular import/export of one bot is an optional toggle (`allowSingularBotImport
 After bot group deploy, the installer launches **Dragon AI Agent Setup** (`Onboard-Wizard.ps1`):
 
 1. Welcome  
-2. Connect email (Gmail / Outlook / SMTP + verify)  
-3. Connect CRM (Vtiger webservice)  
-4. Connect telephony (Twilio + Bland/Vapi)  
-5. Optional: property data, dialer  
-6. Review & finish  
+2. Default chat LLM + default image LLM (Grok / **Grok Imagine**; writes Hermes `principal` + `image_gen`)  
+3. Connect email (Gmail / Outlook / SMTP + verify)  
+4. Connect CRM (Vtiger webservice)  
+5. Connect telephony (Twilio + Bland/Vapi)  
+6. Optional: property data, dialer  
+7. Review & finish  
 
 Secrets are stored with **Windows DPAPI** under `%LOCALAPPDATA%\DragonAIAgent\onboarding\secrets\` — never in plaintext JSON. Real Estate bots remain **`needs_setup`** until email + CRM + telephony succeed.
 

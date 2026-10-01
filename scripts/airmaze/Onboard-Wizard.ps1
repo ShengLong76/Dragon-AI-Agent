@@ -4,7 +4,7 @@
   Dragon AI Agent first-run onboarding wizard (WinForms or console fallback).
 
 .DESCRIPTION
-  Steps: Welcome → Email → CRM → Telephony → Optional integrations → Review.
+  Steps: Welcome → Models (chat + image LLM) → Email → CRM → Telephony → Optional integrations → Review.
   Secrets via DragonAI-SecureStore.ps1 (DPAPI). Progress resumes at first incomplete step.
 #>
 [CmdletBinding()]
@@ -126,11 +126,43 @@ function Set-NonSecret {
     }
 }
 
+function Get-EmbeddedHermesHome {
+    if ($env:HERMES_EMBEDDED_DATA) { return [string]$env:HERMES_EMBEDDED_DATA }
+    return (Join-Path $env:USERPROFILE ".hermes-airmaze-embedded")
+}
+
+function Invoke-ApplyGatewayModels {
+    param(
+        [string]$Chat = "grok-4.6",
+        [string]$Image = "grok-imagine-image",
+        [switch]$IfMissing
+    )
+    $apply = Join-Path $scriptDir "Apply-GatewayModels.ps1"
+    if (-not (Test-Path -LiteralPath $apply)) {
+        $apply = Join-Path $InstallRoot "scripts\airmaze\Apply-GatewayModels.ps1"
+    }
+    if (-not (Test-Path -LiteralPath $apply)) {
+        Write-WizardLog "Apply-GatewayModels.ps1 missing; model defaults not written" "WARN"
+        return $false
+    }
+    $home = Get-EmbeddedHermesHome
+    $applyArgs = @("-Home", $home, "-Chat", $Chat, "-Image", $Image)
+    if ($IfMissing) { $applyArgs += "-IfMissing" }
+    try {
+        & $apply @applyArgs | Out-Null
+        Write-WizardLog "Applied gateway models chat=$Chat image=$Image ifMissing=$IfMissing home=$home"
+        return ($LASTEXITCODE -eq 0)
+    } catch {
+        Write-WizardLog "Apply-GatewayModels failed: $($_.Exception.Message)" "WARN"
+        return $false
+    }
+}
+
 function Get-FirstIncompleteStep {
     param($Progress)
     if ($Force) { return "welcome" }
     if ($Progress.skipped) { return "done" }
-    $order = @("welcome", "email", "crm", "telephony", "property_data", "dialer", "review")
+    $order = @("welcome", "models", "email", "crm", "telephony", "property_data", "dialer", "review")
     foreach ($s in $order) {
         $v = Get-StepValue -Progress $Progress -Name $s
         if ($v -ne "success" -and $v -ne "skipped") { return $s }
@@ -375,7 +407,7 @@ function Invoke-ConsoleWizard {
     Write-Host ""
 
     $start = Get-FirstIncompleteStep -Progress $Progress
-    if ($SkipWelcome -and $start -eq "welcome") { $start = "email" }
+    if ($SkipWelcome -and $start -eq "welcome") { $start = "models" }
 
     # WELCOME
     if ($start -eq "welcome" -or $Force) {
@@ -388,6 +420,7 @@ function Invoke-ConsoleWizard {
             $Progress.profileId = $ProfId
             Set-StepValue $Progress "welcome" "skipped"
             Save-DragonAIOnboardingProgress $Progress
+            Invoke-ApplyGatewayModels -IfMissing | Out-Null
             Update-DragonAIBotsFromProgress -ProfileId $ProfId -Progress $Progress | Out-Null
             Write-WizardLog "Wizard skipped by user"
             Write-Host "Wizard skipped. Bots remain needs_setup until you complete required steps."
@@ -397,6 +430,40 @@ function Invoke-ConsoleWizard {
         $Progress.profileId = $ProfId
         $Progress.skipped = $false
         Save-DragonAIOnboardingProgress $Progress
+        $start = "models"
+    }
+
+    # MODELS (default chat + image LLM)
+    if ($start -eq "models" -or $Force) {
+        if ((Get-StepValue $Progress "models") -ne "success" -or $Force) {
+            Write-Host ""
+            Write-Host "--- Default chat LLM and default image LLM ---"
+            Write-Host "Dragon AI Agent uses the xAI Grok login already on this PC (OAuth or XAI_API_KEY). This step does not ask for a new key."
+            Write-Host "Chat:  [1] Grok (xAI) grok-4.6  [2] grok-4.5  [3] grok-4.3  [S] Skip (write defaults if missing)"
+            $chatChoice = Read-Host "Default chat LLM"
+            Write-Host "Image: [1] Grok Imagine grok-imagine-image  [2] grok-imagine-image-quality  [3] grok-imagine-image-2.0  [S] Skip"
+            $imgChoice = Read-Host "Default image LLM"
+            if ($chatChoice -match '^[Ss]' -and $imgChoice -match '^[Ss]') {
+                Invoke-ApplyGatewayModels -IfMissing | Out-Null
+                Set-StepValue $Progress "models" "skipped"
+            } else {
+                $chat = switch ($chatChoice) {
+                    "2" { "grok-4.5" }
+                    "3" { "grok-4.3" }
+                    default { "grok-4.6" }
+                }
+                $image = switch ($imgChoice) {
+                    "2" { "grok-imagine-image-quality" }
+                    "3" { "grok-imagine-image-2.0" }
+                    default { "grok-imagine-image" }
+                }
+                Invoke-ApplyGatewayModels -Chat $chat -Image $image | Out-Null
+                Set-NonSecret $Progress "chat_model" $chat
+                Set-NonSecret $Progress "image_model" $image
+                Set-StepValue $Progress "models" "success"
+            }
+            Save-DragonAIOnboardingProgress $Progress
+        }
         $start = "email"
     }
 
@@ -580,6 +647,7 @@ function Invoke-ConsoleWizard {
     Write-Host ""
     Write-Host "--- Review (no secrets shown) ---"
     Show-ConsoleStatus "Welcome" (Get-StepValue $Progress "welcome")
+    Show-ConsoleStatus "Models" (Get-StepValue $Progress "models")
     Show-ConsoleStatus "Email" (Get-StepValue $Progress "email")
     Show-ConsoleStatus "CRM" (Get-StepValue $Progress "crm")
     Show-ConsoleStatus "Telephony" (Get-StepValue $Progress "telephony")
@@ -653,6 +721,7 @@ function Update-StatusStrip {
     $Panel.Controls.Clear()
     $items = @(
         @{ n = "Welcome"; k = "welcome" },
+        @{ n = "Models"; k = "models" },
         @{ n = "Email"; k = "email" },
         @{ n = "CRM"; k = "crm" },
         @{ n = "Phone"; k = "telephony" },
@@ -691,7 +760,7 @@ function Invoke-WinFormsWizard {
 
     $script:WizResult = 0
     $script:CurrentStep = Get-FirstIncompleteStep -Progress $Progress
-    if ($SkipWelcome -and $script:CurrentStep -eq "welcome") { $script:CurrentStep = "email" }
+    if ($SkipWelcome -and $script:CurrentStep -eq "welcome") { $script:CurrentStep = "models" }
     if ($Force) { $script:CurrentStep = "welcome" }
 
     $form = New-Object Windows.Forms.Form
@@ -786,7 +855,7 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
             $Progress.skipped = $false
             Save-DragonAIOnboardingProgress $Progress
             Update-DragonAIBotsFromProgress -ProfileId $ProfId -Progress $Progress | Out-Null
-            $script:CurrentStep = "email"
+            $script:CurrentStep = "models"
             Show-CurrentStep
         })
         $btnSkip.Add_Click({
@@ -794,11 +863,80 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
             $Progress.profileId = $ProfId
             Set-StepValue $Progress "welcome" "skipped"
             Save-DragonAIOnboardingProgress $Progress
+            Invoke-ApplyGatewayModels -IfMissing | Out-Null
             Update-DragonAIBotsFromProgress -ProfileId $ProfId -Progress $Progress | Out-Null
             Write-WizardLog "Wizard skipped (WinForms)"
             $script:WizResult = 0
             $form.Close()
         })
+    }
+
+    function Show-StepModels {
+        Clear-Content
+        Update-StatusStrip $statusStrip $Progress
+        $content.Controls.Add((New-BrandLabel -Text "Default chat LLM and image LLM" -Location (New-Object Drawing.Point(40, 16)) -Width 620 -Height 28 -Title))
+        $content.Controls.Add((New-BrandLabel -Text "Dragon AI Agent uses the xAI Grok login already on this PC (OAuth or XAI_API_KEY). This step does not ask for a new key." -Location (New-Object Drawing.Point(40, 52)) -Width 620 -Height 40 -Muted))
+
+        $content.Controls.Add((New-BrandLabel -Text "Default chat LLM" -Location (New-Object Drawing.Point(40, 104)) -Width 240 -Height 20 -Muted))
+        $cbChat = New-Object Windows.Forms.ComboBox
+        $cbChat.DropDownStyle = [Windows.Forms.ComboBoxStyle]::DropDownList
+        $cbChat.Location = New-Object Drawing.Point(40, 126)
+        $cbChat.Size = New-Object Drawing.Size(400, 28)
+        $cbChat.BackColor = [System.Drawing.Color]::FromArgb(50, 50, 58)
+        $cbChat.ForeColor = $script:BrandText
+        [void]$cbChat.Items.Add("Grok (xAI) — grok-4.6")
+        [void]$cbChat.Items.Add("Grok (xAI) — grok-4.5")
+        [void]$cbChat.Items.Add("Grok (xAI) — grok-4.3")
+        $cbChat.SelectedIndex = 0
+        $content.Controls.Add($cbChat)
+
+        $content.Controls.Add((New-BrandLabel -Text "Default image LLM" -Location (New-Object Drawing.Point(40, 168)) -Width 240 -Height 20 -Muted))
+        $cbImage = New-Object Windows.Forms.ComboBox
+        $cbImage.DropDownStyle = [Windows.Forms.ComboBoxStyle]::DropDownList
+        $cbImage.Location = New-Object Drawing.Point(40, 190)
+        $cbImage.Size = New-Object Drawing.Size(400, 28)
+        $cbImage.BackColor = [System.Drawing.Color]::FromArgb(50, 50, 58)
+        $cbImage.ForeColor = $script:BrandText
+        [void]$cbImage.Items.Add("Grok Imagine — grok-imagine-image")
+        [void]$cbImage.Items.Add("Grok Imagine (Quality) — grok-imagine-image-quality")
+        [void]$cbImage.Items.Add("Grok Imagine 2.0 — grok-imagine-image-2.0")
+        $cbImage.SelectedIndex = 0
+        $content.Controls.Add($cbImage)
+
+        $content.Controls.Add((New-BrandLabel -Text "Writes into the embedded gateway config so chat and profile Generate work. Restart the gateway if Generate still says no image model." -Location (New-Object Drawing.Point(40, 232)) -Width 620 -Height 40 -Muted))
+
+        $btnContinue = New-BrandButton -Text "Continue" -Location (New-Object Drawing.Point(40, 300)) -Size (New-Object Drawing.Size(140, 36)) -Primary
+        $btnSkip = New-BrandButton -Text "Skip for now" -Location (New-Object Drawing.Point(200, 300)) -Size (New-Object Drawing.Size(140, 36))
+        $content.Controls.Add($btnContinue)
+        $content.Controls.Add($btnSkip)
+
+        $btnContinue.Add_Click({
+            $chat = switch ($cbChat.SelectedIndex) {
+                1 { "grok-4.5" }
+                2 { "grok-4.3" }
+                default { "grok-4.6" }
+            }
+            $image = switch ($cbImage.SelectedIndex) {
+                1 { "grok-imagine-image-quality" }
+                2 { "grok-imagine-image-2.0" }
+                default { "grok-imagine-image" }
+            }
+            $msgLabel.Text = "Writing Dragon AI Agent model defaults..."
+            Invoke-ApplyGatewayModels -Chat $chat -Image $image | Out-Null
+            Set-NonSecret $Progress "chat_model" $chat
+            Set-NonSecret $Progress "image_model" $image
+            Set-StepValue $Progress "models" "success"
+            Save-DragonAIOnboardingProgress $Progress
+            $script:CurrentStep = "email"
+            Show-CurrentStep
+        }.GetNewClosure())
+        $btnSkip.Add_Click({
+            Invoke-ApplyGatewayModels -IfMissing | Out-Null
+            Set-StepValue $Progress "models" "skipped"
+            Save-DragonAIOnboardingProgress $Progress
+            $script:CurrentStep = "email"
+            Show-CurrentStep
+        }.GetNewClosure())
     }
 
     function Show-StepEmail {
@@ -1093,6 +1231,7 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
         $y = 90
         foreach ($it in @(
             @{ n = "Welcome"; k = "welcome" },
+            @{ n = "Models"; k = "models" },
             @{ n = "Email"; k = "email" },
             @{ n = "CRM"; k = "crm" },
             @{ n = "Telephony"; k = "telephony" },
@@ -1136,6 +1275,7 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
     function Show-CurrentStep {
         switch ($script:CurrentStep) {
             "welcome"       { Show-StepWelcome }
+            "models"        { Show-StepModels }
             "email"         { Show-StepEmail }
             "crm"           { Show-StepCrm }
             "telephony"     { Show-StepTelephony }
@@ -1165,7 +1305,7 @@ if ([string]::IsNullOrWhiteSpace([string]$Progress.profileId)) {
 if ($Force) {
     # reset steps but keep nonSecret optional
     $Progress.skipped = $false
-    foreach ($s in @("welcome","email","crm","telephony","property_data","dialer","review")) {
+    foreach ($s in @("welcome","models","email","crm","telephony","property_data","dialer","review")) {
         Set-StepValue $Progress $s "pending"
     }
     Save-DragonAIOnboardingProgress $Progress
