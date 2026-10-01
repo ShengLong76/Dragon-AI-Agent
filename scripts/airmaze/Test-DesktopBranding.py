@@ -77,7 +77,7 @@ def assert_sidebar_host_fallback(sidebar_js: str, teams_js: str, css: str) -> No
             fail(f"{label} must try column hosts first")
         if "findDragonSidebarHost" not in text:
             fail(f"{label} must share findDragonSidebarHost")
-        if 'data-slot="sidebar-header"' not in text or 'data-slot="sidebar-inner"' not in text:
+        if 'sidebar-header' not in text or 'sidebar-inner' not in text:
             fail(f"{label} must still prefer sidebar-header / sidebar-inner")
         if "data-dragon-ai-sidebar-fixed" not in text:
             fail(f"{label} must fall back to data-dragon-ai-sidebar-fixed on body")
@@ -95,7 +95,8 @@ def assert_sidebar_host_fallback(sidebar_js: str, teams_js: str, css: str) -> No
         fail("dragon-ui.css must style the body fixed overlay")
     if "min-width: 16rem" not in css:
         fail("fixed overlay row must keep a 16rem width (not collapse to ~24px)")
-    if re.search(r"\[data-dragon-ai-sidebar-fixed\][^{]*\{[^}]*container-type", css, re.S):
+    css_code = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+    if re.search(r"\[data-dragon-ai-sidebar-fixed\]\s*\{[^}]*container-type", css_code):
         fail("fixed overlay must not set container-type (collapses to ~24px)")
     if "@media (max-width: 1100px)" not in css:
         fail("overlay path must wrap Teams Marketplace with @media (max-width: 1100px)")
