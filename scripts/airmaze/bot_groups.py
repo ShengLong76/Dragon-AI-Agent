@@ -496,25 +496,117 @@ def _ensure_canonical_roster(group: dict[str, Any], folder: Path | None = None) 
     return group
 
 
-def _profile_belongs_to_group(dest: Path, group_id: str, section: dict[str, str]) -> bool:
+PROTECTED_PROFILE_IDS = frozenset({"personal-assistant", "default", "hermes"})
+
+
+def _read_profile_meta(dest: Path) -> dict[str, Any]:
     meta_path = dest / "bot.meta.json"
-    if meta_path.is_file():
+    if not meta_path.is_file():
+        return {}
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, TypeError):
+        return {}
+    return meta if isinstance(meta, dict) else {}
+
+
+def _profile_title(dest: Path) -> str:
+    meta = _read_profile_meta(dest)
+    for key in ("title", "display_name", "displayName"):
+        if meta.get(key):
+            return str(meta[key])
+    for name in ("bot.yaml", "profile.yaml", "config.yaml"):
+        path = dest / name
+        if not path.is_file():
+            continue
         try:
-            meta = json.loads(meta_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError, TypeError):
-            meta = {}
-        if isinstance(meta, dict):
-            if str(meta.get("bot_group_id") or "") == group_id:
-                return True
-            if str(meta.get("sectionId") or "") == section.get("sectionId"):
-                return True
-    profile = dest / "profile.yaml"
-    if profile.is_file():
-        text = profile.read_text(encoding="utf-8")
-        section_id = section.get("sectionId") or ""
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            if line.startswith("display_name:"):
+                return line.split(":", 1)[1].strip().strip("'\"")
+    return dest.name
+
+
+def _profile_belongs_to_group(dest: Path, group_id: str, section: dict[str, str]) -> bool:
+    meta = _read_profile_meta(dest)
+    if str(meta.get("bot_group_id") or "") == group_id:
+        return True
+    if str(meta.get("sectionId") or "") == section.get("sectionId"):
+        return True
+    want_name = str(section.get("sectionName") or "").strip().lower()
+    if want_name and str(meta.get("sectionName") or "").strip().lower() == want_name:
+        return True
+    section_id = section.get("sectionId") or ""
+    for name in ("profile.yaml", "bot.yaml", "config.yaml"):
+        path = dest / name
+        if not path.is_file():
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
         if section_id and section_id in text:
             return True
+        if want_name and section.get("sectionName") and str(section["sectionName"]) in text:
+            return True
     return False
+
+
+def _is_known_stale_bot(dest: Path, group_id: str) -> bool:
+    stale = {str(item).strip().lower() for item in STALE_TEAM_BOTS.get(group_id, ())}
+    if dest.name.strip().lower() in stale:
+        return True
+    title = _profile_title(dest).strip().lower()
+    slug = title.replace(" ", "-").replace("_", "-")
+    return bool(stale) and (title in stale or slug in stale)
+
+
+def _should_remove_group_bot(
+    dest: Path,
+    group_id: str,
+    keep_ids: set[str],
+    section: dict[str, str],
+) -> bool:
+    if dest.name in keep_ids or dest.name.strip().lower() in PROTECTED_PROFILE_IDS:
+        return False
+    if _is_known_stale_bot(dest, group_id):
+        return True
+    return _profile_belongs_to_group(dest, group_id, section)
+
+
+def _prune_pack_bot_dirs(folder: Path, keep_ids: set[str], stale_ids: set[str]) -> list[str]:
+    removed: list[str] = []
+    bots_dir = folder / "bots"
+    if not bots_dir.is_dir():
+        return removed
+    for child in list(bots_dir.iterdir()):
+        if not child.is_dir():
+            continue
+        if child.name in keep_ids:
+            continue
+        if child.name in stale_ids or child.name not in keep_ids:
+            shutil.rmtree(child)
+            if child.name not in removed:
+                removed.append(child.name)
+    return removed
+
+
+def _prune_stale_catalog_bots(install: Path, group_id: str, keep_ids: set[str]) -> list[str]:
+    stale = set(STALE_TEAM_BOTS.get(group_id, ()))
+    removed: list[str] = []
+    rel = group_id
+    for folder in (
+        install / REPO_PATH / "applied" / group_id,
+        install / REPO_PATH / group_id,
+        install / REPO_PATH / "cache" / rel,
+        install / REPO_PATH / "imported" / group_id,
+    ):
+        for name in _prune_pack_bot_dirs(folder, keep_ids, stale):
+            if name not in removed:
+                removed.append(name)
+    return removed
 
 
 def _clear_stale_group_bots(
@@ -523,6 +615,7 @@ def _clear_stale_group_bots(
     group_id: str,
     keep_ids: set[str],
     section: dict[str, str],
+    install: Path | None = None,
 ) -> list[str]:
     """Drop leftover stubs (e.g. Copywriter) when re-applying Cos's roster."""
     removed: list[str] = []
@@ -535,11 +628,15 @@ def _clear_stale_group_bots(
         for dest in list(root.iterdir()):
             if not dest.is_dir() or dest.name in keep_ids:
                 continue
-            if not _profile_belongs_to_group(dest, group_id, section):
+            if not _should_remove_group_bot(dest, group_id, keep_ids, section):
                 continue
             shutil.rmtree(dest)
             if dest.name not in removed:
                 removed.append(dest.name)
+    if install is not None:
+        for name in _prune_stale_catalog_bots(Path(install), group_id, keep_ids):
+            if name not in removed:
+                removed.append(name)
     return removed
 
 
@@ -749,10 +846,16 @@ def _copy_connectors(group_dir: Path, group: dict[str, Any], install: Path) -> N
 
 def _keep_applied_copy(group_dir: Path, group: dict[str, Any], install: Path) -> Path:
     applied = install / REPO_PATH / "applied" / group["id"]
-    applied.mkdir(parents=True, exist_ok=True)
     if group_dir.resolve() != applied.resolve():
-        shutil.copytree(group_dir, applied, dirs_exist_ok=True)
+        if applied.exists():
+            shutil.rmtree(applied)
+        shutil.copytree(group_dir, applied)
+    else:
+        applied.mkdir(parents=True, exist_ok=True)
     _write_json(applied / MANIFEST_NAME, group)
+    keep_ids = {str(bot["id"]) for bot in group.get("bots") or [] if isinstance(bot, dict) and bot.get("id")}
+    stale = set(STALE_TEAM_BOTS.get(str(group.get("id") or ""), ()))
+    _prune_pack_bot_dirs(applied, keep_ids, stale)
     return applied
 
 
@@ -815,6 +918,7 @@ def deploy_group(
         group["id"],
         keep_ids,
         section,
+        install=install,
     )
     _copy_connectors(group_dir, group, install)
     _keep_applied_copy(group_dir, group, install)

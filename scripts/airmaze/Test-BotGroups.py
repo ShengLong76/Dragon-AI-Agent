@@ -183,6 +183,9 @@ def test_design_doc() -> None:
         "raw.githubusercontent.com/ShengLong76/airmaze-agent",
         "GitHub unreachable",
         "already exist",
+        "Copywriter",
+        "Campaign Sequencer",
+        "exactly",
         "allowSingularBotImportExport",
         "kind\": \"bot\"",
         "bot-groups/",
@@ -685,6 +688,9 @@ def test_deploy_full_roster_replaces_stale(bg) -> None:
             encoding="utf-8",
         )
         desktop.mkdir(parents=True)
+        embedded = tmp_path / ".hermes-airmaze-embedded" / "profiles"
+        embedded.mkdir(parents=True)
+        (install / "bot-groups" / "applied" / "marketing-team" / "bots").mkdir(parents=True)
         for stale_id, title in (("copywriter", "Copywriter"), ("campaign-sequencer", "Campaign Sequencer")):
             dest = desktop / stale_id
             dest.mkdir(parents=True)
@@ -704,6 +710,13 @@ def test_deploy_full_roster_replaces_stale(bg) -> None:
                 "# dragon-ai-ui-section\nui_meta:\n  hermes-bots:\n    sectionId: \"sec-dragon-marketing-team\"\n    sectionName: \"Marketing Team\"\n",
                 encoding="utf-8",
             )
+            orphan = embedded / stale_id
+            orphan.mkdir(parents=True)
+            (orphan / "SOUL.md").write_text(f"# {title} leftover\n", encoding="utf-8")
+            (orphan / "bot.yaml").write_text(f"slug: {stale_id}\ndisplay_name: {title}\n", encoding="utf-8")
+            applied_bot = install / "bot-groups" / "applied" / "marketing-team" / "bots" / stale_id
+            applied_bot.mkdir(parents=True)
+            (applied_bot / "SOUL.md").write_text("# applied leftover\n", encoding="utf-8")
         expanded = [b["id"] for b in bg._load_group_folder(stub_dir).get("bots") or []]
         if expanded != COS_ROSTERS["marketing-team"]:
             fail(f"a stub Marketing folder must expand to Cos's 6 bots, got {expanded}")
@@ -718,6 +731,7 @@ def test_deploy_full_roster_replaces_stale(bg) -> None:
             payload_root=ROOT,
             install_root=install,
             desktop_profiles_root=desktop,
+            embedded_profiles_root=embedded,
         )
         created = set(result.get("created") or []) | set(result.get("updated") or [])
         for bot_id in COS_ROSTERS["marketing-team"]:
@@ -729,8 +743,15 @@ def test_deploy_full_roster_replaces_stale(bg) -> None:
         for stale in STALE_MARKETING_IDS:
             if (desktop / stale).exists():
                 fail(f"re-apply must clear stale Marketing stub {stale}")
+            if (embedded / stale).exists():
+                fail(f"re-apply must clear embedded leftover {stale}")
+            if (install / "bot-groups" / "applied" / "marketing-team" / "bots" / stale).exists():
+                fail(f"re-apply must clear applied leftover {stale}")
         if "copywriter" not in (result.get("removed") or []):
             fail("deploy must report removed stub bots")
+        desktop_ids = sorted(p.name for p in desktop.iterdir() if p.is_dir())
+        if desktop_ids != sorted(COS_ROSTERS["marketing-team"]):
+            fail(f"desktop MARKETING TEAM roster must be exactly Cos's 6, got {desktop_ids}")
         for group_id, expected in COS_ROSTERS.items():
             deployed = bg.deploy_group(
                 group_id,

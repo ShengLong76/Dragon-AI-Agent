@@ -111,7 +111,7 @@ That destination folder name (`hermes\profiles\<bot-id>`) is the upstream deskto
 
 ### If those bots already exist
 
-Deploy is idempotent. Group-owned files (`SOUL.md`, `bot.yaml`, `profile.yaml`, `bot.meta.json`) are overwritten from the group. Extra files the user added in that bot folder are left alone. The result reports `created` vs `updated`. Onboarding secrets and `bots-status.json` are not wiped. Re-apply also re-stamps the named UI section so an older install that left those bots under UNASSIGNED is corrected.
+Deploy is idempotent. The end state for that team is **exactly** the pack roster (Marketing = Cos's 6 seats). Group-owned files (`SOUL.md`, `bot.yaml`, `profile.yaml`, `bot.meta.json`) are overwritten from the group. Extra files the user added **inside a kept bot folder** are left alone. Bots that are **not** in the selected pack — especially leftover **Copywriter** and **Campaign Sequencer** — are removed from `%LOCALAPPDATA%\hermes\profiles\`, `%USERPROFILE%\.hermes-airmaze-embedded\profiles\`, and `bot-groups/applied/<id>/`. The result reports `created` vs `updated` vs `removed`. Onboarding secrets and `bots-status.json` are not wiped. Re-apply also re-stamps the named UI section so an older install that left those bots under UNASSIGNED is corrected. Personal Assistant and other teams' bots stay.
 
 ## Named UI section (not UNASSIGNED)
 

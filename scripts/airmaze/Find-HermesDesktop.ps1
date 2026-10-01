@@ -333,9 +333,19 @@ function Start-HermesDesktopClient {
         $install = Join-Path $env:LOCALAPPDATA "DragonAIAgent"
         $desktop = Join-Path $env:LOCALAPPDATA "hermes\profiles"
         $embedded = Join-Path $env:USERPROFILE ".hermes-airmaze-embedded\profiles"
+        $payload = $install
+        $scriptTree = Join-Path $PSScriptRoot "..\.."
+        $cosMark = "bot-groups\marketing-team\bots\content-strategist\SOUL.md"
+        if (Test-Path -LiteralPath (Join-Path $scriptTree $cosMark)) {
+            $payload = (Resolve-Path -LiteralPath $scriptTree).Path
+        } elseif (-not (Test-Path -LiteralPath (Join-Path $payload $cosMark))) {
+            if (Test-Path -LiteralPath (Join-Path $scriptTree "bot-groups\catalog.json")) {
+                $payload = (Resolve-Path -LiteralPath $scriptTree).Path
+            }
+        }
         if ($py -and (Test-Path -LiteralPath $picker)) {
             Start-Process -FilePath $py.Source -ArgumentList @(
-                $picker, "serve", "--payload", $install, "--install", $install,
+                $picker, "serve", "--payload", $payload, "--install", $install,
                 "--desktop", $desktop, "--embedded", $embedded,
                 "--host", "127.0.0.1", "--port", "8653"
             ) -WindowStyle Hidden -ErrorAction SilentlyContinue | Out-Null

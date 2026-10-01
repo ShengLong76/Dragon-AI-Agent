@@ -299,6 +299,13 @@ body,
   box-shadow: 0 16px 40px #00000080;
 }
 
+[data-dragon-ai-teams-panel][hidden],
+[data-dragon-ai-teams-panel][data-dragon-ai-teams-closed] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 [data-dragon-ai-teams-panel] h2 {
   margin: 0 0 6px;
   font-family: "Syne", ui-sans-serif, system-ui, sans-serif;

@@ -90,19 +90,50 @@ def test_apply_files_named_section(tp) -> None:
             "lifecycle-marketer",
             "marketing-analyst",
         ]
+        embedded = tmp_path / ".hermes-airmaze-embedded" / "profiles"
+        pa = desktop / "personal-assistant"
+        pa.mkdir(parents=True)
+        (pa / "SOUL.md").write_text("# Personal Assistant\n", encoding="utf-8")
+        warmer = desktop / "email-warmer"
+        warmer.mkdir(parents=True)
+        (warmer / "bot.meta.json").write_text(
+            json.dumps({"id": "email-warmer", "bot_group_id": "real-estate-cold-call-lead-refresher"}),
+            encoding="utf-8",
+        )
+        applied_stub = install / "bot-groups" / "applied" / "marketing-team" / "bots"
+        for stale_id, title in (("copywriter", "Copywriter"), ("campaign-sequencer", "Campaign Sequencer")):
+            for root in (desktop, embedded, applied_stub):
+                dest = root / stale_id
+                dest.mkdir(parents=True, exist_ok=True)
+                (dest / "SOUL.md").write_text(f"# {title}\n", encoding="utf-8")
+                (dest / "bot.yaml").write_text(f"slug: {stale_id}\ndisplay_name: {title}\n", encoding="utf-8")
         result = tp.apply_team(
             "marketing-team",
             payload_root=ROOT,
             install_root=install,
             desktop_profiles_root=desktop,
+            embedded_profiles_root=embedded,
         )
         if result.get("displayName") != "Marketing Team":
             fail(f"apply must report Marketing Team, got {result.get('displayName')}")
         applied = [b.get("id") for b in result.get("bots") or []]
         if applied != marketing_ids:
             fail(f"apply Marketing Team must deploy all 6 Cos bots, got {applied}")
-        if (desktop / "copywriter").exists() or (desktop / "campaign-sequencer").exists():
-            fail("apply must not leave Copywriter / Campaign Sequencer in MARKETING TEAM")
+        for root, label in ((desktop, "desktop"), (embedded, "embedded")):
+            leftover = [name for name in ("copywriter", "campaign-sequencer") if (root / name).exists()]
+            if leftover:
+                fail(f"apply must not leave {leftover} on {label} MARKETING TEAM")
+            present = sorted(p.name for p in root.iterdir() if p.is_dir() and p.name in marketing_ids)
+            if present != sorted(marketing_ids):
+                fail(f"{label} Cos roster must be exactly the 6 Marketing seats, got {present}")
+        if (applied_stub / "copywriter").exists() or (applied_stub / "campaign-sequencer").exists():
+            fail("apply must clear Copywriter / Campaign Sequencer from install applied/profiles")
+        if not (pa / "SOUL.md").is_file():
+            fail("Marketing apply must not delete Personal Assistant")
+        if not (warmer / "bot.meta.json").is_file():
+            fail("Marketing apply must not delete another team's bots")
+        if "copywriter" not in (result.get("removed") or []):
+            fail("apply must report removed Copywriter leftovers")
         profile = (desktop / "content-strategist" / "profile.yaml").read_text(encoding="utf-8")
         if "sec-dragon-marketing-team" not in profile or "Marketing Team" not in profile:
             fail("one-click apply must file bots under Marketing Team, not UNASSIGNED")
@@ -171,9 +202,20 @@ def test_overlay_and_launch_wired() -> None:
         fail("Teams dialog must say Personal Assistant is already installed")
     if "finishApply" not in branding or "location.reload" not in branding:
         fail("after apply the Teams dialog must close and reload the bot roster")
+    if "data-dragon-ai-teams-closed" not in branding:
+        fail("after apply the overlay must force-close the Teams dialog (closed flag)")
+    if "setProperty('display','none','important')" not in branding and 'setProperty("display","none","important")' not in branding:
+        fail("after apply the overlay must hide the Teams dialog with display:none !important")
     css = read(CSS)
     if "[data-dragon-ai-teams-panel]" not in css or "Teams" not in css:
         fail("dragon-ui.css must style the in-app Teams screen")
+    if "[data-dragon-ai-teams-panel][hidden]" not in css or "display: none !important" not in css:
+        fail("Teams dialog [hidden] must be display:none !important so apply can close it")
+    finder = read(SCRIPTS / "Find-HermesDesktop.ps1")
+    if "content-strategist" not in finder:
+        fail("Find-HermesDesktop Teams helper must prefer the Cos Marketing pack over a stale InstallRoot stub")
+    if "--payload\", $install" in finder and "content-strategist" not in finder:
+        fail("installed packaging path must not bind Teams helper to a stale InstallRoot payload")
     launcher = read(LAUNCHER)
     if "teams_picker" not in launcher:
         fail("start-embedded.ps1 must start the Teams picker helper")
@@ -181,6 +223,8 @@ def test_overlay_and_launch_wired() -> None:
         fail("Teams helper must use loopback :8653 (not Bot Screen :8650)")
     if "content-strategist" not in launcher:
         fail("Teams helper must prefer the Cos Marketing pack over a stale InstallRoot stub")
+    if "Remove-Item" not in launcher or "srcNames" not in launcher:
+        fail("launch profile sync must prune leftover bots from .hermes-airmaze-embedded\\profiles")
     wizard = read(WIZARD)
     if "Teams" not in wizard:
         fail("first-run wizard must offer Teams selection")

@@ -609,8 +609,10 @@ function Sync-EmbeddedGatewayProfiles {
     $destRoot = Join-Path $embedded "profiles"
     New-Item -ItemType Directory -Force -Path $destRoot | Out-Null
     $n = 0
+    $srcNames = @{}
     Get-ChildItem -LiteralPath $srcRoot -Directory -ErrorAction SilentlyContinue | ForEach-Object {
         if ($_.Name -in @("default", "hermes")) { return }
+        $srcNames[$_.Name] = $true
         $dest = Join-Path $destRoot $_.Name
         New-Item -ItemType Directory -Force -Path $dest | Out-Null
         foreach ($name in @("SOUL.md", "bot.yaml", "profile.yaml", "config.yaml", "bot.meta.json")) {
@@ -624,6 +626,12 @@ function Sync-EmbeddedGatewayProfiles {
             Copy-Item -LiteralPath $bot -Destination (Join-Path $dest "config.yaml") -Force
         }
         $n++
+    }
+    Get-ChildItem -LiteralPath $destRoot -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+        if ($_.Name -in @("default", "hermes")) { return }
+        if (-not $srcNames.ContainsKey($_.Name)) {
+            Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
+        }
     }
     Write-LaunchLog "Synced $n profile(s) into embedded gateway $destRoot"
     return $n

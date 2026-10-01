@@ -91,8 +91,9 @@ Built-in Teams picker (one click): **Real Estate Lead Gen**, **Marketing Team**,
 
 1. Inject a **Teams** button + dialog into the unpacked desktop client (`desktop_branding.py` / `dragon-ui.css`).
 2. Loopback helper `teams_picker.py` on `127.0.0.1:8653` (`GET /api/teams`, `POST /api/teams/apply`, `POST /api/teams/import`). Not Bot Screen `:8650`.
-3. Launch starts the helper (`start-embedded.ps1`). First-run wizard has **Choose a Team**. `Select-BotGroup.ps1` window title is **Teams**; Import file remains.
+3. Launch starts the helper (`start-embedded.ps1` and the desktop inject in `Find-HermesDesktop.ps1`). Both prefer the Cos Marketing pack (`content-strategist`) over a stale InstallRoot stub. First-run wizard has **Choose a Team**. `Select-BotGroup.ps1` window title is **Teams**; Import file remains.
 4. Helper always unions the bundled catalog so Marketing / Trading show even if GitHub is stale.
+5. After a successful apply/import the overlay **closes the Teams dialog** (`hidden` + `data-dragon-ai-teams-closed` + `display:none !important`) and **reloads the roster** (`location.reload`). Apply is idempotent: MARKETING TEAM is exactly the six Cos seats — leftover Copywriter / Campaign Sequencer folders are deleted from desktop, embedded, and `bot-groups/applied`. Launch `Sync-EmbeddedGatewayProfiles` also prunes embedded orphans that are no longer on the desktop.
 
 Do not add a Hermes team. Do not restyle Bot Screen.
 

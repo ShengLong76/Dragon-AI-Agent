@@ -51,6 +51,8 @@ REQUIRED_LAUNCHER = (
     "Exclude-DragonAIHermesBots",
     "teams_picker",
     "8653",
+    "srcNames",
+    "Remove-Item",
 )
 
 REQUIRED_FINDER = (
@@ -58,6 +60,7 @@ REQUIRED_FINDER = (
     "Find-HermesDesktopExe",
     "Save-DragonAIDesktopPointer",
     "Start-HermesDesktopClient",
+    "content-strategist",
     "Apply-DragonAIDesktopUiBranding",
     "Set-DragonAIMainWindowTitle",
     "SetTitleForPids",
