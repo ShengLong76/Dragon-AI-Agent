@@ -286,6 +286,18 @@ const protocol = 'hermes://copilot-key/start';
             fail("injected CSS must style the sidebar header lockup")
         if "flex-wrap: wrap" not in css_txt or "min-width: max-content" not in css_txt:
             fail("injected CSS must wrap Teams below a fixed-size logo")
+        if "dragon-ai-lockup-wrap:1" not in css_txt:
+            fail("copied dragon-ui.css must stamp lockup wrap so live unpacked UI is not an older hash")
+        if "container-type: inline-size" not in css_txt or "@container" not in css_txt:
+            fail("copied dragon-ui.css must include container wrap rules")
+        if "rgba(196,30,58" in css_txt.replace(" ", "") or "rgba(196, 30, 58" in css_txt:
+            fail("copied dragon-ui.css must not keep a crimson lockup border")
+        if "rgba(196,30,58" in html.replace(" ", "") or "rgba(196, 30, 58" in html:
+            fail("index.html inject must not keep a crimson lockup border")
+        if "pinWrap" not in html or "border:0" not in html.replace(" ", ""):
+            fail("index.html inject must pin the lockup with border:0")
+        if not (pack_dir / "sidebar-header.js").is_file() or not (pack_dir / "teams-picker.js").is_file():
+            fail("prebuilt inject scripts must be copied into dragon-ai-branding")
         if "18cqi" in css_txt:
             fail("injected CSS must not shrink the sidebar logo with column width")
         if "--dragon-sidebar-control-height: 32px" not in css_txt:
@@ -307,6 +319,35 @@ const protocol = 'hermes://copilot-key/start';
         html2 = (dist / "index.html").read_text(encoding="utf-8")
         if html2.count('data-dragon-ai-branding="ui-face"') != 1:
             fail("second pass duplicated the wordmark stylesheet link")
+        stale_css = "/* stale unpacked hash without wrap */\n.wordmark{font-family:Syne}\n"
+        css.write_text(stale_css, encoding="utf-8")
+        (dist / "index.html").write_text(
+            '<!doctype html><html><head><title>Dragon AI Agent</title>'
+            '<link rel="stylesheet" href="./dragon-ai-branding/dragon-ui.css" data-dragon-ai-branding="ui-face" />'
+            '</head><body>'
+            '<div data-dragon-ai-sidebar-brand style="border:1px solid rgba(196,30,58,.45)">'
+            '<img alt="" style="border:1px solid rgba(196,30,58,.45)"></div>'
+            '</body></html>\n',
+            encoding="utf-8",
+        )
+        (dist / "assets" / "index.css").write_text(
+            ".wordmark{font-family:'Syne',var(--font-sans)}\n/* dragon-ai-ui-face */\n/* stale appended sheet */\n",
+            encoding="utf-8",
+        )
+        summary3 = db.apply_to_exe(exe)
+        if summary3.get("font", {}).get("copied") is not True:
+            fail(f"stale unpacked refresh did not copy the pack: {summary3}")
+        refreshed_css = css.read_text(encoding="utf-8")
+        if "flex-wrap: wrap" not in refreshed_css or "dragon-ai-lockup-wrap:1" not in refreshed_css:
+            fail("apply must overwrite an older dragon-ai-branding/dragon-ui.css with wrap rules")
+        refreshed_html = (dist / "index.html").read_text(encoding="utf-8")
+        if "rgba(196,30,58" in refreshed_html.replace(" ", ""):
+            fail("apply must strip a live crimson lockup border from index.html")
+        if "pinWrap" not in refreshed_html or 'data-dragon-ai-branding="sidebar-header"' not in refreshed_html:
+            fail("apply must refresh the sidebar lockup inject on a previously branded index.html")
+        refreshed_bundle = (dist / "assets" / "index.css").read_text(encoding="utf-8")
+        if "flex-wrap: wrap" not in refreshed_bundle or "stale appended sheet" in refreshed_bundle:
+            fail("apply must refresh the appended renderer CSS block, not skip it")
         print("OK  fake win-unpacked overlay")
 
 
@@ -334,6 +375,22 @@ def test_packaging_not_regressed() -> None:
         fail("Apply-DesktopBranding.ps1 must target unpacked renderer files")
     if "Install-DragonAIDesktopFontPack" not in apply_ps or "Syne" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must install the bundled Syne pack")
+    if 'if ($text.Contains(\'data-dragon-ai-branding="ui-face"\')' in apply_ps and "continue }" in apply_ps:
+        # Old apply skipped the entire HTML file once the link existed.
+        if apply_ps.count('data-dragon-ai-branding="sidebar-header"') < 1:
+            fail("Apply-DesktopBranding.ps1 must upsert sidebar inject even when index.html is already branded")
+    if "sidebar-header.js" not in apply_ps or "teams-picker.js" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must ship/copy prebuilt inject scripts without Python")
+    if "Get-DragonAIInstallUnpackedRoots" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must also land assets under DragonAIAgent app.asar.unpacked")
+    if "Remove-DragonAICrimsonLockupBorder" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must strip a live crimson lockup border")
+    if "return $summary" in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must not return after Python and skip the PowerShell pack copy")
+    if "throw" not in apply_ps or "did not land" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must throw when dragon-ui.css does not land (no silent skip)")
+    if '".js"' not in apply_ps and ".js" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must copy .js inject assets into dragon-ai-branding")
     for path in INSTALLERS:
         text = read(path)
         if "Apply-DesktopBranding.ps1" not in text or "desktop_branding.py" not in text:
@@ -355,6 +412,10 @@ def test_packaging_not_regressed() -> None:
         fail("BRANDING.md must say Universal Sans is proprietary and not shipped")
     if "UI UX Pro Max" not in branding and "ui-ux-pro-max" not in branding:
         fail("BRANDING.md must name the UI UX Pro Max design system")
+    if "Python is optional" not in branding or "Apply-DesktopBranding.ps1" not in branding:
+        fail("BRANDING.md must say PowerShell apply copies unpacked UI without Python")
+    if "dragon-ai-lockup-wrap:1" not in branding:
+        fail("BRANDING.md must say how to confirm the live unpacked sheet is the tip pack")
     pack = ROOT / "branding" / "fonts" / "syne"
     if not (pack / "OFL.txt").is_file() or not (pack / "syne-latin-wght-normal.woff2").is_file():
         fail("branding/fonts/syne must bundle OFL.txt and the Syne woff2 files")
@@ -381,6 +442,22 @@ def test_packaging_not_regressed() -> None:
         fail("dragon-ui.css must style the sidebar header lockup (Dragon AI)")
     if "flex-wrap: wrap" not in css or "min-width: max-content" not in css:
         fail("sidebar Teams must wrap below a fixed logo (not clip, not shrink the mark)")
+    if "dragon-ai-lockup-wrap:1" not in css:
+        fail("packaged dragon-ui.css must stamp lockup wrap for unpacked-copy verification")
+    if "container-type: inline-size" not in css or "@container" not in css:
+        fail("packaged dragon-ui.css must include container wrap rules that actually get copied")
+    if "rgba(196,30,58" in css.replace(" ", "") or "rgba(196, 30, 58" in css:
+        fail("packaged dragon-ui.css must not include a crimson lockup border")
+    sidebar_js = read(pack / "sidebar-header.js")
+    teams_js = read(pack / "teams-picker.js")
+    for label, text in (("sidebar-header.js", sidebar_js), ("teams-picker.js", teams_js), ("dragon-ui.css", css)):
+        compact = text.replace(" ", "")
+        if "rgba(196,30,58" in compact:
+            fail(f"{label} must not include border rgba(196,30,58)")
+    if "pinWrap" not in sidebar_js or "border:0" not in sidebar_js.replace(" ", ""):
+        fail("sidebar-header.js must pin the lockup with border:0")
+    if "flex-wrap" not in apply_ps and "lockup-wrap" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must verify wrap rules landed in the copied sheet")
     if "18cqi" in css or "clamp(20px, 18cqi, 32px)" in css:
         fail("sidebar logo must stay a fixed 32px (do not clamp/shrink)")
     if "--dragon-sidebar-control-height: 32px" not in css:

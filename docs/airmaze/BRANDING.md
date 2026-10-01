@@ -35,7 +35,25 @@ The shipped client is still upstream `Hermes.exe` (`…\win-unpacked\Hermes.exe`
 
 Upstream `electron-builder` packs most of the app into `resources/app.asar` (integrity-protected — do not rewrite that archive) and **unpacks `dist/**`** to `resources/app.asar.unpacked/dist`. The empty-state wordmark, composer placeholders, and settings strings live in that unpacked renderer.
 
-`Apply-DesktopBranding.ps1` / `desktop_branding.py` run from `Start-HermesDesktopClient` (every launch, idempotent) and rewrite those files in place. Table: `scripts/airmaze/desktop_branding.json`. The same pass injects the sidebar header lockup and copies the Dragon ICO to `resources/icon.ico`. Offline check: `python3 scripts/airmaze/Test-DesktopBranding.py`. Launch also runs `exclude_hermes_bot.py` so leftover Hermes profile folders are dropped, not only hidden.
+`Apply-DesktopBranding.ps1` run from `Start-HermesDesktopClient` (every launch, idempotent) and rewrite those files in place. Table: `scripts/airmaze/desktop_branding.json`. The same pass injects the sidebar header lockup and copies the Dragon ICO to `resources/icon.ico`. **Python is optional.** PowerShell always copies the prebuilt `branding/fonts/syne` pack (`dragon-ui.css`, inject `.js`, fonts, logos) into every discovered `app.asar.unpacked\dist\dragon-ai-branding\` — including under `%LOCALAPPDATA%\DragonAIAgent\` — and upserts `index.html`. It does not skip when `index.html` is already branded, and it throws if the CSS does not land. Offline check: `python3 scripts/airmaze/Test-DesktopBranding.py`. Launch also runs `exclude_hermes_bot.py` so leftover Hermes profile folders are dropped, not only hidden.
+
+### How UltraDragon apply must be run so unpacked UI updates
+
+Close `Hermes.exe` first so `index.html` / `dragon-ui.css` are not locked. Then either:
+
+1. **Relaunch Dragon AI Agent** (Start Menu / `Start-DragonAI.vbs`). Launch calls `Apply-DragonAIDesktopUiBranding` before the window opens. `python3` / `python` do **not** need to be on PATH.
+2. **Manual apply** against the live exe (PowerShell):
+
+```powershell
+$exe = (Get-Content "$env:LOCALAPPDATA\DragonAIAgent\desktop-client.json" -Raw | ConvertFrom-Json).exe
+powershell -NoProfile -File "$env:LOCALAPPDATA\DragonAIAgent\scripts\airmaze\Apply-DesktopBranding.ps1" -ExePath $exe
+```
+
+Confirm the live sheet is the tip pack (must contain `dragon-ai-lockup-wrap:1` and `flex-wrap: wrap`, must not contain `border:1px solid rgba(196,30,58`):
+
+`%LOCALAPPDATA%\hermes\hermes-agent\apps\desktop\release\win-unpacked\resources\app.asar.unpacked\dist\dragon-ai-branding\dragon-ui.css`
+
+and the same folder under `%LOCALAPPDATA%\DragonAIAgent\**\app.asar.unpacked\dist\dragon-ai-branding\` if that tree exists. Updating only the git checkout / install-root `branding/fonts/syne/dragon-ui.css` does nothing until this apply copies it.
 
 ### UI font (Syne) — empty-state wordmark first
 
