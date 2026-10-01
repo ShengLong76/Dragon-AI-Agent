@@ -151,22 +151,48 @@ body,
   display: none !important;
 }
 
-/* Sidebar header lockup above SESSIONS / BOTS. Decorative mark + Dragon AI. */
+/* Sidebar header lockup above SESSIONS / BOTS.
+   One row: transparent dragon (no red border / no plate) + Dragon AI + Teams.
+   Logo height matches the Teams button. */
+[data-dragon-ai-sidebar-row] {
+  --dragon-sidebar-control-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  background: transparent;
+  background-color: transparent;
+  border: 0;
+}
+
 [data-dragon-ai-sidebar-brand] {
   display: flex;
   align-items: center;
   gap: 8px;
   box-sizing: border-box;
-  min-height: 48px;
-  padding: 10px 12px 8px;
+  min-height: var(--dragon-sidebar-control-height);
+  padding: 0;
   color: var(--color-foreground);
+  background: transparent;
+  background-color: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
 [data-dragon-ai-sidebar-brand] img {
-  width: 28px;
-  height: 28px;
+  height: var(--dragon-sidebar-control-height);
+  width: auto;
   object-fit: contain;
   flex: 0 0 auto;
+  padding: 0;
+  margin: 0;
+  border: 0 !important;
+  border-radius: 0;
+  outline: none;
+  box-shadow: none;
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 [data-dragon-ai-sidebar-brand] span {
@@ -180,13 +206,17 @@ body,
 
 /* In-app Teams picker (sidebar button + dialog). */
 [data-dragon-ai-teams-root] {
-  padding: 0 12px 10px;
+  padding: 0;
+  margin-left: auto;
+  background: transparent;
 }
 
 [data-dragon-ai-teams-open] {
   display: inline-flex;
   align-items: center;
-  min-height: 32px;
+  box-sizing: border-box;
+  height: var(--dragon-sidebar-control-height, 32px);
+  min-height: var(--dragon-sidebar-control-height, 32px);
   padding: 0 12px;
   border: 1px solid var(--color-border);
   border-radius: 6px;

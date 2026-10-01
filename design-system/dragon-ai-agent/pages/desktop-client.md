@@ -49,7 +49,7 @@ James’s front-facing navy low-poly dragon (both eyes to the viewer, coiled nec
 
 The Bots rail must not list the built-in default Hermes agent next to Personal Assistant. The product **excludes** that bot (purge leftover `default` / `hermes` folders). Overlay CSS hides `[data-roster-key$="::default"]` as a backstop; the string overlay blanks `return 'Hermes'`. **Personal Assistant** stays. Imported bot groups file into a named section, not UNASSIGNED.
 
-The left-rail header above SESSIONS / BOTS is a brand lockup: decorative navy dragon (`aria-hidden`) + **Dragon AI** in Syne 700 (`#F0F0F5` on `#1C1C20`). Accessible name **Dragon AI Agent**. Do not cover the tab hit targets.
+The left-rail header above SESSIONS / BOTS is a brand lockup: decorative navy dragon (`aria-hidden`) + **Dragon AI** in Syne 700 (`#F0F0F5` on `#1C1C20`) + the Teams button on the same row. The mark is transparent only (no red border, no plate) and the same height as the Teams button (`32px`). Accessible name **Dragon AI Agent**. Do not cover the tab hit targets.
 
 ## Surfaces this overlay may style
 

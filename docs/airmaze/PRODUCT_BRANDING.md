@@ -17,7 +17,7 @@ PR #3 / #7 already overlay empty-state copy, Syne, the navy mark, and a CSS hide
 - **In-app mark:** the existing navy coiled dragon (`branding/dragon-ai-agent-logo.png`). No new logo. Empty-state and sidebar header stay navy / unboxed.
 - **Windows ICO:** the circular Dragon badge James attached (same bytes as `installer/winres/icon.ico`). That is the Setup.exe icon and the asset for taskbar / Start Menu / `Hermes.exe` stamp. Do not invent a third mark.
 - **Name in the rail:** **Dragon AI** (fits the 16rem sidebar). Accessible name **Dragon AI Agent** (matches empty-state / settings copy).
-- **Type:** Syne 700, foreground `#F0F0F5` on `#1C1C20` (≥4.5:1). Logo beside the name is decorative (`aria-hidden="true"`).
+- **Type:** Syne 700, foreground `#F0F0F5` on `#1C1C20` (≥4.5:1). Logo beside the name is decorative (`aria-hidden="true"`), transparent (no red border, no plate), height matched to the Teams button in the same header row.
 
 UI UX Pro Max: decorative-beside-text (`aria-hidden`); Color Contrast (High). No verified “sidebar brand lockup” row — general guidance only: keep the lockup out of the SESSIONS / BOTS tab hit targets.
 

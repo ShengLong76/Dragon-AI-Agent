@@ -264,6 +264,8 @@ def sidebar_header_script() -> str:
         'var host=document.querySelector(\'[data-slot="sidebar-header"]\')'
         '||document.querySelector(\'[data-slot="sidebar-inner"]\');'
         "if(!host||host.querySelector('[data-dragon-ai-sidebar-brand]'))return;"
+        'var row=document.createElement("div");'
+        'row.setAttribute("data-dragon-ai-sidebar-row","true");'
         'var wrap=document.createElement("div");'
         'wrap.setAttribute("data-dragon-ai-sidebar-brand","true");'
         'wrap.setAttribute("role","img");'
@@ -272,11 +274,13 @@ def sidebar_header_script() -> str:
         'img.src="./dragon-ai-branding/dragon-ai-agent-logo.png";'
         'img.alt="";'
         'img.setAttribute("aria-hidden","true");'
+        "img.setAttribute(\"data-dragon-ai-sidebar-logo\",\"true\");"
         'var span=document.createElement("span");'
         'span.setAttribute("aria-hidden","true");'
         "span.textContent=TITLE;"
         "wrap.appendChild(img);wrap.appendChild(span);"
-        "host.insertBefore(wrap,host.firstChild);"
+        "row.appendChild(wrap);"
+        "host.insertBefore(row,host.firstChild);"
         "}"
         'if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",mount);}else{mount();}'
         "try{new MutationObserver(mount).observe(document.documentElement,{childList:true,subtree:true});}catch(e){}"
@@ -394,7 +398,8 @@ def teams_picker_script() -> str:
         'var inp=$("[data-dragon-ai-teams-import]",panel);'
         "if(inp)inp.addEventListener('change',function(){importFile(inp.files&&inp.files[0]);});"
         "root.appendChild(open);root.appendChild(panel);"
-        "if(host.parentNode&&host.getAttribute('data-dragon-ai-sidebar-brand')){host.parentNode.insertBefore(root,host.nextSibling);}else{host.appendChild(root);}"
+        'var row=document.querySelector("[data-dragon-ai-sidebar-row]");'
+        "if(row){row.appendChild(root);}else if(host.getAttribute&&host.getAttribute('data-dragon-ai-sidebar-brand')&&host.parentNode){host.parentNode.insertBefore(root,host.nextSibling);}else{host.appendChild(root);}"
         "}"
         'if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",mount);}else{mount();}'
         "try{new MutationObserver(mount).observe(document.documentElement,{childList:true,subtree:true});}catch(e){}"
@@ -700,6 +705,22 @@ def self_test() -> int:
         return 1
     if '[data-dragon-ai-sidebar-brand]' not in css or "Dragon AI" not in css:
         print("FAIL: overlay CSS must style the sidebar header lockup (Dragon AI)", file=sys.stderr)
+        return 1
+    if "--dragon-sidebar-control-height: 32px" not in css:
+        print("FAIL: sidebar logo height must match the 32px Teams button", file=sys.stderr)
+        return 1
+    if "[data-dragon-ai-sidebar-brand] img" in css and "height: 28px" in css.split("[data-dragon-ai-sidebar-brand] img", 1)[-1][:400]:
+        print("FAIL: sidebar logo must not stay at 28px; match the Teams button", file=sys.stderr)
+        return 1
+    brand_img_css = css.split("[data-dragon-ai-sidebar-brand] img", 1)[-1][:500] if "[data-dragon-ai-sidebar-brand] img" in css else ""
+    if "border: 0" not in brand_img_css and "border: none" not in brand_img_css:
+        print("FAIL: sidebar logo must have no border", file=sys.stderr)
+        return 1
+    if "background: transparent" not in brand_img_css and "background-color: transparent" not in brand_img_css:
+        print("FAIL: sidebar logo must have a transparent background", file=sys.stderr)
+        return 1
+    if "#c41e3a" in brand_img_css.lower() or "#C41E3A" in brand_img_css:
+        print("FAIL: sidebar logo must not use a red border or plate", file=sys.stderr)
         return 1
     if "prefers-reduced-motion" not in css or "focus-visible" not in css:
         print("FAIL: overlay CSS must keep visible focus and reduced-motion", file=sys.stderr)

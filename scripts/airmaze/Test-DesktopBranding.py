@@ -253,6 +253,8 @@ const protocol = 'hermes://copilot-key/start';
             fail("injected CSS must hide the default Hermes sidebar bot")
         if "[data-dragon-ai-sidebar-brand]" not in css_txt or "Dragon AI" not in css_txt:
             fail("injected CSS must style the sidebar header lockup")
+        if "--dragon-sidebar-control-height: 32px" not in css_txt:
+            fail("injected CSS must size the sidebar logo to the Teams button")
         if "<rect" in mark_txt.lower() or "#0a0a0a" in mark_txt.lower():
             fail("copied SVG mark must not include a boxed black plate")
         if png_mark.is_file() and png_mark.read_bytes()[25] != 6:
@@ -334,6 +336,15 @@ def test_packaging_not_regressed() -> None:
         fail("dragon-ui.css must hide the default Hermes sidebar bot")
     if "[data-dragon-ai-sidebar-brand]" not in css or "Dragon AI" not in css:
         fail("dragon-ui.css must style the sidebar header lockup (Dragon AI)")
+    if "--dragon-sidebar-control-height: 32px" not in css:
+        fail("sidebar logo height must match the 32px Teams button")
+    if "[data-dragon-ai-sidebar-row]" not in css:
+        fail("sidebar lockup and Teams must share one header row")
+    brand_img = css.split("[data-dragon-ai-sidebar-brand] img", 1)[-1][:500]
+    if "border: 0" not in brand_img and "border: none" not in brand_img:
+        fail("sidebar logo must have no red border")
+    if "transparent" not in brand_img:
+        fail("sidebar logo must have a transparent background")
     if "Personal Assistant" not in css:
         fail("dragon-ui.css must keep Personal Assistant as the visible sidebar bot")
     if "dragon-ai-agent-logo.png" not in apply_ps:
