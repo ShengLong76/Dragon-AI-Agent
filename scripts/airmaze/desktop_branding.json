@@ -36,7 +36,9 @@
     "why": "James's mark: front-facing navy low-poly dragon, coiled neck, horns the same navy, red eyes. No gold, no copper ring, not a side profile.",
     "boxed": false,
     "emptyStateSize": "22rem",
-    "stack": "wordmark-in-front"
+    "stack": "wordmark-in-front",
+    "trayFit": "contain-max",
+    "trayWhy": "Windows owns the tray/taskbar slot. Scale the dragon uniformly to the largest size that fits the cell (object-fit: contain). No crop, no stretch, no fixed pixel bump."
   },
   "voice": {
     "options": ["gpt", "grok"],
