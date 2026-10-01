@@ -341,7 +341,7 @@ body,
   border-radius: 12px;
   background: var(--color-background);
   color: var(--color-foreground);
-  box-shadow: 0 8px 20px #00000066;
+  box-shadow: 0 6px 16px #000000b3, 0 1px 0 #ffffff14;
   cursor: pointer;
 }
 
@@ -379,7 +379,7 @@ body,
   border: 1px solid var(--color-border);
   border-radius: 12px;
   background: var(--color-background);
-  box-shadow: 0 8px 20px #00000066;
+  box-shadow: 0 6px 16px #000000b3, 0 1px 0 #ffffff14;
 }
 
 [data-dragon-ai-team-seats] li strong {
@@ -398,7 +398,7 @@ body,
 [data-dragon-ai-team-seats] li:focus-visible,
 [data-dragon-ai-team-seats] li:focus-within {
   background: var(--color-muted);
-  box-shadow: 0 12px 28px #00000080;
+  box-shadow: 0 10px 24px #000000d9, 0 1px 0 #ffffff1f;
 }
 
 [data-dragon-ai-seat-tooltip] {
