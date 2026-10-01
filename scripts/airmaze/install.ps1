@@ -89,7 +89,6 @@ function Set-DockerTrayOnlySettings {
 
     $patch = @{
         openUIOnStartupDisabled = $true
-        OpenUIOnStartupDisabled = $true
         openAtLogin             = $true
         autoStart               = $true
         startMinimized          = $true
@@ -382,6 +381,8 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\Test-VoiceChat.py",
         "docs\airmaze\VOICE.md",
         "docs\airmaze\DOCKER_LAUNCH.md",
+        "docs\airmaze\WINDOWS_LAUNCH_PARSE.md",
+        "scripts\airmaze\Test-WindowsLaunchParse.py",
         "scripts\airmaze\DragonAI-SecureStore.ps1",
         "scripts\airmaze\Find-HermesDesktop.ps1",
         "scripts\airmaze\Apply-DesktopBranding.ps1",

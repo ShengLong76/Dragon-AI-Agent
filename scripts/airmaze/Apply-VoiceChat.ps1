@@ -7,7 +7,7 @@
 param(
     [ValidateSet("gpt", "grok")]
     [string]$Provider = "gpt",
-    [string]$Home = "",
+    [string]$HermesHome = "",
     [switch]$RestartGateway
 )
 
@@ -19,8 +19,8 @@ if (-not (Test-Path -LiteralPath $engine)) {
     Write-Error "voice_chat.py not found beside Apply-VoiceChat.ps1"
     exit 1
 }
-if ([string]::IsNullOrWhiteSpace($Home)) {
-    $Home = Join-Path $env:USERPROFILE ".hermes-airmaze-embedded"
+if ([string]::IsNullOrWhiteSpace($HermesHome)) {
+    $HermesHome = Join-Path $env:USERPROFILE ".hermes-airmaze-embedded"
 }
 
 $py = $null
@@ -33,7 +33,7 @@ if (-not $py) {
     exit 1
 }
 
-& $py $engine apply --home $Home --provider $Provider
+& $py $engine apply --home $HermesHome --provider $Provider
 $code = $LASTEXITCODE
 if ($RestartGateway -and $code -eq 0) {
     try {

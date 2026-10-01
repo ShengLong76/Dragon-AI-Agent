@@ -17,6 +17,8 @@ The product shortcut currently **fail-closes** unless `-StartDocker` is passed. 
 
 Do not add a second starter. Call the existing function on every normal launch.
 
+PowerShell hashtables are **case-insensitive**. The tray `$patch` may list camelCase `openUIOnStartupDisabled` only — a PascalCase duplicate is a parse error and the shortcut dies before `Hermes.exe`. Do not assign `$Home` / `$home` (automatic `$HOME` is read-only). Design: `docs/airmaze/WINDOWS_LAUNCH_PARSE.md`.
+
 ## Behavior
 
 1. **Engine already up** (`docker info` ok) → no-op. Do not relaunch Docker Desktop.

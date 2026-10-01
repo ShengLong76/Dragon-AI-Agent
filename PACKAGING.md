@@ -51,7 +51,7 @@ Installer patches:
 - `%APPDATA%\Docker\settings.json`
 - `%APPDATA%\Docker\settings-store.json`
 
-Setting keys include `openUIOnStartupDisabled` / `OpenUIOnStartupDisabled` = true, plus `startMinimized` / `minimizeToTray` / `openAtLogin`. Docker is started via `com.docker.service` when possible, then `Docker Desktop.exe` minimized — **not** a force-open dashboard flag.
+Setting keys include `openUIOnStartupDisabled` = true, plus `startMinimized` / `minimizeToTray` / `openAtLogin`. The PowerShell `$patch` hashtable may contain the camelCase key only (hashtables are case-insensitive). Docker is started via `com.docker.service` when possible, then `Docker Desktop.exe` minimized — **not** a force-open dashboard flag.
 
 ## Bot groups
 

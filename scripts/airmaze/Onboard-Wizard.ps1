@@ -145,12 +145,12 @@ function Invoke-ApplyGatewayModels {
         Write-WizardLog "Apply-GatewayModels.ps1 missing; model defaults not written" "WARN"
         return $false
     }
-    $home = Get-EmbeddedHermesHome
-    $applyArgs = @("-Home", $home, "-Chat", $Chat, "-Image", $Image)
+    $embeddedHome = Get-EmbeddedHermesHome
+    $applyArgs = @("-HermesHome", $embeddedHome, "-Chat", $Chat, "-Image", $Image)
     if ($IfMissing) { $applyArgs += "-IfMissing" } else { $applyArgs += "-RestartGateway" }
     try {
         & $apply @applyArgs | Out-Null
-        Write-WizardLog "Applied gateway models chat=$Chat image=$Image ifMissing=$IfMissing home=$home"
+        Write-WizardLog "Applied gateway models chat=$Chat image=$Image ifMissing=$IfMissing home=$embeddedHome"
         return ($LASTEXITCODE -eq 0)
     } catch {
         Write-WizardLog "Apply-GatewayModels failed: $($_.Exception.Message)" "WARN"

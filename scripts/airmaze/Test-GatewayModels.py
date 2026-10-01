@@ -205,9 +205,13 @@ def test_wizard_and_launch_wired() -> None:
     apply = read(APPLY)
     if "gateway_models.py" not in apply:
         fail("Apply-GatewayModels.ps1 must call gateway_models.py")
+    if "[string]$HermesHome" not in apply:
+        fail("Apply-GatewayModels.ps1 must take -HermesHome (not -Home; $HOME is read-only)")
     launcher = read(LAUNCHER)
     if "gateway_models" not in launcher and "Apply-GatewayModels" not in launcher:
         fail("start-embedded.ps1 must apply model defaults before compose up")
+    if "-HermesHome" not in launcher:
+        fail("start-embedded.ps1 must pass -HermesHome to Apply-GatewayModels.ps1")
     for path in (INSTALL, SETUP):
         text = read(path)
         if "gateway_models.py" not in text:

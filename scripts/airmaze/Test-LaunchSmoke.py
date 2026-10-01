@@ -128,6 +128,8 @@ def check_docker_launch_design() -> None:
     for needle in ("Start-DockerIfNeeded", "openUIOnStartupDisabled", "tray", "docker info"):
         if needle not in text:
             fail(f"DOCKER_LAUNCH.md must document {needle!r}")
+    if "case-insensitive" not in text and "WINDOWS_LAUNCH_PARSE" not in text:
+        fail("DOCKER_LAUNCH.md must point at the case-insensitive hashtable / $HOME parse hotfix")
     print("OK  docker launch design")
 
 
@@ -278,6 +280,11 @@ def main() -> int:
         proc = subprocess.run([sys.executable, str(marketplace_test)], cwd=str(ROOT))
         if proc.returncode != 0:
             fail("Test-TeamsMarketplace.py failed")
+    parse_test = ROOT / "scripts" / "airmaze" / "Test-WindowsLaunchParse.py"
+    if parse_test.is_file():
+        proc = subprocess.run([sys.executable, str(parse_test)], cwd=str(ROOT))
+        if proc.returncode != 0:
+            fail("Test-WindowsLaunchParse.py failed")
     run_host_smoke()
     print("SMOKE OK: opening Dragon AI Agent is wired to branded UI or a blocking error.")
     return 0
