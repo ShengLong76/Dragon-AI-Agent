@@ -252,6 +252,8 @@ def test_overlay_and_launch_wired() -> None:
         fail("Teams popup must be roomier than the old 28rem dropdown panel")
     if "[data-dragon-ai-teams-backdrop]" not in css:
         fail("Teams popup must use a backdrop, not a tight dropdown")
+    if "[data-dragon-ai-teams-panel][hidden]" not in css or "display: none !important" not in css:
+        fail("Teams popup CSS must honor [hidden] so display:flex does not leave the dialog stuck open")
     if 'input[type="checkbox"]' not in css and "checkbox" not in css:
         fail("overlay CSS must style Teams checkboxes")
     helper = read(ENGINE)

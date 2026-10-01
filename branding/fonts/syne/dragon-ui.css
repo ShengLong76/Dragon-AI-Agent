@@ -1,1 +1,485 @@
-PLACEHOLDER
+/* Dragon AI Agent wordmark + chrome — Syne (SIL OFL 1.1).
+   Upstream .wordmark loads Collapse-Bold (high-contrast display).
+   These faces replace that slot.
+
+   Tokens: design-system/dragon-ai-agent/pages/desktop-client.md
+   (AI-Native UI, dark surfaces, crimson accent). Syne only. */
+
+@font-face {
+  font-family: "Syne";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 800;
+  src: url("./syne-latin-wght-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Syne";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url("./syne-latin-400-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Syne";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url("./syne-latin-600-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Syne";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url("./syne-latin-700-normal.woff2") format("woff2");
+}
+
+/* Same files under the upstream wordmark family name, so leftover Collapse
+   references still render Syne instead of Collapse-Bold. */
+@font-face {
+  font-family: "Collapse";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("./syne-latin-wght-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Collapse";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url("./syne-latin-700-normal.woff2") format("woff2");
+}
+
+:root {
+  --dragon-ui-font: "Syne", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Syne", ui-sans-serif, system-ui, sans-serif;
+  --font-family-sans: "Syne", ui-sans-serif, system-ui, sans-serif;
+
+  --color-primary: #c41e3a;
+  --color-on-primary: #ffffff;
+  --color-secondary: #c4a574;
+  --color-on-secondary: #1c1c20;
+  --color-accent: #c41e3a;
+  --color-on-accent: #ffffff;
+  --color-background: #1c1c20;
+  --color-foreground: #f0f0f5;
+  --color-card: #282830;
+  --color-card-foreground: #f0f0f5;
+  --color-muted: #32323a;
+  --color-muted-foreground: #a0a0aa;
+  --color-border: #50505a;
+  --color-destructive: #dc4646;
+  --color-on-destructive: #ffffff;
+  --color-ring: #c41e3a;
+  --color-ok: #3cb45a;
+  --color-pending: #c8a028;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+}
+
+html,
+body,
+#root {
+  font-family: var(--dragon-ui-font);
+}
+
+/* Empty-state wordmark — beat the upstream Collapse display face. */
+.wordmark,
+.wordmark span,
+.wordmark *,
+.fit-text.wordmark,
+[data-slot="aui_intro"] .wordmark,
+[data-slot="aui_intro"] .wordmark span {
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif !important;
+  font-weight: 700 !important;
+  font-synthesis: none;
+  letter-spacing: 0.04em;
+  color: var(--color-foreground);
+  text-shadow: 0 1px 2px #1c1c20, 0 0 16px #1c1c20;
+}
+
+/* Empty-state mark: large navy dragon behind the Syne wordmark, no plate.
+   Size against the intro pane (not the full window, which includes the sidebar).
+   overflow:visible so a parent clip cannot crop the mark back into a box. */
+[data-slot="aui_intro"] {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+}
+
+[data-slot="aui_intro"]::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 0;
+  width: min(22rem, 70%);
+  height: min(22rem, 70%);
+  /* PNG artwork sits left of the file center (opaque bbox ~117..786 on 1024).
+     Shift the box so the dragon, not the PNG midpoint, lands on the wordmark. */
+  transform: translate(calc(-50% + 5.9%), -18%);
+  background: url("./dragon-ai-agent-logo.png") center / contain no-repeat;
+  background-color: transparent;
+  pointer-events: none;
+}
+
+[data-slot="aui_intro"] > *,
+[data-slot="aui_intro"] .wordmark,
+[data-slot="aui_intro"] .fit-text.wordmark,
+.wordmark {
+  position: relative;
+  z-index: 1;
+}
+
+[data-slot="aui_intro"] p:not(.wordmark) {
+  font-family: var(--dragon-ui-font);
+  color: var(--color-muted-foreground);
+}
+
+/* Default Hermes agent is not a user-facing sidebar bot. Keep Personal Assistant. */
+[data-roster-key="default"],
+[data-roster-key$="::default"],
+[aria-label^="Hermes ·"] {
+  display: none !important;
+}
+
+/* Sidebar header lockup above SESSIONS / BOTS.
+   Logo stays a fixed 32px transparent SVG (no plate / no red border) and
+   matches the Teams button height at full width. When the column shrinks,
+   the row wraps so Teams drops below the logo — the mark does not shrink
+   and Teams is not clipped. */
+[data-slot="sidebar-inner"],
+[data-slot="sidebar-header"] {
+  container-type: inline-size;
+  min-width: 0;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+[data-dragon-ai-sidebar-row] {
+  --dragon-sidebar-control-height: 32px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 8px 12px;
+  overflow: visible;
+  background: transparent;
+  background-color: transparent;
+  border: 0;
+}
+
+[data-dragon-ai-sidebar-brand] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  flex: 0 1 auto;
+  min-width: 32px;
+  min-height: var(--dragon-sidebar-control-height);
+  padding: 0;
+  color: var(--color-foreground);
+  background: transparent;
+  background-color: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+[data-dragon-ai-sidebar-brand] img,
+[data-dragon-ai-sidebar-logo] {
+  display: block;
+  height: 32px;
+  width: 32px;
+  max-width: 32px;
+  max-height: 32px;
+  object-fit: contain;
+  flex: 0 0 32px;
+  padding: 0;
+  margin: 0;
+  border: 0 !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  filter: none;
+}
+
+[data-dragon-ai-sidebar-brand] span {
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  color: var(--color-foreground);
+  line-height: 1.2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* In-app Teams picker (sidebar button + dialog). */
+[data-dragon-ai-teams-root] {
+  padding: 0;
+  margin-left: auto;
+  flex: 0 0 auto;
+  min-width: max-content;
+  background: transparent;
+}
+
+[data-dragon-ai-teams-open] {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: 32px;
+  min-height: 32px;
+  flex-shrink: 0;
+  max-width: 100%;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-card);
+  color: var(--color-foreground);
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+@container (max-width: 14rem) {
+  [data-dragon-ai-teams-root] {
+    margin-left: 0;
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+
+  [data-dragon-ai-teams-open] {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+[data-dragon-ai-teams-open]:focus-visible,
+[data-dragon-ai-teams-panel] button:focus-visible,
+[data-dragon-ai-teams-panel] input:focus-visible,
+[data-dragon-ai-team-row]:focus-within {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+[data-dragon-ai-teams-backdrop] {
+  position: fixed;
+  inset: 0;
+  z-index: 79;
+  background: #00000099;
+}
+
+[data-dragon-ai-teams-backdrop][hidden],
+[data-dragon-ai-teams-panel][hidden] {
+  display: none !important;
+}
+
+[data-dragon-ai-teams-panel] {
+  position: fixed;
+  z-index: 80;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: none;
+  flex-direction: column;
+  width: min(44rem, calc(100vw - 48px));
+  max-height: min(40rem, calc(100vh - 48px));
+  overflow: hidden;
+  padding: 20px 22px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  box-shadow: 0 16px 40px #00000080;
+}
+
+[data-dragon-ai-teams-panel]:not([hidden]) {
+  display: flex;
+}
+
+[data-dragon-ai-teams-panel] h2 {
+  margin: 0 0 6px;
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+[data-dragon-ai-teams-panel] header p,
+[data-dragon-ai-teams-status] {
+  color: var(--color-muted-foreground);
+  font-size: 0.875rem;
+}
+
+[data-dragon-ai-teams-list] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 14px 0 10px;
+  min-height: 12rem;
+  max-height: min(22rem, 50vh);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+[data-dragon-ai-team-row] {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-card);
+  color: var(--color-foreground);
+  cursor: pointer;
+}
+
+[data-dragon-ai-team-row] input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.2rem;
+  accent-color: var(--color-primary);
+}
+
+[data-dragon-ai-team-row] strong {
+  display: block;
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+}
+
+[data-dragon-ai-team-row] span span {
+  display: block;
+  color: var(--color-muted-foreground);
+  font-size: 0.8125rem;
+}
+
+[data-dragon-ai-teams-actions] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+[data-dragon-ai-teams-actions] button,
+[data-dragon-ai-teams-import-label] {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-card);
+  color: var(--color-foreground);
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+[data-dragon-ai-teams-launch] {
+  border: 0;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+[data-dragon-ai-teams-import-label] {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-foreground);
+  font-size: 0.875rem;
+}
+
+[data-dragon-ai-teams-import-label] input {
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+}
+
+[data-dragon-ai-teams-close] {
+  margin-left: auto;
+}
+
+/* Center-column RPC / load-error banners stay inside the chat pane.
+   Long "Load failed: rpc error..." copy ellipsizes instead of painting
+   over the composer when the right rail widens. role=alert keeps the
+   full sentence for assistive tech. */
+[data-slot="aui_thread"],
+[data-slot="thread"],
+[data-slot="aui_viewport"],
+[data-slot="main"] {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+[role="alert"] {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+textarea,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+[contenteditable="true"],
+[role="textbox"] {
+  font-family: var(--dragon-ui-font);
+}
+
+textarea::placeholder,
+input::placeholder {
+  color: var(--color-muted-foreground);
+  opacity: 1;
+}
+
+textarea:focus-visible,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus-visible,
+[contenteditable="true"]:focus-visible,
+[role="textbox"]:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
