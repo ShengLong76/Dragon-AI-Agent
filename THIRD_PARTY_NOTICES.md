@@ -67,3 +67,21 @@ Vendored under `.cursor/skills/understand-anything/` and `.cursor-plugin/plugin.
 | Graph dir | `.ua/` (gitignored) |
 
 How to run the first scan later: `docs/airmaze/UNDERSTAND_ANYTHING.md`.
+
+## SEOAgent (seoagent.com) on SEO Specialist
+
+Marketing Team **SEO Specialist** ships Hermes instructions for the official SEOAgent CLI/Skill. The Claude Code plugin marketplace and Autopilot cloud runtime are **not** vendored. DataForSEO MCP stays a separate connector.
+
+| Item | Value |
+|------|--------|
+| Product | https://seoagent.com |
+| Project | https://github.com/Baxter-Inc/seoagent-npm |
+| Package | `@seoagent-official/seoagent` |
+| License | MIT © 2026 Baxter Inc |
+| Adapted path | `bot-groups/marketing-team/bots/seo-specialist/skills/` |
+| Design | `docs/airmaze/SEOAGENT.md` |
+
+| Item | Value |
+|------|--------|
+| DataForSEO MCP | https://github.com/dataforseo/mcp-server-typescript |
+| Package | `dataforseo-mcp-server` |

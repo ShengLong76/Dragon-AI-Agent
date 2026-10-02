@@ -14,7 +14,7 @@
     {"id": "computer-use", "displayName": "Computer use"},
     {"id": "browser", "displayName": "Browser"}
   ],
-  "version": "2.1.0",
+  "version": "2.2.0",
   "bots": [
     {
       "id": "content-strategist",
@@ -30,7 +30,7 @@
       "title": "SEO Specialist",
       "description": "Runs seoagent.com Skill/CLI audits and optional DataForSEO research.",
       "descriptionDetail": "Not a new teammate. Apply Marketing Team still yields the same six Cos seats. Only this seat gets extra SEO tooling.\n\nTools: seoagent (seoagent.com free Skill/CLI: npm i -g @seoagent-official/seoagent then seoagent init / npx), dataforseo (MCP), plus computer-use and browser.\n\nOptional Autopilot is $49/site/month for GSC/cloud. It is not required.\n\nAfter install: re-apply Marketing Team; run seoagent init on the site repo; add DataForSEO MCP credentials in desktop MCP settings if you use that tool.\n\nBuffer stays on Social Media Manager. Brevo stays on Lifecycle Marketer.",
-      "tools": ["computer-use", "browser"],
+      "tools": ["computer-use", "browser", "seoagent", "dataforseo"],
       "soul": "bots/seo-specialist/SOUL.md",
       "config": "bots/seo-specialist/bot.yaml"
     },
@@ -69,6 +69,22 @@
       "tools": ["computer-use", "browser"],
       "soul": "bots/marketing-analyst/SOUL.md",
       "config": "bots/marketing-analyst/bot.yaml"
+    }
+  ],
+  "connectors": [
+    {
+      "id": "seoagent",
+      "type": "cli",
+      "displayName": "SEOagent (seoagent.com)",
+      "description": "Free Skill: npm install -g @seoagent-official/seoagent then seoagent init. Autopilot is optional and paid.",
+      "configTemplate": "connectors/seoagent.json"
+    },
+    {
+      "id": "dataforseo",
+      "type": "mcp_server",
+      "displayName": "DataForSEO",
+      "description": "Live SERP, keyword, backlink, and on-page data for SEO Specialist. James-locked Marketing default. Separate from SEOagent.",
+      "configTemplate": "connectors/dataforseo.json"
     }
   ]
 }

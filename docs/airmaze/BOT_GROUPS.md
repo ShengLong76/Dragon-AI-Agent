@@ -207,6 +207,12 @@ This repo's base is the Dragon AI **desktop agent** packaging (gateway, Bot Scre
 - Sidebar keeps **Personal Assistant** (the default group). Do not add a Hermes bot back. Deployed packs appear under a named section, not UNASSIGNED.
 - No restyle: Syne 700, crimson `#C41E3A`, navy dragon mark stay as they are.
 
+## Marketing Team — SEOagent (SEO Specialist only)
+
+James locked [seoagent.com](https://seoagent.com) / `@seoagent-official/seoagent` (MIT) as the SEOagent tool on **SEO Specialist**. Not a seventh seat. Free Skill: `npm install -g @seoagent-official/seoagent` then `seoagent init`. Autopilot ($49/site/month) is optional. Design: [`docs/airmaze/SEOAGENT.md`](SEOAGENT.md).
+
+**DataForSEO** (`connectors/dataforseo.json`) stays as a separate connector. Buffer / Brevo stay the locked defaults for Social / Lifecycle and are not wired here. Deploy copies `bots/seo-specialist/skills/` onto that profile only.
+
 ## Tests
 
 ```bash

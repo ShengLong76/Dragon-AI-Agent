@@ -29,6 +29,19 @@ DESIGN = DOCS / "BOT_GROUPS.md"
 CATALOG = ROOT / "bot-groups" / "catalog.json"
 REAL_ESTATE = ROOT / "bot-groups" / "real-estate-cold-call-lead-refresher" / "bot-group.json"
 PA = ROOT / "bot-groups" / "personal-assistant" / "bot-group.json"
+MARKETING = ROOT / "bot-groups" / "marketing-team" / "bot-group.json"
+SEO_SPECIALIST = ROOT / "bot-groups" / "marketing-team" / "bots" / "seo-specialist"
+SEOAGENT_SKILLS = SEO_SPECIALIST / "skills"
+DATAFORSEO_CONNECTOR = ROOT / "bot-groups" / "marketing-team" / "connectors" / "dataforseo.json"
+SEOAGENT_CONNECTOR = ROOT / "bot-groups" / "marketing-team" / "connectors" / "seoagent.json"
+SEOAGENT_DESIGN = DOCS / "SEOAGENT.md"
+CLAUDE_SEO_LEAVES = (
+    "seo-audit.md",
+    "seo-page.md",
+    "seo-technical.md",
+    "seo-content-brief.md",
+    "seo-dataforseo.md",
+)
 INSTALLERS = (
     ROOT / "scripts" / "airmaze" / "install.ps1",
     ROOT / "installer" / "DragonAIAgentSetup.ps1",
@@ -814,6 +827,130 @@ def test_desktop_agent_untouched() -> None:
     print("OK  desktop agent / Syne / crimson / navy mark left alone")
 
 
+def test_seo_specialist_seoagent_com_pack(bg) -> None:
+    """SEOagent is seoagent.com CLI+Skill on SEO Specialist, not a 7th seat."""
+    group = json.loads(read(MARKETING))
+    bots = {str(b.get("id")): b for b in group.get("bots") or [] if b.get("id")}
+    expected = COS_ROSTERS["marketing-team"]
+    if list(bots) != expected:
+        fail(f"Marketing Team must stay Cos's 6 seats {expected}, got {list(bots)}")
+    for forbidden in ("seoagent", "claude-seo", "seo-audit"):
+        if forbidden in bots:
+            fail(f"{forbidden} must be a tool/skill, not a Marketing seat")
+    seo = bots.get("seo-specialist") or {}
+    tools = [str(t) for t in seo.get("tools") or []]
+    for required in ("computer-use", "browser", "seoagent"):
+        if required not in tools:
+            fail(f"SEO Specialist tools must include {required}, got {tools}")
+    others = [bot_id for bot_id in expected if bot_id != "seo-specialist"]
+    for bot_id in others:
+        if (bots[bot_id].get("tools") or []) != ["computer-use", "browser"]:
+            fail(f"{bot_id} tools must stay computer-use/browser, got {bots[bot_id].get('tools')}")
+        if (ROOT / "bot-groups" / "marketing-team" / "bots" / bot_id / "skills").exists():
+            fail(f"{bot_id} must not receive the SEO Specialist skill pack")
+
+    soul = read(SEO_SPECIALIST / "SOUL.md")
+    for needle in ("SEOagent", "seoagent.com", "@seoagent-official/seoagent", "seoagent init"):
+        if needle not in soul:
+            fail(f"SEO Specialist SOUL must reference {needle}")
+    if "claude-seo" in soul.lower() or "/seo audit" in soul:
+        fail("SOUL must not keep claude-seo slash-command identity")
+    if not SEOAGENT_SKILLS.is_dir():
+        fail("SEO Specialist must ship Hermes skill instructions for seoagent.com")
+    index = read(SEOAGENT_SKILLS / "INDEX.md")
+    skill = read(SEOAGENT_SKILLS / "SKILL.md")
+    pack = index + "\n" + skill
+    for needle in (
+        "@seoagent-official/seoagent",
+        "seoagent init",
+        "npx",
+        "Autopilot",
+        "$49",
+        "seoagent.com",
+    ):
+        if needle not in pack:
+            fail(f"seoagent.com skill pack must document {needle!r}")
+    for leftover in CLAUDE_SEO_LEAVES:
+        if (SEOAGENT_SKILLS / leftover).is_file():
+            fail(f"replace claude-seo leaf {leftover} — SEOagent identity is seoagent.com")
+    attribution = read(SEOAGENT_SKILLS / "ATTRIBUTION.md")
+    if "Baxter-Inc/seoagent-npm" not in attribution or "MIT" not in attribution:
+        fail("skill pack must attribute Baxter-Inc/seoagent-npm (MIT)")
+    if "AgriciDaniel/claude-seo" in attribution:
+        fail("do not keep claude-seo as the SEOagent attribution")
+    if (SEO_SPECIALIST / ".claude-plugin").exists() or (ROOT / "bot-groups" / "marketing-team" / "install.sh").exists():
+        fail("do not vendor a Claude Code plugin installer into Marketing Team")
+
+    dfs = json.loads(read(DATAFORSEO_CONNECTOR))
+    if dfs.get("id") != "dataforseo" or dfs.get("type") != "mcp_server":
+        fail("keep the existing DataForSEO connector")
+    if "dataforseo-mcp-server" not in json.dumps(dfs.get("mcp") or {}):
+        fail("DataForSEO connector must still wire npx dataforseo-mcp-server")
+    if not any(isinstance(c, dict) and c.get("id") == "dataforseo" for c in group.get("connectors") or []):
+        fail("bot-group.json must still list the dataforseo connector")
+
+    seo_conn = json.loads(read(SEOAGENT_CONNECTOR))
+    blob = json.dumps(seo_conn)
+    if seo_conn.get("id") != "seoagent":
+        fail("seoagent connector id must be seoagent")
+    if "@seoagent-official/seoagent" not in blob or "seoagent init" not in blob:
+        fail("seoagent connector must document npm install + seoagent init")
+    if any(token in blob for token in ("sk-", "sk-ant-")):
+        fail("do not ship secrets in the seoagent connector")
+    if not any(isinstance(c, dict) and c.get("id") == "seoagent" for c in group.get("connectors") or []):
+        fail("bot-group.json must list the seoagent connector")
+
+    design = read(SEOAGENT_DESIGN)
+    for needle in (
+        "seoagent.com",
+        "@seoagent-official/seoagent",
+        "seoagent init",
+        "Autopilot",
+        "$49",
+        "DataForSEO",
+        "Buffer",
+        "Brevo",
+        "re-apply",
+        "Marketing Team",
+        "six",
+        "free",
+    ):
+        if needle not in design:
+            fail(f"SEOAGENT.md must document {needle!r}")
+    if "do not pretend Autopilot is free" not in design and "Autopilot is not free" not in design:
+        fail("SEOAGENT.md must say Autopilot is paid, not free")
+
+    with tempfile.TemporaryDirectory(prefix="dragon-seoagent-") as tmp:
+        tmp_path = pathlib.Path(tmp)
+        install = tmp_path / "install"
+        desktop = tmp_path / "hermes-profiles"
+        result = bg.deploy_group(
+            "marketing-team",
+            payload_root=ROOT,
+            install_root=install,
+            desktop_profiles_root=desktop,
+        )
+        deployed = [b.get("id") for b in result.get("bots") or []]
+        if deployed != expected:
+            fail(f"apply Marketing Team must still yield 6 Cos bots, got {deployed}")
+        meta = json.loads((desktop / "seo-specialist" / "bot.meta.json").read_text(encoding="utf-8"))
+        if "seoagent" not in meta.get("tools", []):
+            fail(f"deployed SEO Specialist meta must include seoagent: {meta.get('tools')}")
+        if not (desktop / "seo-specialist" / "skills" / "INDEX.md").is_file():
+            fail("deploy must copy SEO Specialist skills/ onto the desktop profile")
+        if not (desktop / "seo-specialist" / "skills" / "SKILL.md").is_file():
+            fail("deploy must copy seoagent.com SKILL.md onto the SEO Specialist profile")
+        if (desktop / "seo-specialist" / "skills" / "seo-audit.md").is_file():
+            fail("deploy must not still ship claude-seo seo-audit.md")
+        if (desktop / "content-strategist" / "skills").exists():
+            fail("deploy must not copy SEO skills onto other Marketing seats")
+        if not (install / "connectors" / "marketing-team" / "dataforseo.json").is_file():
+            fail("deploy must keep the DataForSEO connector placeholder")
+        if not (install / "connectors" / "marketing-team" / "seoagent.json").is_file():
+            fail("deploy must copy the seoagent.com connector placeholder")
+    print("OK  SEO Specialist has seoagent.com CLI+Skill; DataForSEO kept; 6 seats")
+
+
 def test_customization_paths() -> None:
     text = read(DESIGN)
     for path in (
@@ -843,6 +980,7 @@ def main() -> int:
     test_repo_catalog_converted()
     test_bundled_team_rosters()
     test_deploy_full_roster_replaces_stale(bg)
+    test_seo_specialist_seoagent_com_pack(bg)
     test_no_profiles_ui()
     test_desktop_agent_untouched()
     test_customization_paths()
