@@ -49,6 +49,13 @@ Sub RepairProductShortcuts()
     If Not fso2.FileExists(ico) Then ico = fso2.BuildPath(installRoot, "dragon-ai-agent-logo.ico")
     targets(0) = fso2.BuildPath(desktop, "Dragon AI Agent.lnk")
     targets(1) = fso2.BuildPath(smDir, "Dragon AI Agent.lnk")
+    ' Retired WinForms Onboard-Wizard product shortcut.
+    On Error Resume Next
+    If fso2.FileExists(fso2.BuildPath(desktop, "Dragon AI Agent Setup.lnk")) Then _
+        fso2.DeleteFile fso2.BuildPath(desktop, "Dragon AI Agent Setup.lnk"), True
+    If fso2.FileExists(fso2.BuildPath(smDir, "Dragon AI Agent Setup.lnk")) Then _
+        fso2.DeleteFile fso2.BuildPath(smDir, "Dragon AI Agent Setup.lnk"), True
+    On Error GoTo 0
     For i = 0 To 1
         On Error Resume Next
         Set sc = wsh2.CreateShortcut(targets(i))

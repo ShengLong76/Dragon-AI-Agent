@@ -442,6 +442,29 @@ function Install-PackageFiles([string]$Root) {
     Write-Log "Data directory: $DataDir"
 }
 
+function Remove-DeprecatedSetupShortcuts {
+    <#
+      WinForms Onboard-Wizard is no longer a product shortcut. First-run
+      models use the in-app Models UI + Apply-GatewayModels defaults.
+      Delete leftover Desktop / Start Menu "Dragon AI Agent Setup.lnk".
+    #>
+    $desktop = [Environment]::GetFolderPath("Desktop")
+    $paths = @(
+        (Join-Path $desktop "Dragon AI Agent Setup.lnk"),
+        (Join-Path $StartMenuDir "Dragon AI Agent Setup.lnk")
+    )
+    foreach ($p in $paths) {
+        if (Test-Path -LiteralPath $p) {
+            try {
+                Remove-Item -LiteralPath $p -Force -ErrorAction Stop
+                Write-Log "Removed deprecated Setup shortcut: $p"
+            } catch {
+                Write-Log "Could not remove Setup shortcut $p : $($_.Exception.Message)" "WARN"
+            }
+        }
+    }
+}
+
 function Install-Shortcuts {
     Write-Log "Creating desktop and Start Menu shortcuts..."
     $ico = Join-Path $InstallRoot "branding\dragon-ai-agent-logo.ico"
@@ -457,6 +480,7 @@ function Install-Shortcuts {
 
     Ensure-Dir $StartMenuDir
     $desktop = [Environment]::GetFolderPath("Desktop")
+    Remove-DeprecatedSetupShortcuts
 
     try {
         $wsh = New-Object -ComObject WScript.Shell

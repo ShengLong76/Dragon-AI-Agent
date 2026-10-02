@@ -3,7 +3,7 @@
 **Product:** Dragon AI Agent v0.1.0  
 **Audience:** First-run users (especially the **Real Estate Cold Call Lead Refresher** bot group)
 
-This guide mirrors the **Dragon AI Agent Setup** wizard (`scripts/airmaze/Onboard-Wizard.ps1`). Prefer the wizard when possible; use this doc if you configure connectors manually.
+This guide covers first-run **in-app Models** plus connector steps (email / CRM / telephony). Prefer the **Dragon AI Agent** app for model picks. The WinForms `Onboard-Wizard.ps1` path is deprecated (no Desktop / Start Menu **Dragon AI Agent Setup** shortcut). Use this doc if you configure connectors manually.
 
 > **Not legal advice.** Dragon AI Agent is software for drafting and workflow automation. TCPA, CAN-SPAM, Do Not Call, and consent rules vary by jurisdiction. Consult your own counsel before outbound email or calling.
 
@@ -33,8 +33,8 @@ Bots stay **`needs_setup`** until required wizard steps **email + CRM + telephon
 
 ## Step 1 — Welcome
 
-- Launch **Dragon AI Agent Setup** from the Start Menu (or re-run `Onboard-Wizard.ps1`).
-- You can **Skip wizard**; bots remain `needs_setup` until you complete required connections later. Skipping still writes Grok / Grok Imagine defaults if the gateway config has no chat or image model yet.
+- Open **Dragon AI Agent** from the Desktop or Start Menu launcher. First-run chat + image LLM defaults are applied in-app (`Apply-GatewayModels` writes Grok / Grok Imagine if those keys are missing).
+- Connector steps below stay available for Real Estate packs. Bots remain `needs_setup` until you complete required connections. There is no **Dragon AI Agent Setup** shortcut.
 
 ---
 
@@ -117,6 +117,10 @@ The summary shows **connected / skipped / failed** only — no secret values. Fi
 Desktop / Start Menu **Dragon AI Agent** starts the gateway with no PowerShell window and opens the **desktop client** (not the web dashboard). If Docker, the gateway API, or the client is missing you get a MessageBox. Optional dashboard: Start Menu **Dragon AI Agent Dashboard**. Launch log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`.
 
 ## Re-run / resume
+
+Open **Dragon AI Agent** and use the in-app Models UI. There is no Desktop / Start Menu **Dragon AI Agent Setup** shortcut.
+
+The WinForms wizard remains in-tree as a deprecated fallback only:
 
 ```powershell
 cd %LOCALAPPDATA%\DragonAIAgent

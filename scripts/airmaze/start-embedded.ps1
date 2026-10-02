@@ -294,10 +294,32 @@ function Start-HiddenPowerShell {
     [void][System.Diagnostics.Process]::Start($si)
 }
 
+function Remove-DeprecatedSetupShortcuts {
+    <#
+      Drop leftover Desktop / Start Menu Onboard-Wizard shortcuts. First-run
+      models use the in-app Models UI; WinForms Setup.lnk is retired.
+    #>
+    $paths = @(
+        (Join-Path ([Environment]::GetFolderPath("Desktop")) "Dragon AI Agent Setup.lnk"),
+        (Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Dragon AI Agent\Dragon AI Agent Setup.lnk")
+    )
+    foreach ($p in $paths) {
+        if (Test-Path -LiteralPath $p) {
+            try {
+                Remove-Item -LiteralPath $p -Force -ErrorAction Stop
+                Write-LaunchLog "Removed deprecated Setup shortcut: $p"
+            } catch {
+                Write-LaunchLog "Could not remove Setup shortcut $p : $($_.Exception.Message)" "WARN"
+            }
+        }
+    }
+}
+
 function Repair-DragonAIProductShortcuts {
     <#
       Rewrite Desktop / Start Menu "Dragon AI Agent" to wscript + VBS if an older
       install still points at powershell.exe (that shortcut flashes a console).
+      Also delete leftover "Dragon AI Agent Setup.lnk" (WinForms path retired).
     #>
     $vbs = Join-Path $InstallRoot "scripts\airmaze\Start-DragonAI.vbs"
     if (-not (Test-Path -LiteralPath $vbs)) {
@@ -306,6 +328,7 @@ function Repair-DragonAIProductShortcuts {
     if (-not (Test-Path -LiteralPath $vbs)) { return }
     $wscript = Join-Path $env:SystemRoot "System32\wscript.exe"
     if (-not (Test-Path -LiteralPath $wscript)) { return }
+    Remove-DeprecatedSetupShortcuts
     $ico = Join-Path $InstallRoot "branding\dragon-ai-agent-logo.ico"
     if (-not (Test-Path -LiteralPath $ico)) { $ico = Join-Path $InstallRoot "dragon-ai-agent-logo.ico" }
     $startArgs = "//nologo `"$vbs`""
@@ -824,15 +847,11 @@ function Start-DragonAIVoiceChat {
 }
 
 function Start-OnboardingIfNeeded {
+    # WinForms Onboard-Wizard is deprecated as a first-run surface.
+    # Model defaults are applied by Apply-GatewayModels (-IfMissing) before compose up.
+    # Operators pick models in the in-app Models UI.
     if ($NoWizard) { return }
-    if (-not (Test-OnboardingNeedsUi)) { return }
-    $wiz = Join-Path $InstallRoot "scripts\airmaze\Onboard-Wizard.ps1"
-    if (-not (Test-Path -LiteralPath $wiz)) { return }
-    Update-LaunchStatus "Opening first-run setup wizard..."
-    Start-HiddenPowerShell -ArgumentList @(
-        "-STA", "-NoProfile", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass",
-        "-File", $wiz, "-InstallRoot", $InstallRoot
-    )
+    Write-LaunchLog "First-run setup uses in-app Models UI (WinForms Onboard-Wizard shortcut retired)"
 }
 
 function Get-LaunchPlan {
@@ -853,7 +872,7 @@ function Get-LaunchPlan {
             "overlay unpacked Electron UI chrome to Dragon AI Agent before launch",
             "launch Dragon AI Agent desktop only (not $DashboardUrl)",
             "start Docker Desktop in the tray when docker info fails (already running is a no-op)",
-            "first-run Onboard-Wizard if welcome is still pending",
+            "first-run uses in-app Models UI (WinForms Onboard-Wizard not launched)",
             "docker CLI stderr progress is not a terminating error",
             "Desktop Remote → $($script:DesktopServeUrl) (token mode; not :8642)",
             "wait for /api/health on the Desktop serve proxy with X-Hermes-Session-Token"

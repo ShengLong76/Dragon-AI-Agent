@@ -43,7 +43,7 @@ image_gen:
 
 ## UI path
 
-Extend **Dragon AI Agent Setup** (`Onboard-Wizard.ps1`), not a second Electron screen.
+First-run uses the **in-app Models UI** plus launcher `Apply-GatewayModels.ps1 -IfMissing`. Do **not** ship a Desktop / Start Menu **Dragon AI Agent Setup** shortcut. The WinForms `Onboard-Wizard.ps1` Models step remains in-tree as a deprecated fallback (no product `.lnk`, not auto-launched).
 
 Step order:
 

@@ -458,6 +458,29 @@ function Install-PackageFiles([string]$Root) {
     Write-Log "Data directory: $DataDir"
 }
 
+function Remove-DeprecatedSetupShortcuts {
+    <#
+      WinForms Onboard-Wizard is no longer a product shortcut. First-run
+      models use the in-app Models UI + Apply-GatewayModels defaults.
+      Delete leftover Desktop / Start Menu "Dragon AI Agent Setup.lnk".
+    #>
+    $desktop = [Environment]::GetFolderPath("Desktop")
+    $paths = @(
+        (Join-Path $desktop "Dragon AI Agent Setup.lnk"),
+        (Join-Path $StartMenuDir "Dragon AI Agent Setup.lnk")
+    )
+    foreach ($p in $paths) {
+        if (Test-Path -LiteralPath $p) {
+            try {
+                Remove-Item -LiteralPath $p -Force -ErrorAction Stop
+                Write-Log "Removed deprecated Setup shortcut: $p"
+            } catch {
+                Write-Log "Could not remove Setup shortcut $p : $($_.Exception.Message)" "WARN"
+            }
+        }
+    }
+}
+
 function Install-Shortcuts {
     Write-Log "Creating desktop and Start Menu shortcuts..."
     $ico = Join-Path $InstallRoot "branding\dragon-ai-agent-logo.ico"
@@ -473,6 +496,7 @@ function Install-Shortcuts {
 
     Ensure-Dir $StartMenuDir
     $desktop = [Environment]::GetFolderPath("Desktop")
+    Remove-DeprecatedSetupShortcuts
 
     try {
         $wsh = New-Object -ComObject WScript.Shell
@@ -516,30 +540,6 @@ function Install-Shortcuts {
         $sc3.Description = "Dragon AI Agent — deploy a bot group from GitHub"
         if ($iconLocation -and (Test-Path $iconLocation)) { $sc3.IconLocation = "$iconLocation,0" }
         $sc3.Save()
-
-        $onboardScript = Join-Path $InstallRoot "scripts\airmaze\Onboard-Wizard.ps1"
-        if (Test-Path -LiteralPath $onboardScript) {
-            $sc4Path = Join-Path $StartMenuDir "Dragon AI Agent Setup.lnk"
-            $sc4 = $wsh.CreateShortcut($sc4Path)
-            $sc4.TargetPath = $targetPs
-            $sc4.Arguments = "-STA -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$onboardScript`" -InstallRoot `"$InstallRoot`" -PayloadRoot `"$InstallRoot`""
-            $sc4.WorkingDirectory = $InstallRoot
-            $sc4.Description = "Dragon AI Agent — first-run onboarding wizard"
-            $sc4.WindowStyle = 7
-            if ($iconLocation -and (Test-Path $iconLocation)) { $sc4.IconLocation = "$iconLocation,0" }
-            $sc4.Save()
-
-            $sc5Path = Join-Path $desktop "Dragon AI Agent Setup.lnk"
-            $sc5 = $wsh.CreateShortcut($sc5Path)
-            $sc5.TargetPath = $targetPs
-            $sc5.Arguments = "-STA -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$onboardScript`" -InstallRoot `"$InstallRoot`" -PayloadRoot `"$InstallRoot`""
-            $sc5.WorkingDirectory = $InstallRoot
-            $sc5.Description = "Dragon AI Agent — first-run onboarding wizard"
-            $sc5.WindowStyle = 7
-            if ($iconLocation -and (Test-Path $iconLocation)) { $sc5.IconLocation = "$iconLocation,0" }
-            $sc5.Save()
-            Write-Log "Setup shortcuts: $sc4Path ; $sc5Path"
-        }
 
         Write-Log "Start Menu shortcuts under: $StartMenuDir"
     } catch {
@@ -707,45 +707,8 @@ if ($dockerOk -and (Test-DockerEngine)) {
 
 Invoke-BotGroupSetup -Root $root
 
-# First-run onboarding wizard (do not fail entire install if wizard errors)
-try {
-    $wizard = Join-Path $InstallRoot "scripts\airmaze\Onboard-Wizard.ps1"
-    if (-not (Test-Path -LiteralPath $wizard)) {
-        $wizard = Join-Path $root "scripts\airmaze\Onboard-Wizard.ps1"
-    }
-    if (Test-Path -LiteralPath $wizard) {
-        $wizGroup = if ($BotGroupId) { $BotGroupId } else { $ProfileId }
-        $activeGroup = Join-Path $InstallRoot "active-bot-group.json"
-        if ([string]::IsNullOrWhiteSpace($wizGroup) -and (Test-Path -LiteralPath $activeGroup)) {
-            try {
-                $active = Get-Content -LiteralPath $activeGroup -Raw -Encoding UTF8 | ConvertFrom-Json
-                $wizGroup = [string]$active.botGroupId
-            } catch {}
-        }
-        $activePath = Join-Path $InstallRoot "active-profile.json"
-        if ([string]::IsNullOrWhiteSpace($wizGroup) -and (Test-Path -LiteralPath $activePath)) {
-            try {
-                $active = Get-Content -LiteralPath $activePath -Raw -Encoding UTF8 | ConvertFrom-Json
-                $wizGroup = [string]$active.botGroupId
-                if (-not $wizGroup) { $wizGroup = [string]$active.profileId }
-            } catch {}
-        }
-        Write-Log "Launching onboarding wizard (bot group=$wizGroup)..."
-        $wizArgs = @{
-            InstallRoot = $InstallRoot
-            PayloadRoot = $InstallRoot
-        }
-        if (-not [string]::IsNullOrWhiteSpace($wizGroup)) {
-            $wizArgs["BotGroupId"] = $wizGroup
-        }
-        & $wizard @wizArgs
-        Write-Log "Onboarding wizard finished (exit $LASTEXITCODE)"
-    } else {
-        Write-Log "Onboard-Wizard.ps1 not found; skipping wizard" "WARN"
-    }
-} catch {
-    Write-Log "Onboarding wizard failed (install continues): $($_.Exception.Message)" "WARN"
-}
+# First-run models live in-app (Apply-GatewayModels + desktop Models UI).
+# Do not launch WinForms Onboard-Wizard.ps1.
 
 Install-Shortcuts
 Start-AgentDesktop | Out-Null
@@ -760,6 +723,6 @@ Write-Host "  Desktop Screen: http://127.0.0.1:8650  (Remote token dragon-local)
 Write-Host "  Gateway API:    127.0.0.1:8642  dashboard: http://127.0.0.1:9119"
 Write-Host "  Docker UI:    tray-only (dashboard suppressed on startup)"
 Write-Host "  Bot groups:   Start Menu > Dragon AI Agent > Dragon AI Agent Bot Groups"
-Write-Host "  Setup wizard: Start Menu / Desktop > Dragon AI Agent Setup"
+Write-Host "  First-run:    in-app Models UI (Dragon AI Agent launcher)"
 Write-Host "  Setup guide:  $setupGuide"
 Write-Host ""
