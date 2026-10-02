@@ -29,7 +29,7 @@ UI UX Pro Max `--design-system` (`AI chatbot dark conversational bubbles`) still
 
 ## Keep
 
-- Teams Marketplace filled blue, logo clearance, composer **Start conversation**, GPT | Grok selected crimson, `:focus-visible` 2px `#C41E3A`
+- Teams Marketplace filled blue, logo clearance, composer **waveform** → floating capsule, `:focus-visible` 2px `#C41E3A`
 - HUD overlay (`[data-hud-shell]`) keeps transparent bubbles
 - System / inter-agent notices stay compact captions, not blue cards
 - Stamp: `dragon-ai-chat-bubbles:1`

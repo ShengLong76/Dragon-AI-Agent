@@ -428,7 +428,7 @@ def voice_selector_js_path() -> Path:
 
 
 def voice_provider_script() -> str:
-    """GPT | Grok selector plus overlay Grok duplex client. GPT stays."""
+    """Grok-Bot floating waveform capsule plus overlay Grok duplex client."""
     path = voice_selector_js_path()
     body = path.read_text(encoding="utf-8").strip()
     if VOICE_SCRIPT_MARK in body:
@@ -1040,8 +1040,11 @@ def self_test() -> int:
     if "data-dragon-ai-sidebar-fixed" not in once:
         print("FAIL: Teams Marketplace inject must share the body fixed-overlay fallback", file=sys.stderr)
         return 1
-    if once.count(VOICE_SCRIPT_MARK) != 1 or "GPT" not in once or "Grok" not in once:
-        print("FAIL: voice selector must inject GPT and Grok (GPT stays)", file=sys.stderr)
+    if once.count(VOICE_SCRIPT_MARK) != 1 or "data-dragon-voice-widget" not in once:
+        print("FAIL: voice overlay must inject the floating Grok waveform widget", file=sys.stderr)
+        return 1
+    if "data-dragon-voice-option" in once.split(VOICE_SCRIPT_MARK, 1)[-1].split("</script>", 1)[0]:
+        print("FAIL: chat-screen GPT/Grok pills must be removed from the voice overlay", file=sys.stderr)
         return 1
     if once.count(VOICE_SETTINGS_SCRIPT_MARK) != 1 or "Grok Voice" not in once:
         print("FAIL: Settings Voice conversation mode must inject Grok Voice", file=sys.stderr)
@@ -1052,8 +1055,11 @@ def self_test() -> int:
     if "Talk with Grok" not in once or "xai-client-secret." not in once:
         print("FAIL: overlay must host Grok duplex (Talk + xai-client-secret)", file=sys.stderr)
         return 1
-    if "Start conversation" not in once or "findComposerAction" not in once:
-        print("FAIL: overlay must integrate Start conversation into the composer action", file=sys.stderr)
+    if "data-dragon-voice-gear" not in once or "data-dragon-voice-settings-panel" not in once:
+        print("FAIL: overlay capsule must include gear Voice settings (voice, speed)", file=sys.stderr)
+        return 1
+    if "findComposerAction" not in once or "data-dragon-voice-trigger" not in once:
+        print("FAIL: overlay must put the waveform trigger on the composer action", file=sys.stderr)
         return 1
     if "input_audio_buffer.append" not in once or "grok-voice-latest" not in once:
         print("FAIL: overlay must send official STS append events to grok-voice-latest", file=sys.stderr)
@@ -1079,11 +1085,11 @@ def self_test() -> int:
     if "[data-dragon-ai-seat-tooltip]" not in css:
         print("FAIL: overlay CSS must style seat hover/focus detail", file=sys.stderr)
         return 1
-    if "[data-dragon-voice-provider]" not in css or "[aria-checked=" not in css:
-        print("FAIL: overlay CSS must style the GPT | Grok voice selector", file=sys.stderr)
+    if "[data-dragon-voice-widget]" not in css or "[data-dragon-voice-capsule]" not in css:
+        print("FAIL: overlay CSS must style the floating Grok voice capsule", file=sys.stderr)
         return 1
-    if "[data-dragon-grok-talk]" not in css:
-        print("FAIL: overlay CSS must style Talk with Grok", file=sys.stderr)
+    if "[data-dragon-voice-settings-panel]" not in css or "[data-dragon-voice-gear]" not in css:
+        print("FAIL: overlay CSS must style the gear Voice settings panel", file=sys.stderr)
         return 1
     voice_meta = table.get("voice") or {}
     if voice_meta.get("options") != ["gpt", "grok"] or voice_meta.get("default") != "gpt":

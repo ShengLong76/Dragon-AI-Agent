@@ -5,7 +5,7 @@ After `docs/airmaze/PACKAGING_CHROME.md`. Tests first. Packaging overlay only. N
 ## James
 
 1. **Teams Marketplace below logo** — arrow on truncated **Teams Marke**. Full label must sit under the lockup, then Sessions/Bots. Button is **filled blue**.
-2. **Composer** — remove the red border around the chat box, GPT/Grok pills, and Talk with Grok. Put **start conversation** on the right-side action / talk control.
+2. **Composer** — remove the red border around the chat box and the GPT/Grok pills. Put a **waveform** on the right-side action that opens the Grok-Bot capsule.
 3. **Logo clearance** — no control or icon overlays the 32px dragon. Reserved padding/gap under the lockup. BOTS stays clickable.
 
 ## Tasks
@@ -18,7 +18,7 @@ After `docs/airmaze/PACKAGING_CHROME.md`. Tests first. Packaging overlay only. N
    - `dragon-ai-logo-clearance:1`; lockup `flex: 0 0 auto` + `--dragon-logo-clearance: 12px`; logo stays `32px`; Marketplace `z-index` below the lockup
    - BOTS clickable; no crimson lockup border; 16px name remaps
    - `dragon-ai-composer-chrome:1`; no persistent crimson outline on composer / voice / talk; Talk has no `border: 1px solid` primary
-   - Voice JS has `Start conversation`, `findComposerAction`, `data-dragon-ai-composer-action`; still **Talk with Grok** + GPT | Grok + official xAI duplex
+   - Voice JS has `data-dragon-voice-trigger`, `findComposerAction`, `data-dragon-ai-composer-action`; floating capsule + gear Voice settings + official xAI duplex. No GPT | Grok pills.
    - `:focus-visible` rings stay
 3. **Overlay** — `dragon-ui.css`, `sidebar-header.js`, `teams-picker.js`, `dragon-voice-selector.js`. Apply-DesktopBranding verifies the new stamps.
 4. **Self-review + draft PR** against `main`. Note supersedes #22. Do not merge.

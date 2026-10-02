@@ -943,7 +943,7 @@ span[class*="text-[0.8125rem]"][class*="truncate"] {
    James: Grok-Bot conversational bubbles on a black transcript pane.
    User fill is Marketplace blue (#2563EB); assistant is a darker navy-blue.
    Do not paint html/body (sidebar chrome stays #1C1C20). Do not retint
-   crimson focus/selected, Teams Marketplace, logo clearance, or GPT/Grok.
+   crimson focus/selected, Teams Marketplace, or logo clearance.
    HUD overlay keeps its own transparent bubbles. */
 [data-chat-surface],
 [data-slot="aui_thread"],
@@ -1022,8 +1022,8 @@ input::placeholder {
 }
 
 /* dragon-ai-composer-chrome:1
-   No persistent crimson outline around the composer, GPT/Grok pills,
-   or Talk. Start conversation lives in the right-side action cluster.
+   Grok-Bot composer pill: no persistent crimson outline, no GPT/Grok
+   pills. Right-side waveform opens the floating voice capsule.
    Focus-visible stays on the textbox and controls (2px #C41E3A). */
 [data-slot="aui_composer"],
 [data-slot="composer"],
@@ -1041,62 +1041,30 @@ input::placeholder {
 [data-slot="composer"],
 [data-slot="aui_composer"][data-dragon-ai-composer-chrome],
 [data-slot="composer"][data-dragon-ai-composer-chrome] {
-  border-color: var(--color-border);
+  border: 1px solid #2a2a2e;
+  border-radius: 28px;
+  background: #141416;
   box-shadow: none !important;
   outline: none !important;
+}
+
+[data-dragon-voice-native-hidden] {
+  display: none !important;
 }
 
 textarea:focus-visible,
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus-visible,
 [contenteditable="true"]:focus-visible,
 [role="textbox"]:focus-visible,
-[data-dragon-voice-option]:focus-visible,
-[data-dragon-grok-talk]:focus-visible {
+[data-dragon-voice-trigger]:focus-visible,
+[data-dragon-voice-gear]:focus-visible,
+[data-dragon-voice-chat]:focus-visible,
+[data-dragon-voice-mic]:focus-visible,
+[data-dragon-voice-end]:focus-visible,
+[data-dragon-voice-pref]:focus-visible {
   --color-ring: #c41e3a;
   outline: 2px solid #c41e3a;
   outline-offset: 2px;
-}
-
-/* GPT | Grok voice selector — Grok is additive; GPT stays. */
-[data-dragon-voice-provider] {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 8px;
-  padding: 4px 0;
-  border: 0;
-  background: transparent;
-  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
-}
-
-[data-dragon-voice-legend] {
-  color: var(--color-muted-foreground);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-[data-dragon-voice-option] {
-  box-sizing: border-box;
-  min-width: 44px;
-  min-height: 32px;
-  padding: 0 12px;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: var(--color-card);
-  color: var(--color-foreground);
-  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
-  font-weight: 700;
-  font-size: 0.875rem;
-  cursor: pointer;
-}
-
-[data-dragon-voice-option][aria-checked="true"] {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-on-primary);
 }
 
 [data-dragon-ai-composer-action] {
@@ -1111,34 +1079,232 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="
   box-shadow: none;
 }
 
-[data-dragon-grok-talk] {
+[data-dragon-voice-trigger] {
   box-sizing: border-box;
-  min-height: 32px;
-  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
   border: 0;
   border-radius: 999px;
-  background: var(--color-card);
-  color: var(--color-foreground);
-  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
-  font-weight: 700;
-  font-size: 0.875rem;
+  background: transparent;
+  color: #c4c4ce;
   cursor: pointer;
 }
 
-[data-dragon-grok-talk][aria-pressed="true"] {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
+[data-dragon-voice-trigger]:hover,
+[data-dragon-voice-trigger][aria-pressed="true"] {
+  color: #f0f0f5;
+  background: #1f1f24;
 }
 
-[data-dragon-grok-talk][hidden] {
+[data-dragon-voice-pane] {
+  position: relative;
+}
+
+[data-dragon-voice-widget] {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: max-content;
+  max-width: min(420px, calc(100% - 32px));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+[data-dragon-voice-widget][hidden] {
   display: none;
 }
 
-[data-dragon-voice-status] {
-  flex: 1 1 100%;
+[data-dragon-voice-capsule] {
+  pointer-events: auto;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  min-height: 56px;
+  padding: 6px 8px 6px 6px;
+  border: 1px solid #2a2a30;
+  border-radius: 999px;
+  background: #111114;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+
+[data-dragon-voice-avatar] {
+  display: flex;
+  flex: 0 0 40px;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #1c1c20;
+}
+
+[data-dragon-voice-avatar] img {
+  display: block;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+[data-dragon-voice-wave] {
+  display: flex;
+  flex: 0 0 148px;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 148px;
+  height: 36px;
+}
+
+[data-dragon-voice-wave] i {
+  display: block;
+  width: 3px;
+  height: var(--bar-h, 42%);
+  border-radius: 99px;
+  background: #8b7cff;
+  transform-origin: center;
+}
+
+[data-dragon-voice-widget] [data-dragon-voice-wave] i {
+  animation: dragon-voice-bar 1.05s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * -0.07s);
+}
+
+[data-dragon-voice-widget][data-state="hidden"] [data-dragon-voice-wave] i {
+  animation: none;
+}
+
+[data-dragon-voice-capsule] button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #c4c4ce;
+  cursor: pointer;
+}
+
+[data-dragon-voice-capsule] button:hover {
+  color: #f0f0f5;
+  background: #1f1f24;
+}
+
+[data-dragon-voice-gear][aria-expanded="true"] {
+  color: #f0f0f5;
+  background: #1f1f24;
+}
+
+[data-dragon-voice-mic][data-muted="true"] {
+  color: #f59e0b;
+}
+
+[data-dragon-voice-end] {
+  background: #e11d48 !important;
+  color: #ffffff !important;
+}
+
+[data-dragon-voice-end]:hover {
+  background: #be123c !important;
+}
+
+[data-dragon-voice-settings-panel] {
+  pointer-events: auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(360px, 100%);
+  padding: 14px 16px 16px;
+  border: 1px solid #2a2a30;
+  border-radius: 16px;
+  background: #16161a;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  color: #f0f0f5;
+}
+
+[data-dragon-voice-settings-panel][hidden] {
+  display: none;
+}
+
+[data-dragon-voice-settings-title] {
   margin: 0;
-  color: var(--color-muted-foreground);
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+[data-dragon-voice-field],
+[data-dragon-voice-check] {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: #c4c4ce;
+}
+
+[data-dragon-voice-check] {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+[data-dragon-voice-field] select,
+[data-dragon-voice-field] input[type="range"] {
+  width: 100%;
+  min-height: 32px;
+  accent-color: #8b7cff;
+}
+
+[data-dragon-voice-field] select {
+  box-sizing: border-box;
+  padding: 6px 10px;
+  border: 1px solid #50505a;
+  border-radius: 8px;
+  background: #1c1c20;
+  color: #f0f0f5;
+}
+
+[data-dragon-voice-speed-value] {
+  font-style: normal;
+  color: #f0f0f5;
+}
+
+[data-dragon-voice-status] {
+  pointer-events: none;
+  margin: 0;
+  color: #c4c4ce;
   font-size: 0.75rem;
+  text-align: center;
+}
+
+@keyframes dragon-voice-bar {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+  }
+  50% {
+    transform: scaleY(1);
+  }
 }
 
 /* Settings → Voice → Voice conversation mode (Chained | Gpt-live | Grok Voice) */
