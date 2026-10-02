@@ -40,6 +40,7 @@ REQUIRED_LAUNCHER = (
     "DebugConsole",
     "Invoke-NativeDocker",
     "Repair-DragonAIProductShortcuts",
+    "Remove-DeprecatedSetupShortcuts",
     "CreateNoWindow",
     "Test-LaunchedFromShortcut",
     "Dragon AI Agent launched",
@@ -90,6 +91,8 @@ REQUIRED_INSTALLER = (
     "wscript.exe",
     "start the gateway and open the app",
     "win-unpacked",
+    "Remove-DeprecatedSetupShortcuts",
+    "Dragon AI Agent.lnk",
 )
 
 REQUIRED_VBS = (
@@ -100,6 +103,8 @@ REQUIRED_VBS = (
     "-NonInteractive",
     "RepairProductShortcuts",
     "MsgBox",
+    "Dragon AI Agent Setup.lnk",
+    "DeleteFile",
 )
 
 
@@ -166,6 +171,12 @@ def check_launcher() -> None:
         fail("launcher missing Continue around Docker CLI (stderr progress must not terminate)")
     if "$output = & docker compose" in text or "& docker inspect" in text or "& docker info" in text:
         fail("launcher still calls docker compose/inspect/info without Invoke-NativeDocker")
+    if "Opening first-run setup wizard" in text:
+        fail("launcher still auto-opens WinForms Onboard-Wizard on first-run")
+    if "first-run Onboard-Wizard if welcome is still pending" in text:
+        fail("launch plan still advertises first-run Onboard-Wizard")
+    if "first-run uses in-app Models UI" not in text:
+        fail("launch plan must say first-run uses in-app Models UI")
 
 
 def check_shortcuts() -> None:
@@ -178,6 +189,18 @@ def check_shortcuts() -> None:
             fail(f"{path.name} missing windowless Start-DragonAI.vbs host")
         if "openUIOnStartupDisabled" not in text or "Set-DockerTrayOnlySettings" not in text:
             fail(f"{path.name} must keep tray-only Docker settings")
+        if "first-run onboarding wizard" in text:
+            fail(f"{path.name} still creates a WinForms Dragon AI Agent Setup shortcut")
+        if "CreateShortcut($sc4Path)" in text or "CreateShortcut($sc5Path)" in text:
+            fail(f"{path.name} still CreateShortcut a Setup.lnk (sc4/sc5)")
+        if "Launching onboarding wizard" in text or "& $wizard @wizArgs" in text:
+            fail(f"{path.name} still auto-launches WinForms Onboard-Wizard")
+        setup_idx = text.find('Dragon AI Agent Setup.lnk')
+        while setup_idx >= 0:
+            window = text[max(0, setup_idx - 80):setup_idx + 80]
+            if "CreateShortcut" in window:
+                fail(f"{path.name} still CreateShortcut Dragon AI Agent Setup.lnk")
+            setup_idx = text.find('Dragon AI Agent Setup.lnk', setup_idx + 1)
 
 
 def check_vbs() -> None:

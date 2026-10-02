@@ -322,7 +322,7 @@ function Initialize-DragonAIBotsNeedsSetup {
         reason    = if ($state -eq "ready") {
             "Personal Assistant bot group — no critical connectors required."
         } else {
-            "Bot group applied; run Dragon AI Agent Setup wizard before bots are ready."
+            "Bot group applied; finish required connectors in the app (in-app Models UI). WinForms Setup shortcut retired."
         }
     }
     Set-DragonAIBotStatus -Status $status
