@@ -62,7 +62,7 @@ The Teams Marketplace **popup** (centered modal + backdrop) lists seats under ea
 - Sidebar header brand lockup (logo + Dragon AI) and sidebar/chat type size + contrast
 - Chat transcript pane + user/assistant bubbles (`[data-chat-surface]`, `aui_thread*`, `.composer-human-message`, `aui_assistant-message-content`)
 - In-app Teams picker button + dialog (`[data-dragon-ai-teams-*]`)
-- Composer placeholder + `:focus-visible` ring on the textbox and voice controls (`2px` solid `#C41E3A`, offset `2px`). No persistent crimson outline around the composer island. Right-side **waveform** opens the Grok-Bot capsule; gear is Voice settings.
+- Composer placeholder + `:focus-visible` ring on the textbox and voice controls (`2px` solid `#C41E3A`, offset `2px`). No persistent crimson outline around the composer island. Right-side **waveform** opens the Grok-Bot capsule **docked at the top of the chat column** (narrower/taller pill); gear is Voice settings.
 - Settings / About product copy (strings already in `desktop_branding.json`)
 - Shared CSS variables so a later branded Electron build can reuse them
 

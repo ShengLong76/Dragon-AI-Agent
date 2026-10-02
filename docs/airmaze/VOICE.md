@@ -15,7 +15,7 @@ This packaging repo does not contain Hermes `apps/desktop` source and does not r
 | **Settings Voice conversation mode** | Ready. Overlay + renderer enum add **Grok Voice** beside **Chained** and **Gpt-live**. Writes `voice.voice_chat_mode: grok-live`. |
 | **GPT \| Grok** composer pills | **Removed.** Not the selection surface. |
 | **Composer waveform** | Ready. Right-side waveform icon opens the floating capsule. Accessible name **Talk with Grok**. |
-| **Floating capsule** | Ready. Near the top of the chat pane: bot avatar \| purple vertical bars \| **gear** \| chat \| mic \| red X. |
+| **Floating capsule** | Ready. **Docks at the top** of the chat column (`position: fixed`, measured from the pane — not above the composer). Narrower/taller Grok Bot pill: bot avatar \| purple vertical bars \| **gear** \| chat \| mic \| red X. Native “Speaking response” bar is hidden while the capsule is open. |
 | **Gear Voice settings** | Ready. Official xAI voices (`eve`, `ara`, `rex`, `sal`, `leo`), speed `0.75×–2×`, language, interrupt. Persists via `POST /api/voice/prefs`. |
 | **GPT duplex** | Ready via upstream Hermes `voice.voice_chat_mode: gpt-live` → OpenAI `gpt-live-1`. Unchanged. |
 | **Grok duplex client** | Ready. Electron overlay `branding/voice/dragon-voice-selector.js` (waveform → capsule) opens official `wss://api.x.ai/v1/realtime?model=grok-voice-latest`. |
@@ -55,7 +55,7 @@ When that lands, overlay Talk can stay as fallback. Ready-to-paste prompt is at 
 
 **Settings → Voice → Voice conversation:** the mode dropdown lists **Chained**, **Gpt-live**, and **Grok Voice**. That is the operator picker (and the backend `voice.voice_chat_mode` switch).
 
-Composer **GPT | Grok** pills are removed. The chat-screen control is the Grok-Bot waveform → floating capsule. Gear opens Voice settings (voice, speed, language, interrupt). Chat returns to text. Mic mutes. Red X ends the session.
+Composer **GPT | Grok** pills are removed. The chat-screen control is the Grok-Bot waveform → floating capsule **at the top of the chat pane** (not the bottom “Speaking response” strip above the composer). The pill is narrower and taller than #38’s wide bar. Gear opens Voice settings (voice, speed, language, interrupt). Chat returns to text. Mic mutes. Red X ends the session.
 
 | Option | What it uses | Auth |
 |--------|----------------|------|
@@ -168,7 +168,7 @@ Gateway start runs `patch_grok_voice_mode.py` so `methods_config_set.py` accepts
 2. Start Dragon AI Agent. Open **Settings → Voice → Voice conversation**.
 3. Confirm the mode dropdown lists **Chained**, **Gpt-live**, and **Grok Voice**.
 4. Pick **Gpt-live**. Use the Hermes mic. Existing GPT-Live duplex (OpenAI). `voice.grok_live` stays in config.
-5. Pick **Grok Voice**. Click the composer **waveform**. The floating capsule opens (avatar | purple bars | gear | chat | mic | red X). Gear must show Voice / Speed / Language. Allow the microphone. Speak — server VAD should barge in / answer without a chained STT→LLM→TTS pause.
+5. Pick **Grok Voice**. Click the composer **waveform**. The floating capsule opens **at the top of the chat pane** (avatar | purple bars | gear | chat | mic | red X) — not the bottom Speaking-response strip. Gear must show Voice / Speed / Language. Allow the microphone. Speak — server VAD should barge in / answer without a chained STT→LLM→TTS pause.
 6. Pick **Chained**. Native STT→TTS returns; both live blocks remain.
 7. Offline: `python3 scripts/airmaze/Test-VoiceChat.py`.
 

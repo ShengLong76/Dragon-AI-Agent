@@ -32,10 +32,11 @@
     { id: "ja", label: "Japanese" },
     { id: "zh", label: "Chinese" }
   ];
-  var BAR_COUNT = 18;
+  var BAR_COUNT = 12;
   var session = null;
   var prefs = { voice: "eve", speed: 1, language: "en", interrupt: true };
   var roots = { widget: null, trigger: null, host: null };
+  var viewportBound = false;
 
   function $(sel, root) {
     return (root || document).querySelector(sel);
@@ -80,8 +81,15 @@
 
   function svgIcon(path, view) {
     return (
-      '<svg viewBox="' + (view || "0 0 24 24") + '" width="18" height="18" aria-hidden="true" focusable="false">' +
+      '<svg viewBox="' + (view || "0 0 24 24") + '" width="20" height="20" aria-hidden="true" focusable="false">' +
       '<path fill="currentColor" d="' + path + '"></path></svg>'
+    );
+  }
+
+  function svgStroke(path, view) {
+    return (
+      '<svg viewBox="' + (view || "0 0 24 24") + '" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="' + path + '"></path></svg>'
     );
   }
 
@@ -177,7 +185,7 @@
     var i;
     var height;
     for (i = 0; i < bars.length; i++) {
-      height = 18 + Math.round(level * 72 * (0.45 + ((i * 17) % 10) / 14));
+      height = 22 + Math.round(level * 78 * (0.4 + ((i * 17) % 10) / 14));
       bars[i].style.height = height + "%";
     }
   }
@@ -387,6 +395,8 @@
     roots.widget.removeAttribute("hidden");
     setSettingsOpen(false);
     setState(session && session.live ? "live" : "idle");
+    hideNativeSessionBar(true);
+    dockWidget();
     ensureGrokLive();
     persistPrefs(true);
     if (!(session && session.live)) startDuplex();
@@ -402,6 +412,7 @@
       roots.widget.hidden = true;
       roots.widget.setAttribute("hidden", "");
     }
+    hideNativeSessionBar(false);
     setState("hidden");
     if (roots.trigger && roots.trigger.focus) roots.trigger.focus();
   }
@@ -453,10 +464,109 @@
   function findChatPane() {
     return document.querySelector('[data-slot="aui_thread"]')
       || document.querySelector('[data-slot="thread"]')
+      || document.querySelector('[data-slot="aui_thread-viewport"]')
       || document.querySelector('[data-slot="aui_viewport"]')
       || document.querySelector('[data-chat-surface]')
       || document.querySelector("main")
       || document.body;
+  }
+
+  function findChatColumn() {
+    var composer = findComposerHost();
+    var thread = findChatPane();
+    var start = thread || composer || document.body;
+    var vh = window.innerHeight || 800;
+    var vw = window.innerWidth || 1024;
+    var sidebar = document.querySelector('[data-slot="sidebar"]')
+      || document.querySelector("[data-dragon-ai-sidebar-chrome]");
+    var sidebarRight = 0;
+    if (sidebar && sidebar.getBoundingClientRect) {
+      sidebarRight = sidebar.getBoundingClientRect().right || 0;
+    }
+    var best = start;
+    var bestScore = -1;
+    var el = start;
+    while (el && el !== document.documentElement) {
+      if (el.getBoundingClientRect) {
+        var r = el.getBoundingClientRect();
+        var tall = r.height >= Math.min(280, vh * 0.45);
+        var wide = r.width >= 240;
+        var notSidebar = r.left >= sidebarRight - 12;
+        var score = (tall ? r.height : 0) + (wide ? r.width * 0.15 : 0) + (notSidebar ? 80 : 0);
+        if (tall && wide && score > bestScore) {
+          best = el;
+          bestScore = score;
+        }
+        if (tall && wide && notSidebar && r.height >= vh * 0.62 && r.left > 8 && r.right < vw + 8) {
+          best = el;
+          break;
+        }
+      }
+      el = el.parentElement;
+    }
+    return best || document.body;
+  }
+
+  function hideNativeSessionBar(hide) {
+    var composer = findComposerHost();
+    var scope = composer && composer.parentNode;
+    var marked = document.querySelectorAll("[data-dragon-voice-native-session]");
+    var i;
+    if (!hide) {
+      for (i = 0; i < marked.length; i++) {
+        marked[i].removeAttribute("data-dragon-voice-native-session");
+      }
+      return;
+    }
+    if (!scope) return;
+    var el;
+    for (el = scope.firstElementChild; el; el = el.nextElementSibling) {
+      if (el === composer || el === roots.widget) continue;
+      if (el.getAttribute && el.getAttribute("data-dragon-voice-widget")) continue;
+      if (roots.widget && el.contains && el.contains(roots.widget)) continue;
+      var text = (el.textContent || "").replace(/\s+/g, " ").trim();
+      if (text.length < 72 && /speaking response|listening[.…]/i.test(text)) {
+        el.setAttribute("data-dragon-voice-native-session", "true");
+      }
+    }
+  }
+
+  function dockWidget() {
+    if (!roots.widget || roots.widget.hidden) return;
+    var column = findChatColumn();
+    var composer = findComposerHost();
+    var rect = column.getBoundingClientRect();
+    if (composer) {
+      var cr = composer.getBoundingClientRect();
+      var gap = cr.top - rect.top;
+      if (rect.height < 160 || gap < 120) {
+        var parent = column.parentElement;
+        while (parent && parent !== document.body) {
+          var pr = parent.getBoundingClientRect();
+          if (pr.height > rect.height + 80 && cr.top - pr.top >= 140) {
+            rect = pr;
+            break;
+          }
+          parent = parent.parentElement;
+        }
+      }
+    }
+    var top = Math.max(10, Math.round(rect.top + 12));
+    var left = Math.round(rect.left + rect.width / 2);
+    roots.widget.style.position = "fixed";
+    roots.widget.style.top = top + "px";
+    roots.widget.style.left = left + "px";
+    roots.widget.style.right = "auto";
+    roots.widget.style.bottom = "auto";
+    roots.widget.style.transform = "translateX(-50%)";
+    roots.widget.setAttribute("data-dragon-voice-dock", "top");
+  }
+
+  function bindViewport() {
+    if (viewportBound) return;
+    viewportBound = true;
+    window.addEventListener("resize", dockWidget);
+    window.addEventListener("scroll", dockWidget, true);
   }
 
   function findComposerAction(host) {
@@ -509,11 +619,17 @@
 
   function placeWidget(widget) {
     var pane = findChatPane();
-    if (!pane) return;
-    if (pane.getAttribute && !pane.getAttribute("data-dragon-voice-pane")) {
+    var column = findChatColumn();
+    if (column && column.getAttribute && !column.getAttribute("data-dragon-voice-pane")) {
+      column.setAttribute("data-dragon-voice-pane", "true");
+    }
+    if (pane && pane !== column && pane.getAttribute && !pane.getAttribute("data-dragon-voice-pane")) {
       pane.setAttribute("data-dragon-voice-pane", "true");
     }
-    if (widget.parentNode !== pane) pane.appendChild(widget);
+    if (widget.parentNode !== document.body) document.body.appendChild(widget);
+    widget.setAttribute("data-dragon-voice-dock", "top");
+    bindViewport();
+    dockWidget();
   }
 
   function avatarSrc() {
@@ -583,9 +699,9 @@
     var i;
     for (i = 0; i < BAR_COUNT; i++) {
       var bar = document.createElement("i");
-      var pattern = [28, 46, 72, 54, 88, 40, 64, 78, 36, 70, 52, 84, 44, 66, 38, 76, 48, 32];
+      var pattern = [34, 62, 88, 56, 96, 44, 78, 70, 40, 84, 52, 66];
       bar.style.setProperty("--i", String(i));
-      bar.style.setProperty("--bar-h", (pattern[i % pattern.length] || 42) + "%");
+      bar.style.setProperty("--bar-h", (pattern[i % pattern.length] || 48) + "%");
       wave.appendChild(bar);
     }
 
@@ -595,7 +711,7 @@
     gear.setAttribute("aria-label", "Voice settings");
     gear.setAttribute("aria-expanded", "false");
     gear.setAttribute("aria-controls", "dragon-voice-settings-panel");
-    gear.innerHTML = svgIcon("M19.14 12.94a7.43 7.43 0 0 0 .05-.94 7.43 7.43 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7.16 7.16 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.49.42l-.36 2.54c-.58.24-1.13.55-1.63.94l-2.39-.96a.5.5 0 0 0-.61.22L2.7 8.48a.5.5 0 0 0 .12.64L4.85 10.7a7.43 7.43 0 0 0-.05.94 7.43 7.43 0 0 0 .05.94L2.82 14.16a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .61.22l2.39-.96c.5.39 1.05.7 1.63.94l.36 2.54a.5.5 0 0 0 .49.42h3.8a.5.5 0 0 0 .49-.42l.36-2.54c.58-.24 1.13-.55 1.63-.94l2.39.96a.5.5 0 0 0 .61-.22l1.92-3.32a.5.5 0 0 0-.12-.64zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z");
+    gear.innerHTML = svgStroke("M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1.08 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.86 1.04 1.51 1.08H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z");
     gear.addEventListener("click", function (ev) {
       ev.preventDefault();
       ev.stopPropagation();
@@ -606,7 +722,7 @@
     chat.type = "button";
     chat.setAttribute("data-dragon-voice-chat", "true");
     chat.setAttribute("aria-label", "Return to chat");
-    chat.innerHTML = svgIcon("M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8l-4 4V6a2 2 0 0 1 2-2zm3 5h10v2H7zm0 4h7v2H7z");
+    chat.innerHTML = svgStroke("M21 12a8 8 0 0 1-8 8H7l-4 3V12a8 8 0 1 1 18 0z");
     chat.addEventListener("click", function (ev) {
       ev.preventDefault();
       closeWidget(true);
@@ -617,7 +733,7 @@
     mic.setAttribute("data-dragon-voice-mic", "true");
     mic.setAttribute("aria-label", "Mute microphone");
     mic.setAttribute("aria-pressed", "false");
-    mic.innerHTML = svgIcon("M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11z");
+    mic.innerHTML = svgStroke("M12 15a3.5 3.5 0 0 0 3.5-3.5v-6a3.5 3.5 0 1 0-7 0v6A3.5 3.5 0 0 0 12 15zM8 11.5a4 4 0 0 0 8 0M12 19.5v2M9 21.5h6");
     mic.addEventListener("click", function (ev) {
       ev.preventDefault();
       toggleMute();
@@ -724,6 +840,7 @@
       roots.trigger = document.querySelector("[data-dragon-voice-trigger]");
       if (roots.trigger && host) placeTrigger(roots.trigger, host);
       placeWidget(existing);
+      if (!existing.hidden) hideNativeSessionBar(true);
       return;
     }
     if (!host) return;

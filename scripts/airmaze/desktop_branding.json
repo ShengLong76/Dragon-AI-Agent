@@ -66,7 +66,7 @@
     "settingsModes": ["chained", "gpt-live", "grok-live"],
     "settingsLabel": "Grok Voice",
     "helper": "http://127.0.0.1:8654/api/voice",
-    "why": "Settings → Voice → Voice conversation mode adds Grok Voice beside Chained and Gpt-live. Same voice.voice_chat_mode key as gpt-live. Chat-screen GPT/Grok pills are removed. Composer waveform opens the Grok-Bot capsule (avatar | bars | gear | chat | mic | X). Gear persists official xAI voice/speed. Overlay hosts grok-live duplex."
+    "why": "Settings → Voice → Voice conversation mode adds Grok Voice beside Chained and Gpt-live. Same voice.voice_chat_mode key as gpt-live. Chat-screen GPT/Grok pills are removed. Composer waveform opens a narrower/taller Grok-Bot capsule docked at the top of the chat pane (avatar | bars | gear | chat | mic | X). Gear persists official xAI voice/speed. Overlay hosts grok-live duplex."
   },
   "sidebar": {
     "userFacingBots": ["Personal Assistant"],

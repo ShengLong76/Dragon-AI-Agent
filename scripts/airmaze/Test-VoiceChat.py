@@ -328,6 +328,12 @@ def test_overlay_selector_coexists(vc) -> None:
         fail("waveform trigger must mount on the composer action")
     if "data-dragon-ai-composer-action" not in js:
         fail("waveform trigger must mount in data-dragon-ai-composer-action")
+    if "dockWidget" not in js or 'data-dragon-voice-dock' not in js:
+        fail("overlay must dock the capsule to the top of the chat column")
+    if "findChatColumn" not in js or "document.body.appendChild" not in js:
+        fail("capsule must mount on body and measure the chat column, not sit in the flex-end thread")
+    if "hideNativeSessionBar" not in js or "speaking response" not in js.lower():
+        fail("overlay must hide the native Speaking response bar when the capsule is open")
     for needle in ("eve", "ara", "rex", "sal", "leo", "Speed", "Language", "Interrupt"):
         if needle not in js:
             fail(f"gear Voice settings must include {needle}")
@@ -353,6 +359,28 @@ def test_overlay_selector_coexists(vc) -> None:
         fail("dragon-ui.css must style the composer waveform trigger")
     if "dragon-ai-composer-chrome:1" not in css or "[data-dragon-ai-composer-action]" not in css:
         fail("dragon-ui.css must stamp composer chrome and the action cluster")
+    if "dragon-ai-voice-capsule-top:1" not in css:
+        fail("dragon-ui.css must stamp the top-docked Grok Bot capsule")
+    widget_rule = css.split("[data-dragon-voice-widget] {", 1)
+    if len(widget_rule) < 2:
+        fail("dragon-ui.css must style the voice widget host")
+    widget_block = widget_rule[1].split("[data-dragon-voice-capsule]", 1)[0]
+    if "position: fixed" not in widget_block:
+        fail("voice widget must be position:fixed so it stays at the top of the chat pane")
+    if "max-width: min(420px" in widget_block or "max-width: min(360px" in widget_block:
+        fail("capsule host must be narrower than the 420px speaking-response bar")
+    if "min(292px" not in widget_block:
+        fail("capsule host max-width must be the narrower Grok Bot pill (292px)")
+    capsule_rule = css.split("[data-dragon-voice-capsule] {", 1)
+    if len(capsule_rule) < 2:
+        fail("dragon-ui.css must style the voice capsule pill")
+    capsule_block = capsule_rule[1].split("[data-dragon-voice-avatar]", 1)[0]
+    if "min-height: 56px" in capsule_block:
+        fail("capsule must be taller than the 56px speaking-response bar")
+    if "min-height: 72px" not in capsule_block:
+        fail("capsule min-height must be 72px to match Grok Bot pill proportions")
+    if "bottom:" in widget_block.split("}", 1)[0]:
+        fail("voice widget must not dock to the bottom above the composer")
     trigger_rule = css.split("[data-dragon-voice-trigger] {", 1)
     if len(trigger_rule) < 2 or "var(--color-primary)" in trigger_rule[1].split("}", 1)[0]:
         fail("waveform trigger must not keep a crimson bordered island")
