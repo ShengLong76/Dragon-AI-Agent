@@ -23,7 +23,7 @@ PowerShell hashtables are **case-insensitive**. The tray `$patch` may list camel
 
 1. **Engine already up** (`docker info` ok) → no-op. Do not relaunch Docker Desktop.
 2. **Engine down** → re-apply tray-only settings, start `Docker Desktop.exe` Hidden (fallback Minimized). Never `Start-Process` the Docker dashboard URL. Never open `:9119`.
-3. **Wait** with a bounded retry (about 3 minutes, a few seconds between `docker info` probes). Status form stays “Starting Docker Desktop (system tray)…”.
+3. **Wait** with a bounded retry (about 3 minutes, a few seconds between `docker info` probes). Progress is logged to `%LOCALAPPDATA%\DragonAIAgent\launch.log` (“Starting Docker Desktop (system tray)…”). Do **not** show the WinForms Waiting for gateway / Setup / Close status window — Hermes desktop is the loading UX.
 4. **Still down** → friendly MessageBox: start Docker from the tray, then open Dragon AI Agent again. Only then fail closed.
 5. **Docker Desktop.exe missing** → same class of error (install Docker, then retry). Do not download the installer from the launch path.
 

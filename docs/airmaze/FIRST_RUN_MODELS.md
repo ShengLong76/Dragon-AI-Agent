@@ -43,7 +43,7 @@ image_gen:
 
 ## UI path
 
-First-run uses the **in-app Models UI** plus launcher `Apply-GatewayModels.ps1 -IfMissing`. Do **not** ship a Desktop / Start Menu **Dragon AI Agent Setup** shortcut. The WinForms `Onboard-Wizard.ps1` Models step remains in-tree as a deprecated fallback (no product `.lnk`, not auto-launched).
+First-run uses the **in-app Models UI** plus launcher `Apply-GatewayModels.ps1 -IfMissing`. Do **not** ship a Desktop / Start Menu **Dragon AI Agent Setup** shortcut. The launch wait window (and its Setup button) is not shown. The WinForms `Onboard-Wizard.ps1` Models step remains in-tree as a deprecated fallback (no product `.lnk`, not auto-launched).
 
 Step order:
 

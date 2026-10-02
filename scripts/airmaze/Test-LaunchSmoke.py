@@ -31,6 +31,7 @@ REQUIRED_LAUNCHER = (
     "hermes-airmaze-gw is not running",
     "error during connect",
     "New-LaunchStatusForm",
+    "do not show Waiting for gateway Setup/Close status window",
     "SilentHost",
     "OpenDashboard",
     "StartDocker",
@@ -209,6 +210,17 @@ def check_launcher() -> None:
         fail("launch plan still advertises first-run Onboard-Wizard")
     if "first-run uses in-app Models UI" not in text:
         fail("launch plan must say first-run uses in-app Models UI")
+    if "New-LaunchStatusForm | Out-Null" in text:
+        fail("normal launch must not auto-open the Waiting for gateway Setup/Close status window")
+    if "do not show Waiting for gateway Setup/Close status window" not in text:
+        fail("launch plan must hide the wait/Setup status window (Hermes desktop is the loading UX)")
+    main = text.split("# --- Main")[-1]
+    if "New-LaunchStatusForm |" in main or "New-LaunchStatusForm)" in main.replace(" ", ""):
+        fail("main launch path must not call New-LaunchStatusForm")
+    wait_idx = main.find("Wait-GatewayReady")
+    launch_idx = main.find("Start-AgentDesktopOrThrow")
+    if launch_idx < 0 or wait_idx < 0 or launch_idx > wait_idx:
+        fail("Hermes desktop must open before Wait-GatewayReady so its default loading is the wait UX")
 
 
 def check_shortcuts() -> None:
