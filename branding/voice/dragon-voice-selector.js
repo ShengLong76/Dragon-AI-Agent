@@ -571,6 +571,10 @@
     pic.alt = "";
     pic.setAttribute("aria-hidden", "true");
     pic.src = avatarSrc();
+    pic.addEventListener("error", function () {
+      pic.remove();
+      avatar.innerHTML = '<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><circle cx="12" cy="8" r="3.2" fill="#c4c4ce"></circle><path d="M5 19c.6-3.4 3.4-5 7-5s6.4 1.6 7 5" fill="#c4c4ce"></path></svg>';
+    });
     avatar.appendChild(pic);
 
     var wave = document.createElement("div");
@@ -579,7 +583,9 @@
     var i;
     for (i = 0; i < BAR_COUNT; i++) {
       var bar = document.createElement("i");
+      var pattern = [28, 46, 72, 54, 88, 40, 64, 78, 36, 70, 52, 84, 44, 66, 38, 76, 48, 32];
       bar.style.setProperty("--i", String(i));
+      bar.style.setProperty("--bar-h", (pattern[i % pattern.length] || 42) + "%");
       wave.appendChild(bar);
     }
 

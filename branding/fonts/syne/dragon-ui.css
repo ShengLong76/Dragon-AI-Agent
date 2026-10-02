@@ -1115,7 +1115,8 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  width: min(520px, calc(100% - 32px));
+  width: max-content;
+  max-width: min(420px, calc(100% - 32px));
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -1129,10 +1130,10 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: 100%;
+  gap: 8px;
+  width: max-content;
   min-height: 56px;
-  padding: 8px 10px 8px 8px;
+  padding: 6px 8px 6px 6px;
   border: 1px solid #2a2a30;
   border-radius: 999px;
   background: #111114;
@@ -1140,7 +1141,10 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="
 }
 
 [data-dragon-voice-avatar] {
+  display: flex;
   flex: 0 0 40px;
+  align-items: center;
+  justify-content: center;
   width: 40px;
   height: 40px;
   overflow: hidden;
@@ -1157,29 +1161,30 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="
 
 [data-dragon-voice-wave] {
   display: flex;
-  flex: 1 1 auto;
+  flex: 0 0 148px;
   align-items: center;
   justify-content: center;
   gap: 3px;
-  min-width: 96px;
-  height: 32px;
+  width: 148px;
+  height: 36px;
 }
 
 [data-dragon-voice-wave] i {
   display: block;
   width: 3px;
-  height: 22%;
+  height: var(--bar-h, 42%);
   border-radius: 99px;
   background: #8b7cff;
   transform-origin: center;
 }
 
-[data-dragon-voice-widget][data-state="live"] [data-dragon-voice-wave] i,
-[data-dragon-voice-widget][data-state="listening"] [data-dragon-voice-wave] i,
-[data-dragon-voice-widget][data-state="speaking"] [data-dragon-voice-wave] i,
-[data-dragon-voice-widget][data-state="connecting"] [data-dragon-voice-wave] i {
+[data-dragon-voice-widget] [data-dragon-voice-wave] i {
   animation: dragon-voice-bar 1.05s ease-in-out infinite;
   animation-delay: calc(var(--i, 0) * -0.07s);
+}
+
+[data-dragon-voice-widget][data-state="hidden"] [data-dragon-voice-wave] i {
+  animation: none;
 }
 
 [data-dragon-voice-capsule] button {
