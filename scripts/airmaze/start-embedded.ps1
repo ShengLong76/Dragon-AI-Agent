@@ -169,7 +169,7 @@ function New-LaunchStatusForm {
         $header = New-Object Windows.Forms.Panel
         $header.Location = New-Object Drawing.Point(0, 0)
         $header.Size = New-Object Drawing.Size(560, 56)
-        $header.BackColor = [System.Drawing.Color]::FromArgb(196, 30, 58)
+        $header.BackColor = [System.Drawing.Color]::FromArgb(37, 99, 235)  # #2563EB Marketplace / header lockup
         $form.Controls.Add($header)
 
         $logoPath = Join-Path $InstallRoot "branding\dragon-ai-agent-logo.png"

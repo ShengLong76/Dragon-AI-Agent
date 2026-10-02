@@ -204,6 +204,41 @@ def check_compose_auth() -> None:
         fail("dashboard login username is still airmaze (customer-facing)")
 
 
+def check_header_lockup_blue() -> None:
+    """WinForms logo+title band is Marketplace blue; primary buttons stay crimson."""
+    wizard = WIZARD.read_text(encoding="utf-8")
+    launcher = LAUNCHER.read_text(encoding="utf-8")
+    select = ROOT / "scripts" / "airmaze" / "Select-BotGroup.ps1"
+    select_txt = select.read_text(encoding="utf-8") if select.is_file() else ""
+    if "$header.BackColor = $script:BrandRed" in wizard:
+        fail("Onboard-Wizard header lockup must not stay BrandRed")
+    if "$header.BackColor = $script:BrandBlue" not in wizard:
+        fail("Onboard-Wizard header lockup must use BrandBlue (#2563EB)")
+    if "FromArgb(37, 99, 235)" not in wizard and "FromArgb(37,99,235)" not in wizard:
+        fail("Onboard-Wizard BrandBlue must be Marketplace #2563EB / 37, 99, 235")
+    if "$b.BackColor = $script:BrandRed" not in wizard:
+        fail("wizard primary buttons must stay BrandRed")
+    if "FromArgb(196, 30, 58)" in launcher.split("function New-LaunchStatusForm")[-1].split("function ")[0]:
+        fail("launch-status header must not stay crimson 196, 30, 58")
+    if "FromArgb(37, 99, 235)" not in launcher:
+        fail("launch-status header must use Marketplace blue 37, 99, 235")
+    if select_txt:
+        if "$header.BackColor = $script:BrandRed" in select_txt:
+            fail("Select-BotGroup header lockup must not stay BrandRed")
+        if "$header.BackColor = $script:BrandBlue" not in select_txt:
+            fail("Select-BotGroup header lockup must use BrandBlue")
+        if "$btnLaunch.BackColor = $script:BrandRed" not in select_txt:
+            fail("Select-BotGroup Launch button must stay BrandRed")
+    design = ROOT / "docs" / "airmaze" / "HEADER_LOCKUP_BLUE.md"
+    plan = ROOT / "docs" / "airmaze" / "HEADER_LOCKUP_BLUE_PLAN.md"
+    if not design.is_file() or not plan.is_file():
+        fail("missing HEADER_LOCKUP_BLUE design/plan")
+    design_txt = design.read_text(encoding="utf-8")
+    if "#2563EB" not in design_txt or "Onboard-Wizard" not in design_txt:
+        fail("HEADER_LOCKUP_BLUE.md must name Marketplace #2563EB on the wizard header")
+    print("OK  header lockup blue")
+
+
 def check_wizard() -> None:
     require_tokens(WIZARD, REQUIRED_WIZARD, "wizard")
     text = WIZARD.read_text(encoding="utf-8")
@@ -211,6 +246,7 @@ def check_wizard() -> None:
         fail("wizard still calls ContainsKey on OrderedDictionary/IDictionary")
     if "$script:BrandBack = [System.Drawing.Color]::FromArgb" in text.split("function Initialize-WizardWinForms")[0]:
         fail("wizard still initializes Drawing.Color before Add-Type System.Drawing")
+    check_header_lockup_blue()
 
 
 def run_host_smoke() -> None:

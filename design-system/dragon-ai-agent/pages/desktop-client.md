@@ -18,11 +18,12 @@ Developer-tool / OLED searches from the same skill (`developer tool IDE dark`, `
 
 ## Applied tokens
 
-Reuse the wizard colors already in `Onboard-Wizard.ps1` so packaging chrome and the Electron overlay share one system.
+Reuse the wizard colors already in `Onboard-Wizard.ps1` so packaging chrome and the Electron overlay share one system. The WinForms header lockup (dragon + **Dragon AI Agent**) uses Marketplace blue `#2563EB`, not crimson. Primary buttons stay `#C41E3A`. The Electron sidebar lockup stays transparent on `#1C1C20`. Design: `docs/airmaze/HEADER_LOCKUP_BLUE.md`.
 
 | Role | Hex | CSS variable | WinForms |
 |------|-----|--------------|----------|
-| Primary / accent | `#C41E3A` | `--color-primary`, `--color-accent`, `--color-ring` | `196, 30, 58` |
+| Primary / accent | `#C41E3A` | `--color-primary`, `--color-accent`, `--color-ring` | `196, 30, 58` (buttons / focus; not the header band) |
+| Header band | `#2563EB` | `--dragon-marketplace-blue` | `37, 99, 235` (WinForms lockup behind logo + title) |
 | On primary | `#FFFFFF` | `--color-on-primary`, `--color-on-accent` | White |
 | Secondary | `#C4A574` | `--color-secondary` | wizard header subtitle only; not used on the mark |
 | Background | `#1C1C20` | `--color-background` | `28, 28, 32` |

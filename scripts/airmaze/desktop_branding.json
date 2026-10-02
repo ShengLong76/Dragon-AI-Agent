@@ -19,6 +19,7 @@
   },
   "tokens": {
     "primary": "#C41E3A",
+    "headerBand": "#2563EB",
     "background": "#1C1C20",
     "foreground": "#F0F0F5",
     "card": "#282830",

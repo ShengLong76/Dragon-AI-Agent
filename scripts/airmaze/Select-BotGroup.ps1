@@ -5,7 +5,8 @@
 
 .DESCRIPTION
   Front end of https://github.com/ShengLong76/airmaze-agent bot-groups/.
-  Do not hard-code the list. Do not add a leftover sidebar bot. Do not restyle (crimson #C41E3A).
+  Do not hard-code the list. Do not add a leftover sidebar bot.
+  Header lockup band is Marketplace blue #2563EB; primary buttons stay crimson #C41E3A.
   Singular import/export stays off unless the user turns allowSingularBotImportExport on.
 #>
 [CmdletBinding()]
@@ -126,6 +127,7 @@ function Initialize-BotGroupWinForms {
         $script:BrandBack = [System.Drawing.Color]::FromArgb(28, 28, 32)
         $script:BrandPanel = [System.Drawing.Color]::FromArgb(40, 40, 48)
         $script:BrandRed = [System.Drawing.Color]::FromArgb(196, 30, 58)
+        $script:BrandBlue = [System.Drawing.Color]::FromArgb(37, 99, 235)
         $script:BrandText = [System.Drawing.Color]::FromArgb(240, 240, 245)
         $script:BrandMuted = [System.Drawing.Color]::FromArgb(160, 160, 170)
         $script:BotGroupFormsReady = $true
@@ -158,7 +160,7 @@ function Show-TeamsPopup {
     $header = New-Object System.Windows.Forms.Panel
     $header.Size = New-Object System.Drawing.Size(720, 80)
     $header.Dock = "Top"
-    $header.BackColor = $script:BrandRed
+    $header.BackColor = $script:BrandBlue
     $title = New-Object System.Windows.Forms.Label
     $title.Text = $ProductName
     $title.ForeColor = [System.Drawing.Color]::White
@@ -167,7 +169,7 @@ function Show-TeamsPopup {
     $title.AutoSize = $true
     $sub = New-Object System.Windows.Forms.Label
     $sub.Text = "Marketplace catalog. Check teams to Launch. Personal Assistant is already installed. Export strips secrets. Import stays on this popup."
-    $sub.ForeColor = [System.Drawing.Color]::FromArgb(255, 220, 220)
+    $sub.ForeColor = $script:BrandText
     $sub.Location = New-Object System.Drawing.Point(20, 40)
     $sub.Size = New-Object System.Drawing.Size(670, 32)
     $header.Controls.Add($title)

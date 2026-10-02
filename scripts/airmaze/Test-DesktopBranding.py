@@ -252,6 +252,8 @@ def test_table() -> dict:
     tokens = table.get("tokens") or {}
     if tokens.get("primary") != "#C41E3A" or tokens.get("background") != "#1C1C20":
         fail("table tokens must keep dragon crimson on dark surfaces")
+    if tokens.get("headerBand") != "#2563EB":
+        fail("table tokens.headerBand must be Marketplace blue #2563EB")
     if tokens.get("mutedForeground") != "#C4C4CE":
         fail("table mutedForeground must be Grok-like #C4C4CE (not washed #A0A0AA)")
     if tokens.get("fontSizeBody") != "16px" or tokens.get("lineHeightBody") != "1.55":
@@ -736,9 +738,13 @@ def test_packaging_not_regressed() -> None:
         fail("design-system/dragon-ai-agent/MASTER.md must exist from UI UX Pro Max")
     if not override.is_file() or "Syne" not in read(override) or "#C41E3A" not in read(override):
         fail("desktop-client override must keep Syne and crimson tokens")
+    if "#2563EB" not in read(override) and "#2563eb" not in read(override).lower():
+        fail("desktop-client override must record the #2563EB header lockup band")
     if not design_note.is_file() or "Syne" not in read(design_note):
         fail("docs/airmaze/DESIGN.md must exist and keep Syne")
     design_txt = read(design_note)
+    if "#2563EB" not in design_txt and "#2563eb" not in design_txt.lower():
+        fail("DESIGN.md must record the blue WinForms header lockup band")
     if "front-facing" not in design_txt.lower() and "front facing" not in design_txt.lower():
         fail("DESIGN.md must record the front-facing dragon mark")
     if "navy" not in design_txt.lower() or "red eyes" not in design_txt.lower():

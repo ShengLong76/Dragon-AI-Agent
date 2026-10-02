@@ -834,6 +834,9 @@ def self_test() -> int:
     if tokens.get("primary") != "#C41E3A":
         print("FAIL: table tokens.primary must stay dragon crimson", file=sys.stderr)
         return 1
+    if tokens.get("headerBand") != "#2563EB":
+        print("FAIL: table tokens.headerBand must be Marketplace blue #2563EB", file=sys.stderr)
+        return 1
     if tokens.get("mutedForeground") != "#C4C4CE":
         print("FAIL: table mutedForeground must be Grok-like #C4C4CE", file=sys.stderr)
         return 1
