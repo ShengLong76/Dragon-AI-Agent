@@ -1024,7 +1024,10 @@ input::placeholder {
 /* dragon-ai-composer-chrome:1
    Grok-Bot composer pill: no persistent crimson outline, no GPT/Grok
    pills. Right-side waveform opens the floating voice capsule.
-   Focus-visible stays on the textbox and controls (2px #C41E3A). */
+   Focus-visible stays on the textbox and controls (2px #C41E3A).
+   dragon-ai-voice-capsule-top:1 — capsule docks at the TOP of the
+   chat column (fixed), not above the composer. Narrower + taller
+   Grok Bot pill: avatar | purple bars | gear | chat | mic | red X. */
 [data-slot="aui_composer"],
 [data-slot="composer"],
 [data-dragon-ai-composer-chrome],
@@ -1104,21 +1107,30 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="
 
 [data-dragon-voice-pane] {
   position: relative;
+  scroll-padding-top: 88px;
+}
+
+[data-dragon-voice-native-session] {
+  display: none !important;
 }
 
 [data-dragon-voice-widget] {
-  position: absolute;
+  position: fixed;
   top: 16px;
   left: 50%;
-  z-index: 40;
+  z-index: 50;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: max-content;
-  max-width: min(420px, calc(100% - 32px));
+  max-width: min(292px, calc(100% - 48px));
   transform: translateX(-50%);
   pointer-events: none;
+}
+
+[data-dragon-voice-widget][data-dragon-voice-dock="top"] {
+  bottom: auto;
 }
 
 [data-dragon-voice-widget][hidden] {
@@ -1130,49 +1142,51 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   width: max-content;
-  min-height: 56px;
-  padding: 6px 8px 6px 6px;
+  min-width: 268px;
+  min-height: 72px;
+  height: 72px;
+  padding: 8px 10px 8px 8px;
   border: 1px solid #2a2a30;
   border-radius: 999px;
-  background: #111114;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  background: #0c0c0e;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
 }
 
 [data-dragon-voice-avatar] {
   display: flex;
-  flex: 0 0 40px;
+  flex: 0 0 48px;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   overflow: hidden;
   border-radius: 999px;
-  background: #1c1c20;
+  background: #16161a;
 }
 
 [data-dragon-voice-avatar] img {
   display: block;
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   object-fit: contain;
 }
 
 [data-dragon-voice-wave] {
   display: flex;
-  flex: 0 0 148px;
+  flex: 0 0 80px;
   align-items: center;
   justify-content: center;
   gap: 3px;
-  width: 148px;
-  height: 36px;
+  width: 80px;
+  height: 44px;
 }
 
 [data-dragon-voice-wave] i {
   display: block;
-  width: 3px;
-  height: var(--bar-h, 42%);
+  width: 3.5px;
+  height: var(--bar-h, 48%);
   border-radius: 99px;
   background: #8b7cff;
   transform-origin: center;
@@ -1192,10 +1206,10 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  min-height: 36px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
   padding: 0;
   border: 0;
   border-radius: 999px;
@@ -1233,11 +1247,11 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="
   display: flex;
   flex-direction: column;
   gap: 12px;
-  width: min(360px, 100%);
+  width: min(280px, calc(100vw - 48px));
   padding: 14px 16px 16px;
   border: 1px solid #2a2a30;
   border-radius: 16px;
-  background: #16161a;
+  background: #121214;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
   color: #f0f0f5;
 }
@@ -1291,6 +1305,11 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="
 
 [data-dragon-voice-status] {
   pointer-events: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
   margin: 0;
   color: #c4c4ce;
   font-size: 0.75rem;

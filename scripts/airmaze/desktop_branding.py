@@ -1061,6 +1061,9 @@ def self_test() -> int:
     if "findComposerAction" not in once or "data-dragon-voice-trigger" not in once:
         print("FAIL: overlay must put the waveform trigger on the composer action", file=sys.stderr)
         return 1
+    if "dockWidget" not in once or "findChatColumn" not in once:
+        print("FAIL: overlay must dock the Grok capsule at the top of the chat column", file=sys.stderr)
+        return 1
     if "input_audio_buffer.append" not in once or "grok-voice-latest" not in once:
         print("FAIL: overlay must send official STS append events to grok-voice-latest", file=sys.stderr)
         return 1
@@ -1087,6 +1090,12 @@ def self_test() -> int:
         return 1
     if "[data-dragon-voice-widget]" not in css or "[data-dragon-voice-capsule]" not in css:
         print("FAIL: overlay CSS must style the floating Grok voice capsule", file=sys.stderr)
+        return 1
+    if "dragon-ai-voice-capsule-top:1" not in css or "position: fixed" not in css:
+        print("FAIL: overlay CSS must dock the Grok voice capsule at the top of the chat pane", file=sys.stderr)
+        return 1
+    if "min-height: 72px" not in css or "min(292px" not in css:
+        print("FAIL: overlay CSS must use the narrower/taller Grok Bot capsule", file=sys.stderr)
         return 1
     if "[data-dragon-voice-settings-panel]" not in css or "[data-dragon-voice-gear]" not in css:
         print("FAIL: overlay CSS must style the gear Voice settings panel", file=sys.stderr)

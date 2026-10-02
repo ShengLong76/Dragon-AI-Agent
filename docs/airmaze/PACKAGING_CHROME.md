@@ -35,7 +35,7 @@ Host fallback remains `docs/airmaze/SIDEBAR_HOST.md`. Stamps: `dragon-ai-marketp
 - Strip persistent outline / box-shadow / tw-ring on `[data-slot="aui_composer"]`, `[data-slot="composer"]`, and the action cluster. Composer is a dark 28px pill.
 - Keep `:focus-visible` on the textbox, waveform trigger, and capsule controls (`2px solid #C41E3A`, offset 2px).
 - Remove chat-screen GPT | Grok pills.
-- Mount a waveform trigger in `[data-dragon-ai-composer-action]` immediately before the native right-side action. Accessible name **Talk with Grok**. Click opens the floating capsule near the top of the chat pane: avatar | purple bars | **gear** | chat | mic | red X.
+- Mount a waveform trigger in `[data-dragon-ai-composer-action]` immediately before the native right-side action. Accessible name **Talk with Grok**. Click opens the floating capsule **at the top of the chat column** (`position: fixed`, `data-dragon-voice-dock="top"`): avatar | purple bars | **gear** | chat | mic | red X. Cut width / raise height vs the #38 bar (`max-width: 292px`, `min-height: 72px`). Hide the native “Speaking response” strip while voice is active.
 - Gear **must** open Voice settings (official xAI voice, speed, language, interrupt). Chat returns to text. Mic mutes. Red X ends duplex.
 - Do not hijack Send. Grok duplex stays overlay `wss://api.x.ai/v1/realtime?model=grok-voice-latest`. Settings → Voice remains the mode picker (`chained` | `gpt-live` | `grok-live`).
 

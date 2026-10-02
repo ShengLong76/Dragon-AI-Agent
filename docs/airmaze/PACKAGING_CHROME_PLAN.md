@@ -18,7 +18,7 @@ After `docs/airmaze/PACKAGING_CHROME.md`. Tests first. Packaging overlay only. N
    - `dragon-ai-logo-clearance:1`; lockup `flex: 0 0 auto` + `--dragon-logo-clearance: 12px`; logo stays `32px`; Marketplace `z-index` below the lockup
    - BOTS clickable; no crimson lockup border; 16px name remaps
    - `dragon-ai-composer-chrome:1`; no persistent crimson outline on composer / voice / talk; Talk has no `border: 1px solid` primary
-   - Voice JS has `data-dragon-voice-trigger`, `findComposerAction`, `data-dragon-ai-composer-action`; floating capsule + gear Voice settings + official xAI duplex. No GPT | Grok pills.
+   - Voice JS has `data-dragon-voice-trigger`, `findComposerAction`, `data-dragon-ai-composer-action`; top-docked floating capsule (`dockWidget` / `findChatColumn`) + gear Voice settings + official xAI duplex. No GPT | Grok pills.
    - `:focus-visible` rings stay
 3. **Overlay** — `dragon-ui.css`, `sidebar-header.js`, `teams-picker.js`, `dragon-voice-selector.js`. Apply-DesktopBranding verifies the new stamps.
 4. **Self-review + draft PR** against `main`. Note supersedes #22. Do not merge.

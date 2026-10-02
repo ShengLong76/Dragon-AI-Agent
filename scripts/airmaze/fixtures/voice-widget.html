@@ -14,14 +14,36 @@
     }
     .shell {
       display: flex;
-      flex-direction: column;
       min-height: 100vh;
     }
-    [data-slot="aui_thread"] {
-      position: relative;
+    [data-slot="sidebar"] {
+      box-sizing: border-box;
+      flex: 0 0 220px;
+      padding: 16px;
+      background: #1c1c20;
+    }
+    .chat {
+      display: flex;
       flex: 1 1 auto;
-      min-height: 28rem;
-      padding: 72px 24px 24px;
+      flex-direction: column;
+      min-width: 0;
+      background: #000;
+    }
+    .chat-header {
+      flex: 0 0 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 1px solid #2a2a30;
+      color: #c4c4ce;
+    }
+    [data-slot="aui_thread"] {
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      justify-content: flex-end;
+      min-height: 0;
+      padding: 16px 24px;
     }
     [data-slot="aui_composer"] {
       display: flex;
@@ -47,25 +69,47 @@
       color: #c4c4ce;
       font-size: 1.25rem;
     }
+    .native-session {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 0 24px 10px;
+      padding: 10px 14px;
+      border: 1px solid #2a2a30;
+      border-radius: 999px;
+      background: #141416;
+      color: #c4c4ce;
+    }
+    [data-slot="rail"] {
+      flex: 0 0 260px;
+      background: #111114;
+      border-left: 1px solid #2a2a30;
+    }
   </style>
 </head>
 <body>
   <div class="shell">
-    <main data-slot="aui_thread" data-chat-surface>
-      <div data-slot="aui_assistant-message-root">
-        <div data-slot="aui_assistant-message-content">
-          Click the waveform on the composer to open Grok Voice. Gear must show Voice, Speed, and Language.
+    <aside data-slot="sidebar">BOTS</aside>
+    <div class="chat">
+      <header class="chat-header">Chief of Staff</header>
+      <main data-slot="aui_thread" data-chat-surface>
+        <div data-slot="aui_assistant-message-root">
+          <div data-slot="aui_assistant-message-content">
+            Click the waveform on the composer to open Grok Voice. Capsule must dock at the top of this chat column.
+          </div>
         </div>
-      </div>
-      <div data-slot="aui_user-message-root">
-        <div class="composer-human-message">Open the floating capsule.</div>
-      </div>
-    </main>
-    <form data-slot="aui_composer" data-dragon-ai-composer-chrome>
-      <button type="button" aria-label="Add">+</button>
-      <textarea placeholder="Message Chief of Staff" rows="1"></textarea>
-      <button type="button" data-slot="aui_composer-speech" aria-label="Voice">mic</button>
-    </form>
+        <div data-slot="aui_user-message-root">
+          <div class="composer-human-message">Open the floating capsule.</div>
+        </div>
+      </main>
+      <div class="native-session">Speaking response <span>settings · mute</span></div>
+      <form data-slot="aui_composer" data-dragon-ai-composer-chrome>
+        <button type="button" aria-label="Add">+</button>
+        <textarea placeholder="Message Chief of Staff" rows="1"></textarea>
+        <button type="button" data-slot="aui_composer-speech" aria-label="Voice">mic</button>
+      </form>
+    </div>
+    <aside data-slot="rail"></aside>
   </div>
   <script src="../../../branding/voice/dragon-voice-selector.js"></script>
 </body>

@@ -172,6 +172,14 @@ def assert_composer_chrome(css: str, voice_js: str) -> None:
         fail("chat-screen GPT/Grok pills must be removed")
     if "findComposerAction" not in voice_js or "data-dragon-ai-composer-action" not in voice_js:
         fail("voice overlay must put the waveform trigger on the composer action")
+    if "dockWidget" not in voice_js or "findChatColumn" not in voice_js:
+        fail("voice overlay must dock the capsule at the top of the chat column")
+    if "dragon-ai-voice-capsule-top:1" not in css:
+        fail("dragon-ui.css must stamp the top-docked Grok Bot capsule")
+    if "min-height: 72px" not in css or "min(292px" not in css:
+        fail("Grok Bot capsule must be narrower (292px) and taller (72px)")
+    if "position: fixed" not in css.split("[data-dragon-voice-widget] {", 1)[-1].split("}", 1)[0]:
+        fail("voice widget host must be position:fixed at the top of the chat pane")
     if "Talk with Grok" not in voice_js:
         fail("voice overlay must keep Talk with Grok as the accessible Grok duplex name")
     if "outline: 2px solid #c41e3a" not in css:
