@@ -871,16 +871,26 @@ def self_test() -> int:
         print("FAIL: overlay CSS must not paint a crimson lockup border", file=sys.stderr)
         return 1
     if "18cqi" in css or "clamp(20px, 18cqi, 32px)" in css:
-        print("FAIL: sidebar logo must stay a fixed 32px (do not clamp/shrink with column width)", file=sys.stderr)
+        print("FAIL: sidebar logo must stay a fixed 56px (do not clamp/shrink with column width)", file=sys.stderr)
+        return 1
+    if "dragon-ai-logo-175:1" not in css or "--dragon-sidebar-logo-size: 56px" not in css:
+        print("FAIL: sidebar logo must stamp 1.75x / 56px (prior 32px × 1.75)", file=sys.stderr)
         return 1
     if "--dragon-sidebar-control-height: 32px" not in css:
-        print("FAIL: sidebar logo height must match the 32px Teams button at full column width", file=sys.stderr)
+        print("FAIL: Teams Marketplace button height must stay 32px", file=sys.stderr)
         return 1
     if 'height: 32px' not in css or "flex: 0 0 32px" not in css:
-        print("FAIL: sidebar logo must be a reserved 32px square matching Teams", file=sys.stderr)
+        print("FAIL: Teams chrome must keep a reserved 32px control", file=sys.stderr)
         return 1
-    if "[data-dragon-ai-sidebar-brand] img" in css and "height: 28px" in css.split("[data-dragon-ai-sidebar-brand] img", 1)[-1][:400]:
-        print("FAIL: sidebar logo must not stay at 28px; match the Teams button", file=sys.stderr)
+    brand_img_size = css.split("[data-dragon-ai-sidebar-brand] img", 1)[-1][:700] if "[data-dragon-ai-sidebar-brand] img" in css else ""
+    if "height: 56px" not in brand_img_size or "width: 56px" not in brand_img_size or "flex: 0 0 56px" not in brand_img_size:
+        print("FAIL: sidebar logo must be a reserved 56px square (1.75× 32px)", file=sys.stderr)
+        return 1
+    if "height: 28px" in brand_img_size:
+        print("FAIL: sidebar logo mark must be 56px, not the 28px wordmark size", file=sys.stderr)
+        return 1
+    if "[data-dragon-ai-sidebar-brand] img" in css and "height: 32px" in brand_img_size:
+        print("FAIL: sidebar logo must not stay at 32px; James asked for 1.75x", file=sys.stderr)
         return 1
     brand_img_css = css.split("[data-dragon-ai-sidebar-brand] img", 1)[-1][:700] if "[data-dragon-ai-sidebar-brand] img" in css else ""
     if "border: 0" not in brand_img_css and "border: none" not in brand_img_css:
@@ -965,6 +975,12 @@ def self_test() -> int:
         return 1
     if "pinWrap" not in once or "border:0" not in once.replace(" ", ""):
         print("FAIL: sidebar inject must pin the lockup with border:0 (no crimson frame)", file=sys.stderr)
+        return 1
+    if "findHideSidebar" not in once or "data-dragon-ai-hide-sidebar" not in once:
+        print("FAIL: sidebar inject must place the lockup to the right of hide-sidebar", file=sys.stderr)
+        return 1
+    if "height:56px" not in once.replace(" ", "") or "LOGO_PX=56" not in once.replace(" ", ""):
+        print("FAIL: sidebar inject must size the mark 56px (1.75× 32px)", file=sys.stderr)
         return 1
     if "rgba(196,30,58" in once.replace(" ", "") or "rgba(196, 30, 58" in once:
         print("FAIL: sidebar/teams inject must not set a crimson lockup border", file=sys.stderr)

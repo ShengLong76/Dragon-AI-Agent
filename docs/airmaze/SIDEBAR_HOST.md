@@ -36,17 +36,18 @@ PR #20 pinned a body overlay at `top: 96px` so it would not cover BOTS. That pla
 ## Keep (visual)
 
 - No crimson lockup border (`border: 0`)
-- Transparent 32px SVG, Syne 700 **Dragon AI**
+- Transparent **56px** SVG (1.75× the prior 32px mark), Syne 700 **Dragon AI** at **28px**
+- Lockup sits to the **right of hide-sidebar** (titlebar **Hide sidebar** / `[data-sidebar="trigger"]`; `findHideSidebar` + next sibling)
 - User-visible control label **Teams Marketplace** (not “Teams”)
 - Filled **blue** Marketplace button (`[data-dragon-ai-teams-open]`, `#2563EB` / `#FFFFFF`). Crimson stays on focus/selected chrome elsewhere
-- Logo clearance: reserved 32px mark, `isolation: isolate`, `padding-bottom: 8px`, row `gap: 12px` so Marketplace / Sessions / Bots never overlay the dragon
+- Logo clearance: reserved 56px mark, `isolation: isolate`, `padding-bottom: 8px`, row `gap: 12px` so Marketplace / Sessions / Bots never overlay the dragon
 - Teams crimson accent (`#C41E3A` ring / primary) except the blue Marketplace control
 - Full **Teams Marketplace** label (no mid-word clip). Column stack under the logo
 - Sidebar bot names and middle session/agent names share **16px** body
 
 Do not restyle Bot Screen. No `Hermes.exe` rebuild. No `app.asar` rewrite.
 
-UI UX Pro Max: decorative logo `aria-hidden`; wordmark nowrap + ellipsis; Marketplace is the wrap collection (column under the logo, full label, no mid-word clip); overlay z-index 40 (dialog 80). Focus Not Obscured — sticky overlay must not cover Sessions / Bots hit targets (`pointer-events: none` on the fixed host). Logo clearance keeps controls off the 32px mark. See `docs/airmaze/PACKAGING_CHROME.md`.
+UI UX Pro Max: decorative logo `aria-hidden`; hide-sidebar keeps its accessible name; wordmark nowrap + ellipsis; Marketplace is the wrap collection (column under the logo area, full label, no mid-word clip); overlay z-index 40 (dialog 80). Focus Not Obscured — sticky overlay must not cover Sessions / Bots hit targets (`pointer-events: none` on the fixed host). Logo clearance keeps controls off the 56px mark. See `docs/airmaze/PACKAGING_CHROME.md` and `docs/airmaze/SIDEBAR_LOGO_PLAN.md`.
 
 ## Verify
 

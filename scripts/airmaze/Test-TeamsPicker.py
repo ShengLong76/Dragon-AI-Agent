@@ -317,6 +317,8 @@ def test_overlay_and_launch_wired() -> None:
         fail("Teams Marketplace sidebar button must be filled blue")
     if "dragon-ai-logo-clearance:1" not in css or "--dragon-logo-clearance: 12px" not in css:
         fail("logo lockup must reserve gap so Marketplace does not overlay the dragon")
+    if "dragon-ai-logo-175:1" not in css or "--dragon-sidebar-logo-size: 56px" not in css:
+        fail("Teams Marketplace must sit under the 56px (1.75×) logo")
     if "Math.max(256" not in picker_js.replace(" ", ""):
         fail("Teams overlay width must stay at least 16rem so the label is not clipped")
     if "must not cover BOTS" not in css:

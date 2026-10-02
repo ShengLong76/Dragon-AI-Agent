@@ -242,6 +242,9 @@ function Install-DragonAIDesktopFontPack {
             if ($sheet -notmatch "dragon-ai-logo-clearance:1" -or $sheet -notmatch "dragon-logo-clearance") {
                 throw "Apply-DesktopBranding: copied dragon-ui.css is missing logo clearance ($sheetPath)"
             }
+            if ($sheet -notmatch "dragon-ai-logo-175:1" -or $sheet -notmatch "--dragon-sidebar-logo-size: 56px") {
+                throw "Apply-DesktopBranding: copied dragon-ui.css is missing the 1.75x / 56px sidebar logo ($sheetPath)"
+            }
             if ($sheet -notmatch "dragon-ai-composer-chrome:1") {
                 throw "Apply-DesktopBranding: copied dragon-ui.css is missing composer chrome stamp ($sheetPath)"
             }

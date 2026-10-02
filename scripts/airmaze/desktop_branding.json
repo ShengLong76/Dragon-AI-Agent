@@ -39,6 +39,8 @@
     "eyes": "#C41E3A",
     "why": "James's mark: front-facing navy low-poly dragon, coiled neck, horns the same navy, red eyes. No gold, no copper ring, not a side profile.",
     "boxed": false,
+    "sidebarSize": "56px",
+    "sidebarScale": 1.75,
     "emptyStateSize": "22rem",
     "stack": "wordmark-in-front",
     "trayFit": "contain-max",
@@ -59,7 +61,7 @@
     "excludedProfileIds": ["default", "hermes"],
     "headerTitle": "Dragon AI",
     "headerAccessibleName": "Dragon AI Agent",
-    "why": "Exclude the built-in default Hermes agent. Header lockup is Dragon AI + blue Teams Marketplace above Sessions / Bots (lockup → Teams Marketplace → Sessions/Bots). Full label, reserved gap under the 32px logo. Column hosts first; else in-flow data-dragon-ai-sidebar-chrome; else body data-dragon-ai-sidebar-fixed in a first-child clearance spacer (do not cover those tabs). Sidebar and middle session names share 16px body. Personal Assistant stays."
+    "why": "Exclude the built-in default Hermes agent. Header lockup is Dragon AI + blue Teams Marketplace above Sessions / Bots (lockup → Teams Marketplace → Sessions/Bots). 56px mark (1.75×) sits to the right of hide-sidebar; reserved gap under the logo. Column hosts first; else in-flow data-dragon-ai-sidebar-chrome; else body data-dragon-ai-sidebar-fixed in a first-child clearance spacer (do not cover those tabs). Sidebar and middle session names share 16px body. Personal Assistant stays."
   },
   "replacements": [
     {
