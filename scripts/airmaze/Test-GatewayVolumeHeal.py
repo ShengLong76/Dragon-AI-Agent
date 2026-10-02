@@ -242,10 +242,12 @@ def test_compose_still_fail_closed_and_vbs() -> None:
         fail("compose must still run gateway run")
     vbs = (ROOT / "scripts" / "airmaze" / "Start-DragonAI.vbs").read_text(encoding="utf-8", errors="replace")
     if "wscript" not in vbs.lower() or "start-embedded.ps1" not in vbs:
-        fail("Start-DragonAI.vbs is not the fail-closed host")
-    if "Do not pass -StartDocker" not in vbs:
-        fail("VBS host must stay fail-closed (no -StartDocker)")
-    print("OK  compose wrap + VBS fail-closed contract")
+        fail("Start-DragonAI.vbs is not the product host")
+    if " -StartDocker" in vbs.replace("Do not pass -StartDocker", "").replace("fail-closed", ""):
+        fail("VBS product host must not pass -StartDocker; default launch starts Docker itself")
+    if "fail-closed" in vbs.lower():
+        fail("VBS comment still describes fail-closed Docker; launch now starts Docker in the tray")
+    print("OK  compose wrap + VBS auto-Docker contract")
 
 
 def main() -> int:

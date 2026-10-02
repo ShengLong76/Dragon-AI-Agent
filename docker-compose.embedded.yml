@@ -49,8 +49,9 @@ services:
       API_SERVER_HOST: "0.0.0.0"
       API_SERVER_PORT: "8642"
       # Current -desktop image refuses keys shorter than 16 chars (api_server
-      # never binds :8642). Loopback-only placeholder, not a production secret.
-      API_SERVER_KEY: "dragon-local-key"
+      # never binds :8642). Default is a loopback-only placeholder. Honor an
+      # existing long API_SERVER_KEY so installs Cos already healed stay intact.
+      API_SERVER_KEY: ${API_SERVER_KEY:-dragon-local-key}
       API_SERVER_CORS_ORIGINS: "*"
     deploy:
       resources:
