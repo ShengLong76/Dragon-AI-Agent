@@ -18,7 +18,7 @@ Internal protocol, image, and path names stay Hermes/AirMaze where changing them
 | Electron **window title** | Packaging wrap: all visible Hermes windows → **Dragon AI Agent** (`SetTitleForPids`) |
 | Empty state heading | Overlay: **DRAGON AI AGENT** (was `HERMES AGENT` in `apps/desktop/src/components/chat/intro.tsx`), Syne 700, **in front of** a larger unboxed navy dragon |
 | Empty state mark | Overlay: James’s navy PNG with the black plate punched; no boxed background |
-| Sidebar header | Overlay: navy dragon + **Dragon AI** + **blue Teams Marketplace** above Sessions / Bots (order: lockup → Teams Marketplace → Sessions/Bots). Full label, reserved gap under the 32px logo (no overlay). Column hosts first; else in-flow `[data-dragon-ai-sidebar-chrome]`; else body `[data-dragon-ai-sidebar-fixed]` in a first-child clearance spacer (do not cover those tabs). Sidebar and middle session names share 16px (`docs/airmaze/SIDEBAR_HOST.md`, `docs/airmaze/PACKAGING_CHROME.md`) |
+| Sidebar header | Overlay: navy dragon + **Dragon AI** + **blue Teams Marketplace** above Sessions / Bots (order: lockup → Teams Marketplace → Sessions/Bots). **56px** mark (1.75×) sits to the right of hide-sidebar. Full label, reserved gap under the logo (no overlay). Column hosts first; else in-flow `[data-dragon-ai-sidebar-chrome]`; else body `[data-dragon-ai-sidebar-fixed]` in a first-child clearance spacer (do not cover those tabs). Sidebar and middle session names share 16px (`docs/airmaze/SIDEBAR_HOST.md`, `docs/airmaze/PACKAGING_CHROME.md`) |
 | Bots sidebar | **Exclude** the built-in default **Hermes** agent (purge `profiles\\hermes` / `default`; CSS hide of `data-roster-key` `::default` is the backstop). **Personal Assistant** stays |
 | Bot groups in BOTS | Deploy/import stamps `sectionId` / `sectionName` so the pack sits in a named section (not UNASSIGNED) |
 | Running app / taskbar icon | Contain-max sidebar-mark ICO + PNG (navy low-poly, no copper rim) copied over Hermes `resources/icon.ico`, `icon.png`, and unpacked `dist/apple-touch-icon.png`; stamp `Hermes.exe` when `rcedit` is on PATH. Shortcuts use the same ICO. Private `DragonAIAgent` tree only. Design: `docs/airmaze/TRAY_ICON.md`, `docs/airmaze/DURABLE_BRANDING.md` |
@@ -49,7 +49,7 @@ $exe = (Get-Content "$env:LOCALAPPDATA\DragonAIAgent\desktop-client.json" -Raw |
 powershell -NoProfile -File "$env:LOCALAPPDATA\DragonAIAgent\scripts\airmaze\Apply-DesktopBranding.ps1" -ExePath $exe
 ```
 
-Confirm the live sheet is the tip pack (must contain `dragon-ai-lockup-wrap:1`, `dragon-ai-marketplace-label:1`, `dragon-ai-marketplace-blue:1`, `dragon-ai-logo-clearance:1`, `dragon-ai-composer-chrome:1`; must not contain `border:1px solid rgba(196,30,58`):
+Confirm the live sheet is the tip pack (must contain `dragon-ai-lockup-wrap:1`, `dragon-ai-marketplace-label:1`, `dragon-ai-marketplace-blue:1`, `dragon-ai-logo-clearance:1`, `dragon-ai-logo-175:1`, `dragon-ai-composer-chrome:1`; must not contain `border:1px solid rgba(196,30,58`):
 
 `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked\resources\app.asar.unpacked\dist\dragon-ai-branding\dragon-ui.css`
 

@@ -10,7 +10,7 @@ James still sees **Teams Marke** beside the logo. That is Compact Label Overflow
 
 ### Do
 
-- Column stack on `[data-dragon-ai-sidebar-row]` / `[data-dragon-ai-sidebar-chrome]`. Button `width: 100%` under the 32px mark.
+- Column stack on `[data-dragon-ai-sidebar-row]` / `[data-dragon-ai-sidebar-chrome]`. Button `width: 100%` under the 56px mark (1.75×). Lockup sits to the right of hide-sidebar.
 - Keep the label **Teams Marketplace**. Prefer one line (`white-space: nowrap`) on a ≥16rem rail.
 - If the rail is narrower than the string, wrap at the word (`Teams` / `Marketplace`) — never `text-overflow: ellipsis`, never mid-word clip.
 - `overflow: visible` on the button and its row. Drop `min-width: max-content` (that overflows a narrow host and Hermes `truncate` then paints **Teams Marke**).
@@ -20,7 +20,7 @@ James still sees **Teams Marke** beside the logo. That is Compact Label Overflow
 
 ### Logo clearance (no overlay)
 
-Nothing — Marketplace, Sessions/Bots, or other icons — may paint on top of the 32px dragon. The lockup is a reserved box: `flex: 0 0 auto`, `isolation: isolate`, `z-index: 2`, `padding-bottom: 8px`, row `gap: 12px` (`--dragon-logo-clearance`). Marketplace sits in normal flow under that box (`z-index: 1`). Logo size stays `32px`. Stamp: `dragon-ai-logo-clearance:1`.
+Nothing — Marketplace, Sessions/Bots, or other icons — may paint on top of the 56px dragon. The lockup is a reserved box: `flex: 0 0 auto`, `isolation: isolate`, `z-index: 2`, `padding-bottom: 8px`, row `gap: 12px` (`--dragon-logo-clearance`). Marketplace sits in normal flow under that box (`z-index: 1`). Logo size is `56px` (1.75× the prior 32px). Stamp: `dragon-ai-logo-clearance:1`, `dragon-ai-logo-175:1`.
 
 Host fallback remains `docs/airmaze/SIDEBAR_HOST.md`. Stamps: `dragon-ai-marketplace-label:1`, `dragon-ai-marketplace-blue:1`.
 
@@ -42,4 +42,4 @@ Stamp: `dragon-ai-composer-chrome:1`. Voice contract: `docs/airmaze/VOICE.md`.
 
 ## Keep
 
-Syne 700, navy 32px SVG, `#C41E3A` accent on **focus and selected state only**, 16px / 1.55 body, Bot Screen `:8650` / `dragon-local`. `prefers-reduced-motion` unchanged.
+Syne 700, navy 56px SVG (1.75×), `#C41E3A` accent on **focus and selected state only**, 16px / 1.55 body, Bot Screen `:8650` / `dragon-local`. `prefers-reduced-motion` unchanged.

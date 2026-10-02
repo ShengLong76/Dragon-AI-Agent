@@ -96,7 +96,10 @@ def assert_marketplace_label_blue_and_logo_clearance(css: str, sidebar_js: str, 
         fail("Teams Marketplace button must not use crimson fill (blue only)")
     if "--dragon-logo-clearance: 12px" not in css:
         fail("lockup row must reserve 12px gap under the logo")
-    brand_block = css.split("[data-dragon-ai-sidebar-brand]", 1)[-1][:900]
+    brand_block = css.split("[data-dragon-ai-sidebar-brand],", 1)
+    if len(brand_block) < 2:
+        brand_block = css.split("[data-dragon-ai-sidebar-brand]", 1)
+    brand_block = brand_block[-1][:900]
     if "flex: 0 0 auto" not in brand_block:
         fail("logo lockup must not shrink (flex: 0 0 auto)")
     if "isolation: isolate" not in brand_block or "z-index: 2" not in brand_block:
@@ -109,6 +112,37 @@ def assert_marketplace_label_blue_and_logo_clearance(css: str, sidebar_js: str, 
             fail(f"{label} overlay width must be at least 16rem (Math.max(256))")
         if "isolation:isolate" not in compact and label == "sidebar-header.js":
             fail("sidebar-header.js must pin the lockup with isolation:isolate")
+
+
+def assert_logo_175_right_of_hide(css: str, sidebar_js: str) -> None:
+    if "dragon-ai-logo-175:1" not in css:
+        fail("dragon-ui.css must stamp dragon-ai-logo-175 for the 1.75x lockup")
+    if "--dragon-sidebar-logo-size: 56px" not in css:
+        fail("sidebar logo token must be 56px (32px × 1.75)")
+    if "--dragon-lockup-wordmark-size: 28px" not in css:
+        fail("lockup wordmark must be 28px (16px × 1.75)")
+    brand_img = css.split("[data-dragon-ai-sidebar-brand] img", 1)[-1][:700]
+    if "height: 56px" not in brand_img or "width: 56px" not in brand_img:
+        fail("sidebar logo must be 56px square")
+    if "flex: 0 0 56px" not in brand_img:
+        fail("sidebar logo must reserve 56px")
+    if "height: 32px" in brand_img:
+        fail("sidebar logo must not stay 32px after the 1.75x bump")
+    span_block = css.split("[data-dragon-ai-sidebar-brand] span", 1)[-1][:400]
+    if "--dragon-lockup-wordmark-size" not in span_block and "28px" not in span_block:
+        fail("Dragon AI wordmark beside the mark must be 28px Syne")
+    if "findHideSidebar" not in sidebar_js or "data-dragon-ai-hide-sidebar" not in sidebar_js:
+        fail("sidebar-header.js must find the hide-sidebar control")
+    if "placeBrand" not in sidebar_js or "hide.nextSibling" not in sidebar_js:
+        fail("sidebar-header.js must insert the lockup to the right of hide-sidebar")
+    if "Hide sidebar" not in sidebar_js and "hide sidebar" not in sidebar_js.lower():
+        fail("sidebar-header.js must match the Hermes Hide sidebar titlebar label")
+    if "sidebar-trigger" not in sidebar_js or 'data-sidebar="trigger"' not in sidebar_js:
+        fail("sidebar-header.js must also match shadcn sidebar-trigger")
+    if "LOGO_PX = 56" not in sidebar_js or "height:56px" not in sidebar_js.replace(" ", ""):
+        fail("sidebar-header.js must pin the mark at 56px")
+    if "18cqi" in css or "clamp(20px, 18cqi, 32px)" in css:
+        fail("sidebar logo must stay a fixed 56px (do not clamp/shrink)")
 
 
 def assert_composer_chrome(css: str, voice_js: str) -> None:
@@ -210,6 +244,7 @@ def assert_sidebar_host_fallback(sidebar_js: str, teams_js: str, css: str) -> No
     if chrome_rule and "order: -1" not in chrome_rule.group(0):
         fail("in-flow chrome CSS must keep order: -1 above the tab strip")
     assert_marketplace_label_blue_and_logo_clearance(css, sidebar_js, teams_js)
+    assert_logo_175_right_of_hide(css, sidebar_js)
     name_block = css.split("[data-slot=\"bots-roster\"]", 1)[-1][:900]
     if "font-size: var(--dragon-ui-font-size-body)" not in name_block:
         fail("sidebar bot names must use the 16px body size (match middle session names)")
@@ -269,6 +304,8 @@ def test_table() -> dict:
         fail("table must record an unboxed mark with the wordmark in front")
     if logo.get("trayPng") != "apple-touch-icon.png":
         fail("table must record apple-touch-icon.png as the Electron tray PNG")
+    if logo.get("sidebarSize") != "56px" or logo.get("sidebarScale") != 1.75:
+        fail("table must record the 56px / 1.75× sidebar lockup")
     sidebar = table.get("sidebar") or {}
     if sidebar.get("hideDefaultHermes") is not True:
         fail("table must hide the default Hermes sidebar bot")
@@ -480,10 +517,12 @@ const protocol = 'hermes://copilot-key/start';
             fail("prebuilt inject scripts must be copied into dragon-ai-branding")
         if "18cqi" in css_txt:
             fail("injected CSS must not shrink the sidebar logo with column width")
+        if "dragon-ai-logo-175:1" not in css_txt or "--dragon-sidebar-logo-size: 56px" not in css_txt:
+            fail("injected CSS must stamp the 1.75x / 56px sidebar logo")
         if "--dragon-sidebar-control-height: 32px" not in css_txt:
-            fail("injected CSS must size the sidebar logo to the Teams button")
-        if "flex: 0 0 32px" not in css_txt:
-            fail("injected CSS must reserve a 32px sidebar logo")
+            fail("injected CSS must keep the 32px Teams button height")
+        if "flex: 0 0 56px" not in css_txt:
+            fail("injected CSS must reserve a 56px sidebar logo")
         if '[role="alert"]' not in css_txt or "-webkit-line-clamp: 2" not in css_txt:
             fail("injected CSS must contain/ellipsis center-column RPC error banners")
         if "dragon-ai-agent-logo.svg" not in html:
@@ -677,6 +716,8 @@ def test_packaging_not_regressed() -> None:
         fail("SIDEBAR_HOST.md must prefer the in-flow rail column above Sessions/Bots")
     if "2563EB" not in host_txt.upper() or "logo clearance" not in host_txt.lower():
         fail("SIDEBAR_HOST.md must record the blue Marketplace button and logo clearance")
+    if "56px" not in host_txt or "hide-sidebar" not in host_txt.lower() and "hide sidebar" not in host_txt.lower():
+        fail("SIDEBAR_HOST.md must record the 56px lockup to the right of hide-sidebar")
     chrome_note = ROOT / "docs" / "airmaze" / "PACKAGING_CHROME.md"
     if not chrome_note.is_file() or "Start conversation" not in read(chrome_note):
         fail("docs/airmaze/PACKAGING_CHROME.md must cover composer Start conversation")
@@ -690,14 +731,16 @@ def test_packaging_not_regressed() -> None:
         fail("Apply-DesktopBranding.ps1 must verify wrap + Marketplace label stamps landed")
     if "marketplace-blue" not in apply_ps or "logo-clearance" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must verify the blue Marketplace button and logo clearance")
+    if "logo-175" not in apply_ps or "56px" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must verify the 1.75x / 56px sidebar logo")
     if "composer-chrome" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must verify composer chrome landed")
     if "18cqi" in css or "clamp(20px, 18cqi, 32px)" in css:
-        fail("sidebar logo must stay a fixed 32px (do not clamp/shrink)")
+        fail("sidebar logo must stay a fixed 56px (do not clamp/shrink)")
     if "--dragon-sidebar-control-height: 32px" not in css:
-        fail("sidebar logo height must match the 32px Teams button")
-    if "flex: 0 0 32px" not in css:
-        fail("sidebar logo must reserve 32px matching Teams")
+        fail("Teams Marketplace button height must stay 32px")
+    if "flex: 0 0 56px" not in css:
+        fail("sidebar logo must reserve 56px (1.75× 32px)")
     if "[data-dragon-ai-sidebar-row]" not in css:
         fail("sidebar lockup and Teams must share one header row")
     if '[role="alert"]' not in css or "text-overflow: ellipsis" not in css:
@@ -707,8 +750,9 @@ def test_packaging_not_regressed() -> None:
         fail("sidebar logo must have no red border")
     if "transparent" not in brand_img:
         fail("sidebar logo must have a transparent background")
-    if "height: 32px" not in brand_img or "width: 32px" not in brand_img:
-        fail("sidebar logo must be 32px square matching Teams at full width")
+    if "height: 56px" not in brand_img or "width: 56px" not in brand_img:
+        fail("sidebar logo must be 56px square (1.75× the prior 32px mark)")
+    assert_logo_175_right_of_hide(css, sidebar_js)
     if "Personal Assistant" not in css:
         fail("dragon-ui.css must keep Personal Assistant as the visible sidebar bot")
     if "[data-dragon-voice-provider]" not in css:
