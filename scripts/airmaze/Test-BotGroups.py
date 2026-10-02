@@ -775,7 +775,15 @@ def test_no_profiles_ui() -> None:
     if "Create a bot" in select or "Grokbot" in select:
         fail("do not add a standalone create-a-bot path")
     if "196, 30, 58" not in select and "196,30,58" not in select and "#C41E3A" not in select:
-        fail("popup must keep wizard crimson; do not restyle")
+        fail("popup must keep wizard crimson on primary buttons")
+    if "$header.BackColor = $script:BrandRed" in select:
+        fail("Teams WinForms header lockup must not stay BrandRed")
+    if "$header.BackColor = $script:BrandBlue" not in select:
+        fail("Teams WinForms header lockup must use Marketplace BrandBlue")
+    if "37, 99, 235" not in select and "37,99,235" not in select and "#2563EB" not in select:
+        fail("Teams WinForms header must define Marketplace blue #2563EB")
+    if "$btnLaunch.BackColor = $script:BrandRed" not in select:
+        fail("Teams Launch button must stay BrandRed")
     if "allowSingularBotImportExport" not in select:
         fail("popup must expose the singular toggle")
     if "Hermes" in select and "do not add a Hermes bot" not in select.lower():

@@ -23,6 +23,7 @@ Dark, quiet chrome. Composer focus uses crimson `#C41E3A`. Type is **Syne** (OFL
 | Token | Value |
 |-------|--------|
 | Accent / primary / focus ring | `#C41E3A` |
+| Header lockup band (WinForms) | `#2563EB` (same as Teams Marketplace) |
 | Background | `#1C1C20` |
 | Panel | `#282830` |
 | Text | `#F0F0F5` |
@@ -45,7 +46,7 @@ Full token table and skill-vs-override notes: `design-system/dragon-ai-agent/` (
 - Sidebar, chat, composer, and the in-app Teams picker use Grok Bot–sized type (16px body, 14px chrome) and stronger dark contrast (`#F0F0F5` / `#C4C4CE` on `#1C1C20`).
 - Composer **Give Dragon AI a task** keeps the copy; focus-visible uses the crimson ring.
 - Settings / About stay **Dragon AI Agent**.
-- Setup wizard colors stay the same RGB values, now named as this system.
+- Setup wizard / launch-status / WinForms Teams header band behind the dragon + **Dragon AI Agent** is Marketplace blue `#2563EB`. Primary buttons stay crimson. Design: `docs/airmaze/HEADER_LOCKUP_BLUE.md`.
 - Product mark is James’s front-facing navy low-poly dragon (coiled neck, same-color horns, red eyes, no boxed background) on empty state, wizard, and shortcuts.
 - Sidebar under Embedded Linux lists **Personal Assistant** only on a fresh install. The built-in default Hermes agent is **excluded** from the product (purged from `hermes\\profiles\\default` and `hermes`, never redeployed). CSS hide of `[data-roster-key$="::default"]` stays as a backstop so a leftover reserved row stays hidden. Real Estate / Marketing / Trading arrive only when chosen from Teams (or import).
 - Sidebar header above SESSIONS / BOTS shows the navy dragon + **Dragon AI** (accessible name **Dragon AI Agent**) and a **blue Teams Marketplace** control under the logo. The mark is a fixed 32px transparent SVG (no plate / no red border) with reserved padding/gap so no control overlays it. Order is lockup → Teams Marketplace → Sessions / Bots. When header/inner are missing, prefer in-flow chrome on the Sessions-zone column; else a body overlay in a first-child clearance spacer **above** those tabs so BOTS stays clickable (`docs/airmaze/SIDEBAR_HOST.md`, `docs/airmaze/PACKAGING_CHROME.md`).

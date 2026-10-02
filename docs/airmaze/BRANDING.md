@@ -12,8 +12,8 @@ Internal protocol, image, and path names stay Hermes/AirMaze where changing them
 | Desktop / Start Menu shortcuts | **Dragon AI Agent** → `wscript.exe` + `Start-DragonAI.vbs` (no console). Also Bot Groups and optional Dashboard. No **Dragon AI Agent Setup** `.lnk` (WinForms Onboard-Wizard retired as a product shortcut) |
 | Shortcut descriptions | “start the gateway and open the app” |
 | Installer exe | `DragonAIAgentSetup.exe` — ProductName / FileDescription **Dragon AI Agent** (`installer/winres/winres.json`) |
-| Onboarding wizard | Window title **Dragon AI Agent Setup**; welcome copy; dragon logo in the header |
-| Launch status / error dialogs | **Dragon AI Agent** |
+| Onboarding wizard | Window title **Dragon AI Agent Setup**; welcome copy; dragon + title on a **blue** `#2563EB` header band (buttons stay crimson) |
+| Launch status / error dialogs | **Dragon AI Agent** on the same blue header band |
 | Install-root pointer | `Dragon AI Agent Client.lnk` + `desktop-client.json` (target is still `Hermes.exe`) |
 | Electron **window title** | Packaging wrap: all visible Hermes windows → **Dragon AI Agent** (`SetTitleForPids`) |
 | Empty state heading | Overlay: **DRAGON AI AGENT** (was `HERMES AGENT` in `apps/desktop/src/components/chat/intro.tsx`), Syne 700, **in front of** a larger unboxed navy dragon |

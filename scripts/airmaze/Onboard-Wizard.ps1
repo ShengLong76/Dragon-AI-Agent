@@ -348,6 +348,7 @@ $script:WinFormsReady = $false
 $script:BrandBack = $null
 $script:BrandPanel = $null
 $script:BrandRed = $null
+$script:BrandBlue = $null
 $script:BrandText = $null
 $script:BrandMuted = $null
 $script:BrandOk = $null
@@ -360,10 +361,11 @@ function Initialize-WizardWinForms {
         Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop | Out-Null
         Add-Type -AssemblyName System.Drawing -ErrorAction Stop | Out-Null
         # Tokens from design-system/dragon-ai-agent/pages/desktop-client.md
-        # (same RGB as before; named so the overlay CSS and wizard stay aligned).
+        # Header lockup is Marketplace blue; primary buttons stay crimson.
         $script:BrandBack = [System.Drawing.Color]::FromArgb(28, 28, 32)      # #1C1C20
         $script:BrandPanel = [System.Drawing.Color]::FromArgb(40, 40, 48)     # #282830
-        $script:BrandRed = [System.Drawing.Color]::FromArgb(196, 30, 58)      # #C41E3A
+        $script:BrandRed = [System.Drawing.Color]::FromArgb(196, 30, 58)      # #C41E3A (buttons / accent)
+        $script:BrandBlue = [System.Drawing.Color]::FromArgb(37, 99, 235)     # #2563EB (header lockup; Marketplace)
         $script:BrandText = [System.Drawing.Color]::FromArgb(240, 240, 245)    # #F0F0F5
         $script:BrandMuted = [System.Drawing.Color]::FromArgb(160, 160, 170)   # #A0A0AA
         $script:BrandOk = [System.Drawing.Color]::FromArgb(60, 180, 90)       # #3CB45A
@@ -776,7 +778,7 @@ function Invoke-WinFormsWizard {
     $header = New-Object Windows.Forms.Panel
     $header.Location = New-Object Drawing.Point(0, 0)
     $header.Size = New-Object Drawing.Size(720, 72)
-    $header.BackColor = $script:BrandRed
+    $header.BackColor = $script:BrandBlue
     $form.Controls.Add($header)
 
     $logoPath = Join-Path $InstallRoot "branding\dragon-ai-agent-logo.png"
@@ -795,8 +797,8 @@ function Invoke-WinFormsWizard {
     $hdrTitle = New-BrandLabel -Text $ProductName -Location (New-Object Drawing.Point(80, 12)) -Width 500 -Height 28 -Title
     $hdrTitle.ForeColor = [System.Drawing.Color]::White
     $header.Controls.Add($hdrTitle)
-    $hdrSub = New-BrandLabel -Text "Dragon AI Agent first-run setup — bot group: $ProfId" -Location (New-Object Drawing.Point(80, 40)) -Width 500 -Height 22 -Muted
-    $hdrSub.ForeColor = [System.Drawing.Color]::FromArgb(255, 220, 220)
+    $hdrSub = New-BrandLabel -Text "Dragon AI Agent first-run setup — bot group: $ProfId" -Location (New-Object Drawing.Point(80, 40)) -Width 500 -Height 22
+    $hdrSub.ForeColor = $script:BrandText
     $header.Controls.Add($hdrSub)
 
     $statusStrip = New-Object Windows.Forms.Panel
