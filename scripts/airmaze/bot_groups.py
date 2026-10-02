@@ -364,8 +364,35 @@ def normalize_catalog(data: dict[str, Any]) -> dict[str, Any]:
         tags = raw.get("tags")
         if isinstance(tags, list) and tags:
             entry["tags"] = [str(t) for t in tags if t]
+        for key in ("blurb", "detail", "author"):
+            value = str(raw.get(key) or "").strip()
+            if value:
+                entry[key] = value
+        if raw.get("featured") is True:
+            entry["featured"] = True
+        seats = raw.get("seats") if raw.get("seats") not in (None, "") else raw.get("seatCount")
+        if seats not in (None, ""):
+            try:
+                entry["seats"] = int(seats)
+            except (TypeError, ValueError):
+                pass
+        connectors = raw.get("requiredConnectors")
+        if isinstance(connectors, list) and connectors:
+            cleaned = []
+            for item in connectors:
+                if isinstance(item, str) and item.strip():
+                    cleaned.append({"id": item.strip(), "displayName": item.strip()})
+                elif isinstance(item, dict) and item.get("id"):
+                    cleaned.append(
+                        {
+                            "id": str(item["id"]),
+                            "displayName": str(item.get("displayName") or item["id"]),
+                        }
+                    )
+            if cleaned:
+                entry["requiredConnectors"] = cleaned
         groups.append(entry)
-    return {
+    out = {
         "kind": KIND_CATALOG,
         "schemaVersion": int(data.get("schemaVersion") or SCHEMA_VERSION),
         "product": str(data.get("product") or "Dragon AI Agent"),
@@ -378,6 +405,18 @@ def normalize_catalog(data: dict[str, Any]) -> dict[str, Any]:
         },
         "groups": groups,
     }
+    marketplace = data.get("marketplace")
+    if isinstance(marketplace, dict):
+        out["marketplace"] = {
+            "version": int(marketplace.get("version") or 1),
+            "kind": str(marketplace.get("kind") or "teams-marketplace"),
+            "hosting": str(marketplace.get("hosting") or "github"),
+            "path": str(marketplace.get("path") or REPO_PATH),
+        }
+        note = str(marketplace.get("note") or "").strip()
+        if note:
+            out["marketplace"]["note"] = note
+    return out
 
 
 def _read_json(path: Path) -> dict[str, Any]:

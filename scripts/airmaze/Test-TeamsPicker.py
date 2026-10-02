@@ -188,6 +188,70 @@ def test_apply_files_named_section(tp) -> None:
     print("OK  apply/import file bots into the team displayName")
 
 
+def test_launch_many_named_sections(tp) -> None:
+    with tempfile.TemporaryDirectory(prefix="dragon-teams-multi-") as tmp:
+        tmp_path = pathlib.Path(tmp)
+        desktop = tmp_path / "profiles"
+        batch = tp.apply_teams(
+            ["marketing-team", "trading-team"],
+            payload_root=ROOT,
+            install_root=tmp_path / "install",
+            desktop_profiles_root=desktop,
+        )
+        ids = [a.get("id") for a in batch.get("applied") or []]
+        if ids != ["marketing-team", "trading-team"]:
+            fail(f"Launch must apply each selected team in order, got {ids}")
+        marketing = (desktop / "content-strategist" / "profile.yaml").read_text(encoding="utf-8")
+        trading = (desktop / "market-researcher" / "profile.yaml").read_text(encoding="utf-8")
+        if "Marketing Team" not in marketing or "Trading Team" not in trading:
+            fail("Launch must file each roster into its own named section")
+        if "Trading Team" in marketing or "Marketing Team" in trading:
+            fail("Launch must not merge Marketing and Trading into one section")
+        try:
+            tp.apply_teams(
+                ["personal-assistant", "marketing-team"],
+                payload_root=ROOT,
+                install_root=tmp_path / "install-pa",
+                desktop_profiles_root=tmp_path / "desktop-pa",
+            )
+            fail("Launch must refuse a batch that includes Personal Assistant")
+        except ValueError:
+            pass
+        dest = tmp_path / "export" / "marketing-team.zip"
+        exported = pathlib.Path(
+            tp.export_teams(
+                ["marketing-team"],
+                dest,
+                payload_root=ROOT,
+                install_root=tmp_path / "install-export",
+            )
+        )
+        if exported.suffix != ".zip" or not exported.is_file():
+            fail("export must write a zip in repo group format")
+        imported = tmp_path / "from-export"
+        again = tp.import_team_file(
+            exported,
+            payload_root=ROOT,
+            install_root=tmp_path / "install-reimport",
+            desktop_profiles_root=imported,
+        )
+        if again.get("displayName") != "Marketing Team":
+            fail("exported zip must re-import as Marketing Team")
+        if not (imported / "content-strategist" / "SOUL.md").is_file():
+            fail("exported zip must include Cos Marketing bots")
+        bundle = pathlib.Path(
+            tp.export_teams(
+                ["marketing-team", "trading-team"],
+                tmp_path / "export" / "dragon-teams.zip",
+                payload_root=ROOT,
+                install_root=tmp_path / "install-bundle",
+            )
+        )
+        if not bundle.is_file():
+            fail("multi-team export must write a zip")
+    print("OK  Launch applies each team into its named section; export re-imports")
+
+
 def test_overlay_and_launch_wired() -> None:
     branding = read(BRANDING_PY)
     picker_js = read(ROOT / "branding" / "fonts" / "syne" / "teams-picker.js")
@@ -224,6 +288,24 @@ def test_overlay_and_launch_wired() -> None:
         fail("Teams Marketplace must not query sidebar-wrapper as a column host")
     if "finishApply" not in picker_js or "location.reload" not in picker_js:
         fail("after apply the Teams dialog must close and reload the bot roster")
+    if 'type="checkbox"' not in picker_js and "type=\"checkbox\"" not in picker_js:
+        fail("Teams popup must list each team with a checkbox")
+    if "data-dragon-ai-teams-launch" not in picker_js or "Launch" not in picker_js:
+        fail("Teams popup must have a Launch button for the checked teams")
+    if "data-dragon-ai-teams-export" not in picker_js or "/api/teams/export" not in picker_js:
+        fail("Teams popup must expose Export against the helper")
+    if "data-dragon-ai-teams-import" not in picker_js:
+        fail("Teams popup must keep Import next to Export")
+    if "data-dragon-ai-teams-install" not in picker_js or "Install" not in picker_js:
+        fail("Teams popup must Install a marketplace pack")
+    if "data-dragon-ai-teams-detail" not in picker_js or "/api/marketplace" not in picker_js:
+        fail("Teams popup must browse marketplace Details")
+    if "data-dragon-ai-teams-backdrop" not in picker_js:
+        fail("Teams Marketplace must open a popup with a backdrop, not a dropdown")
+    if "aria-modal" not in picker_js:
+        fail("Teams popup must be a modal dialog")
+    if "<select" in picker_js:
+        fail("in-app Teams control must stay a popup, not a dropdown")
     css = read(CSS)
     if "[data-dragon-ai-teams-panel]" not in css or "Teams Marketplace" not in css:
         fail("dragon-ui.css must style the in-app Teams Marketplace screen")
@@ -251,6 +333,21 @@ def test_overlay_and_launch_wired() -> None:
         fail("marketplace open/close must fade")
     if "translateY" not in css or "scale(" not in css:
         fail("marketplace open/close must fade + slight slide/scale")
+    if "min(72rem" not in css and "min(44rem" not in css:
+        fail("Teams popup must be roomier than the old 28rem dropdown panel")
+    if "[data-dragon-ai-teams-backdrop]" not in css:
+        fail("Teams popup must use a backdrop, not a tight dropdown")
+    if "[data-dragon-ai-teams-panel][hidden]" not in css or "display: none !important" not in css:
+        fail("Teams popup CSS must honor [hidden] so display:flex does not leave the dialog stuck open")
+    if 'input[type="checkbox"]' not in css and "checkbox" not in css:
+        fail("overlay CSS must style Teams checkboxes")
+    if "left: 50%" not in css.split("[data-dragon-ai-teams-panel] {", 1)[-1].split("}", 1)[0]:
+        fail("Teams popup must be a centered modal, not a left-rail dropdown")
+    helper = read(ENGINE)
+    if "/api/teams/export" not in helper:
+        fail("teams helper must serve POST /api/teams/export")
+    if "apply_teams" not in helper or "export_teams" not in helper:
+        fail("teams helper must apply/export multiple selected teams")
     launcher = read(LAUNCHER)
     if "teams_picker" not in launcher:
         fail("start-embedded.ps1 must start the Teams picker helper")
@@ -268,8 +365,14 @@ def test_overlay_and_launch_wired() -> None:
         fail("Select-BotGroup must present Teams (not a hidden PowerShell-only path)")
     if "Import file" not in select:
         fail("Teams UI must still support Import from file")
-    if "ComboBox" not in select:
-        fail("dropdown path must stay (WinForms ComboBox)")
+    if "Export" not in select:
+        fail("Teams UI must keep Export next to Import")
+    if "Launch" not in select:
+        fail("WinForms Teams popup must Launch the checked teams")
+    if "CheckedListBox" not in select:
+        fail("WinForms Teams control must be a popup list (CheckedListBox), not a dropdown")
+    if "ComboBox" in select:
+        fail("WinForms Teams control must not stay a ComboBox dropdown")
     if 'id -ne "personal-assistant"' not in select:
         fail("Select-BotGroup Teams list must drop Personal Assistant")
     if "already installed" not in select:
@@ -288,6 +391,13 @@ def test_overlay_and_launch_wired() -> None:
         fail("PRODUCT_BRANDING.md must describe the in-app Teams Marketplace picker")
     if "descriptionDetail" not in product and "hover" not in product.lower():
         fail("PRODUCT_BRANDING.md must mention seat brief + hover detail")
+    if "popup" not in product.lower() and "modal" not in product.lower():
+        fail("PRODUCT_BRANDING.md must describe the roomy Teams Marketplace popup")
+    design = read(ROOT / "docs" / "airmaze" / "TEAMS_POPUP.md")
+    if "own named section" not in design and "own named BOTS section" not in design:
+        fail("TEAMS_POPUP.md must document applying each selected roster into its named section")
+    if "4-column" not in design and "repeat(4, 1fr)" not in design:
+        fail("TEAMS_POPUP.md must keep the 4-column seat-card grid inside the popup")
     host_note = ROOT / "docs" / "airmaze" / "SIDEBAR_HOST.md"
     host_txt = read(host_note)
     if not host_note.is_file() or "data-dragon-ai-sidebar-fixed" not in host_txt:
@@ -471,10 +581,11 @@ def main() -> int:
     if tp.self_test() != 0:
         fail("teams_picker --self-test failed")
     test_apply_files_named_section(tp)
+    test_launch_many_named_sections(tp)
     test_marketing_seat_descriptions()
     test_present_team_exposes_seat_copy(tp)
     test_overlay_and_launch_wired()
-    print("SMOKE OK: in-app Teams picker lists catalog teams; seats show brief + hover detail; apply files a named group.")
+    print("SMOKE OK: Teams popup lists checkboxes + 4-col seats; Launch files each named section; export/import stay.")
     return 0
 
 

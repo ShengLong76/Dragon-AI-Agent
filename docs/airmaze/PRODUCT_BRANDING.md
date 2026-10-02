@@ -85,13 +85,13 @@ Do not restyle the BOTS pane. Do not invent a second groups UI. The upstream sec
 
 James: pick a bot team from the **Dragon AI UI** (sidebar / first-run / settings-adjacent), not only `Import-Profile.ps1`.
 
-Built-in Teams Marketplace (one click): **Real Estate Lead Gen**, **Marketing Team**, **Trading Team** — multi-bot packs only. **Personal Assistant** is the default single-bot profile (preinstalled); it is not a team. Apply files those bots under that display name — not Unassigned. Each seat shows `description` under the name; `descriptionDetail` pops on hover/focus (Marketing seats ship both; SEO Specialist is the seoagent.com write-up). **Import from file** stays for custom zip/JSON. Design: `docs/airmaze/TEAMS_SEAT_DESCRIPTIONS.md`.
+Built-in Teams Marketplace **popup** (not a sidebar dropdown): **Real Estate Lead Gen**, **Marketing Team**, **Trading Team** — multi-bot packs only. **Personal Assistant** is the default single-bot profile (preinstalled); it is not a team. Checkbox **Launch** files each checked pack under its own display name — not Unassigned. **Details → Install** applies one pack. **Export** writes a scrubbed catalog-ready zip. Each seat shows `description` under the name in a **4-column** card grid; `descriptionDetail` pops on hover/focus (Marketing seats ship both; SEO Specialist is the seoagent.com write-up). **Import from file** stays for custom zip/JSON. Design: `docs/airmaze/TEAMS_POPUP.md`, `docs/airmaze/TEAMS_MARKETPLACE.md`, `docs/airmaze/TEAMS_SEAT_DESCRIPTIONS.md`.
 
 **Do (packaging overlay; no Electron rebuild):**
 
-1. Inject a **Teams Marketplace** button + dialog into the unpacked desktop client (`desktop_branding.py` / `dragon-ui.css`). The user-visible control label is **Teams Marketplace** (not “Teams”). The control is a filled blue button under the 32px logo (full label, reserved gap); the panel is black and opens with a fade + slight slide/scale.
-2. Loopback helper `teams_picker.py` on `127.0.0.1:8653` (`GET /api/teams`, `POST /api/teams/apply`, `POST /api/teams/import`). Not Bot Screen `:8650`.
-3. Launch starts the helper (`start-embedded.ps1`). First-run wizard has **Teams Marketplace**. `Select-BotGroup.ps1` window title is **Teams Marketplace**; Import file remains.
+1. Inject a **Teams Marketplace** button + **roomy modal popup** into the unpacked desktop client (`teams-picker.js` / `dragon-ui.css`). The user-visible control label is **Teams Marketplace** (not “Teams”). The control is a filled blue button under the 32px logo (full label, reserved gap); the popup is a centered black dialog with backdrop and opens with a fade + slight slide/scale.
+2. Loopback helper `teams_picker.py` on `127.0.0.1:8653` (`GET /api/teams`, `GET /api/marketplace`, `POST /api/teams/apply` with `{ids:[…]}`, `POST /api/teams/import`, `POST /api/teams/export`). Not Bot Screen `:8650`.
+3. Launch starts the helper (`start-embedded.ps1`). First-run wizard has **Teams Marketplace**. `Select-BotGroup.ps1` is a **CheckedListBox** popup (Launch / Import / Export); Import file remains.
 4. Helper always unions the bundled catalog so Marketing / Trading show even if GitHub is stale.
 
 Do not add a Hermes team. Do not restyle Bot Screen.

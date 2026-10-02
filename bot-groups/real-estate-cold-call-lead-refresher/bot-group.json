@@ -5,6 +5,18 @@
   "name": "Real Estate Cold Call Lead Refresher",
   "displayName": "Real Estate Lead Gen",
   "departmentJob": "Outbound real-estate department that refreshes stale leads, warms them with CAN-SPAM email toward a TCPA consent form, writes cold-call scripts, and sequences follow-ups.",
+  "blurb": "Refresh stale leads, warm them, write scripts, and follow up.",
+  "detail": "Outbound real-estate recipe pack. Four seats: Lead Sourcer, Email Warmer, Cold Call Script Writer, and Follow-up Sequencer. Connector placeholders only. No live CRM or mailbox logins and no API keys in the pack.",
+  "author": "Dragon AI",
+  "seats": 4,
+  "featured": true,
+  "requiredConnectors": [
+    {"id": "crm", "displayName": "CRM"},
+    {"id": "email", "displayName": "Email"},
+    {"id": "consent-form", "displayName": "TCPA consent form"},
+    {"id": "dialer", "displayName": "Dialer"},
+    {"id": "property-data", "displayName": "Property data"}
+  ],
   "version": "1.1.0",
   "bots": [
     {

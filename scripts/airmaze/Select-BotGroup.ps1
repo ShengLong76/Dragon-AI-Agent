@@ -1,7 +1,7 @@
 #requires -Version 5.1
 <#
 .SYNOPSIS
-  Dragon AI Agent bot group dropdown — lists groups from this GitHub repo and deploys one.
+  Dragon AI Agent Teams popup — lists groups from this GitHub repo and launches checked teams.
 
 .DESCRIPTION
   Front end of https://github.com/ShengLong76/airmaze-agent bot-groups/.
@@ -135,10 +135,11 @@ function Initialize-BotGroupWinForms {
     }
 }
 
-function Show-BotGroupDropdown {
+function Show-TeamsPopup {
     $listed = Get-ListedGroups
     $groups = @($listed.groups | Where-Object { $_.id -ne "personal-assistant" })
     if ($groups.Count -eq 0) { throw "No bot teams listed." }
+    $script:TeamsGroups = $groups
 
     $settingsRaw = Invoke-BotGroups -EngineArgs @("settings", "--install", $InstallRoot)
     $settings = $settingsRaw | ConvertFrom-Json
@@ -146,16 +147,17 @@ function Show-BotGroupDropdown {
 
     $form = New-Object System.Windows.Forms.Form
     $form.Text = "Dragon AI Agent — Teams Marketplace"
-    $form.Size = New-Object System.Drawing.Size(640, 420)
+    $form.Size = New-Object System.Drawing.Size(720, 560)
+    $form.MinimumSize = New-Object System.Drawing.Size(640, 480)
     $form.StartPosition = "CenterScreen"
     $form.BackColor = $script:BrandBack
     $form.ForeColor = $script:BrandText
-    $form.FormBorderStyle = "FixedDialog"
-    $form.MaximizeBox = $false
+    $form.FormBorderStyle = "Sizable"
+    $form.MaximizeBox = $true
 
     $header = New-Object System.Windows.Forms.Panel
-    $header.Size = New-Object System.Drawing.Size(640, 72)
-    $header.Location = New-Object System.Drawing.Point(0, 0)
+    $header.Size = New-Object System.Drawing.Size(720, 80)
+    $header.Dock = "Top"
     $header.BackColor = $script:BrandRed
     $title = New-Object System.Windows.Forms.Label
     $title.Text = $ProductName
@@ -164,32 +166,40 @@ function Show-BotGroupDropdown {
     $title.Location = New-Object System.Drawing.Point(20, 10)
     $title.AutoSize = $true
     $sub = New-Object System.Windows.Forms.Label
-    $sub.Text = "Pick a multi-bot team (Real Estate Lead Gen, Marketing Team, Trading Team). Personal Assistant is already installed. Import file still works."
+    $sub.Text = "Marketplace catalog. Check teams to Launch. Personal Assistant is already installed. Export strips secrets. Import stays on this popup."
     $sub.ForeColor = [System.Drawing.Color]::FromArgb(255, 220, 220)
     $sub.Location = New-Object System.Drawing.Point(20, 40)
-    $sub.AutoSize = $true
+    $sub.Size = New-Object System.Drawing.Size(670, 32)
     $header.Controls.Add($title)
     $header.Controls.Add($sub)
     $form.Controls.Add($header)
 
     $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Text = "Team"
+    $lbl.Text = "Teams Marketplace"
     $lbl.ForeColor = $script:BrandMuted
-    $lbl.Location = New-Object System.Drawing.Point(24, 92)
+    $lbl.Location = New-Object System.Drawing.Point(24, 96)
     $lbl.AutoSize = $true
     $form.Controls.Add($lbl)
 
-    $combo = New-Object System.Windows.Forms.ComboBox
-    $combo.DropDownStyle = "DropDownList"
-    $combo.Location = New-Object System.Drawing.Point(24, 116)
-    $combo.Size = New-Object System.Drawing.Size(580, 28)
-    $combo.BackColor = [System.Drawing.Color]::FromArgb(50, 50, 58)
-    $combo.ForeColor = $script:BrandText
+    $list = New-Object System.Windows.Forms.CheckedListBox
+    $list.CheckOnClick = $true
+    $list.Location = New-Object System.Drawing.Point(24, 120)
+    $list.Size = New-Object System.Drawing.Size(656, 220)
+    $list.Anchor = "Top,Left,Right,Bottom"
+    $list.BackColor = [System.Drawing.Color]::FromArgb(50, 50, 58)
+    $list.ForeColor = $script:BrandText
+    $list.BorderStyle = "FixedSingle"
     foreach ($g in $groups) {
-        [void]$combo.Items.Add(("{0} — {1}" -f $g.name, $g.departmentJob))
+        $label = if ($g.displayName) { [string]$g.displayName } else { [string]$g.name }
+        $blurb = if ($g.blurb) { [string]$g.blurb } else { [string]$g.departmentJob }
+        $bits = @()
+        if ($g.seats) { $bits += ("{0} seats" -f $g.seats) }
+        if ($g.author) { $bits += [string]$g.author }
+        $suffix = if ($bits.Count) { " ({0})" -f ($bits -join " · ") } else { "" }
+        [void]$list.Items.Add(("{0} — {1}{2}" -f $label, $blurb, $suffix))
     }
-    if ($combo.Items.Count -gt 0) { $combo.SelectedIndex = 0 }
-    $form.Controls.Add($combo)
+    $form.Controls.Add($list)
+    $script:TeamsList = $list
 
     $status = New-Object System.Windows.Forms.Label
     $src = [string]$listed.source
@@ -201,16 +211,19 @@ function Show-BotGroupDropdown {
         $status.Text = "GitHub unreachable — using bundled catalog"
     }
     $status.ForeColor = $script:BrandMuted
-    $status.Location = New-Object System.Drawing.Point(24, 156)
-    $status.Size = New-Object System.Drawing.Size(580, 36)
+    $status.Location = New-Object System.Drawing.Point(24, 350)
+    $status.Size = New-Object System.Drawing.Size(656, 36)
+    $status.Anchor = "Left,Right,Bottom"
     $form.Controls.Add($status)
+    $script:TeamsStatus = $status
 
     $chk = New-Object System.Windows.Forms.CheckBox
     $chk.Text = "Allow import or export of one bot"
     $chk.Checked = $singularOn
     $chk.ForeColor = $script:BrandText
-    $chk.Location = New-Object System.Drawing.Point(24, 200)
+    $chk.Location = New-Object System.Drawing.Point(24, 392)
     $chk.AutoSize = $true
+    $chk.Anchor = "Left,Bottom"
     $chk.Add_CheckedChanged({
         $flag = if ($chk.Checked) { "on" } else { "off" }
         Invoke-BotGroups -EngineArgs @("settings", "--install", $InstallRoot, "--set-singular", $flag) | Out-Null
@@ -218,59 +231,77 @@ function Show-BotGroupDropdown {
     $form.Controls.Add($chk)
 
     $note = New-Object System.Windows.Forms.Label
-    $note.Text = "Off by default. Not a create-a-bot path. Group deploy and group export stay available."
+    $note.Text = "Off by default. Not a create-a-bot path. Group launch and group export stay available."
     $note.ForeColor = $script:BrandMuted
-    $note.Location = New-Object System.Drawing.Point(44, 228)
-    $note.Size = New-Object System.Drawing.Size(560, 36)
+    $note.Location = New-Object System.Drawing.Point(44, 416)
+    $note.Size = New-Object System.Drawing.Size(636, 28)
+    $note.Anchor = "Left,Right,Bottom"
     $form.Controls.Add($note)
 
-    $btnDeploy = New-Object System.Windows.Forms.Button
-    $btnDeploy.Text = "Deploy"
-    $btnDeploy.Location = New-Object System.Drawing.Point(24, 280)
-    $btnDeploy.Size = New-Object System.Drawing.Size(120, 36)
-    $btnDeploy.BackColor = $script:BrandRed
-    $btnDeploy.ForeColor = [System.Drawing.Color]::White
-    $btnDeploy.FlatStyle = "Flat"
-    $btnDeploy.Add_Click({
-        if ($combo.SelectedIndex -lt 0) { return }
-        $id = $groups[$combo.SelectedIndex].id
+    $btnLaunch = New-Object System.Windows.Forms.Button
+    $btnLaunch.Text = "Launch"
+    $btnLaunch.Location = New-Object System.Drawing.Point(24, 456)
+    $btnLaunch.Size = New-Object System.Drawing.Size(120, 36)
+    $btnLaunch.Anchor = "Left,Bottom"
+    $btnLaunch.BackColor = $script:BrandRed
+    $btnLaunch.ForeColor = [System.Drawing.Color]::White
+    $btnLaunch.FlatStyle = "Flat"
+    $btnLaunch.Add_Click({
+        $picked = @($script:TeamsList.CheckedIndices)
+        if ($picked.Count -lt 1) {
+            $script:TeamsStatus.Text = "Check one or more teams to launch."
+            return
+        }
         try {
-            Deploy-ListedGroup -Id $id | Out-Null
-            $status.Text = "Deployed $($groups[$combo.SelectedIndex].name). No manual file handling."
-            [System.Windows.Forms.MessageBox]::Show("Deployed $($groups[$combo.SelectedIndex].name).", $ProductName) | Out-Null
+            $names = @()
+            foreach ($idx in $picked) {
+                $g = $script:TeamsGroups[$idx]
+                Deploy-ListedGroup -Id $g.id | Out-Null
+                $names += $(if ($g.displayName) { $g.displayName } else { $g.name })
+            }
+            $script:TeamsStatus.Text = "Launched $($names -join ', '). Each team files under its own name."
+            [System.Windows.Forms.MessageBox]::Show("Launched $($names -join ', ').", $ProductName) | Out-Null
         } catch {
             [System.Windows.Forms.MessageBox]::Show("$_", $ProductName) | Out-Null
         }
     })
-    $form.Controls.Add($btnDeploy)
+    $form.Controls.Add($btnLaunch)
 
     $btnExport = New-Object System.Windows.Forms.Button
     $btnExport.Text = "Export"
-    $btnExport.Location = New-Object System.Drawing.Point(156, 280)
+    $btnExport.Location = New-Object System.Drawing.Point(156, 456)
     $btnExport.Size = New-Object System.Drawing.Size(120, 36)
+    $btnExport.Anchor = "Left,Bottom"
     $btnExport.BackColor = $script:BrandPanel
     $btnExport.ForeColor = $script:BrandText
     $btnExport.FlatStyle = "Flat"
     $btnExport.Add_Click({
-        if ($combo.SelectedIndex -lt 0) { return }
-        $id = $groups[$combo.SelectedIndex].id
+        $picked = @($script:TeamsList.CheckedIndices)
+        if ($picked.Count -lt 1) {
+            $script:TeamsStatus.Text = "Check one or more teams to export."
+            return
+        }
         $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
-        $dialog.Description = "Export bot group folder (same format as the GitHub repo)"
+        $dialog.Description = "Export team group folder (same format as the GitHub repo)"
         if ($dialog.ShowDialog() -eq "OK") {
-            $out = Join-Path $dialog.SelectedPath $id
-            Invoke-BotGroups -EngineArgs @(
-                "export", "--id", $id, "--out", $out,
-                "--install", $InstallRoot, "--payload", $root
-            ) | Out-Null
-            $status.Text = "Exported $id (re-importable group file)."
+            foreach ($idx in $picked) {
+                $id = $script:TeamsGroups[$idx].id
+                $out = Join-Path $dialog.SelectedPath $id
+                Invoke-BotGroups -EngineArgs @(
+                    "export", "--id", $id, "--out", $out,
+                    "--install", $InstallRoot, "--payload", $root
+                ) | Out-Null
+            }
+            $script:TeamsStatus.Text = "Exported checked teams (re-importable group files)."
         }
     })
     $form.Controls.Add($btnExport)
 
     $btnImport = New-Object System.Windows.Forms.Button
     $btnImport.Text = "Import file"
-    $btnImport.Location = New-Object System.Drawing.Point(288, 280)
+    $btnImport.Location = New-Object System.Drawing.Point(288, 456)
     $btnImport.Size = New-Object System.Drawing.Size(120, 36)
+    $btnImport.Anchor = "Left,Bottom"
     $btnImport.BackColor = $script:BrandPanel
     $btnImport.ForeColor = $script:BrandText
     $btnImport.FlatStyle = "Flat"
@@ -283,7 +314,7 @@ function Show-BotGroupDropdown {
                     "import", "--source", $ofd.FileName,
                     "--install", $InstallRoot, "--desktop", $desktopRoot, "--payload", $root
                 ) | Out-Null
-                $status.Text = "Imported $($ofd.FileName)"
+                $script:TeamsStatus.Text = "Imported $($ofd.FileName)"
             } catch {
                 [System.Windows.Forms.MessageBox]::Show("$_", $ProductName) | Out-Null
             }
@@ -293,8 +324,9 @@ function Show-BotGroupDropdown {
 
     $btnClose = New-Object System.Windows.Forms.Button
     $btnClose.Text = "Close"
-    $btnClose.Location = New-Object System.Drawing.Point(484, 280)
+    $btnClose.Location = New-Object System.Drawing.Point(560, 456)
     $btnClose.Size = New-Object System.Drawing.Size(120, 36)
+    $btnClose.Anchor = "Right,Bottom"
     $btnClose.BackColor = $script:BrandPanel
     $btnClose.ForeColor = $script:BrandText
     $btnClose.FlatStyle = "Flat"
@@ -305,7 +337,7 @@ function Show-BotGroupDropdown {
 }
 
 if (Initialize-BotGroupWinForms) {
-    Show-BotGroupDropdown
+    Show-TeamsPopup
 } else {
     $listed = Get-ListedGroups
     Write-Host ""
