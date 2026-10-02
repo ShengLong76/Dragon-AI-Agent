@@ -43,6 +43,7 @@ SIDEBAR_SCRIPT_NAME = "sidebar-header.js"
 TEAMS_SCRIPT_NAME = "teams-picker.js"
 PACK_FILE_SUFFIXES = {".woff2", ".css", ".txt", ".md", ".js"}
 LOGO_NAMES = ("dragon-ai-agent-logo.svg", "dragon-ai-agent-logo.png")
+PNG_ICON_NAMES = ("icon.png", "apple-touch-icon.png")
 APP_USER_MODEL_ID = "com.nousresearch.hermes"
 CRIMSON_LOCKUP_BORDER_RE = re.compile(
     r"border\s*:\s*1px\s+solid\s+rgba\(\s*196\s*,\s*30\s*,\s*58\s*,\s*[^)]+\)",
@@ -247,7 +248,24 @@ def branding_dir() -> Path:
 
 def logo_files() -> list[Path]:
     brand = branding_dir()
-    return [brand / name for name in LOGO_NAMES if (brand / name).is_file()]
+    found = [brand / name for name in LOGO_NAMES if (brand / name).is_file()]
+    missing = [name for name in LOGO_NAMES if not (brand / name).is_file()]
+    if missing:
+        raise FileNotFoundError(
+            "Apply-DesktopBranding: missing required logo "
+            + ", ".join(missing)
+            + f" under {brand}"
+        )
+    return found
+
+
+def png_icon_source() -> Path:
+    png = branding_dir() / "dragon-ai-agent-logo.png"
+    if not png.is_file():
+        raise FileNotFoundError(
+            f"Apply-DesktopBranding: missing required logo {png.name} under {png.parent}"
+        )
+    return png
 
 
 def team_icon_files() -> list[Path]:
@@ -459,8 +477,15 @@ def install_font_pack(roots: list[Path], required: bool = True) -> dict[str, Any
         dest.mkdir(parents=True, exist_ok=True)
         for src in files:
             (dest / src.name).write_bytes(src.read_bytes())
-        for src in logo_files():
+        logos = logo_files()
+        for src in logos:
             (dest / src.name).write_bytes(src.read_bytes())
+        for src in logos:
+            landed_logo = dest / src.name
+            if not landed_logo.is_file() or landed_logo.stat().st_size < 1:
+                raise FileNotFoundError(
+                    f"Apply-DesktopBranding: missing required logo {src.name} did not land in {dest}"
+                )
         icons_dest = dest / "teams"
         icons_dest.mkdir(parents=True, exist_ok=True)
         for src in team_icon_files():
@@ -532,34 +557,54 @@ def icon_source() -> Path | None:
     return None
 
 
-def icon_destinations(exe_path: Path) -> list[Path]:
-    """Hermes / electron-builder icon.ico locations next to the live exe."""
+def _add_unique(dests: list[Path], seen: set[Path], path: Path) -> None:
+    key = path
+    try:
+        key = path.resolve()
+    except OSError:
+        key = path
+    if key in seen:
+        return
+    seen.add(key)
+    dests.append(path)
+
+
+def icon_destinations(exe_path: Path, filename: str = "icon.ico") -> list[Path]:
+    """Hermes / electron-builder icon locations next to the live exe."""
     exe_dir = exe_path.resolve().parent
     resources = exe_dir / "resources"
     dests: list[Path] = []
     seen: set[Path] = set()
 
-    def add(path: Path) -> None:
-        key = path
-        try:
-            key = path.resolve()
-        except OSError:
-            key = path
-        if key in seen:
-            return
-        seen.add(key)
-        dests.append(path)
-
-    add(resources / "icon.ico")
-    add(exe_dir / "icon.ico")
+    _add_unique(dests, seen, resources / filename)
+    _add_unique(dests, seen, exe_dir / filename)
     for parent in (resources / "app", resources / "app.asar.unpacked"):
         if parent.is_dir():
-            add(parent / "icon.ico")
+            _add_unique(dests, seen, parent / filename)
+    if filename == "apple-touch-icon.png":
+        for parent in (
+            resources / "app.asar.unpacked" / "dist",
+            resources / "app.asar.unpacked" / "public",
+            resources / "app" / "dist",
+            resources / "app" / "public",
+        ):
+            if parent.is_dir():
+                _add_unique(dests, seen, parent / filename)
     if resources.is_dir():
-        for hit in resources.rglob("icon.ico"):
+        for hit in resources.rglob(filename):
             if "node_modules" in hit.parts:
                 continue
-            add(hit)
+            _add_unique(dests, seen, hit)
+    return dests
+
+
+def png_destinations(exe_path: Path) -> list[Path]:
+    """Electron PNG candidates Hermes app-icon.ts / tray actually read."""
+    dests: list[Path] = []
+    seen: set[Path] = set()
+    for name in PNG_ICON_NAMES:
+        for path in icon_destinations(exe_path, name):
+            _add_unique(dests, seen, path)
     return dests
 
 
@@ -586,23 +631,40 @@ def try_stamp_pe_icon(exe_path: Path, ico: Path) -> dict[str, Any]:
 
 
 def stamp_app_icon(exe_path: Path) -> dict[str, Any]:
-    """Copy the sidebar-mark ICO over every Hermes icon.ico. PE stamp is best-effort."""
+    """Copy Dragon ICO + PNG over Hermes icon paths. PE stamp is best-effort."""
+    exe = exe_path.resolve()
+    assert_private_dragon_path(exe)
     src = icon_source()
     if src is None:
-        return {"copied": False, "reason": "no-ico"}
-    exe = exe_path.resolve()
+        raise FileNotFoundError(
+            "Apply-DesktopBranding: missing required logo dragon-ai-agent-logo.ico"
+        )
+    png = png_icon_source()
     payload = src.read_bytes()
+    png_payload = png.read_bytes()
     written: list[str] = []
     for dest in icon_destinations(exe):
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(payload)
         written.append(str(dest))
+    png_written: list[str] = []
+    for dest in png_destinations(exe):
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(png_payload)
+        png_written.append(str(dest))
+    ico_landed = exe.parent / "resources" / "icon.ico"
+    if not ico_landed.is_file() or ico_landed.read_bytes() != payload:
+        raise FileNotFoundError(
+            f"Apply-DesktopBranding: Dragon ICO did not land at {ico_landed}"
+        )
     pe = try_stamp_pe_icon(exe, src)
     return {
         "copied": True,
         "path": written[0] if written else "",
         "paths": written,
+        "pngPaths": png_written,
         "source": src.name,
+        "pngSource": png.name,
         "appUserModelId": APP_USER_MODEL_ID,
         "pe": pe,
     }
@@ -763,6 +825,9 @@ def self_test() -> int:
         return 1
     if logo_meta.get("boxed") is not False or logo_meta.get("stack") != "wordmark-in-front":
         print("FAIL: table must record an unboxed mark with the wordmark in front", file=sys.stderr)
+        return 1
+    if logo_meta.get("trayPng") != "apple-touch-icon.png":
+        print("FAIL: table must record apple-touch-icon.png as the Electron tray PNG", file=sys.stderr)
         return 1
     sidebar = table.get("sidebar") or {}
     if sidebar.get("hideDefaultHermes") is not True:

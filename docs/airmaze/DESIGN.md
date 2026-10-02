@@ -58,7 +58,7 @@ Full token table and skill-vs-override notes: `design-system/dragon-ai-agent/` (
 - Product shortcut parse: tray `$patch` has one `openUIOnStartupDisabled` key; Hermes data dir is `$embeddedHome` / `-HermesHome` (never `$HOME`). Design: `docs/airmaze/WINDOWS_LAUNCH_PARSE.md`.
 - **Teams Marketplace** opens a roomy centered popup (backdrop, checkboxes, Launch / Import / Export / Details → Install). Seats stay 4-column cards under each pack, with a left-side icon, a brief line, and hover/focus detail. Marketing SEO Specialist copy is seoagent.com. Design: `docs/airmaze/TEAMS_POPUP.md`, `docs/airmaze/TEAMS_SEAT_DESCRIPTIONS.md`.
 - Voice chat shows **GPT** and **Grok** as two options. GPT voice is unchanged (`gpt-live`). Grok is additive overlay full duplex (`grok-voice-latest`). Design: `docs/airmaze/VOICE.md`.
-- The running-app / taskbar dragon is the **transparent sidebar mark**, contain-maxed into the Windows slot (no fixed pixel size, no copper badge rim). Design: `docs/airmaze/TRAY_ICON.md`.
+- The running-app / taskbar dragon is the **transparent sidebar mark**, contain-maxed into the Windows slot (no fixed pixel size, no copper badge rim). Apply copies that ICO **and** PNG onto the private `win-unpacked` tree (`icon.ico`, `icon.png`, `apple-touch-icon.png`) and refuses standalone Hermes. Design: `docs/airmaze/TRAY_ICON.md`, `docs/airmaze/DURABLE_BRANDING.md`.
 
 ## What does not change
 

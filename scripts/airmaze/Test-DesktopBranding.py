@@ -267,6 +267,8 @@ def test_table() -> dict:
         fail("table must record a navy body and red eyes")
     if logo.get("boxed") is not False or logo.get("stack") != "wordmark-in-front":
         fail("table must record an unboxed mark with the wordmark in front")
+    if logo.get("trayPng") != "apple-touch-icon.png":
+        fail("table must record apple-touch-icon.png as the Electron tray PNG")
     sidebar = table.get("sidebar") or {}
     if sidebar.get("hideDefaultHermes") is not True:
         fail("table must hide the default Hermes sidebar bot")

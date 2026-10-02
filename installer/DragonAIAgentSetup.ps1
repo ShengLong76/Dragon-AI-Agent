@@ -308,11 +308,12 @@ function Install-PackageFiles([string]$Root) {
     foreach ($logoName in @("dragon-ai-agent-logo.png", "dragon-ai-agent-logo.ico", "dragon-ai-agent-logo.svg")) {
         $logoSrc = Join-Path $Root $logoName
         if (-not (Test-Path $logoSrc)) { $logoSrc = Join-Path $Root "branding\$logoName" }
-        if (Test-Path $logoSrc) {
-            Copy-Item -LiteralPath $logoSrc -Destination (Join-Path $InstallRoot "branding\$logoName") -Force
-            Copy-Item -LiteralPath $logoSrc -Destination (Join-Path $InstallRoot $logoName) -Force
-            Write-Log "Copied logo $logoName"
+        if (-not (Test-Path $logoSrc)) {
+            throw "Install refused: missing required Dragon logo $logoName (branding\$logoName)"
         }
+        Copy-Item -LiteralPath $logoSrc -Destination (Join-Path $InstallRoot "branding\$logoName") -Force
+        Copy-Item -LiteralPath $logoSrc -Destination (Join-Path $InstallRoot $logoName) -Force
+        Write-Log "Copied logo $logoName"
     }
 
     $winresSrc = Join-Path $Root "installer\winres\icon.ico"
