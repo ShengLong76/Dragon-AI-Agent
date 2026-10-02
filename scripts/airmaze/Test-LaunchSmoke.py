@@ -71,6 +71,10 @@ REQUIRED_WIZARD = (
     "Initialize-WizardWinForms",
     "[System.Drawing.Color]",
     "OrderedDictionary",
+    "Format-WizardStatusLine",
+    "Set-WizardControlText",
+    "Test-WizardCanSetText",
+    "Set-WizardMessage",
 )
 
 REQUIRED_COMPOSE = (
@@ -285,6 +289,11 @@ def main() -> int:
         proc = subprocess.run([sys.executable, str(parse_test)], cwd=str(ROOT))
         if proc.returncode != 0:
             fail("Test-WindowsLaunchParse.py failed")
+    onboard_wizard_test = ROOT / "scripts" / "airmaze" / "Test-OnboardWizard.py"
+    if onboard_wizard_test.is_file():
+        proc = subprocess.run([sys.executable, str(onboard_wizard_test)], cwd=str(ROOT))
+        if proc.returncode != 0:
+            fail("Test-OnboardWizard.py failed")
     run_host_smoke()
     print("SMOKE OK: opening Dragon AI Agent is wired to branded UI or a blocking error.")
     return 0

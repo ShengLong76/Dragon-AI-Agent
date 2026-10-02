@@ -9,6 +9,7 @@ No secrets. Safe on Linux CI.
 from __future__ import annotations
 
 import pathlib
+import subprocess
 import sys
 import tempfile
 
@@ -17,6 +18,7 @@ SCRIPTS = ROOT / "scripts" / "airmaze"
 ENGINE = SCRIPTS / "gateway_models.py"
 APPLY = SCRIPTS / "Apply-GatewayModels.ps1"
 WIZARD = SCRIPTS / "Onboard-Wizard.ps1"
+ONBOARD_WIZARD_TEST = SCRIPTS / "Test-OnboardWizard.py"
 LAUNCHER = SCRIPTS / "start-embedded.ps1"
 INSTALL = SCRIPTS / "install.ps1"
 SETUP = ROOT / "installer" / "DragonAIAgentSetup.ps1"
@@ -200,6 +202,8 @@ def test_wizard_and_launch_wired() -> None:
         fail("wizard must say it reuses xAI OAuth / XAI_API_KEY")
     if "Apply-GatewayModels" not in wizard and "gateway_models.py" not in wizard:
         fail("wizard must persist choices through the gateway_models engine")
+    if "Set-WizardControlText" not in wizard or "Format-WizardStatusLine" not in wizard:
+        fail("wizard must guard Text assignment and format a short Welcome/Models status line")
     if "Teams Marketplace" not in wizard:
         fail("Teams Marketplace path must stay on the welcome step")
     apply = read(APPLY)
@@ -238,6 +242,10 @@ def main() -> int:
     test_defaults_and_apply(gm)
     test_quality_variant_and_merge(gm)
     test_wizard_and_launch_wired()
+    if ONBOARD_WIZARD_TEST.is_file():
+        proc = subprocess.run([sys.executable, str(ONBOARD_WIZARD_TEST)], cwd=str(ROOT))
+        if proc.returncode != 0:
+            fail("Test-OnboardWizard.py failed")
     print("SMOKE OK: first-run writes Grok + Grok Imagine into Hermes gateway config.")
     return 0
 

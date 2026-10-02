@@ -56,7 +56,8 @@ WinForms + console fallback both get two ComboBoxes / numbered lists:
 
 Copy is **Dragon AI Agent** (not Hermes). Auth line: this step does not ask for a new key; it uses the xAI Grok login Dragon AI Agent already has (OAuth or `XAI_API_KEY`).
 
-- **Continue** writes the selected pair (overwrite those keys).
+- **Continue** writes the selected pair (overwrite those keys). Do not assign `.Text` on `$msgLabel` from a `GetNewClosure()` handler (that object is often `$null` and WinForms shows *The property 'Text' cannot be found on this object*).
+- Status under the header is **Welcome + Models only** (`Welcome: OK · Models: pending`), not every step smashed into one PENDING string.
 - **Skip this step** / **Skip wizard** writes the product defaults **only if** `image_gen.provider` or `principal.model` is missing.
 - Review lists the chosen labels (never secrets).
 

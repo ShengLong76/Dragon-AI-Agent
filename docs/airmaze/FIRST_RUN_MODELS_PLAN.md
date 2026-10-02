@@ -10,7 +10,7 @@ Small plan after `docs/airmaze/FIRST_RUN_MODELS.md`. Tests first. No Electron re
 4. `start-embedded.ps1` applies product defaults if missing **before** compose up.
 5. Installers copy the new scripts + design docs.
 6. Docs: `SETUP_GUIDE.md`, README onboarding list, `CHANGELOG.md`, one line in `DESIGN.md`.
-7. `scripts/airmaze/Test-GatewayModels.py` plus existing wizard regression checks.
+7. `scripts/airmaze/Test-GatewayModels.py` plus `Test-OnboardWizard.py` (Continue Text guard + Welcome/Models status line).
 
 ## Tests first (must fail before the engine exists)
 

@@ -14,7 +14,8 @@ param(
     [string]$BotGroupId = "",
     [string]$ProfileId = "",
     [switch]$SkipWelcome,
-    [switch]$Force
+    [switch]$Force,
+    [switch]$SelfTest
 )
 
 $ErrorActionPreference = "Continue"
@@ -98,6 +99,60 @@ function Get-StepValue {
     $v = Get-MapValue -Map $steps -Name $Name -Default "pending"
     if ([string]::IsNullOrWhiteSpace($v)) { return "pending" }
     return $v
+}
+
+function Format-WizardStepWord {
+    param([string]$Status)
+    switch -Regex ([string]$Status) {
+        '^success$' { return "OK" }
+        '^failed$'  { return "failed" }
+        '^skipped$' { return "skipped" }
+        default     { return "pending" }
+    }
+}
+
+function Format-WizardStatusLine {
+    <#
+    .SYNOPSIS
+      Short Welcome + Models status only. Never concatenates every PENDING step.
+    #>
+    param($Progress)
+    $welcome = Format-WizardStepWord (Get-StepValue -Progress $Progress -Name "welcome")
+    $models = Format-WizardStepWord (Get-StepValue -Progress $Progress -Name "models")
+    return "Welcome: $welcome · Models: $models"
+}
+
+function Test-WizardCanSetText {
+    <#
+    .SYNOPSIS
+      True only when Target has a settable Text property (WinForms/WPF control or similar).
+      $null, hashtables, and PSCustomObjects without Text are refused — assigning .Text
+      to those throws: The property 'Text' cannot be found on this object.
+    #>
+    param($Target)
+    if ($null -eq $Target) { return $false }
+    if ($Target -is [hashtable] -or $Target -is [System.Collections.IDictionary]) {
+        return $false
+    }
+    $prop = $Target.PSObject.Properties["Text"]
+    if ($null -eq $prop) { return $false }
+    return [bool]$prop.IsSettable
+}
+
+function Set-WizardControlText {
+    param($Target, [string]$Value)
+    if (-not (Test-WizardCanSetText -Target $Target)) { return $false }
+    try {
+        $Target.Text = $Value
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+function Set-WizardMessage {
+    param([string]$Value)
+    Set-WizardControlText -Target $script:WizMsgLabel -Value $Value | Out-Null
 }
 
 function Set-StepValue {
@@ -353,6 +408,11 @@ $script:BrandMuted = $null
 $script:BrandOk = $null
 $script:BrandFail = $null
 $script:BrandPend = $null
+$script:WizMsgLabel = $null
+$script:WizProgress = $null
+$script:WizForm = $null
+$script:WizChatBox = $null
+$script:WizImageBox = $null
 
 function Initialize-WizardWinForms {
     if ($script:WinFormsReady) { return $true }
@@ -718,34 +778,15 @@ function New-BrandTextBox {
 
 function Update-StatusStrip {
     param($Panel, $Progress)
+    if ($null -eq $Panel) { return }
     $Panel.Controls.Clear()
-    $items = @(
-        @{ n = "Welcome"; k = "welcome" },
-        @{ n = "Models"; k = "models" },
-        @{ n = "Email"; k = "email" },
-        @{ n = "CRM"; k = "crm" },
-        @{ n = "Phone"; k = "telephony" },
-        @{ n = "Property"; k = "property_data" },
-        @{ n = "Dialer"; k = "dialer" }
-    )
-    $x = 6
-    foreach ($it in $items) {
-        $st = Get-StepValue $Progress $it.k
-        $color = switch ($st) {
-            "success" { $script:BrandOk }
-            "failed"  { $script:BrandFail }
-            "skipped" { $script:BrandMuted }
-            default   { $script:BrandPend }
-        }
-        $lbl = New-Object Windows.Forms.Label
-        $lbl.Text = "$($it.n): $($st.ToUpper())"
-        $lbl.Location = New-Object Drawing.Point($x, 4)
-        $lbl.AutoSize = $true
-        $lbl.ForeColor = $color
-        $lbl.Font = New-Object Drawing.Font("Segoe UI", 8, [Drawing.FontStyle]::Bold)
-        $Panel.Controls.Add($lbl)
-        $x += 86
-    }
+    $lbl = New-Object Windows.Forms.Label
+    Set-WizardControlText -Target $lbl -Value (Format-WizardStatusLine -Progress $Progress) | Out-Null
+    $lbl.Location = New-Object Drawing.Point(12, 4)
+    $lbl.AutoSize = $true
+    $lbl.ForeColor = if ($script:BrandText) { $script:BrandText } else { [System.Drawing.Color]::FromArgb(240, 240, 245) }
+    $lbl.Font = New-Object Drawing.Font("Segoe UI", 9)
+    [void]$Panel.Controls.Add($lbl)
 }
 
 function Invoke-WinFormsWizard {
@@ -819,6 +860,10 @@ function Invoke-WinFormsWizard {
 
     $msgLabel = New-BrandLabel -Text "" -Location (New-Object Drawing.Point(12, 18)) -Width 400 -Height 28
     $footer.Controls.Add($msgLabel)
+    $script:WizMsgLabel = $msgLabel
+    $script:WizProgress = $Progress
+    $script:WizForm = $form
+    $script:WizProfId = $ProfId
 
     function Clear-Content { $content.Controls.Clear() }
 
@@ -867,7 +912,7 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
             Update-DragonAIBotsFromProgress -ProfileId $ProfId -Progress $Progress | Out-Null
             Write-WizardLog "Wizard skipped (WinForms)"
             $script:WizResult = 0
-            $form.Close()
+            if ($script:WizForm) { $script:WizForm.Close() } else { $form.Close() }
         })
     }
 
@@ -910,33 +955,39 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
         $content.Controls.Add($btnContinue)
         $content.Controls.Add($btnSkip)
 
+        $script:WizChatBox = $cbChat
+        $script:WizImageBox = $cbImage
         $btnContinue.Add_Click({
-            $chat = switch ($cbChat.SelectedIndex) {
+            $chatIdx = 0
+            $imgIdx = 0
+            if ($script:WizChatBox) { $chatIdx = [int]$script:WizChatBox.SelectedIndex }
+            if ($script:WizImageBox) { $imgIdx = [int]$script:WizImageBox.SelectedIndex }
+            $chat = switch ($chatIdx) {
                 1 { "grok-4.5" }
                 2 { "grok-4.3" }
                 default { "grok-4.6" }
             }
-            $image = switch ($cbImage.SelectedIndex) {
+            $image = switch ($imgIdx) {
                 1 { "grok-imagine-image-quality" }
                 2 { "grok-imagine-image-2.0" }
                 default { "grok-imagine-image" }
             }
-            $msgLabel.Text = "Writing Dragon AI Agent model defaults..."
+            Set-WizardMessage "Writing Dragon AI Agent model defaults..."
             Invoke-ApplyGatewayModels -Chat $chat -Image $image | Out-Null
-            Set-NonSecret $Progress "chat_model" $chat
-            Set-NonSecret $Progress "image_model" $image
-            Set-StepValue $Progress "models" "success"
-            Save-DragonAIOnboardingProgress $Progress
+            Set-NonSecret $script:WizProgress "chat_model" $chat
+            Set-NonSecret $script:WizProgress "image_model" $image
+            Set-StepValue $script:WizProgress "models" "success"
+            Save-DragonAIOnboardingProgress $script:WizProgress
             $script:CurrentStep = "email"
             Show-CurrentStep
-        }.GetNewClosure())
+        })
         $btnSkip.Add_Click({
             Invoke-ApplyGatewayModels -IfMissing | Out-Null
-            Set-StepValue $Progress "models" "skipped"
-            Save-DragonAIOnboardingProgress $Progress
+            Set-StepValue $script:WizProgress "models" "skipped"
+            Save-DragonAIOnboardingProgress $script:WizProgress
             $script:CurrentStep = "email"
             Show-CurrentStep
-        }.GetNewClosure())
+        })
     }
 
     function Show-StepEmail {
@@ -1014,11 +1065,11 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
             $provider = if ($rbGmail.Checked) { "gmail" } elseif ($rbOutlook.Checked) { "outlook" } else { "smtp" }
             $portNum = 587
             [void][int]::TryParse($tbPort.Text, [ref]$portNum)
-            $msgLabel.Text = "Sending test email..."
-            $form.Refresh()
+            Set-WizardMessage "Sending test email..."
+            if ($script:WizForm) { $script:WizForm.Refresh() }
             $r = Test-SmtpSend -HostName $tbHost.Text -Port $portNum -EnableSsl $cbSsl.Checked `
                 -Username $tbUser.Text -Password $tbPass.Text -FromAddress $tbFrom.Text -DisplayName $tbDisp.Text
-            $msgLabel.Text = $r.Message
+            Set-WizardMessage $r.Message
             if ($r.Ok) {
                 Save-DragonAISecret -Name "email_password" -PlainText $tbPass.Text
                 Set-NonSecret $Progress "email_from_address" $tbFrom.Text
@@ -1072,10 +1123,10 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
         $content.Controls.Add($btnVerify); $content.Controls.Add($btnSkip); $content.Controls.Add($btnNext)
 
         $btnVerify.Add_Click({
-            $msgLabel.Text = "Checking CRM..."
-            $form.Refresh()
+            Set-WizardMessage "Checking CRM..."
+            if ($script:WizForm) { $script:WizForm.Refresh() }
             $r = Test-VtigerLogin -BaseUrl $tbUrl.Text -Username $tbUser.Text -AccessKey $tbKey.Text
-            $msgLabel.Text = $r.Message
+            Set-WizardMessage $r.Message
             if ($r.Ok) {
                 Save-DragonAISecret -Name "crm_access_key" -PlainText $tbKey.Text
                 Set-NonSecret $Progress "crm_url" $tbUrl.Text
@@ -1125,10 +1176,10 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
 
         $btnVerify.Add_Click({
             if ([string]::IsNullOrWhiteSpace($tb_bland.Text) -and [string]::IsNullOrWhiteSpace($tb_vapi.Text)) {
-                $msgLabel.Text = "Warning: add Bland or Vapi key for voice AI (Twilio-only OK for now)."
+                Set-WizardMessage "Warning: add Bland or Vapi key for voice AI (Twilio-only OK for now)."
             }
-            $msgLabel.Text = "Checking Twilio..."
-            $form.Refresh()
+            Set-WizardMessage "Checking Twilio..."
+            if ($script:WizForm) { $script:WizForm.Refresh() }
             $r = Test-TwilioAccount -AccountSid $tb_sid.Text -AuthToken $tb_tok.Text
             if ($r.Ok) {
                 Save-DragonAISecret -Name "twilio_auth_token" -PlainText $tb_tok.Text
@@ -1140,13 +1191,13 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
                 Set-NonSecret $Progress "voice_provider" $vp
                 if (-not [string]::IsNullOrWhiteSpace($tb_dest.Text)) {
                     $cr = Invoke-TwilioTestCall -AccountSid $tb_sid.Text -AuthToken $tb_tok.Text -FromPhone $tb_from.Text -ToPhone $tb_dest.Text
-                    $msgLabel.Text = "$($r.Message) $($cr.Message)"
+                    Set-WizardMessage "$($r.Message) $($cr.Message)"
                 } else {
-                    $msgLabel.Text = "$($r.Message) (test call skipped)"
+                    Set-WizardMessage "$($r.Message) (test call skipped)"
                 }
                 Set-StepValue $Progress "telephony" "success"
             } else {
-                $msgLabel.Text = $r.Message
+                Set-WizardMessage $r.Message
                 Set-StepValue $Progress "telephony" "failed"
             }
             Save-DragonAIOnboardingProgress $Progress
@@ -1203,7 +1254,7 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
                 $script:CurrentStep = "review"
             }
             Save-DragonAIOnboardingProgress $Progress
-            $msgLabel.Text = "Saved (secrets via DPAPI)."
+            Set-WizardMessage "Saved (secrets via DPAPI)."
             Show-CurrentStep
         }.GetNewClosure())
         $btnSkip.Add_Click({
@@ -1259,7 +1310,7 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
             Save-DragonAIOnboardingProgress $Progress
             Write-ConnectorPlaceholders -Progress $Progress -ProfId $ProfId
             $bs = Update-DragonAIBotsFromProgress -ProfileId $ProfId -Progress $Progress
-            $msgLabel.Text = $bs.reason
+            Set-WizardMessage $bs.reason
             Write-WizardLog "WinForms wizard finished"
             [Windows.Forms.MessageBox]::Show(
                 "$ProductName setup saved.`n`n$($bs.reason)`n`nSetup guide: $(Join-Path $InstallRoot 'docs\airmaze\SETUP_GUIDE.md')",
@@ -1268,7 +1319,7 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
                 [Windows.Forms.MessageBoxIcon]::Information
             ) | Out-Null
             $script:WizResult = 0
-            $form.Close()
+            if ($script:WizForm) { $script:WizForm.Close() } else { $form.Close() }
         }.GetNewClosure())
     }
 
@@ -1292,7 +1343,78 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
     return $script:WizResult
 }
 
+function Invoke-WizardSelfTest {
+    $failures = New-Object System.Collections.Generic.List[string]
+
+    $progress = [pscustomobject]@{
+        steps = [ordered]@{
+            welcome       = "success"
+            models        = "pending"
+            email         = "pending"
+            crm           = "pending"
+            telephony     = "pending"
+            property_data = "pending"
+            dialer        = "pending"
+        }
+    }
+    $line = Format-WizardStatusLine -Progress $progress
+    $expected = "Welcome: OK · Models: pending"
+    if ($line -ne $expected) {
+        $failures.Add("Format-WizardStatusLine expected '$expected' got '$line'") | Out-Null
+    }
+    foreach ($banned in @("Email", "CRM", "Phone", "Dialer", "SUCCESS", "PENDING", "mail:", "ler:")) {
+        if ($line -like "*$banned*") {
+            $failures.Add("status line must not contain '$banned': $line") | Out-Null
+        }
+    }
+
+    $bad = [pscustomobject]@{ Name = "not-a-control" }
+    try {
+        $set = Set-WizardControlText -Target $bad -Value "hello"
+        if ($set) { $failures.Add("Set-WizardControlText must refuse PSCustomObject without Text") | Out-Null }
+        if ($bad.PSObject.Properties["Text"]) { $failures.Add("must not add Text onto a bad object") | Out-Null }
+    } catch {
+        $failures.Add("Set-WizardControlText threw on PSCustomObject: $($_.Exception.Message)") | Out-Null
+    }
+
+    try {
+        $setNull = Set-WizardControlText -Target $null -Value "x"
+        if ($setNull) { $failures.Add("Set-WizardControlText must refuse null") | Out-Null }
+    } catch {
+        $failures.Add("Set-WizardControlText threw on null: $($_.Exception.Message)") | Out-Null
+    }
+
+    $ht = @{ Text = "existing" }
+    try {
+        $setHt = Set-WizardControlText -Target $ht -Value "overwrite"
+        if ($setHt) { $failures.Add("Set-WizardControlText must refuse hashtable Text key") | Out-Null }
+        if ([string]$ht.Text -eq "overwrite") { $failures.Add("must not overwrite hashtable Text key") | Out-Null }
+    } catch {
+        $failures.Add("Set-WizardControlText threw on hashtable: $($_.Exception.Message)") | Out-Null
+    }
+
+    $good = [pscustomobject]@{ Text = "old" }
+    try {
+        $setGood = Set-WizardControlText -Target $good -Value "new"
+        if (-not $setGood) { $failures.Add("Set-WizardControlText should set an object that already has Text") | Out-Null }
+        if ($good.Text -ne "new") { $failures.Add("settable Text was not updated") | Out-Null }
+    } catch {
+        $failures.Add("Set-WizardControlText threw on object with Text: $($_.Exception.Message)") | Out-Null
+    }
+
+    if ($failures.Count -gt 0) {
+        foreach ($f in $failures) { Write-Host "SELFTEST FAIL: $f" }
+        return 1
+    }
+    Write-Host "SELFTEST OK: wizard Text guard + Welcome/Models status line"
+    return 0
+}
+
 # --- Main -------------------------------------------------------------------
+
+if ($SelfTest) {
+    exit (Invoke-WizardSelfTest)
+}
 
 Write-WizardLog "=== Onboard-Wizard start InstallRoot=$InstallRoot ProfileId arg=$ProfileId Force=$Force ==="
 $ProfId = Resolve-WizardProfileId

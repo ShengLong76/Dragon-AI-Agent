@@ -186,6 +186,7 @@ scripts/airmaze/
   embedded_desktop_connection.py
   Set-EmbeddedDesktopConnection.ps1
   Onboard-Wizard.ps1
+  Test-OnboardWizard.py
   DragonAI-SecureStore.ps1
 templates/profiles/personal-assistant/
 installer/
