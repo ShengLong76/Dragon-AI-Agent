@@ -525,7 +525,7 @@ function Start-GatewayContainer {
     if (Test-Path -LiteralPath $applyModels) {
         try {
             & $applyModels -HermesHome $data -IfMissing | Out-Null
-            Write-LaunchLog "Applied default chat/image LLMs if gateway config was missing them"
+            Write-LaunchLog "Applied default chat/image LLMs if gateway config was missing them (bots inherit)"
         } catch {
             Write-LaunchLog "Gateway model defaults skipped: $($_.Exception.Message)" "WARN"
         }
@@ -816,6 +816,36 @@ function Start-DragonAITeamsPicker {
     }
 }
 
+function Start-DragonAIInheritModels {
+    $engine = Join-Path $PSScriptRoot "gateway_models.py"
+    if (-not (Test-Path -LiteralPath $engine)) {
+        $engine = Join-Path $InstallRoot "scripts\airmaze\gateway_models.py"
+    }
+    if (-not (Test-Path -LiteralPath $engine)) { return }
+    $py = Get-Command python3 -ErrorAction SilentlyContinue
+    if (-not $py) { $py = Get-Command python -ErrorAction SilentlyContinue }
+    if (-not $py) { return }
+    $embeddedHome = if ($env:USERPROFILE) { Join-Path $env:USERPROFILE ".hermes-airmaze-embedded" } else { Join-Path $InstallRoot "hermes-home" }
+    $desktop = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "hermes\profiles" } else { "" }
+    $inheritArgs = @(
+        $engine, "serve",
+        "--home", $embeddedHome,
+        "--host", "127.0.0.1",
+        "--port", "8655"
+    )
+    if (-not [string]::IsNullOrWhiteSpace($desktop)) {
+        $inheritArgs += @("--profiles", $desktop)
+        $inheritArgs += @("--profiles", (Join-Path $embeddedHome "profiles"))
+    }
+    try {
+        & $py.Source $engine inherit --home $embeddedHome --profiles $desktop 2>$null | Out-Null
+        Start-Process -FilePath $py.Source -ArgumentList $inheritArgs -WindowStyle Hidden -ErrorAction SilentlyContinue | Out-Null
+        Write-LaunchLog "Inherit helper on http://127.0.0.1:8655/api/inherit-models (in-app Models → all bots)"
+    } catch {
+        Write-LaunchLog "Inherit helper skipped: $($_.Exception.Message)" "WARN"
+    }
+}
+
 function Start-DragonAIVoiceChat {
     $engine = Join-Path $PSScriptRoot "voice_chat.py"
     if (-not (Test-Path -LiteralPath $engine)) {
@@ -874,6 +904,7 @@ function Get-LaunchPlan {
             "launch Dragon AI Agent desktop only (not $DashboardUrl)",
             "start Docker Desktop in the tray when docker info fails (already running is a no-op)",
             "in-app first-run Models/provider connect (WinForms Onboard-Wizard not auto-launched)",
+            "in-app Models complete inherits the chosen chat model onto all bots",
             "docker CLI stderr progress is not a terminating error",
             "Desktop Remote → $($script:DesktopServeUrl) (token mode; not :8642)",
             "wait for /api/health on the Desktop serve proxy with X-Hermes-Session-Token"
@@ -924,7 +955,9 @@ function Invoke-Smoke {
         "voice_chat",
         "8654",
         "Set-DragonAIInAppProviderOnboarding",
-        "in-app first-run Models"
+        "in-app first-run Models",
+        "Start-DragonAIInheritModels",
+        "8655"
     )
     foreach ($token in $required) {
         if ($text -notlike "*$token*") {
@@ -986,6 +1019,7 @@ try {
     Exclude-DragonAIHermesBots
     Start-DragonAITeamsPicker
     Start-DragonAIVoiceChat
+    Start-DragonAIInheritModels
     try { Sync-EmbeddedGatewayProfiles | Out-Null } catch {
         Write-LaunchLog "Profile sync skipped: $($_.Exception.Message)" "WARN"
     }

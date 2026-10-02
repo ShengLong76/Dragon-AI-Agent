@@ -536,6 +536,7 @@ function Invoke-ConsoleWizard {
             Write-Host ""
             Write-Host "--- Default chat LLM and default image LLM ---"
             Write-Host "Suggested default is Grok (xAI). Cloud picks reuse keys already on this PC (XAI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY / GEMINI_API_KEY, OPENROUTER_API_KEY)."
+            Write-Host "Every bot inherits this chat model (Personal Assistant and later team seats) unless you override that bot."
             $chatRows = @(Get-WizardChatCatalog)
             $n = 1
             foreach ($row in $chatRows) {
@@ -765,6 +766,10 @@ function Invoke-ConsoleWizard {
     Write-Host "--- Review (no secrets shown) ---"
     Show-ConsoleStatus "Welcome" (Get-StepValue $Progress "welcome")
     Show-ConsoleStatus "Models" (Get-StepValue $Progress "models")
+    $reviewChat = Get-MapValue -Map $Progress.nonSecret -Name "chat_model" -Default ""
+    if ($reviewChat) {
+        Write-Host "  Default chat LLM (all bots inherit): $reviewChat"
+    }
     Show-ConsoleStatus "Email" (Get-StepValue $Progress "email")
     Show-ConsoleStatus "CRM" (Get-StepValue $Progress "crm")
     Show-ConsoleStatus "Telephony" (Get-StepValue $Progress "telephony")
@@ -1024,7 +1029,7 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
         $customPanel.Controls.Add($tbCustomKey)
         $content.Controls.Add($customPanel)
 
-        $content.Controls.Add((New-BrandLabel -Text "Writes provider + model (and a self-hosted base URL) into the embedded gateway config. API keys stay on this PC (env or DPAPI), never in config.yaml. Restart the gateway if Generate still says no image model." -Location (New-Object Drawing.Point(40, 266)) -Width 620 -Height 36 -Muted))
+        $content.Controls.Add((New-BrandLabel -Text "Writes into the embedded gateway so chat and Generate work. All bots inherit this chat model unless you override a bot. API keys stay on this PC (env or DPAPI), never in config.yaml." -Location (New-Object Drawing.Point(40, 266)) -Width 620 -Height 40 -Muted))
 
         $btnContinue = New-BrandButton -Text "Continue" -Location (New-Object Drawing.Point(40, 308)) -Size (New-Object Drawing.Size(140, 36)) -Primary
         $btnSkip = New-BrandButton -Text "Skip for now" -Location (New-Object Drawing.Point(200, 308)) -Size (New-Object Drawing.Size(140, 36))
@@ -1404,6 +1409,12 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
             $l.ForeColor = $color
             $content.Controls.Add($l)
             $y += 26
+        }
+        $reviewChat = Get-MapValue -Map $Progress.nonSecret -Name "chat_model" -Default ""
+        $reviewImage = Get-MapValue -Map $Progress.nonSecret -Name "image_model" -Default ""
+        if ($reviewChat -or $reviewImage) {
+            $modelLine = "Default chat {0} (all bots inherit). Image {1}." -f $(if ($reviewChat) { $reviewChat } else { "grok-4.6" }), $(if ($reviewImage) { $reviewImage } else { "grok-imagine-image" })
+            $content.Controls.Add((New-BrandLabel -Text $modelLine -Location (New-Object Drawing.Point(40, $y)) -Width 620 -Height 22 -Muted))
         }
 
         $btnFinish = New-BrandButton -Text "Finish" -Location (New-Object Drawing.Point(40, 280)) -Size (New-Object Drawing.Size(140, 36)) -Primary

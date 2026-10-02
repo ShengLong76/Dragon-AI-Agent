@@ -72,6 +72,12 @@ function Get-DesktopProfilesRoot {
     return (Join-Path $InstallRoot "hermes-profiles")
 }
 
+function Get-EmbeddedProfilesRoot {
+    if ($env:HERMES_EMBEDDED_DATA) { return (Join-Path $env:HERMES_EMBEDDED_DATA "profiles") }
+    if ($env:USERPROFILE) { return (Join-Path $env:USERPROFILE ".hermes-airmaze-embedded\profiles") }
+    return ""
+}
+
 function Invoke-BotGroups {
     param([string[]]$EngineArgs)
     $py = Get-Python
@@ -93,12 +99,17 @@ function Get-ListedGroups {
 
 function Deploy-ListedGroup {
     param([string]$Id)
-    $raw = Invoke-BotGroups -EngineArgs @(
+    $engineArgs = @(
         "deploy", "--id", $Id,
         "--payload", $root,
         "--install", $InstallRoot,
         "--desktop", $desktopRoot
     )
+    $embeddedRoot = Get-EmbeddedProfilesRoot
+    if (-not [string]::IsNullOrWhiteSpace($embeddedRoot)) {
+        $engineArgs += @("--embedded", $embeddedRoot)
+    }
+    $raw = Invoke-BotGroups -EngineArgs $engineArgs
     Write-Dragon "Deployed bot group: $Id"
     return $raw | ConvertFrom-Json
 }
@@ -310,10 +321,15 @@ function Show-TeamsPopup {
         $ofd.Filter = "Bot group (*.json;*.zip)|*.json;*.zip|All files (*.*)|*.*"
         if ($ofd.ShowDialog() -eq "OK") {
             try {
-                Invoke-BotGroups -EngineArgs @(
+                $importArgs = @(
                     "import", "--source", $ofd.FileName,
                     "--install", $InstallRoot, "--desktop", $desktopRoot, "--payload", $root
-                ) | Out-Null
+                )
+                $embeddedForImport = Get-EmbeddedProfilesRoot
+                if (-not [string]::IsNullOrWhiteSpace($embeddedForImport)) {
+                    $importArgs += @("--embedded", $embeddedForImport)
+                }
+                Invoke-BotGroups -EngineArgs $importArgs | Out-Null
                 $script:TeamsStatus.Text = "Imported $($ofd.FileName)"
             } catch {
                 [System.Windows.Forms.MessageBox]::Show("$_", $ProductName) | Out-Null

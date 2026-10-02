@@ -840,6 +840,23 @@ def _copy_connectors(group_dir: Path, group: dict[str, Any], install: Path) -> N
             shutil.copy2(src, conn_root / src.name)
 
 
+def inherit_onboarding_model(dest: Path, embedded_profiles_root: Path | str | None = None) -> dict[str, Any]:
+    """Stamp the stored first-run chat model onto a bot unless it has an override."""
+    try:
+        import gateway_models as gm  # noqa: WPS433
+    except ImportError:
+        return {"wrote": False, "reason": "no-engine"}
+    home = Path(embedded_profiles_root).parent if embedded_profiles_root else gm.default_embedded_home()
+    applied = gm.read_applied_models(home)
+    return gm.inherit_default_model(
+        dest,
+        provider=str(applied.get("chatProvider") or ""),
+        model=str(applied.get("chatModel") or ""),
+        base_url=str(applied.get("chatBaseUrl") or ""),
+        overwrite=False,
+    )
+
+
 def _keep_applied_copy(group_dir: Path, group: dict[str, Any], install: Path) -> Path:
     applied = install / REPO_PATH / "applied" / group["id"]
     applied.mkdir(parents=True, exist_ok=True)
@@ -898,6 +915,7 @@ def deploy_group(
         stamp_profile_ui_section(dest / "profile.yaml", bot, section)
         if (dest / "bot.yaml").is_file():
             stamp_profile_ui_section(dest / "bot.yaml", bot, section)
+        inherit_onboarding_model(dest, embedded_profiles_root)
         _write_bot_meta(dest, bot, group["id"], section)
         _mirror_embedded(desktop, bot_id, Path(embedded_profiles_root) if embedded_profiles_root else None)
         (updated if existed else created).append(bot_id)
@@ -1102,6 +1120,7 @@ def _import_singular_bot(
         (dest / "bot.yaml").write_text(str(bot["config"]), encoding="utf-8")
         (dest / "profile.yaml").write_text(str(bot["config"]), encoding="utf-8")
     _write_bot_meta(dest, bot, "")
+    inherit_onboarding_model(dest, embedded_profiles_root)
     _mirror_embedded(desktop_profiles_root, bot["id"], embedded_profiles_root)
     return {"kind": KIND_BOT, "botId": bot["id"], "title": bot["title"]}
 

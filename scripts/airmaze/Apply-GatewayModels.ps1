@@ -1,7 +1,8 @@
 #requires -Version 5.1
 <#
 .SYNOPSIS
-  Write Dragon AI Agent default chat + image LLMs into Hermes gateway config.yaml.
+  Write Dragon AI Agent default chat + image LLMs into Hermes gateway config.yaml
+  and inherit that chat model onto every bot profile that has no override.
 #>
 [CmdletBinding()]
 param(
@@ -10,6 +11,7 @@ param(
     [string]$Image = "grok-imagine-image",
     [string]$CustomModel = "",
     [string]$BaseUrl = "",
+    [string]$DesktopProfiles = "",
     [switch]$IfMissing,
     [switch]$RestartGateway
 )
@@ -37,6 +39,12 @@ if (-not $py) {
 }
 
 $pyArgs = @($engine, "apply", "--home", $HermesHome, "--chat", $Chat, "--image", $Image)
+if ([string]::IsNullOrWhiteSpace($DesktopProfiles) -and $env:LOCALAPPDATA) {
+    $DesktopProfiles = Join-Path $env:LOCALAPPDATA "hermes\profiles"
+}
+if (-not [string]::IsNullOrWhiteSpace($DesktopProfiles)) {
+    $pyArgs += @("--profiles", $DesktopProfiles)
+}
 if (-not [string]::IsNullOrWhiteSpace($CustomModel)) { $pyArgs += @("--custom-model", $CustomModel) }
 if (-not [string]::IsNullOrWhiteSpace($BaseUrl)) { $pyArgs += @("--base-url", $BaseUrl) }
 if ($IfMissing) { $pyArgs += "--if-missing" }

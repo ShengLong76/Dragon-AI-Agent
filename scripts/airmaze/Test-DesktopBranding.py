@@ -672,6 +672,8 @@ def test_packaging_not_regressed() -> None:
         fail("provider-setup.js must open Other providers by default")
     if "Dragon AI" not in provider_js or "hermes model" not in provider_js:
         fail("provider-setup.js must rewrite Hermes copy and keep the hermes model CLI")
+    if "/api/inherit-models" not in provider_js or "8655" not in provider_js:
+        fail("provider-setup.js must POST inherit-models when the in-app provider step completes")
     assert_sidebar_host_fallback(sidebar_js, teams_js, css)
     host_note = ROOT / "docs" / "airmaze" / "SIDEBAR_HOST.md"
     host_txt = read(host_note)

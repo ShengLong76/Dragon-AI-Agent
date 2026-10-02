@@ -41,13 +41,13 @@ Bots stay **`needs_setup`** until required wizard steps **email + CRM + telephon
 
 ## Step 2 — Default chat LLM and default image LLM
 
-**In-app (primary):** pick a provider on first run (Nous Portal, local models, **Other providers** for cloud + self-hosted). Launch writes Grok / Grok Imagine only if the embedded gateway config is still empty (`Apply-GatewayModels -IfMissing`). After you choose a provider in-app, that Hermes config stays; bots inherit the gateway principal.
+**In-app (primary):** pick a provider on first run (Nous Portal, local models, **Other providers** for cloud + self-hosted). Launch writes Grok / Grok Imagine only if the embedded gateway config is still empty (`Apply-GatewayModels -IfMissing`). When that dialog completes, **all bots inherit** the chosen chat model (Personal Assistant and later team seats) unless a bot already has its own `model` without the inherited marker.
 
 **WinForms Setup (edge case):** pick the models Dragon AI Agent should use. Product defaults (preselected):
 
 | Picker | Default | Written keys |
 |--------|---------|----------------|
-| **Default chat LLM** | Grok (xAI) `grok-4.6` | `principal.provider: xai`, `principal.model` |
+| **Default chat LLM** | Grok (xAI) `grok-4.6` | `principal.provider` / `principal.model`, Hermes `model.provider` / `model.default` |
 | **Default image LLM** | **Grok Imagine** `grok-imagine-image` | `image_gen.provider: xai`, `image_gen.model`, `image_gen.xai.model` |
 
 Also listed: `grok-4.5`, `grok-4.3`, Imagine quality variants `grok-imagine-image-quality` / `grok-imagine-image-2.0`, plus popular cloud chats (**OpenAI** `gpt-4o`, **Anthropic** `claude-sonnet-4-6`, **Google Gemini**, **OpenRouter**) and **Self-hosted / custom endpoint** (OpenAI-compatible base URL + model id; optional API key stored via DPAPI, never in `config.yaml`).

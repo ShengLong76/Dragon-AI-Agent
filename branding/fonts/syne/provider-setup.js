@@ -4,7 +4,12 @@
   var MARK = "data-dragon-ai-provider-setup";
   var OTHER = "data-dragon-ai-other-providers";
   var OTHER_LABEL = "Other providers";
+  var INHERIT_URL = "http://127.0.0.1:8655/api/inherit-models";
   var PROTECTED = /hermes\s+model|hermes\s+auth|hermes\s+setup|hermes\.exe|hermes-airmaze|x-hermes-session-token|hermes:\/\/|~\/\.hermes/i;
+  var sawProviderUi = false;
+  var sawDisconnected = false;
+  var inheritTimer = 0;
+  var lastInherit = 0;
 
   function labelOf(el) {
     return (el && el.textContent ? el.textContent : "").replace(/\s+/g, " ").trim();
@@ -89,17 +94,62 @@
     }
   }
 
+  function looksDisconnected(text) {
+    return /not connected to any AI provider|i'?ll choose a provider later|let'?s get you setup/i.test(text || "");
+  }
+
+  function notifyInherit() {
+    var now = Date.now();
+    if (now - lastInherit < 1500) return;
+    lastInherit = now;
+    try {
+      fetch(INHERIT_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).catch(function () {});
+    } catch (e) {}
+  }
+
+  function scheduleInherit() {
+    if (inheritTimer) clearTimeout(inheritTimer);
+    inheritTimer = setTimeout(notifyInherit, 800);
+  }
+
+  function bindProviderClicks(root) {
+    if (!root || root.getAttribute("data-dragon-ai-inherit-bound") === "1") return;
+    root.setAttribute("data-dragon-ai-inherit-bound", "1");
+    root.addEventListener("click", function (ev) {
+      var t = ev.target;
+      var label = "";
+      while (t && t !== root) {
+        label = labelOf(t);
+        if (/nous portal|run models locally|openrouter|openai|anthropic|gemini|grok|self-hosted|ollama|custom/i.test(label)) {
+          scheduleInherit();
+          return;
+        }
+        t = t.parentElement;
+      }
+    }, true);
+  }
+
   function polish(root) {
     if (!root) return;
     root.setAttribute(MARK, "1");
     walkText(root);
     expandOther(root);
+    bindProviderClicks(root);
   }
 
   function tick() {
     try {
-      polish(findProviderRoot());
+      var root = findProviderRoot();
+      if (root) {
+        sawProviderUi = true;
+        polish(root);
+      } else if (sawProviderUi) {
+        scheduleInherit();
+      }
       walkText(document.body);
+      var bodyText = document.body ? labelOf(document.body) : "";
+      if (looksDisconnected(bodyText)) sawDisconnected = true;
+      else if (sawDisconnected && sawProviderUi) scheduleInherit();
     } catch (e) {}
   }
 

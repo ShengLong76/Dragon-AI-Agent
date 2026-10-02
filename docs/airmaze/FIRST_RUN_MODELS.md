@@ -1,6 +1,6 @@
 # First-run default chat + image LLMs
 
-Short design for a Dragon AI Agent setup step that writes Hermes gateway config so chat and profile **Generate** work without hand-editing YAML.
+Short design for a Dragon AI Agent setup step that writes Hermes gateway config so chat and profile **Generate** work without hand-editing YAML. The same chat pick becomes the default model for **all bots** (Personal Assistant and later team seats). See [`BOT_DEFAULT_MODEL.md`](BOT_DEFAULT_MODEL.md).
 
 Verified against public `NousResearch/hermes-agent` (image-generation docs, `plugins/image_gen/xai`, desktop `avatar-picker.tsx` / `avatar-image.ts`). James’s YAML fragment is the correct **xAI** shape; Hermes also uses a sibling `image_gen.model` key for FAL. We write both.
 
@@ -12,7 +12,7 @@ Edit profile → Generate shows **“No image model available… Restart gateway
 
 | Picker | Default | Hermes keys |
 |--------|---------|-------------|
-| Default chat LLM | **Grok (xAI)** `grok-4.6` | `principal.provider: xai`, `principal.model: grok-4.6` |
+| Default chat LLM | **Grok (xAI)** `grok-4.6` | `principal.provider: xai`, `principal.model: grok-4.6`, Hermes `model.provider` / `model.default` |
 | Default image LLM | **Grok Imagine** `grok-imagine-image` | `image_gen.provider: xai`, `image_gen.model` + `image_gen.xai.model` |
 
 `grok-4.6` is the head of Hermes’s current xAI static catalog (`hermes_cli/models_catalog_static.py`). Older `grok-4` / `grok-4.3` ids still work; retirement maps retired Grok chat ids to `grok-4.3`. The pickers also list popular Hermes cloud providers (**OpenAI** `openai-api` / `gpt-4o`, **Anthropic** `anthropic` / `claude-sonnet-4-6`, **Google Gemini** `gemini` / `gemini-2.5-pro`, **OpenRouter** `openrouter`) and an explicit **Self-hosted / custom endpoint** (`provider: custom`, base URL + model id). Grok / Grok Imagine stay the suggested defaults (index 0).
@@ -48,7 +48,7 @@ image_gen:
 
 Copy overlay (`desktop_branding.json` + `provider-setup.js`): user-visible **Hermes** → **Dragon AI**. Do not rewrite `hermes model` / `hermes auth` / `Hermes.exe` / tokens. **Other providers** opens by default; the dialog is taller so those rows are visible without hunting.
 
-**Handoff to gateway + bots:** launch still runs `Apply-GatewayModels.ps1 -IfMissing` before `docker compose up`. That writes Grok / Grok Imagine only when `principal` / `image_gen` are missing. Once the in-app picker saves a provider into the embedded Hermes home, `-IfMissing` leaves it alone and bots inherit that gateway principal. The in-app screen writes Hermes’s own provider config; this package does not parse that dialog’s result.
+**Handoff to gateway + bots:** launch still runs `Apply-GatewayModels.ps1 -IfMissing` before `docker compose up`. That writes Grok / Grok Imagine only when `principal` / `image_gen` are missing, and stamps bots that have no model. When the in-app picker completes, `provider-setup.js` POSTs `http://127.0.0.1:8655/api/inherit-models`. The helper reads the newest Hermes config that has a chat model, syncs it onto the embedded gateway, and stamps **all deployed bots** (`# dragon-ai-inherited-model`). A per-bot `model` without that marker is left alone. Later team seats inherit on deploy.
 
 **Edge case:** Start Menu **Dragon AI Agent Setup** / the launch splash **Setup** button still opens `Onboard-Wizard.ps1` for email / CRM / telephony (and a Models step if `models` is still pending). That path keeps the cloud + self-hosted catalog, Grok defaults, Continue `.Text` guard, and short `Welcome: OK · Models: pending` status (or `Models: in-app` after the in-app mark).
 
@@ -63,7 +63,7 @@ WinForms + console fallback both get two ComboBoxes / numbered lists:
 
 Copy is **Dragon AI Agent** (not Hermes). Auth line: suggested default is Grok; cloud providers reuse keys already on this PC; self-hosted asks for base URL + model id (API key optional).
 
-- **Continue** writes the selected pair (overwrite those keys). Do not assign `.Text` on `$msgLabel` from a `GetNewClosure()` handler (that object is often `$null` and WinForms shows *The property 'Text' cannot be found on this object*).
+- **Continue** writes the selected pair (overwrite those keys) and stamps inherited bots. Do not assign `.Text` on `$msgLabel` from a `GetNewClosure()` handler (that object is often `$null` and WinForms shows *The property 'Text' cannot be found on this object*).
 - Status under the header is **Welcome + Models only** (`Welcome: OK · Models: pending`), not every step smashed into one PENDING string.
 - **Skip this step** / **Skip wizard** writes the product defaults **only if** `image_gen.provider` or `principal.model` is missing.
 - Review lists the chosen labels (never secrets).

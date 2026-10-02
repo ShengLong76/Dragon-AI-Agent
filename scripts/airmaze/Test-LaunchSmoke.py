@@ -55,6 +55,8 @@ REQUIRED_LAUNCHER = (
     "8654",
     "Set-DragonAIInAppProviderOnboarding",
     "in-app first-run",
+    "Start-DragonAIInheritModels",
+    "8655",
 )
 
 REQUIRED_FINDER = (
@@ -315,6 +317,11 @@ def main() -> int:
         proc = subprocess.run([sys.executable, str(onboard_wizard_test)], cwd=str(ROOT))
         if proc.returncode != 0:
             fail("Test-OnboardWizard.py failed")
+    bot_default_test = ROOT / "scripts" / "airmaze" / "Test-BotDefaultModel.py"
+    if bot_default_test.is_file():
+        proc = subprocess.run([sys.executable, str(bot_default_test)], cwd=str(ROOT))
+        if proc.returncode != 0:
+            fail("Test-BotDefaultModel.py failed")
     run_host_smoke()
     print("SMOKE OK: opening Dragon AI Agent is wired to branded UI or a blocking error.")
     return 0
