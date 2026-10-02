@@ -4,7 +4,7 @@ James locked an **adapted** [anthropics/financial-services](https://github.com/a
 
 The pack is local Hermes guidance (research notes, earnings/comps-style drafts). **Do not** require Claude Cowork or Anthropic Managed Agents. **Do not** ship the Cowork plugins wholesale.
 
-Nothing here is investment advice. Trading Team stays a discretionary desk recipe pack: not a broker, no orders, no brokerage credentials.
+Nothing here is investment advice. Trading Team stays a discretionary desk recipe pack. Not a broker: no orders, no brokerage credentials.
 
 ## Decision
 

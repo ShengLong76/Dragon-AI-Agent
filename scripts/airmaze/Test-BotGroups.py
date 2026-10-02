@@ -1022,7 +1022,7 @@ def test_market_researcher_financial_services_pack(bg) -> None:
     for needle in (
         "Financial Services",
         "anthropics/financial-services",
-        "paper/read-only",
+        "Paper/read-only",
         "personalized investment advice",
     ):
         if needle not in soul:
