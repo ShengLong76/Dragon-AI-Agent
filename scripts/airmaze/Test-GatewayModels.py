@@ -121,6 +121,9 @@ def test_defaults_and_apply(gm) -> None:
         image = data.get("image_gen") or {}
         if principal.get("provider") != "xai" or principal.get("model") != DEFAULT_CHAT:
             fail(f"defaults must write principal xai/{DEFAULT_CHAT}, got {principal}")
+        model = data.get("model") or {}
+        if not isinstance(model, dict) or model.get("default") != DEFAULT_CHAT or model.get("provider") != "xai":
+            fail(f"defaults must write Hermes model.default {DEFAULT_CHAT}, got {model}")
         if image.get("provider") != "xai":
             fail(f"image_gen.provider must be xai, got {image}")
         if image.get("model") != DEFAULT_IMAGE:
@@ -190,6 +193,8 @@ def test_wizard_and_launch_wired() -> None:
         fail("existing onboarding steps must stay")
     if "Default chat LLM" not in wizard or "Default image LLM" not in wizard:
         fail("wizard must show both model pickers")
+    if "all bots" not in wizard.lower() and "every bot" not in wizard.lower():
+        fail("wizard must say all bots inherit the default chat model")
     if "Grok Imagine" not in wizard or "grok-imagine-image" not in wizard:
         fail("wizard must surface Grok Imagine")
     if "Grok (xAI)" not in wizard and "xAI Grok" not in wizard:

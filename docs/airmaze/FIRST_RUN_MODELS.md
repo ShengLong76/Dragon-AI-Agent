@@ -1,6 +1,6 @@
 # First-run default chat + image LLMs
 
-Short design for a Dragon AI Agent setup step that writes Hermes gateway config so chat and profile **Generate** work without hand-editing YAML.
+Short design for a Dragon AI Agent setup step that writes Hermes gateway config so chat and profile **Generate** work without hand-editing YAML. The same chat pick becomes the default model for **all bots** (Personal Assistant and later team seats). See [`BOT_DEFAULT_MODEL.md`](BOT_DEFAULT_MODEL.md).
 
 Verified against public `NousResearch/hermes-agent` (image-generation docs, `plugins/image_gen/xai`, desktop `avatar-picker.tsx` / `avatar-image.ts`). James’s YAML fragment is the correct **xAI** shape; Hermes also uses a sibling `image_gen.model` key for FAL. We write both.
 
@@ -12,7 +12,7 @@ Edit profile → Generate shows **“No image model available… Restart gateway
 
 | Picker | Default | Hermes keys |
 |--------|---------|-------------|
-| Default chat LLM | **Grok (xAI)** `grok-4.6` | `principal.provider: xai`, `principal.model: grok-4.6` |
+| Default chat LLM | **Grok (xAI)** `grok-4.6` | `principal.provider: xai`, `principal.model: grok-4.6`, Hermes `model.provider` / `model.default` |
 | Default image LLM | **Grok Imagine** `grok-imagine-image` | `image_gen.provider: xai`, `image_gen.model` + `image_gen.xai.model` |
 
 `grok-4.6` is the head of Hermes’s current xAI static catalog (`hermes_cli/models_catalog_static.py`). Older `grok-4` / `grok-4.3` ids still work; retirement maps retired Grok chat ids to `grok-4.3`. The user can change the pickers.
@@ -30,12 +30,19 @@ principal:
   provider: xai
   model: grok-4.6
 
+model:
+  provider: xai
+  default: grok-4.6
+  model: grok-4.6
+
 image_gen:
   provider: xai
   model: grok-imagine-image
   xai:
     model: grok-imagine-image
 ```
+
+Every bot profile inherits the chat pair (`principal` + Hermes `model`) unless that bot already has an override. Image generation stays on the gateway `image_gen` block.
 
 - **Do not** invent `plugins.image_gen` unless that block already exists (legacy slot). Current Hermes docs and the xAI plugin read **top-level** `image_gen`.
 - Merge into an existing `config.yaml`. Do not wipe `bot_desktop`, `browser`, tools, or other keys.
@@ -56,8 +63,8 @@ WinForms + console fallback both get two ComboBoxes / numbered lists:
 
 Copy is **Dragon AI Agent** (not Hermes). Auth line: this step does not ask for a new key; it uses the xAI Grok login Dragon AI Agent already has (OAuth or `XAI_API_KEY`).
 
-- **Continue** writes the selected pair (overwrite those keys).
-- **Skip this step** / **Skip wizard** writes the product defaults **only if** `image_gen.provider` or `principal.model` is missing.
+- **Continue** writes the selected pair (overwrite those keys) and stamps inherited bots.
+- **Skip this step** / **Skip wizard** writes the product defaults **only if** `image_gen.provider` or `principal.model` / `model.default` is missing. Bots without a model still inherit Grok.
 - Review lists the chosen labels (never secrets).
 
 Teams picker stays orthogonal. Personal Assistant stays the only preinstall.

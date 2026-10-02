@@ -4,7 +4,7 @@ Small plan after `docs/airmaze/FIRST_RUN_MODELS.md`. Tests first. No Electron re
 
 ## In scope
 
-1. `scripts/airmaze/gateway_models.py` — catalog + merge of `principal` and `image_gen` into Hermes `config.yaml` (stdlib only).
+1. `scripts/airmaze/gateway_models.py` — catalog + merge of `principal`, Hermes `model`, and `image_gen` into Hermes `config.yaml`, then inherit that chat model onto all bot profiles (stdlib only).
 2. `scripts/airmaze/Apply-GatewayModels.ps1` — wizard / launcher wrapper (`--home`, `--chat`, `--image`, `--if-missing`).
 3. Wizard step `models` after Welcome (WinForms ComboBoxes + console lists). Dragon copy. No new OAuth.
 4. `start-embedded.ps1` applies product defaults if missing **before** compose up.

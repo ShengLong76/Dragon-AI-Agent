@@ -2,14 +2,18 @@
 """Dragon AI Agent first-run chat + image LLM defaults.
 
 Merges Hermes gateway config.yaml so chat uses the selected model and
-profile Generate can see an image_gen backend. Stdlib only. No secrets.
+profile Generate can see an image_gen backend. The same chat pick is
+inherited by every bot profile unless that bot has an override.
+Stdlib only. No secrets.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -21,6 +25,8 @@ DEFAULT_IMAGE_PROVIDER = "xai"
 DEFAULT_IMAGE_MODEL = "grok-imagine-image"
 CONFIG_NAME = "config.yaml"
 EMBEDDED_HOME_NAME = ".hermes-airmaze-embedded"
+INHERITED_MARK = "# dragon-ai-inherited-model"
+PROFILE_IDENTITY = ("config.yaml", "profile.yaml", "bot.yaml", "SOUL.md", "bot.meta.json")
 
 CHAT_CATALOG: list[dict[str, str]] = [
     {
@@ -130,6 +136,10 @@ def _principal_block(provider: str, model: str) -> str:
     return f"principal:\n  provider: {provider}\n  model: {model}\n"
 
 
+def _hermes_model_block(provider: str, model: str) -> str:
+    return f"model:\n  provider: {provider}\n  default: {model}\n  model: {model}\n"
+
+
 def _image_gen_block(provider: str, model: str) -> str:
     return (
         f"image_gen:\n"
@@ -141,10 +151,13 @@ def _image_gen_block(provider: str, model: str) -> str:
 
 
 def _upsert_block(text: str, key: str, block: str) -> str:
-    pattern = re.compile(rf"(?ms)^{re.escape(key)}:\n(?:[ \t].*\n)*")
+    mapping = re.compile(rf"(?ms)^{re.escape(key)}:\n(?:[ \t].*\n)*")
+    scalar = re.compile(rf"(?m)^{re.escape(key)}:\s*.*$")
     block = block if block.endswith("\n") else block + "\n"
-    if pattern.search(text):
-        return pattern.sub(block, text, count=1)
+    if mapping.search(text):
+        return mapping.sub(block, text, count=1)
+    if scalar.search(text):
+        return scalar.sub(block.rstrip("\n"), text, count=1)
     body = text.rstrip()
     if body:
         return body + "\n\n" + block
@@ -155,11 +168,251 @@ def _upsert_block(text: str, key: str, block: str) -> str:
     )
 
 
+def _ensure_inherited_mark(text: str) -> str:
+    if INHERITED_MARK in text:
+        return text
+    replaced, count = re.subn(
+        r"(?m)^(model:|principal:)",
+        INHERITED_MARK + r"\n\1",
+        text,
+        count=1,
+    )
+    if count:
+        return replaced
+    body = text.rstrip()
+    return (body + "\n\n" + INHERITED_MARK + "\n") if body else INHERITED_MARK + "\n"
+
+
+def _chat_from_parsed(parsed: dict[str, Any]) -> tuple[str, str]:
+    raw_model = parsed.get("model")
+    if isinstance(raw_model, str) and raw_model.strip():
+        model = raw_model.strip()
+    else:
+        model = str(
+            _nested_get(parsed, "principal", "model")
+            or _nested_get(parsed, "model", "default")
+            or _nested_get(parsed, "model", "model")
+            or ""
+        ).strip()
+    provider = str(
+        _nested_get(parsed, "principal", "provider")
+        or _nested_get(parsed, "model", "provider")
+        or ""
+    ).strip()
+    return provider, model
+
+
+def read_applied_models(home: Path | str) -> dict[str, Any]:
+    path = config_path(home)
+    if not path.is_file():
+        return {
+            "chatProvider": DEFAULT_CHAT_PROVIDER,
+            "chatModel": DEFAULT_CHAT_MODEL,
+            "imageProvider": DEFAULT_IMAGE_PROVIDER,
+            "imageModel": DEFAULT_IMAGE_MODEL,
+            "path": str(path),
+            "present": False,
+        }
+    parsed = _simple_load(path.read_text(encoding="utf-8"))
+    provider, model = _chat_from_parsed(parsed)
+    return {
+        "chatProvider": provider or DEFAULT_CHAT_PROVIDER,
+        "chatModel": model or DEFAULT_CHAT_MODEL,
+        "imageProvider": str(_nested_get(parsed, "image_gen", "provider") or DEFAULT_IMAGE_PROVIDER),
+        "imageModel": str(
+            _nested_get(parsed, "image_gen", "xai", "model")
+            or _nested_get(parsed, "image_gen", "model")
+            or DEFAULT_IMAGE_MODEL
+        ),
+        "path": str(path),
+        "present": bool(model),
+    }
+
+
+def default_profile_roots(home: Path | str, *, include_desktop: bool = False) -> list[Path]:
+    home_p = Path(home)
+    roots = [home_p / "profiles"]
+    if include_desktop:
+        local = os.environ.get("LOCALAPPDATA")
+        if local:
+            extra = Path(local) / "hermes" / "profiles"
+            try:
+                same = extra.resolve() == roots[0].resolve()
+            except OSError:
+                same = False
+            if not same:
+                roots.append(extra)
+    return roots
+
+
+def _is_excluded_profile_dir(path: Path) -> bool:
+    meta: dict[str, Any] = {}
+    meta_path = path / "bot.meta.json"
+    if meta_path.is_file():
+        try:
+            loaded = json.loads(meta_path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                meta = loaded
+        except (OSError, json.JSONDecodeError):
+            meta = {}
+    try:
+        from exclude_hermes_bot import is_excluded_profile  # noqa: WPS433
+    except ImportError:
+        return path.name.lower() in ("default", "hermes")
+    return bool(is_excluded_profile(path.name, title=str(meta.get("title") or ""), meta=meta))
+
+
+def iter_bot_profiles(roots: list[Path | str] | None) -> list[Path]:
+    found: list[Path] = []
+    seen: set[Path] = set()
+    for raw in roots or []:
+        root = Path(raw)
+        if not root.is_dir():
+            continue
+        for child in sorted(root.iterdir()):
+            if not child.is_dir():
+                continue
+            try:
+                key = child.resolve()
+            except OSError:
+                key = child
+            if key in seen:
+                continue
+            if not any((child / name).is_file() for name in PROFILE_IDENTITY):
+                continue
+            if _is_excluded_profile_dir(child):
+                continue
+            seen.add(key)
+            found.append(child)
+    return found
+
+
+def read_profile_model(profile_dir: Path | str) -> dict[str, Any]:
+    root = Path(profile_dir)
+    inherited = False
+    provider = ""
+    model = ""
+    source = ""
+    for name in ("config.yaml", "profile.yaml", "bot.yaml"):
+        path = root / name
+        if not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8")
+        if INHERITED_MARK in text:
+            inherited = True
+        parsed = _simple_load(text) if text.strip() else {}
+        got_provider, got_model = _chat_from_parsed(parsed)
+        if got_model and not model:
+            provider, model, source = got_provider, got_model, str(path)
+        elif inherited and not model and got_model:
+            provider, model, source = got_provider, got_model, str(path)
+    return {
+        "provider": provider,
+        "model": model,
+        "inherited": inherited,
+        "path": source,
+    }
+
+
+def _ensure_bot_config_yaml(profile_dir: Path) -> Path:
+    cfg = profile_dir / CONFIG_NAME
+    if cfg.is_file():
+        return cfg
+    for name in ("bot.yaml", "profile.yaml"):
+        src = profile_dir / name
+        if src.is_file():
+            shutil.copy2(src, cfg)
+            return cfg
+    cfg.write_text("", encoding="utf-8")
+    return cfg
+
+
+def _stamp_profile_files(profile_dir: Path, provider: str, model: str) -> None:
+    _ensure_bot_config_yaml(profile_dir)
+    for name in ("config.yaml", "profile.yaml", "bot.yaml"):
+        path = profile_dir / name
+        if name != "config.yaml" and not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8") if path.is_file() else ""
+        text = _upsert_block(text, "principal", _principal_block(provider, model))
+        text = _upsert_block(text, "model", _hermes_model_block(provider, model))
+        text = _ensure_inherited_mark(text)
+        if not text.endswith("\n"):
+            text += "\n"
+        path.write_text(text, encoding="utf-8")
+
+
+def inherit_default_model(
+    profile_dir: Path | str,
+    provider: str | None = None,
+    model: str | None = None,
+    overwrite: bool = True,
+) -> dict[str, Any]:
+    dest = Path(profile_dir)
+    dest.mkdir(parents=True, exist_ok=True)
+    chat_provider = (provider or DEFAULT_CHAT_PROVIDER).strip() or DEFAULT_CHAT_PROVIDER
+    chat_model = (model or DEFAULT_CHAT_MODEL).strip() or DEFAULT_CHAT_MODEL
+    current = read_profile_model(dest)
+    current_model = str(current.get("model") or "").strip()
+    inherited = bool(current.get("inherited"))
+    is_override = bool(current_model) and not inherited and current_model != chat_model
+    if is_override:
+        return {
+            "wrote": False,
+            "reason": "override",
+            "path": str(dest),
+            "chatProvider": current.get("provider") or chat_provider,
+            "chatModel": current_model,
+        }
+    if current_model and not overwrite:
+        return {
+            "wrote": False,
+            "reason": "present",
+            "path": str(dest),
+            "chatProvider": current.get("provider") or chat_provider,
+            "chatModel": current_model,
+        }
+    _stamp_profile_files(dest, chat_provider, chat_model)
+    return {
+        "wrote": True,
+        "reason": "inherited",
+        "path": str(dest),
+        "chatProvider": chat_provider,
+        "chatModel": chat_model,
+    }
+
+
+def apply_inherited_models(
+    roots: list[Path | str] | None,
+    provider: str,
+    model: str,
+    overwrite: bool = True,
+) -> dict[str, Any]:
+    stamped = 0
+    skipped = 0
+    present = 0
+    for profile in iter_bot_profiles(roots):
+        result = inherit_default_model(profile, provider=provider, model=model, overwrite=overwrite)
+        if result.get("wrote"):
+            stamped += 1
+        elif result.get("reason") == "override":
+            skipped += 1
+        else:
+            present += 1
+    return {
+        "botsStamped": stamped,
+        "botsSkippedOverride": skipped,
+        "botsAlreadySet": present,
+    }
+
+
 def apply_models(
     home: Path | str,
     chat_model: str | None = None,
     image_model: str | None = None,
     overwrite: bool = True,
+    profile_roots: list[Path | str] | None = None,
+    stamp_bots: bool = True,
 ) -> dict[str, Any]:
     chat = _lookup(CHAT_CATALOG, chat_model or DEFAULT_CHAT_MODEL)
     image = _lookup(IMAGE_CATALOG, image_model or DEFAULT_IMAGE_MODEL)
@@ -167,13 +420,15 @@ def apply_models(
     path.parent.mkdir(parents=True, exist_ok=True)
     existing = path.read_text(encoding="utf-8") if path.is_file() else ""
     parsed = _simple_load(existing) if existing.strip() else {}
-    has_chat = bool(_nested_get(parsed, "principal", "model"))
+    _has_provider, has_chat_model = _chat_from_parsed(parsed)
+    has_chat = bool(has_chat_model)
     has_image = bool(_nested_get(parsed, "image_gen", "provider"))
     write_chat = overwrite or not has_chat
     write_image = overwrite or not has_image
     text = existing
     if write_chat:
         text = _upsert_block(text, "principal", _principal_block(chat["provider"], chat["model"]))
+        text = _upsert_block(text, "model", _hermes_model_block(chat["provider"], chat["model"]))
     if write_image:
         text = _upsert_block(text, "image_gen", _image_gen_block(image["provider"], image["model"]))
     wrote = write_chat or write_image
@@ -182,13 +437,32 @@ def apply_models(
             text += "\n"
         path.write_text(text, encoding="utf-8")
     final = _simple_load(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    final_provider, final_model = _chat_from_parsed(final)
+    bots = {"botsStamped": 0, "botsSkippedOverride": 0, "botsAlreadySet": 0}
+    if stamp_bots:
+        roots = (
+            [Path(p) for p in profile_roots]
+            if profile_roots is not None
+            else default_profile_roots(path.parent, include_desktop=False)
+        )
+        bots = apply_inherited_models(
+            roots,
+            final_provider or chat["provider"],
+            final_model or chat["model"],
+            overwrite=overwrite,
+        )
     return {
         "wrote": wrote,
         "path": str(path),
-        "chatProvider": str(_nested_get(final, "principal", "provider") or chat["provider"]),
-        "chatModel": str(_nested_get(final, "principal", "model") or chat["model"]),
+        "chatProvider": final_provider or chat["provider"],
+        "chatModel": final_model or chat["model"],
         "imageProvider": str(_nested_get(final, "image_gen", "provider") or image["provider"]),
-        "imageModel": str(_nested_get(final, "image_gen", "xai", "model") or _nested_get(final, "image_gen", "model") or image["model"]),
+        "imageModel": str(
+            _nested_get(final, "image_gen", "xai", "model")
+            or _nested_get(final, "image_gen", "model")
+            or image["model"]
+        ),
+        **bots,
     }
 
 
@@ -206,6 +480,17 @@ def self_test() -> int:
         if "image_gen:" not in text or "grok-imagine-image" not in text:
             print("self-test: missing image_gen", file=sys.stderr)
             return 1
+        if "default: grok-4.6" not in text:
+            print("self-test: missing Hermes model.default", file=sys.stderr)
+            return 1
+        bot = home / "profiles" / "personal-assistant"
+        bot.mkdir(parents=True)
+        (bot / "bot.yaml").write_text("slug: personal-assistant\n", encoding="utf-8")
+        inherit_default_model(bot, provider=DEFAULT_CHAT_PROVIDER, model=DEFAULT_CHAT_MODEL)
+        bot_text = (bot / "config.yaml").read_text(encoding="utf-8")
+        if INHERITED_MARK not in bot_text or DEFAULT_CHAT_MODEL not in bot_text:
+            print("self-test: bot inherit missing", file=sys.stderr)
+            return 1
     return 0
 
 
@@ -218,6 +503,12 @@ def main(argv: list[str] | None = None) -> int:
     apply_p.add_argument("--chat", default=DEFAULT_CHAT_MODEL)
     apply_p.add_argument("--image", default=DEFAULT_IMAGE_MODEL)
     apply_p.add_argument("--if-missing", action="store_true")
+    apply_p.add_argument(
+        "--profiles",
+        action="append",
+        default=[],
+        help="Extra bot profile roots to stamp (repeatable). Desktop picker path, etc.",
+    )
     sub.add_parser("catalog")
     args = parser.parse_args(argv)
     if args.self_test or args.cmd is None and not argv:
@@ -227,7 +518,18 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.cmd == "apply":
         home = Path(args.home) if str(args.home or "").strip() else default_embedded_home()
-        result = apply_models(home, chat_model=args.chat, image_model=args.image, overwrite=not args.if_missing)
+        extra = [Path(p) for p in (args.profiles or []) if str(p or "").strip()]
+        roots = default_profile_roots(home, include_desktop=not extra)
+        for item in extra:
+            if item not in roots:
+                roots.append(item)
+        result = apply_models(
+            home,
+            chat_model=args.chat,
+            image_model=args.image,
+            overwrite=not args.if_missing,
+            profile_roots=roots,
+        )
         print(json.dumps(result, indent=2))
         return 0
     parser.print_help()

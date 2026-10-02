@@ -106,8 +106,9 @@ To stay current, every open refetches. A successful fetch replaces the cache. Ad
 2. Client fetches that group's `bot-group.json` and each bot's `SOUL.md` / `bot.yaml` from the same GitHub tree (or cache/bundle)
 3. Each bot is written to the **existing desktop picker path** `%LOCALAPPDATA%\hermes\profiles\<bot-id>\` (title, description, tools in `bot.meta.json`; soul + yaml as today)
 4. File every bot in that pack into a **named BOTS section** labeled with the group display name (see below). They must not land under UNASSIGNED.
-5. Mirror into `%USERPROFILE%\.hermes-airmaze-embedded\profiles\` so Bot Screen / Remote serve still sees them
-6. Record `%LOCALAPPDATA%\DragonAIAgent\active-bot-group.json`
+5. Inherit the first-run default chat model (`principal` + Hermes `model`) unless that bot already has a per-bot override. See [`BOT_DEFAULT_MODEL.md`](BOT_DEFAULT_MODEL.md).
+6. Mirror into `%USERPROFILE%\.hermes-airmaze-embedded\profiles\` so Bot Screen / Remote serve still sees them
+7. Record `%LOCALAPPDATA%\DragonAIAgent\active-bot-group.json`
 
 That destination folder name (`hermes\profiles\<bot-id>`) is the upstream desktop / Bot Screen picker. It is **not** renamed. Only Dragon's catalog and UI say "bot group".
 
