@@ -11,6 +11,10 @@ set -eu
 export HOME="${HOME:-/opt/data}"
 export HERMES_HOME="${HERMES_HOME:-/opt/data}"
 export HERMES_DASHBOARD_SESSION_TOKEN="${HERMES_DASHBOARD_SESSION_TOKEN:-dragon-local}"
+# Shared volume with the gateway: heal root-owned logs before dropping to hermes.
+if [ -f /opt/dragon/start-gateway.sh ]; then
+  /bin/sh /opt/dragon/start-gateway.sh --heal-only || true
+fi
 # Never start the OpenAI API or the public dashboard from this process.
 export API_SERVER_ENABLED="${API_SERVER_ENABLED:-false}"
 export HERMES_DASHBOARD="${HERMES_DASHBOARD:-0}"

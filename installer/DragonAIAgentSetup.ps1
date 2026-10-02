@@ -406,6 +406,7 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\desktop-loopback-proxy.py",
         "scripts\airmaze\start-desktop-serve.sh",
         "scripts\airmaze\start-desktop-proxy.sh",
+        "scripts\airmaze\start-gateway.sh",
         "scripts\airmaze\embedded_desktop_connection.py",
         "scripts\airmaze\Set-EmbeddedDesktopConnection.ps1",
         "scripts\airmaze\Test-DesktopServeAdapter.py",

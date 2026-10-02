@@ -17,6 +17,7 @@ COMPOSE = ROOT / "docker-compose.embedded.yml"
 LAUNCHER = SCRIPTS / "start-embedded.ps1"
 PROXY = SCRIPTS / "desktop-loopback-proxy.py"
 SERVE_SH = SCRIPTS / "start-desktop-serve.sh"
+GATEWAY_SH = SCRIPTS / "start-gateway.sh"
 CONN_PY = SCRIPTS / "embedded_desktop_connection.py"
 CONN_PS1 = SCRIPTS / "Set-EmbeddedDesktopConnection.ps1"
 DOCS = (
@@ -122,6 +123,7 @@ def test_compose_and_scripts() -> None:
         "hermes-airmaze-desktop",
         "start-desktop-serve.sh",
         "start-desktop-proxy.sh",
+        "start-gateway.sh",
         "desktop-loopback-proxy.py",
         "HERMES_DASHBOARD_SESSION_TOKEN",
         'HERMES_DASHBOARD_SESSION_TOKEN: "dragon-local"',
@@ -132,8 +134,50 @@ def test_compose_and_scripts() -> None:
             fail(f"compose missing {token!r}")
     if 'command: ["gateway", "run"]' not in compose:
         fail("gateway service must still run 'gateway run'")
-    if "API_SERVER_KEY: " in compose and "dragon-local" not in compose:
-        fail("compose lost local-only key placeholder")
+    if "start-gateway.sh" not in compose or "/opt/dragon/start-gateway.sh" not in compose:
+        fail("gateway must wrap official entrypoint with start-gateway.sh (heal root-owned logs)")
+    if "\n    user:" in compose:
+        fail("compose must not pin user: (stage2/heal need root, then official drop to hermes)")
+    if "API_SERVER_KEY:" in compose and "dragon-local-key" not in compose:
+        fail("compose lost local-only API_SERVER_KEY placeholder (must be ≥16 chars)")
+    if "${API_SERVER_KEY:-dragon-local-key}" not in compose:
+        fail("compose must honor an existing long API_SERVER_KEY (default dragon-local-key)")
+    key_line = next((ln for ln in compose.splitlines() if "API_SERVER_KEY:" in ln), "")
+    default_key = "dragon-local-key"
+    if ":-" in key_line:
+        default_key = key_line.split(":-", 1)[-1].rstrip("}").strip().strip('"')
+    elif ":" in key_line:
+        default_key = key_line.split(":", 1)[-1].strip().strip('"')
+    if len(default_key) < 16:
+        fail(f"API_SERVER_KEY default {default_key!r} is shorter than 16 chars (current image will not bind :8642)")
+
+    gateway = read(GATEWAY_SH)
+    for token in (
+        "entrypoint-dispatch.sh",
+        "/init",
+        "s6-setuidgid",
+        "--heal-only",
+        "--self-test",
+        "logs/agent.log",
+        "backups",
+        "refusing to start gateway as root",
+        "DRAGON_HANDOFF_DISPATCH",
+        "ensure_runtime_writable",
+    ):
+        if token not in gateway:
+            fail(f"start-gateway.sh missing {token!r}")
+    proc = subprocess.run(
+        ["/bin/sh", str(GATEWAY_SH), "--self-test"],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+    )
+    sys.stdout.write(proc.stdout)
+    sys.stderr.write(proc.stderr)
+    if proc.returncode != 0:
+        fail(f"start-gateway.sh --self-test exited {proc.returncode}")
+    if "OK  start-gateway.sh --self-test" not in proc.stdout:
+        fail("start-gateway.sh --self-test did not print OK")
 
     serve = read(SERVE_SH)
     if "127.0.0.1" not in serve or "8651" not in serve:
@@ -142,6 +186,8 @@ def test_compose_and_scripts() -> None:
         fail("serve script must not bind all interfaces")
     if "106685" not in serve:
         fail("serve script must cite upstream token/WS issue 106685")
+    if "start-gateway.sh --heal-only" not in serve:
+        fail("desktop serve must heal shared /opt/data logs before dropping to hermes")
 
     launcher = read(LAUNCHER)
     for token in (
@@ -170,6 +216,8 @@ def test_docs_do_not_lie() -> None:
         fail("docs must name the Desktop serve proxy port 8650")
     if "106685" not in body:
         fail("docs must cite upstream #106685 (token WS vs gated bind)")
+    if "start-gateway.sh" not in body or "agent.log" not in body:
+        fail("docs must name start-gateway.sh and the dirty root-owned agent.log re-smoke")
     # The old "Remote → 8642 then Open Screen" path is the UltraDragon FAIL.
     if "Remote gateway → `127.0.0.1:8642`" in body or "Port: gateway port you published (`8642`" in body:
         fail("docs still tell operators to point Desktop Remote at :8642 for Screen")

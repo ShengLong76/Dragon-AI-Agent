@@ -59,7 +59,12 @@ $script:WinFormsOk = $false
 $script:LaunchForm = $null
 $script:LaunchStatus = $null
 $script:DashboardUrl = $DashboardUrl
-$script:ApiKey = "dragon-local"
+# Current -desktop images refuse keys shorter than 16 chars. Honor an existing
+# long API_SERVER_KEY (Cos/UltraDragon live) and only replace a missing/short one.
+$script:ApiKey = "dragon-local-key"
+if (-not [string]::IsNullOrWhiteSpace($env:API_SERVER_KEY) -and $env:API_SERVER_KEY.Length -ge 16) {
+    $script:ApiKey = $env:API_SERVER_KEY
+}
 $script:DesktopServeUrl = $DesktopServeUrl
 $script:DesktopSessionToken = $DesktopSessionToken
 
