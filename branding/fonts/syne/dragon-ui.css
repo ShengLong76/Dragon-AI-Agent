@@ -1141,6 +1141,41 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="
   font-size: 0.75rem;
 }
 
+/* Settings → Voice → Voice conversation mode (Chained | Gpt-live | Grok Voice) */
+[data-dragon-voice-mode="host"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 140px;
+}
+
+[data-dragon-voice-mode="select"] {
+  box-sizing: border-box;
+  min-width: 140px;
+  min-height: 32px;
+  padding: 4px 28px 4px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-card);
+  color: var(--color-foreground);
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+[data-dragon-voice-mode="select"]:focus-visible {
+  outline: 2px solid #c41e3a;
+  outline-offset: 2px;
+}
+
+[data-dragon-voice-mode-native] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

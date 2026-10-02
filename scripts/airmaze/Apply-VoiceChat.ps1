@@ -5,7 +5,7 @@
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet("gpt", "grok")]
+    [ValidateSet("gpt", "grok", "chained", "gpt-live", "grok-live")]
     [string]$Provider = "gpt",
     [string]$HermesHome = "",
     [switch]$RestartGateway

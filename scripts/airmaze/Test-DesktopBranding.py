@@ -371,6 +371,8 @@ def test_table() -> dict:
     voice = table.get("voice") or {}
     if voice.get("options") != ["gpt", "grok"] or voice.get("default") != "gpt":
         fail("table voice.options must be gpt + grok with GPT as the default")
+    if voice.get("settingsModes") != ["chained", "gpt-live", "grok-live"]:
+        fail("table voice.settingsModes must add grok-live beside chained|gpt-live")
     if by_from.get("return 'Hermes'") != "return ''":
         fail("table must stop presenting Hermes as a sidebar bot label")
     print("OK  desktop_branding.json surfaces")
@@ -500,6 +502,8 @@ const protocol = 'hermes://copilot-key/start';
             fail("index.html must inject the in-app Teams picker")
         if 'data-dragon-ai-branding="voice-provider"' not in html:
             fail("index.html must inject the GPT | Grok voice selector")
+        if 'data-dragon-ai-branding="voice-settings"' not in html or "Grok Voice" not in html:
+            fail("index.html must inject Settings Voice conversation Grok Voice")
         if "GPT" not in html or "Grok" not in html:
             fail("voice selector must list both GPT and Grok")
         if "Talk with Grok" not in html or "xai-client-secret." not in html:
@@ -818,9 +822,14 @@ def test_packaging_not_regressed() -> None:
         fail("dragon-ui.css must style the GPT | Grok voice selector")
     if "[data-dragon-grok-talk]" not in css:
         fail("dragon-ui.css must style Talk with Grok")
+    if '[data-dragon-voice-mode="select"]' not in css:
+        fail("dragon-ui.css must style Settings Voice conversation mode")
     voice_js = ROOT / "branding" / "voice" / "dragon-voice-selector.js"
     if not voice_js.is_file():
         fail("branding/voice/dragon-voice-selector.js must ship the duplex client")
+    settings_js = ROOT / "branding" / "voice" / "dragon-voice-settings.js"
+    if not settings_js.is_file() or "Grok Voice" not in settings_js.read_text(encoding="utf-8"):
+        fail("branding/voice/dragon-voice-settings.js must add Grok Voice")
     if "--dragon-ui-font-size-body: 16px" not in css or "--dragon-ui-line-height-body: 1.55" not in css:
         fail("dragon-ui.css must ship 16px / 1.55 Grok Bot body type")
     if "--conversation-text-base-size: 16px" not in css or "--ui-text-tertiary: #c4c4ce" not in css:

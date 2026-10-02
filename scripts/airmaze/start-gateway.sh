@@ -207,5 +207,16 @@ case "$mode" in
     ;;
 esac
 
+accept_grok_voice_mode() {
+  # Settings → Voice conversation mode writes voice.voice_chat_mode: grok-live
+  # beside chained|gpt-live. Fail open if the image file is missing.
+  patch="/opt/dragon/patch_grok_voice_mode.py"
+  if [ -f "$patch" ] && command -v python3 >/dev/null 2>&1; then
+    python3 "$patch" --apply >/dev/null 2>&1 || \
+      echo "[dragon-gateway] warning: could not accept grok-live in methods_config_set.py" >&2
+  fi
+}
+
 heal_data_volume
+accept_grok_voice_mode
 hand_off "$@"

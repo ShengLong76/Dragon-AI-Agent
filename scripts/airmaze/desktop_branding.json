@@ -63,8 +63,10 @@
   "voice": {
     "options": ["gpt", "grok"],
     "default": "gpt",
+    "settingsModes": ["chained", "gpt-live", "grok-live"],
+    "settingsLabel": "Grok Voice",
     "helper": "http://127.0.0.1:8654/api/voice",
-    "why": "Add Grok full-duplex (wss://api.x.ai/v1/realtime?model=grok-voice-latest) beside existing GPT-Live. Overlay Talk with Grok hosts duplex. Do not replace GPT."
+    "why": "Settings → Voice → Voice conversation mode adds Grok Voice beside Chained and Gpt-live. Same voice.voice_chat_mode key as gpt-live. Grok is xAI realtime WS, not OpenAI GPT-Live WebRTC. Overlay duplex stays. Do not replace GPT."
   },
   "sidebar": {
     "userFacingBots": ["Personal Assistant"],
@@ -235,6 +237,26 @@
       "from": "return\"Hermes\"",
       "to": "return\"\"",
       "surface": "sidebar-default-bot"
+    },
+    {
+      "from": "\"voice.voice_chat_mode\":[\"chained\",\"gpt-live\"]",
+      "to": "\"voice.voice_chat_mode\":[\"chained\",\"gpt-live\",\"grok-live\"]",
+      "surface": "voice-conversation-mode"
+    },
+    {
+      "from": "'voice.voice_chat_mode':['chained','gpt-live']",
+      "to": "'voice.voice_chat_mode':['chained','gpt-live','grok-live']",
+      "surface": "voice-conversation-mode"
+    },
+    {
+      "from": "'voice.voice_chat_mode': ['chained', 'gpt-live']",
+      "to": "'voice.voice_chat_mode': ['chained', 'gpt-live', 'grok-live']",
+      "surface": "voice-conversation-mode"
+    },
+    {
+      "from": "\"voice.voice_chat_mode\": [\"chained\", \"gpt-live\"]",
+      "to": "\"voice.voice_chat_mode\": [\"chained\", \"gpt-live\", \"grok-live\"]",
+      "surface": "voice-conversation-mode"
     }
   ],
   "source_only": [
