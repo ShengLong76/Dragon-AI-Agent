@@ -5,6 +5,7 @@ All notable changes to Dragon AI Agent (packaging/distribution) are documented h
 ## [Unreleased]
 
 ### Changed
+- **Start Menu is only Dragon AI Agent.** Install and launch repair keep Desktop / Start Menu **Dragon AI Agent** and delete leftover `Dragon AI Agent Bot Groups.lnk`, `Dragon AI Agent Dashboard.lnk`, and `Dragon AI Agent Profiles.lnk` (plus the already-retired Setup shortcut). Teams stay in-app **Teams Marketplace**. Optional `:9119` is `start-embedded.ps1 -OpenDashboard`, not a Start Menu tile. James’s UltraDragon note: do not put Bot Groups / Dashboard / Profiles in the Start Menu folder. Check: `python3 scripts/airmaze/Test-LaunchSmoke.py` / `Test-BotGroups.py`.
 - **Blue band behind the Dragon AI logo / title lockup.** WinForms Onboard-Wizard, launch-status, and Teams Marketplace headers used bright crimson `#C41E3A` behind the dragon + **Dragon AI Agent**. That band is now the existing Marketplace blue `#2563EB` / `37, 99, 235`. Primary Continue / Launch buttons stay crimson. Electron sidebar lockup stays transparent on the dark rail (it was not a red plate). Design: `docs/airmaze/HEADER_LOCKUP_BLUE.md`. Check: `python3 scripts/airmaze/Test-LaunchSmoke.py` / `Test-BotGroups.py` / `Test-DesktopBranding.py`.
 
 ### Fixed

@@ -9,7 +9,7 @@ Internal protocol, image, and path names stay Hermes/AirMaze where changing them
 
 | Surface | What James sees |
 |---------|-----------------|
-| Desktop / Start Menu shortcuts | **Dragon AI Agent** → `wscript.exe` + `Start-DragonAI.vbs` (no console). Also Bot Groups and optional Dashboard. No **Dragon AI Agent Setup** `.lnk` (WinForms Onboard-Wizard retired as a product shortcut) |
+| Desktop / Start Menu shortcuts | **Dragon AI Agent** only → `wscript.exe` + `Start-DragonAI.vbs` (no console). No Bot Groups / Dashboard / Profiles / Setup `.lnk` (leftovers deleted on install and launch) |
 | Shortcut descriptions | “start the gateway and open the app” |
 | Installer exe | `DragonAIAgentSetup.exe` — ProductName / FileDescription **Dragon AI Agent** (`installer/winres/winres.json`) |
 | Onboarding wizard | Window title **Dragon AI Agent Setup**; welcome copy; dragon + title on a **blue** `#2563EB` header band (buttons stay crimson) |

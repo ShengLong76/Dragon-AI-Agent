@@ -458,24 +458,28 @@ function Install-PackageFiles([string]$Root) {
     Write-Log "Data directory: $DataDir"
 }
 
-function Remove-DeprecatedSetupShortcuts {
+function Remove-DeprecatedProductShortcuts {
     <#
-      WinForms Onboard-Wizard is no longer a product shortcut. First-run
-      models use the in-app Models UI + Apply-GatewayModels defaults.
-      Delete leftover Desktop / Start Menu "Dragon AI Agent Setup.lnk".
+      Start Menu / Desktop keep only the main Dragon AI Agent launcher.
+      Delete leftover Bot Groups, Dashboard, Profiles, and Setup .lnk files.
     #>
     $desktop = [Environment]::GetFolderPath("Desktop")
-    $paths = @(
-        (Join-Path $desktop "Dragon AI Agent Setup.lnk"),
-        (Join-Path $StartMenuDir "Dragon AI Agent Setup.lnk")
+    $retired = @(
+        "Dragon AI Agent Setup.lnk",
+        "Dragon AI Agent Bot Groups.lnk",
+        "Dragon AI Agent Dashboard.lnk",
+        "Dragon AI Agent Profiles.lnk"
     )
-    foreach ($p in $paths) {
-        if (Test-Path -LiteralPath $p) {
-            try {
-                Remove-Item -LiteralPath $p -Force -ErrorAction Stop
-                Write-Log "Removed deprecated Setup shortcut: $p"
-            } catch {
-                Write-Log "Could not remove Setup shortcut $p : $($_.Exception.Message)" "WARN"
+    foreach ($dir in @($desktop, $StartMenuDir)) {
+        foreach ($name in $retired) {
+            $p = Join-Path $dir $name
+            if (Test-Path -LiteralPath $p) {
+                try {
+                    Remove-Item -LiteralPath $p -Force -ErrorAction Stop
+                    Write-Log "Removed deprecated shortcut: $p"
+                } catch {
+                    Write-Log "Could not remove shortcut $p : $($_.Exception.Message)" "WARN"
+                }
             }
         }
     }
@@ -490,13 +494,11 @@ function Install-Shortcuts {
     if (-not (Test-Path $iconLocation)) { $iconLocation = $png }
 
     $startVbs = Join-Path $InstallRoot "scripts\airmaze\Start-DragonAI.vbs"
-    $selectScript = Join-Path $InstallRoot "scripts\airmaze\Select-BotGroup.ps1"
-    $targetPs = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
     $targetWscript = Join-Path $env:SystemRoot "System32\wscript.exe"
 
     Ensure-Dir $StartMenuDir
     $desktop = [Environment]::GetFolderPath("Desktop")
-    Remove-DeprecatedSetupShortcuts
+    Remove-DeprecatedProductShortcuts
 
     try {
         $wsh = New-Object -ComObject WScript.Shell
@@ -525,23 +527,7 @@ function Install-Shortcuts {
         if ($iconLocation -and (Test-Path $iconLocation)) { $sc2.IconLocation = "$iconLocation,0" }
         $sc2.Save()
 
-        $scDashPath = Join-Path $StartMenuDir "Dragon AI Agent Dashboard.lnk"
-        $scDash = $wsh.CreateShortcut($scDashPath)
-        $scDash.TargetPath = "http://127.0.0.1:9119/"
-        $scDash.Description = "Dragon AI Agent — web dashboard (optional)"
-        if ($iconLocation -and (Test-Path $iconLocation)) { $scDash.IconLocation = "$iconLocation,0" }
-        $scDash.Save()
-
-        $sc3Path = Join-Path $StartMenuDir "Dragon AI Agent Bot Groups.lnk"
-        $sc3 = $wsh.CreateShortcut($sc3Path)
-        $sc3.TargetPath = $targetPs
-        $sc3.Arguments = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$selectScript`" -InstallRoot `"$InstallRoot`" -PayloadRoot `"$InstallRoot`""
-        $sc3.WorkingDirectory = $InstallRoot
-        $sc3.Description = "Dragon AI Agent — deploy a bot group from GitHub"
-        if ($iconLocation -and (Test-Path $iconLocation)) { $sc3.IconLocation = "$iconLocation,0" }
-        $sc3.Save()
-
-        Write-Log "Start Menu shortcuts under: $StartMenuDir"
+        Write-Log "Start Menu shortcut: $sc2Path"
     } catch {
         Write-Log "Shortcut creation failed: $($_.Exception.Message)" "WARN"
     }
@@ -644,7 +630,7 @@ function Start-AgentDesktop {
     Write-Host "  1. Install the Dragon AI Agent desktop client (win-unpacked Hermes.exe on disk)."
     Write-Host "  2. Add Remote gateway: http://127.0.0.1:8650 with session token dragon-local (not :8642)"
     Write-Host "     Local dashboard credentials are in THIRD_PARTY_NOTICES.md / EMBEDDED_GATEWAY.md"
-    Write-Host "  3. Open Bot Groups, deploy a group, pick one of its bots, then open Bot Screen."
+    Write-Host "  3. Open Teams Marketplace, deploy a group, pick one of its bots, then open Bot Screen."
     Write-Host ""
     Write-Log "Agent desktop client not found; printed next steps" "WARN"
     return $false
@@ -722,7 +708,7 @@ Write-Host "  Log:          $LogPath"
 Write-Host "  Desktop Screen: http://127.0.0.1:8650  (Remote token dragon-local)"
 Write-Host "  Gateway API:    127.0.0.1:8642  dashboard: http://127.0.0.1:9119"
 Write-Host "  Docker UI:    tray-only (dashboard suppressed on startup)"
-Write-Host "  Bot groups:   Start Menu > Dragon AI Agent > Dragon AI Agent Bot Groups"
+Write-Host "  Bot groups:   in-app Teams Marketplace"
 Write-Host "  First-run:    in-app Models UI (Dragon AI Agent launcher)"
 Write-Host "  Setup guide:  $setupGuide"
 Write-Host ""

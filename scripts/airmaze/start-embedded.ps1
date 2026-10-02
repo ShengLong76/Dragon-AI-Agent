@@ -294,22 +294,29 @@ function Start-HiddenPowerShell {
     [void][System.Diagnostics.Process]::Start($si)
 }
 
-function Remove-DeprecatedSetupShortcuts {
+function Remove-DeprecatedProductShortcuts {
     <#
-      Drop leftover Desktop / Start Menu Onboard-Wizard shortcuts. First-run
-      models use the in-app Models UI; WinForms Setup.lnk is retired.
+      Start Menu / Desktop keep only the main Dragon AI Agent launcher.
+      Delete leftover Bot Groups, Dashboard, Profiles, and Setup .lnk files.
     #>
-    $paths = @(
-        (Join-Path ([Environment]::GetFolderPath("Desktop")) "Dragon AI Agent Setup.lnk"),
-        (Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Dragon AI Agent\Dragon AI Agent Setup.lnk")
+    $desktop = [Environment]::GetFolderPath("Desktop")
+    $startMenu = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Dragon AI Agent"
+    $retired = @(
+        "Dragon AI Agent Setup.lnk",
+        "Dragon AI Agent Bot Groups.lnk",
+        "Dragon AI Agent Dashboard.lnk",
+        "Dragon AI Agent Profiles.lnk"
     )
-    foreach ($p in $paths) {
-        if (Test-Path -LiteralPath $p) {
-            try {
-                Remove-Item -LiteralPath $p -Force -ErrorAction Stop
-                Write-LaunchLog "Removed deprecated Setup shortcut: $p"
-            } catch {
-                Write-LaunchLog "Could not remove Setup shortcut $p : $($_.Exception.Message)" "WARN"
+    foreach ($dir in @($desktop, $startMenu)) {
+        foreach ($name in $retired) {
+            $p = Join-Path $dir $name
+            if (Test-Path -LiteralPath $p) {
+                try {
+                    Remove-Item -LiteralPath $p -Force -ErrorAction Stop
+                    Write-LaunchLog "Removed deprecated shortcut: $p"
+                } catch {
+                    Write-LaunchLog "Could not remove shortcut $p : $($_.Exception.Message)" "WARN"
+                }
             }
         }
     }
@@ -319,7 +326,7 @@ function Repair-DragonAIProductShortcuts {
     <#
       Rewrite Desktop / Start Menu "Dragon AI Agent" to wscript + VBS if an older
       install still points at powershell.exe (that shortcut flashes a console).
-      Also delete leftover "Dragon AI Agent Setup.lnk" (WinForms path retired).
+      Also delete leftover Bot Groups / Dashboard / Profiles / Setup .lnk files.
     #>
     $vbs = Join-Path $InstallRoot "scripts\airmaze\Start-DragonAI.vbs"
     if (-not (Test-Path -LiteralPath $vbs)) {
@@ -328,7 +335,7 @@ function Repair-DragonAIProductShortcuts {
     if (-not (Test-Path -LiteralPath $vbs)) { return }
     $wscript = Join-Path $env:SystemRoot "System32\wscript.exe"
     if (-not (Test-Path -LiteralPath $wscript)) { return }
-    Remove-DeprecatedSetupShortcuts
+    Remove-DeprecatedProductShortcuts
     $ico = Join-Path $InstallRoot "branding\dragon-ai-agent-logo.ico"
     if (-not (Test-Path -LiteralPath $ico)) { $ico = Join-Path $InstallRoot "dragon-ai-agent-logo.ico" }
     $startArgs = "//nologo `"$vbs`""
@@ -911,6 +918,7 @@ function Invoke-Smoke {
         "New-LaunchStatusForm",
         "Invoke-NativeDocker",
         "Repair-DragonAIProductShortcuts",
+        "Remove-DeprecatedProductShortcuts",
         "CreateNoWindow",
         "hermes-airmaze-gw is not running",
         "Set-EmbeddedDesktopRemoteConnection",
