@@ -36,9 +36,11 @@ Do not cover SESSIONS / BOTS. Do not restyle Bot Screen.
 **Do (every launch, idempotent):**
 
 1. Copy `dragon-ai-agent-logo.ico` over `{exeDir}\resources\icon.ico`, `{exeDir}\icon.ico`, and any other Hermes `icon.ico` under `resources\` (including `app.asar.unpacked` when that folder exists).
-2. Stamp `Hermes.exe` PE icon resources with that ICO when a stamper is available (`rcedit` on PATH, or a small Python/PE helper). Failure is non-fatal (log + continue) so a missing stamper never blocks boot.
-3. Keep Desktop / Start Menu **Dragon AI Agent** `.lnk` `IconLocation` on the Dragon ICO.
-4. Set `System.AppUserModel.ID` on `Dragon AI Agent Client.lnk` to the upstream id `com.nousresearch.hermes` so Windows can show the shortcut icon for that process when the PE stamp does not stick.
+2. Copy `dragon-ai-agent-logo.png` over `{exeDir}\resources\icon.png` and unpacked `dist/apple-touch-icon.png` (Hermes `app-icon.ts` / tray candidates). Hard-fail if the ICO or PNG source is missing or does not land.
+3. Stamp `Hermes.exe` PE icon resources with that ICO when a stamper is available (`rcedit` on PATH, or a small Python/PE helper). Failure is non-fatal (log + continue) so a missing stamper never blocks boot.
+4. Keep Desktop / Start Menu **Dragon AI Agent** `.lnk` `IconLocation` on the Dragon ICO.
+5. Set `System.AppUserModel.ID` on `Dragon AI Agent Client.lnk` to the upstream id `com.nousresearch.hermes` so Windows can show the shortcut icon for that process when the PE stamp does not stick.
+6. Refuse the whole apply (including `stamp_app_icon`) outside `DragonAIAgent`. See `docs/airmaze/DURABLE_BRANDING.md`.
 
 Do not rename `Hermes.exe`. Do not rewrite `app.asar`.
 

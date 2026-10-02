@@ -213,8 +213,12 @@ function Install-DragonAIDesktopFontPack {
             $brandRoot = Join-Path (Split-Path -Parent (Split-Path -Parent $scriptDir)) "branding"
             foreach ($logoName in @("dragon-ai-agent-logo.svg", "dragon-ai-agent-logo.png")) {
                 $logoSrc = Join-Path $brandRoot $logoName
-                if (Test-Path -LiteralPath $logoSrc) {
-                    Copy-Item -LiteralPath $logoSrc -Destination (Join-Path $dest $logoName) -Force
+                if (-not (Test-Path -LiteralPath $logoSrc)) {
+                    throw "Apply-DesktopBranding: missing required logo $logoName under $brandRoot"
+                }
+                Copy-Item -LiteralPath $logoSrc -Destination (Join-Path $dest $logoName) -Force
+                if (-not (Test-Path -LiteralPath (Join-Path $dest $logoName))) {
+                    throw "Apply-DesktopBranding: missing required logo $logoName did not land in $dest"
                 }
             }
             $teamsSrc = Join-Path $brandRoot "teams"
@@ -322,17 +326,32 @@ function Get-DragonAIAppIconSource {
     )) {
         if (Test-Path -LiteralPath $ico) { return $ico }
     }
-    return $null
+    throw "Apply-DesktopBranding: missing required logo dragon-ai-agent-logo.ico under $root"
+}
+
+function Get-DragonAIAppPngSource {
+    $here = $PSScriptRoot
+    if ([string]::IsNullOrWhiteSpace($here)) {
+        $here = Split-Path -Parent $MyInvocation.MyCommand.Path
+    }
+    $root = Split-Path -Parent (Split-Path -Parent $here)
+    $png = Join-Path $root "branding\dragon-ai-agent-logo.png"
+    if (-not (Test-Path -LiteralPath $png)) {
+        throw "Apply-DesktopBranding: missing required logo dragon-ai-agent-logo.png under $root\branding"
+    }
+    return $png
 }
 
 function Copy-DragonAIAppIcon {
     <#
-      Copy the sidebar-mark ICO onto Hermes electron-builder icon.ico paths.
+      Copy the sidebar-mark ICO + PNG onto Hermes electron-builder / app-icon paths.
       Prefer branding\dragon-ai-agent-logo.ico (installer already ships it).
+      Private DragonAIAgent tree only.
     #>
     param([Parameter(Mandatory = $true)][string]$ExePath)
+    Assert-DragonAIPrivateDesktopPath -Path $ExePath -Role "branding"
     $ico = Get-DragonAIAppIconSource
-    if (-not $ico) { return @{ copied = $false } }
+    $png = Get-DragonAIAppPngSource
     $exeDir = Split-Path -Parent $ExePath
     $resourcesDir = Join-Path $exeDir "resources"
     New-Item -ItemType Directory -Force -Path $resourcesDir | Out-Null
@@ -360,12 +379,50 @@ function Copy-DragonAIAppIcon {
                 $dests.Add($_.FullName)
             }
     }
+    $pngDests = New-Object System.Collections.Generic.List[string]
+    foreach ($dest in @(
+        (Join-Path $resourcesDir "icon.png"),
+        (Join-Path $exeDir "icon.png")
+    )) {
+        Copy-Item -LiteralPath $png -Destination $dest -Force
+        $pngDests.Add($dest)
+    }
+    foreach ($rel in @(
+        "app\icon.png",
+        "app.asar.unpacked\icon.png",
+        "app.asar.unpacked\dist\apple-touch-icon.png",
+        "app.asar.unpacked\public\apple-touch-icon.png",
+        "app\dist\apple-touch-icon.png",
+        "app\public\apple-touch-icon.png"
+    )) {
+        $parent = Split-Path -Parent (Join-Path $resourcesDir $rel)
+        if (Test-Path -LiteralPath $parent -PathType Container) {
+            $dest = Join-Path $resourcesDir $rel
+            Copy-Item -LiteralPath $png -Destination $dest -Force
+            $pngDests.Add($dest)
+        }
+    }
+    if (Test-Path -LiteralPath $resourcesDir -PathType Container) {
+        Get-ChildItem -LiteralPath $resourcesDir -Recurse -File -ErrorAction SilentlyContinue |
+            Where-Object {
+                $_.FullName -notmatch '\\node_modules\\' -and
+                ($_.Name -eq "icon.png" -or $_.Name -eq "apple-touch-icon.png")
+            } |
+            ForEach-Object {
+                Copy-Item -LiteralPath $png -Destination $_.FullName -Force
+                $pngDests.Add($_.FullName)
+            }
+    }
+    $landedIco = Join-Path $resourcesDir "icon.ico"
+    if (-not (Test-Path -LiteralPath $landedIco)) {
+        throw "Apply-DesktopBranding: Dragon ICO did not land at $landedIco"
+    }
     $rcedit = Get-Command rcedit -ErrorAction SilentlyContinue
     if (-not $rcedit) { $rcedit = Get-Command rcedit-x64 -ErrorAction SilentlyContinue }
     if ($rcedit) {
         try { & $rcedit.Source $ExePath --set-icon $ico | Out-Null } catch {}
     }
-    return @{ copied = $true; source = $ico; paths = @($dests) }
+    return @{ copied = $true; source = $ico; paths = @($dests); pngPaths = @($pngDests) }
 }
 
 function Invoke-DragonAIDesktopBrandingOverlay {

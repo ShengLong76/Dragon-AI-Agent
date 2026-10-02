@@ -229,6 +229,13 @@ def test_scripts_and_docs() -> None:
     brand_py = read(BRAND_PY)
     if "assert_private_dragon_path" not in brand_py:
         fail("desktop_branding.py must refuse branding outside DragonAIAgent")
+    stamp_fn = brand_py.split("def stamp_app_icon", 1)
+    if len(stamp_fn) < 2 or "assert_private_dragon_path" not in stamp_fn[1].split("def ", 1)[0]:
+        fail("stamp_app_icon must refuse branding outside DragonAIAgent")
+    apply_ps = read(APPLY)
+    copy_fn = apply_ps.split("function Copy-DragonAIAppIcon", 1)
+    if len(copy_fn) < 2 or "Assert-DragonAIPrivateDesktopPath" not in copy_fn[1].split("function ", 1)[0]:
+        fail("Copy-DragonAIAppIcon must refuse branding outside DragonAIAgent")
     finder = read(FINDER)
     if "Find-HermesDesktopSourceExe" not in finder:
         fail("finder must keep a source-only discovery path for the standalone tree")

@@ -28,15 +28,18 @@ Empty-state `min(22rem, 70%)`, sidebar `32px`, Docker tray-only launch, Bot Scre
 
 ## Apply path (must actually land)
 
-Every launch, with `-ExePath` pointing at on-disk `Hermes.exe`, copy the sidebar ICO over:
+Every launch, with `-ExePath` pointing at on-disk **private** `DragonAIAgent\desktop\win-unpacked\Hermes.exe`, copy the sidebar ICO **and** PNG over:
 
-- `{exeDir}\resources\icon.ico` (create `resources` if needed)
-- `{exeDir}\icon.ico`
-- `{exeDir}\resources\app\icon.ico` when that folder exists
+- `{exeDir}\resources\icon.ico` and `{exeDir}\icon.ico` (create `resources` if needed)
+- `{exeDir}\resources\icon.png` and `{exeDir}\icon.png`
+- `{exeDir}\resources\app\icon.ico` / `icon.png` when that folder exists
 - `{exeDir}\resources\app.asar.unpacked\icon.ico` when that folder exists
-- any other existing `icon.ico` under `{exeDir}\resources` (skip `node_modules`)
+- `{exeDir}\resources\app.asar.unpacked\dist\apple-touch-icon.png` when `dist` exists (Hermes `app-icon.ts` candidate)
+- any other existing `icon.ico` / `icon.png` / `apple-touch-icon.png` under `{exeDir}\resources` (skip `node_modules`)
 
-Prefer `branding\dragon-ai-agent-logo.ico` (the file the installer already ships). Fall back to `installer\winres\icon.ico`. The installer must also copy `installer\winres\icon.ico` into the install root so both candidates exist on UltraDragon.
+Prefer `branding\dragon-ai-agent-logo.ico` (the file the installer already ships). Fall back to `installer\winres\icon.ico`. PNG source is `branding\dragon-ai-agent-logo.png`. Apply **hard-fails** if those files are missing or do not land. Apply **refuses** a path outside `DragonAIAgent`. The installer must also copy `installer\winres\icon.ico` into the install root so both ICO candidates exist on UltraDragon.
+
+See `docs/airmaze/DURABLE_BRANDING.md`.
 
 PE stamp of `Hermes.exe` is best-effort (`rcedit` on PATH). Failure is non-fatal.
 
@@ -45,8 +48,8 @@ Desktop / Start Menu `.lnk` `IconLocation` must be rewritten to the same ICO eve
 ## How Cos tips UltraDragon live
 
 1. Close `Hermes.exe` (icon files lock while the process is up).
-2. Copy this revision into `%LOCALAPPDATA%\DragonAIAgent\` (or re-run Setup). Confirm both `branding\dragon-ai-agent-logo.ico` and `installer\winres\icon.ico` are the new files.
-3. Open Start Menu **Dragon AI Agent**. Launch runs apply before the window opens and refreshes shortcut icons.
+2. Copy this revision into `%LOCALAPPDATA%\DragonAIAgent\` (or re-run Setup). Confirm `branding\dragon-ai-agent-logo.svg`, `.png`, `.ico`, and `installer\winres\icon.ico` are present.
+3. Open Start Menu **Dragon AI Agent**. Launch runs apply before the window opens and refreshes shortcut icons. Confirm `resources\icon.ico`, `resources\icon.png`, and unpacked `dist\apple-touch-icon.png` are the Dragon mark.
 4. If the taskbar / shortcut still shows the old mark, Windows cached the ICO: sign out / restart Explorer, or delete `%LOCALAPPDATA%\IconCache.db` and the `Explorer\iconcache_*.db` files under `%LOCALAPPDATA%\Microsoft\Windows\Explorer\`, then restart Explorer. Do **not** pick a 48px display size as a workaround.
 
 ## Embedded ICO sizes
