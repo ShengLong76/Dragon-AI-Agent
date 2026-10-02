@@ -792,10 +792,21 @@ def test_no_profiles_ui() -> None:
         text = read(path)
         if "bot-groups" not in text and "bot_groups.py" not in text:
             fail(f"{path.name} must install the bot-groups overlay")
-        if "Dragon AI Agent Profiles.lnk" in text:
-            fail(f"{path.name} still creates a Profiles shortcut")
-        if "Dragon AI Agent Bot Groups" not in text:
-            fail(f"{path.name} must create a Bot Groups shortcut")
+        if "CreateShortcut($sc3Path)" in text or "CreateShortcut($scDashPath)" in text:
+            fail(f"{path.name} still CreateShortcut Bot Groups or Dashboard .lnk")
+        for name in (
+            "Dragon AI Agent Profiles.lnk",
+            "Dragon AI Agent Bot Groups.lnk",
+            "Dragon AI Agent Dashboard.lnk",
+        ):
+            idx = text.find(name)
+            while idx >= 0:
+                window = text[max(0, idx - 80):idx + 80]
+                if "CreateShortcut" in window:
+                    fail(f"{path.name} still CreateShortcut {name}")
+                idx = text.find(name, idx + 1)
+            if name not in text:
+                fail(f"{path.name} must delete leftover {name}")
         if "Select-BotGroup.ps1" not in text:
             fail(f"{path.name} must wire the bot group dropdown")
     readme = read(README)

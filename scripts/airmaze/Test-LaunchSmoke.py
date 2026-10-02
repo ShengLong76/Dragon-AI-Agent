@@ -40,7 +40,10 @@ REQUIRED_LAUNCHER = (
     "DebugConsole",
     "Invoke-NativeDocker",
     "Repair-DragonAIProductShortcuts",
-    "Remove-DeprecatedSetupShortcuts",
+    "Remove-DeprecatedProductShortcuts",
+    "Dragon AI Agent Bot Groups.lnk",
+    "Dragon AI Agent Dashboard.lnk",
+    "Dragon AI Agent Profiles.lnk",
     "CreateNoWindow",
     "Test-LaunchedFromShortcut",
     "Dragon AI Agent launched",
@@ -91,8 +94,11 @@ REQUIRED_INSTALLER = (
     "wscript.exe",
     "start the gateway and open the app",
     "win-unpacked",
-    "Remove-DeprecatedSetupShortcuts",
+    "Remove-DeprecatedProductShortcuts",
     "Dragon AI Agent.lnk",
+    "Dragon AI Agent Bot Groups.lnk",
+    "Dragon AI Agent Dashboard.lnk",
+    "Dragon AI Agent Profiles.lnk",
 )
 
 REQUIRED_VBS = (
@@ -104,7 +110,17 @@ REQUIRED_VBS = (
     "RepairProductShortcuts",
     "MsgBox",
     "Dragon AI Agent Setup.lnk",
+    "Dragon AI Agent Bot Groups.lnk",
+    "Dragon AI Agent Dashboard.lnk",
+    "Dragon AI Agent Profiles.lnk",
     "DeleteFile",
+)
+
+RETIRED_START_MENU_LINKS = (
+    "Dragon AI Agent Setup.lnk",
+    "Dragon AI Agent Bot Groups.lnk",
+    "Dragon AI Agent Dashboard.lnk",
+    "Dragon AI Agent Profiles.lnk",
 )
 
 
@@ -193,14 +209,17 @@ def check_shortcuts() -> None:
             fail(f"{path.name} still creates a WinForms Dragon AI Agent Setup shortcut")
         if "CreateShortcut($sc4Path)" in text or "CreateShortcut($sc5Path)" in text:
             fail(f"{path.name} still CreateShortcut a Setup.lnk (sc4/sc5)")
+        if "CreateShortcut($sc3Path)" in text or "CreateShortcut($scDashPath)" in text:
+            fail(f"{path.name} still CreateShortcut Bot Groups or Dashboard .lnk")
         if "Launching onboarding wizard" in text or "& $wizard @wizArgs" in text:
             fail(f"{path.name} still auto-launches WinForms Onboard-Wizard")
-        setup_idx = text.find('Dragon AI Agent Setup.lnk')
-        while setup_idx >= 0:
-            window = text[max(0, setup_idx - 80):setup_idx + 80]
-            if "CreateShortcut" in window:
-                fail(f"{path.name} still CreateShortcut Dragon AI Agent Setup.lnk")
-            setup_idx = text.find('Dragon AI Agent Setup.lnk', setup_idx + 1)
+        for name in RETIRED_START_MENU_LINKS:
+            idx = text.find(name)
+            while idx >= 0:
+                window = text[max(0, idx - 80):idx + 80]
+                if "CreateShortcut" in window:
+                    fail(f"{path.name} still CreateShortcut {name}")
+                idx = text.find(name, idx + 1)
 
 
 def check_vbs() -> None:

@@ -199,7 +199,7 @@ This repo's base is the Dragon AI **desktop agent** packaging (gateway, Bot Scre
 - Launch / branding: `start-embedded.ps1`, `desktop_branding.*`, `branding/` (Syne, crimson `#C41E3A`, navy dragon mark)
 - On-disk destination `%LOCALAPPDATA%\hermes\profiles\<bot-id>\` and the embedded volume `.hermes-airmaze-embedded/profiles\`
 
-**How a sync keeps the overlay:** merge the base desktop-agent tree; leave `bot-groups/` and the files in the table above in place. Thin shims (`Select-Profile.ps1` → `Select-BotGroup.ps1`) stay so old shortcuts do not open a Profiles UI — they open bot groups.
+**How a sync keeps the overlay:** merge the base desktop-agent tree; leave `bot-groups/` and the files in the table above in place. Thin shims (`Select-Profile.ps1` → `Select-BotGroup.ps1`) stay for script callers. Start Menu no longer ships Bot Groups / Dashboard / Profiles `.lnk` files; leftovers are deleted on install and launch. Use in-app **Teams Marketplace**.
 
 ## Desktop agent and sidebar
 
