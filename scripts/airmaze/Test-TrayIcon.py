@@ -239,20 +239,27 @@ def test_apply_copies_hermes_icon_paths() -> None:
     src = db.icon_source()
     if src is None or src.name != "dragon-ai-agent-logo.ico":
         fail("icon_source() must prefer branding/dragon-ai-agent-logo.ico (installer already ships it)")
+    png_src = SIDEBAR_PNG
+    if not png_src.is_file() or png_src.read_bytes()[:8] != b"\x89PNG\r\n\x1a\n":
+        fail("branding/dragon-ai-agent-logo.png must exist for Electron PNG / apple-touch-icon")
 
     stale = b"\x00\x00\x01\x00STALE-HERMES-ICON"
+    stale_png = b"\x89PNG\r\n\x1a\nSTALE-HERMES-PNG"
     with tempfile.TemporaryDirectory(prefix="dragon-ico-apply-") as tmp:
-        unpacked = Path(tmp) / "win-unpacked"
+        unpacked = Path(tmp) / "DragonAIAgent" / "desktop" / "win-unpacked"
         resources = unpacked / "resources"
         asar_unpacked = resources / "app.asar.unpacked"
+        dist = asar_unpacked / "dist"
         app_dir = resources / "app"
-        asar_unpacked.mkdir(parents=True)
+        dist.mkdir(parents=True)
         app_dir.mkdir(parents=True)
         exe = unpacked / "Hermes.exe"
         exe.write_bytes(b"MZ")
         (asar_unpacked / "icon.ico").write_bytes(stale)
         (app_dir / "icon.ico").write_bytes(stale)
         (resources / "icon.ico").write_bytes(stale)
+        (dist / "apple-touch-icon.png").write_bytes(stale_png)
+        (resources / "icon.png").write_bytes(stale_png)
 
         summary = db.stamp_app_icon(exe)
         if summary.get("copied") is not True:
@@ -265,6 +272,7 @@ def test_apply_copies_hermes_icon_paths() -> None:
             app_dir / "icon.ico",
         ]
         src_bytes = src.read_bytes()
+        png_bytes = png_src.read_bytes()
         for dest in dests:
             if not dest.is_file():
                 fail(f"apply must copy the Dragon ICO to {dest.relative_to(unpacked)}")
@@ -274,12 +282,40 @@ def test_apply_copies_hermes_icon_paths() -> None:
             if got[:4] != b"\x00\x00\x01\x00" or got != src_bytes:
                 fail(f"apply did not install the sidebar ICO at {dest.relative_to(unpacked)}")
 
+        png_dests = [
+            resources / "icon.png",
+            unpacked / "icon.png",
+            dist / "apple-touch-icon.png",
+        ]
+        for dest in png_dests:
+            if not dest.is_file():
+                fail(f"apply must copy the Dragon PNG to {dest.relative_to(unpacked)}")
+            got = dest.read_bytes()
+            if got == stale_png:
+                fail(f"apply left a stale Hermes PNG at {dest.relative_to(unpacked)}")
+            if got != png_bytes:
+                fail(f"tray/taskbar PNG must be the Dragon sidebar mark at {dest.relative_to(unpacked)}")
+
         dest_fn = getattr(db, "icon_destinations", None)
         if dest_fn is None:
             fail("desktop_branding.py must expose icon_destinations(exe_path)")
         named = {p.name for p in dest_fn(exe)}
         if "icon.ico" not in named:
             fail("icon_destinations must include icon.ico paths")
+
+        standalone = Path(tmp) / "hermes" / "win-unpacked" / "Hermes.exe"
+        standalone.parent.mkdir(parents=True, exist_ok=True)
+        standalone.write_bytes(b"MZ")
+        (standalone.parent / "resources").mkdir(parents=True, exist_ok=True)
+        (standalone.parent / "resources" / "icon.ico").write_bytes(stale)
+        try:
+            db.stamp_app_icon(standalone)
+            fail("stamp_app_icon must refuse branding outside DragonAIAgent")
+        except ValueError as exc:
+            if "Refuse branding outside DragonAIAgent" not in str(exc):
+                fail(f"standalone refuse message unclear: {exc}")
+        if (standalone.parent / "resources" / "icon.ico").read_bytes() != stale:
+            fail("stamp_app_icon must not mutate standalone Hermes icon.ico")
 
     apply_ps = APPLY.read_text(encoding="utf-8")
     if "dragon-ai-agent-logo.ico" not in apply_ps:
@@ -294,7 +330,11 @@ def test_apply_copies_hermes_icon_paths() -> None:
         fail("Apply-DesktopBranding.ps1 must copy icon.ico")
     if 'Join-Path $resourcesDir "icon.ico"' not in apply_ps and "resources\\icon.ico" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must copy the ICO to Hermes resources\\icon.ico")
-    print("OK  apply copies ICO onto Hermes resource paths")
+    if "apple-touch-icon.png" not in apply_ps or "icon.png" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must copy Dragon PNG onto icon.png and apple-touch-icon.png")
+    if "Refuse branding outside DragonAIAgent" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must refuse branding outside DragonAIAgent")
+    print("OK  apply copies ICO+PNG onto Hermes resource paths (DragonAIAgent only)")
 
 
 def test_installer_and_shortcuts() -> None:

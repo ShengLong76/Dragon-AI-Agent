@@ -418,13 +418,24 @@ const protocol = 'hermes://copilot-key/start';
         icon_info = summary.get("icon") or {}
         if icon_info.get("copied") is not True:
             fail(f"overlay did not report icon copy: {icon_info}")
+        dragon_png = (ROOT / "branding" / "dragon-ai-agent-logo.png").read_bytes()
+        tray_png = unpacked / "resources" / "icon.png"
+        apple = dist / "apple-touch-icon.png"
+        if not tray_png.is_file() or tray_png.read_bytes() != dragon_png:
+            fail("apply must copy the Dragon PNG to resources/icon.png (Electron tray candidate)")
+        if not apple.is_file() or apple.read_bytes() != dragon_png:
+            fail("apply must overwrite unpacked dist/apple-touch-icon.png with the Dragon mark")
+        if "dragon-ai-agent-logo.svg" not in html:
+            fail("sidebar header script must reference dragon-ai-agent-logo.svg")
         font_info = summary.get("font") or {}
         if font_info.get("fontFamily") != "Syne":
             fail(f"overlay did not report Syne: {font_info}")
         mark = pack_dir / "dragon-ai-agent-logo.svg"
         png_mark = pack_dir / "dragon-ai-agent-logo.png"
         mark_txt = mark.read_text(encoding="utf-8") if mark.is_file() else ""
-        if not mark.is_file() or "#314A73" not in mark_txt or "#C41E3A" not in mark_txt:
+        if not mark.is_file():
+            fail("logo asset path dist/dragon-ai-branding/dragon-ai-agent-logo.svg must exist")
+        if "#314A73" not in mark_txt or "#C41E3A" not in mark_txt:
             fail("front-facing navy dragon SVG was not copied into the unpacked renderer")
         seat_icon = pack_dir / "teams" / "seo-specialist.svg"
         if not seat_icon.is_file() or "#314A73" not in seat_icon.read_text(encoding="utf-8"):
@@ -717,6 +728,14 @@ def test_packaging_not_regressed() -> None:
         fail("overlay text tokens must clear 4.5:1 on #1C1C20")
     if "dragon-ai-agent-logo.png" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must copy the dragon PNG into the overlay pack")
+    if "apple-touch-icon.png" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must overwrite Hermes apple-touch-icon.png with the Dragon PNG")
+    if "missing required logo" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must hard-fail when the sidebar logo files are missing")
+    for path in INSTALLERS:
+        text = read(path)
+        if "required Dragon logo" not in text:
+            fail(f"{path.name} must throw when required Dragon logo files are missing")
     mark = ROOT / "branding" / "dragon-ai-agent-logo.svg"
     png = ROOT / "branding" / "dragon-ai-agent-logo.png"
     ico = ROOT / "branding" / "dragon-ai-agent-logo.ico"
