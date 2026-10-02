@@ -44,12 +44,12 @@ Pick the models Dragon AI Agent should use. Product defaults (preselected):
 
 | Picker | Default | Written keys |
 |--------|---------|----------------|
-| **Default chat LLM** | Grok (xAI) `grok-4.6` | `principal.provider: xai`, `principal.model` |
+| **Default chat LLM** | Grok (xAI) `grok-4.6` | `principal.provider` / `principal.model`, Hermes `model.provider` / `model.default` |
 | **Default image LLM** | **Grok Imagine** `grok-imagine-image` | `image_gen.provider: xai`, `image_gen.model`, `image_gen.xai.model` |
 
 Also listed: `grok-4.5`, `grok-4.3`, and Imagine quality variants `grok-imagine-image-quality` / `grok-imagine-image-2.0`.
 
-Choices land in `%USERPROFILE%\.hermes-airmaze-embedded\config.yaml` (the Docker volume). This step does **not** ask for a new key — it reuses the xAI Grok login already on the PC (OAuth or `XAI_API_KEY`). After a change, restart the gateway if Edit profile → Generate still says no image model.
+Choices land in `%USERPROFILE%\.hermes-airmaze-embedded\config.yaml` (the Docker volume). **All bots inherit** that chat model — Personal Assistant and any team seats applied later — unless you override a bot’s own `model` / `principal`. This step does **not** ask for a new key — it reuses the xAI Grok login already on the PC (OAuth or `XAI_API_KEY`). After a change, restart the gateway if Edit profile → Generate still says no image model.
 
 The same xAI login is what **Grok voice** uses. Voice chat keeps **GPT** (needs `OPENAI_API_KEY` for GPT-Live) and adds **Grok** beside it (`XAI_API_KEY` / xAI OAuth). In the app, pick **GPT** or **Grok** on the composer; with Grok selected, **Talk with Grok** starts official full duplex. Details: [`VOICE.md`](VOICE.md).
 

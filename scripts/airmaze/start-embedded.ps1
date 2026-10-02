@@ -525,7 +525,7 @@ function Start-GatewayContainer {
     if (Test-Path -LiteralPath $applyModels) {
         try {
             & $applyModels -HermesHome $data -IfMissing | Out-Null
-            Write-LaunchLog "Applied default chat/image LLMs if gateway config was missing them"
+            Write-LaunchLog "Applied default chat/image LLMs if gateway config was missing them (bots inherit)"
         } catch {
             Write-LaunchLog "Gateway model defaults skipped: $($_.Exception.Message)" "WARN"
         }

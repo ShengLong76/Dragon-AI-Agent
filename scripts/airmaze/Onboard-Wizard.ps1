@@ -439,6 +439,7 @@ function Invoke-ConsoleWizard {
             Write-Host ""
             Write-Host "--- Default chat LLM and default image LLM ---"
             Write-Host "Dragon AI Agent uses the xAI Grok login already on this PC (OAuth or XAI_API_KEY). This step does not ask for a new key."
+            Write-Host "Every bot inherits this chat model (Personal Assistant and later team seats) unless you override that bot."
             Write-Host "Chat:  [1] Grok (xAI) grok-4.6  [2] grok-4.5  [3] grok-4.3  [S] Skip (write defaults if missing)"
             $chatChoice = Read-Host "Default chat LLM"
             Write-Host "Image: [1] Grok Imagine grok-imagine-image  [2] grok-imagine-image-quality  [3] grok-imagine-image-2.0  [S] Skip"
@@ -648,6 +649,10 @@ function Invoke-ConsoleWizard {
     Write-Host "--- Review (no secrets shown) ---"
     Show-ConsoleStatus "Welcome" (Get-StepValue $Progress "welcome")
     Show-ConsoleStatus "Models" (Get-StepValue $Progress "models")
+    $reviewChat = Get-MapValue -Map $Progress.nonSecret -Name "chat_model" -Default ""
+    if ($reviewChat) {
+        Write-Host "  Default chat LLM (all bots inherit): $reviewChat"
+    }
     Show-ConsoleStatus "Email" (Get-StepValue $Progress "email")
     Show-ConsoleStatus "CRM" (Get-StepValue $Progress "crm")
     Show-ConsoleStatus "Telephony" (Get-StepValue $Progress "telephony")
@@ -903,7 +908,7 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
         $cbImage.SelectedIndex = 0
         $content.Controls.Add($cbImage)
 
-        $content.Controls.Add((New-BrandLabel -Text "Writes into the embedded gateway config so chat and profile Generate work. Restart the gateway if Generate still says no image model." -Location (New-Object Drawing.Point(40, 232)) -Width 620 -Height 40 -Muted))
+        $content.Controls.Add((New-BrandLabel -Text "Writes into the embedded gateway config so chat and Generate work. All bots inherit this chat model unless you override a bot. Restart the gateway if Generate still says no image model." -Location (New-Object Drawing.Point(40, 232)) -Width 620 -Height 48 -Muted))
 
         $btnContinue = New-BrandButton -Text "Continue" -Location (New-Object Drawing.Point(40, 300)) -Size (New-Object Drawing.Size(140, 36)) -Primary
         $btnSkip = New-BrandButton -Text "Skip for now" -Location (New-Object Drawing.Point(200, 300)) -Size (New-Object Drawing.Size(140, 36))
@@ -1249,6 +1254,12 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
             $l.ForeColor = $color
             $content.Controls.Add($l)
             $y += 26
+        }
+        $reviewChat = Get-MapValue -Map $Progress.nonSecret -Name "chat_model" -Default ""
+        $reviewImage = Get-MapValue -Map $Progress.nonSecret -Name "image_model" -Default ""
+        if ($reviewChat -or $reviewImage) {
+            $modelLine = "Default chat {0} (all bots inherit). Image {1}." -f $(if ($reviewChat) { $reviewChat } else { "grok-4.6" }), $(if ($reviewImage) { $reviewImage } else { "grok-imagine-image" })
+            $content.Controls.Add((New-BrandLabel -Text $modelLine -Location (New-Object Drawing.Point(40, $y)) -Width 620 -Height 22 -Muted))
         }
 
         $btnFinish = New-BrandButton -Text "Finish" -Location (New-Object Drawing.Point(40, 280)) -Size (New-Object Drawing.Size(140, 36)) -Primary
