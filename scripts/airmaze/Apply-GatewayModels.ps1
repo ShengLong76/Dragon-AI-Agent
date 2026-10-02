@@ -8,6 +8,8 @@ param(
     [string]$HermesHome = "",
     [string]$Chat = "grok-4.6",
     [string]$Image = "grok-imagine-image",
+    [string]$CustomModel = "",
+    [string]$BaseUrl = "",
     [switch]$IfMissing,
     [switch]$RestartGateway
 )
@@ -35,6 +37,8 @@ if (-not $py) {
 }
 
 $pyArgs = @($engine, "apply", "--home", $HermesHome, "--chat", $Chat, "--image", $Image)
+if (-not [string]::IsNullOrWhiteSpace($CustomModel)) { $pyArgs += @("--custom-model", $CustomModel) }
+if (-not [string]::IsNullOrWhiteSpace($BaseUrl)) { $pyArgs += @("--base-url", $BaseUrl) }
 if ($IfMissing) { $pyArgs += "--if-missing" }
 & $py @pyArgs
 $code = $LASTEXITCODE

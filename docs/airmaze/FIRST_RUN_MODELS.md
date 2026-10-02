@@ -15,7 +15,7 @@ Edit profile → Generate shows **“No image model available… Restart gateway
 | Default chat LLM | **Grok (xAI)** `grok-4.6` | `principal.provider: xai`, `principal.model: grok-4.6` |
 | Default image LLM | **Grok Imagine** `grok-imagine-image` | `image_gen.provider: xai`, `image_gen.model` + `image_gen.xai.model` |
 
-`grok-4.6` is the head of Hermes’s current xAI static catalog (`hermes_cli/models_catalog_static.py`). Older `grok-4` / `grok-4.3` ids still work; retirement maps retired Grok chat ids to `grok-4.3`. The user can change the pickers.
+`grok-4.6` is the head of Hermes’s current xAI static catalog (`hermes_cli/models_catalog_static.py`). Older `grok-4` / `grok-4.3` ids still work; retirement maps retired Grok chat ids to `grok-4.3`. The pickers also list popular Hermes cloud providers (**OpenAI** `openai-api` / `gpt-4o`, **Anthropic** `anthropic` / `claude-sonnet-4-6`, **Google Gemini** `gemini` / `gemini-2.5-pro`, **OpenRouter** `openrouter`) and an explicit **Self-hosted / custom endpoint** (`provider: custom`, base URL + model id). Grok / Grok Imagine stay the suggested defaults (index 0).
 
 Image quality variants Hermes already lists (surface them):
 
@@ -39,7 +39,8 @@ image_gen:
 
 - **Do not** invent `plugins.image_gen` unless that block already exists (legacy slot). Current Hermes docs and the xAI plugin read **top-level** `image_gen`.
 - Merge into an existing `config.yaml`. Do not wipe `bot_desktop`, `browser`, tools, or other keys.
-- Do not write API keys. Auth stays Hermes xAI OAuth or `XAI_API_KEY` already on the machine / in the embedded home `.env`.
+- Do not write API keys into `config.yaml`. Cloud picks reuse env keys already on the machine (`XAI_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` / `GEMINI_API_KEY`, `OPENROUTER_API_KEY`). Self-hosted stores an optional key via DPAPI (`chat_api_key`) and writes only `principal.base_url` / `model.base_url`.
+- Chat writes both Dragon `principal` and Hermes `model` (`provider` + `default`) so the gateway and the desktop agree.
 
 ## UI path
 
@@ -54,9 +55,10 @@ WinForms + console fallback both get two ComboBoxes / numbered lists:
 1. Default chat LLM
 2. Default image LLM
 
-Copy is **Dragon AI Agent** (not Hermes). Auth line: this step does not ask for a new key; it uses the xAI Grok login Dragon AI Agent already has (OAuth or `XAI_API_KEY`).
+Copy is **Dragon AI Agent** (not Hermes). Auth line: suggested default is Grok; cloud providers reuse keys already on this PC; self-hosted asks for base URL + model id (API key optional).
 
-- **Continue** writes the selected pair (overwrite those keys).
+- **Continue** writes the selected pair (overwrite those keys). Do not assign `.Text` on `$msgLabel` from a `GetNewClosure()` handler (that object is often `$null` and WinForms shows *The property 'Text' cannot be found on this object*).
+- Status under the header is **Welcome + Models only** (`Welcome: OK · Models: pending`), not every step smashed into one PENDING string.
 - **Skip this step** / **Skip wizard** writes the product defaults **only if** `image_gen.provider` or `principal.model` is missing.
 - Review lists the chosen labels (never secrets).
 
@@ -72,7 +74,7 @@ Launcher writes defaults **before** `docker compose up` when those keys are miss
 
 ## Out of scope
 
-- New OAuth / API-key screens
+- New OAuth flows (self-hosted may collect an optional API key the same way other local connectors do — DPAPI, not YAML)
 - Replacing Teams-picker work
 - Rebuilding `Hermes.exe` / `app.asar`
 - Live UltraDragon smoke in CI (James re-smokes Generate after gateway restart)

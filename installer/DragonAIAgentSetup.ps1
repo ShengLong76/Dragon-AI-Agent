@@ -389,6 +389,7 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\gateway_models.py",
         "scripts\airmaze\Apply-GatewayModels.ps1",
         "scripts\airmaze\Test-GatewayModels.py",
+        "scripts\airmaze\Test-OnboardWizard.py",
         "docs\airmaze\FIRST_RUN_MODELS.md",
         "scripts\airmaze\voice_chat.py",
         "scripts\airmaze\Apply-VoiceChat.ps1",
