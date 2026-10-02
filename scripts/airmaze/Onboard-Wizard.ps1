@@ -1363,7 +1363,7 @@ function Invoke-WizardSelfTest {
         $failures.Add("Format-WizardStatusLine expected '$expected' got '$line'") | Out-Null
     }
     foreach ($banned in @("Email", "CRM", "Phone", "Dialer", "SUCCESS", "PENDING", "mail:", "ler:")) {
-        if ($line -like "*$banned*") {
+        if ($line.Contains($banned)) {
             $failures.Add("status line must not contain '$banned': $line") | Out-Null
         }
     }

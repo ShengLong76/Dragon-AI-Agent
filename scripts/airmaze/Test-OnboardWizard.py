@@ -202,6 +202,12 @@ def test_wizard_source() -> None:
     if "Test-WizardCanSetText" not in guard:
         fail("Set-WizardControlText must check Test-WizardCanSetText before assigning .Text")
 
+    selftest = extract_function(wizard, "Invoke-WizardSelfTest")
+    if '$line -like "*$banned*"' in selftest:
+        fail("SelfTest -like is case-insensitive and would reject lowercase pending")
+    if "$line.Contains($banned)" not in selftest:
+        fail("SelfTest must case-sensitively reject SUCCESS/PENDING mashups")
+
     print("OK  wizard source wired for Continue + short status")
 
 
