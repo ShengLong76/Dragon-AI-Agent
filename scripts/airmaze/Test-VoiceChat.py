@@ -220,6 +220,22 @@ def test_apply_does_not_replace_gpt(vc) -> None:
             fail("switching back to GPT must keep grok_live")
         if again.get("keptGrokLive") is not True or grok.get("keptGptLive") is not True:
             fail(f"both provider blocks must survive switches: {gpt} {grok} {again}")
+        prefs = vc.apply_voice_prefs(home, {"voice": "rex", "speed": 1.5, "language": "en", "interrupt": False})
+        saved = (prefs.get("prefs") or {})
+        if saved.get("voice") != "rex" or float(saved.get("speed") or 0) != 1.5:
+            fail(f"gear prefs must persist official voice + speed, got {prefs}")
+        if saved.get("interrupt") is not False:
+            fail("gear prefs must persist interrupt toggle")
+        data = _mapping(cfg.read_text(encoding="utf-8"))
+        if (data.get("voice") or {}).get("voice_chat_mode") != "gpt-live":
+            fail("saving gear prefs must not switch voice_chat_mode")
+        if ((data.get("voice") or {}).get("grok_live") or {}).get("voice") != "rex":
+            fail("grok_live.voice must take the gear Voice setting")
+        bogus = vc.apply_voice_prefs(home, {"voice": "invented-voice", "speed": 9})
+        if (bogus.get("prefs") or {}).get("voice") != "eve" and (bogus.get("prefs") or {}).get("voice") != "rex":
+            fail("unknown voice ids must fall back to an official built-in")
+        if float((bogus.get("prefs") or {}).get("speed") or 0) > 2:
+            fail("speed must clamp to the official 0.75–2 range")
     print("OK  apply switches GPT/Grok without deleting the other")
 
 
@@ -283,10 +299,12 @@ def test_overlay_selector_coexists(vc) -> None:
     script = db.voice_provider_script()
     if 'data-dragon-ai-branding="voice-provider"' not in script:
         fail("overlay must mark the voice-provider script")
-    if "GPT" not in script or "Grok" not in script:
-        fail("overlay script must render both GPT and Grok options")
-    if script.lower().count("gpt") < 1:
-        fail("overlay must keep a GPT control")
+    if "data-dragon-voice-widget" not in script or "data-dragon-voice-capsule" not in script:
+        fail("overlay script must render the floating Grok-Bot capsule")
+    if "data-dragon-voice-gear" not in script or "data-dragon-voice-settings-panel" not in script:
+        fail("capsule must include gear Voice settings")
+    if "data-dragon-voice-option" in script:
+        fail("chat-screen GPT/Grok pills must be removed")
     if "127.0.0.1:8654" not in script:
         fail("overlay must call the voice helper on :8654")
     if "8650" in script:
@@ -301,13 +319,18 @@ def test_overlay_selector_coexists(vc) -> None:
         fail("overlay must target official grok-voice-latest realtime")
     if "/api/voice/ephemeral" not in script:
         fail("overlay must mint the token through the helper, not with XAI_API_KEY")
+    if "/api/voice/prefs" not in script:
+        fail("gear panel must persist voice/speed through /api/voice/prefs")
     js = read(VOICE_JS)
     if "Talk with Grok" not in js or "xai-client-secret." not in js:
         fail("branding/voice/dragon-voice-selector.js must host duplex")
-    if "Start conversation" not in js or "findComposerAction" not in js:
-        fail("Talk with Grok must integrate Start conversation into the composer action")
+    if "data-dragon-voice-trigger" not in js or "findComposerAction" not in js:
+        fail("waveform trigger must mount on the composer action")
     if "data-dragon-ai-composer-action" not in js:
-        fail("Start conversation must mount in data-dragon-ai-composer-action")
+        fail("waveform trigger must mount in data-dragon-ai-composer-action")
+    for needle in ("eve", "ara", "rex", "sal", "leo", "Speed", "Language", "Interrupt"):
+        if needle not in js:
+            fail(f"gear Voice settings must include {needle}")
     html = "<html><head></head><body></body></html>"
     once, changed = db.inject_html_branding(html)
     twice, changed2 = db.inject_html_branding(once)
@@ -319,22 +342,20 @@ def test_overlay_selector_coexists(vc) -> None:
         fail("Settings Voice conversation overlay must inject exactly once")
     if "Grok Voice" not in once or "Voice conversation mode" not in once:
         fail("Settings overlay must add Grok Voice to Voice conversation mode")
-    if "GPT" not in once or "Grok" not in once:
-        fail("injected HTML must contain both GPT and Grok")
     css = read(CSS)
-    if "[data-dragon-voice-provider]" not in css:
-        fail("dragon-ui.css must style the voice provider control")
+    if "[data-dragon-voice-widget]" not in css or "[data-dragon-voice-capsule]" not in css:
+        fail("dragon-ui.css must style the floating voice capsule")
     if '[data-dragon-voice-mode="select"]' not in css:
         fail("dragon-ui.css must style the Settings Voice conversation mode select")
-    if "aria-checked" not in css and "[aria-checked=" not in css:
-        fail("voice selector CSS must style the selected option")
-    if "[data-dragon-grok-talk]" not in css:
-        fail("dragon-ui.css must style Talk with Grok")
+    if "[data-dragon-voice-settings-panel]" not in css or "[data-dragon-voice-gear]" not in css:
+        fail("dragon-ui.css must style gear Voice settings")
+    if "[data-dragon-voice-trigger]" not in css:
+        fail("dragon-ui.css must style the composer waveform trigger")
     if "dragon-ai-composer-chrome:1" not in css or "[data-dragon-ai-composer-action]" not in css:
         fail("dragon-ui.css must stamp composer chrome and the action cluster")
-    talk_rule = css.split("[data-dragon-grok-talk] {", 1)
-    if len(talk_rule) < 2 or "var(--color-primary)" in talk_rule[1].split("}", 1)[0]:
-        fail("Talk / Start conversation must not keep a crimson bordered island")
+    trigger_rule = css.split("[data-dragon-voice-trigger] {", 1)
+    if len(trigger_rule) < 2 or "var(--color-primary)" in trigger_rule[1].split("}", 1)[0]:
+        fail("waveform trigger must not keep a crimson bordered island")
     table = json.loads(read(TABLE))
     voice = table.get("voice") or {}
     if voice.get("options") != ["gpt", "grok"]:
@@ -349,7 +370,7 @@ def test_overlay_selector_coexists(vc) -> None:
         fail("dragon-voice-settings.js must add Grok Voice / grok-live")
     if "data-dragon-voice-option" in settings:
         fail("Settings overlay must not add chat-screen GPT/Grok pills")
-    print("OK  overlay selector shows GPT and Grok")
+    print("OK  overlay waveform capsule hosts Grok Voice")
 
 
 def test_docs_and_packaging(vc) -> None:
@@ -385,7 +406,7 @@ def test_docs_and_packaging(vc) -> None:
         fail("SETUP_GUIDE.md must mention Grok voice + XAI_API_KEY")
     branding = read(BRANDING_DOC)
     if "Grok" not in branding or "GPT" not in branding:
-        fail("BRANDING.md must mention the GPT | Grok voice selector")
+        fail("BRANDING.md must mention GPT and Grok Voice")
     log = read(CHANGELOG)
     if "Grok voice" not in log or "GPT voice" not in log:
         fail("CHANGELOG.md must record Grok added beside GPT voice")

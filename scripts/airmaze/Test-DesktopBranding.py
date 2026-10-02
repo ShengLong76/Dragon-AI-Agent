@@ -156,22 +156,26 @@ def assert_composer_chrome(css: str, voice_js: str) -> None:
         fail("dragon-ui.css must style the composer action cluster")
     if "[data-dragon-ai-composer-chrome]" not in css:
         fail("dragon-ui.css must neutralize the composer wrapper outline")
-    talk_block = css.split("[data-dragon-grok-talk] {", 1)
-    if len(talk_block) < 2:
-        fail("dragon-ui.css must style Talk with Grok / Start conversation")
-    talk_rule = talk_block[1].split("}", 1)[0]
-    if "var(--color-primary)" in talk_rule or "#c41e3a" in talk_rule.lower():
-        fail("Talk control must not keep a persistent crimson border")
-    if "border: 0" not in talk_rule and "border: none" not in talk_rule:
-        fail("Talk / Start conversation must not be a bordered island")
-    if "Start conversation" not in voice_js:
-        fail("voice overlay must expose Start conversation on the composer action")
+    if "[data-dragon-voice-trigger]" not in css:
+        fail("dragon-ui.css must style the composer waveform trigger")
+    trigger_block = css.split("[data-dragon-voice-trigger] {", 1)
+    if len(trigger_block) < 2:
+        fail("dragon-ui.css must style the waveform trigger")
+    trigger_rule = trigger_block[1].split("}", 1)[0]
+    if "var(--color-primary)" in trigger_rule or "#c41e3a" in trigger_rule.lower():
+        fail("waveform trigger must not keep a persistent crimson border")
+    if "data-dragon-voice-widget" not in voice_js or "data-dragon-voice-capsule" not in voice_js:
+        fail("voice overlay must mount the floating Grok-Bot capsule")
+    if "data-dragon-voice-gear" not in voice_js or "data-dragon-voice-settings-panel" not in voice_js:
+        fail("voice overlay must include gear Voice settings (voice, speed)")
+    if "data-dragon-voice-option" in voice_js:
+        fail("chat-screen GPT/Grok pills must be removed")
     if "findComposerAction" not in voice_js or "data-dragon-ai-composer-action" not in voice_js:
-        fail("voice overlay must integrate Start conversation into the composer action")
+        fail("voice overlay must put the waveform trigger on the composer action")
     if "Talk with Grok" not in voice_js:
         fail("voice overlay must keep Talk with Grok as the accessible Grok duplex name")
     if "outline: 2px solid #c41e3a" not in css:
-        fail("composer textbox and pills must keep a 2px crimson focus-visible ring")
+        fail("composer textbox and voice controls must keep a 2px crimson focus-visible ring")
 
 
 def assert_chat_bubbles(css: str, table: dict | None = None) -> None:
@@ -501,7 +505,7 @@ const protocol = 'hermes://copilot-key/start';
         if 'data-dragon-ai-branding="teams-picker"' not in html or "Teams" not in html:
             fail("index.html must inject the in-app Teams picker")
         if 'data-dragon-ai-branding="voice-provider"' not in html:
-            fail("index.html must inject the GPT | Grok voice selector")
+            fail("index.html must inject the Grok Voice waveform overlay")
         if 'data-dragon-ai-branding="voice-settings"' not in html or "Grok Voice" not in html:
             fail("index.html must inject Settings Voice conversation Grok Voice")
         if "GPT" not in html or "Grok" not in html:
@@ -780,8 +784,8 @@ def test_packaging_not_regressed() -> None:
     if "56px" not in host_txt or "hide-sidebar" not in host_txt.lower() and "hide sidebar" not in host_txt.lower():
         fail("SIDEBAR_HOST.md must record the 56px lockup to the right of hide-sidebar")
     chrome_note = ROOT / "docs" / "airmaze" / "PACKAGING_CHROME.md"
-    if not chrome_note.is_file() or "Start conversation" not in read(chrome_note):
-        fail("docs/airmaze/PACKAGING_CHROME.md must cover composer Start conversation")
+    if not chrome_note.is_file() or "waveform" not in read(chrome_note).lower():
+        fail("docs/airmaze/PACKAGING_CHROME.md must cover the composer waveform trigger")
     for label, text in (("sidebar-header.js", sidebar_js), ("teams-picker.js", teams_js), ("dragon-ui.css", css)):
         compact = text.replace(" ", "")
         if "rgba(196,30,58" in compact:
@@ -818,10 +822,10 @@ def test_packaging_not_regressed() -> None:
     assert_logo_175_right_of_hide(css, sidebar_js)
     if "Personal Assistant" not in css:
         fail("dragon-ui.css must keep Personal Assistant as the visible sidebar bot")
-    if "[data-dragon-voice-provider]" not in css:
-        fail("dragon-ui.css must style the GPT | Grok voice selector")
-    if "[data-dragon-grok-talk]" not in css:
-        fail("dragon-ui.css must style Talk with Grok")
+    if "[data-dragon-voice-widget]" not in css or "[data-dragon-voice-capsule]" not in css:
+        fail("dragon-ui.css must style the floating Grok voice capsule")
+    if "[data-dragon-voice-settings-panel]" not in css:
+        fail("dragon-ui.css must style the gear Voice settings panel")
     if '[data-dragon-voice-mode="select"]' not in css:
         fail("dragon-ui.css must style Settings Voice conversation mode")
     voice_js = ROOT / "branding" / "voice" / "dragon-voice-selector.js"

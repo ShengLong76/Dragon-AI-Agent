@@ -24,19 +24,20 @@ Nothing — Marketplace, Sessions/Bots, or other icons — may paint on top of t
 
 Host fallback remains `docs/airmaze/SIDEBAR_HOST.md`. Stamps: `dragon-ai-marketplace-label:1`, `dragon-ai-marketplace-blue:1`.
 
-## 2) Composer chrome — no red island; start conversation on the action
+## 2) Composer chrome — Grok-Bot waveform, no red island
 
-**Annotation:** remove the crimson outline around “Give Dragon AI a task”, VOICE / GPT / Grok, and Talk with Grok. Integrate **start conversation** into the right-side composer action / talk control.
+**Annotation:** remove the crimson outline around “Give Dragon AI a task” and the old VOICE / GPT / Grok pills. Match Grok Bot: a rounded composer pill with a **waveform** on the right.
 
-`--color-ring: #C41E3A` on `:root` plus a crimson **Talk with Grok** border made a persistent frame. Focus Appearance still needs a 2px ring on the **textbox and pills**, not a wrapper island.
+`--color-ring: #C41E3A` on `:root` plus a crimson talk-button border made a persistent frame. Focus Appearance still needs a 2px ring on the **textbox and voice controls**, not a wrapper island.
 
 ### Do
 
-- Strip persistent outline / box-shadow / tw-ring on `[data-slot="aui_composer"]`, `[data-slot="composer"]`, `[data-dragon-voice-provider]`, and the action cluster. Composer border stays `--color-border`.
-- Keep `:focus-visible` on the textbox, GPT/Grok, and the talk control (`2px solid #C41E3A`, offset 2px). Selected GPT/Grok fill stays crimson.
-- Mount GPT | Grok as borderless toolbar chrome inside the composer (`data-dragon-ai-composer-chrome`).
-- Move Talk into `[data-dragon-ai-composer-action]` immediately before the native right-side action (voice / mic / last composer button). Idle visible label **Start conversation**; accessible name includes **Talk with Grok**. Live: **Stop Grok**. No separate crimson-bordered island.
-- Do not hijack Send. GPT still uses the Hermes mic. Grok duplex stays overlay `wss://api.x.ai/v1/realtime?model=grok-voice-latest`.
+- Strip persistent outline / box-shadow / tw-ring on `[data-slot="aui_composer"]`, `[data-slot="composer"]`, and the action cluster. Composer is a dark 28px pill.
+- Keep `:focus-visible` on the textbox, waveform trigger, and capsule controls (`2px solid #C41E3A`, offset 2px).
+- Remove chat-screen GPT | Grok pills.
+- Mount a waveform trigger in `[data-dragon-ai-composer-action]` immediately before the native right-side action. Accessible name **Talk with Grok**. Click opens the floating capsule near the top of the chat pane: avatar | purple bars | **gear** | chat | mic | red X.
+- Gear **must** open Voice settings (official xAI voice, speed, language, interrupt). Chat returns to text. Mic mutes. Red X ends duplex.
+- Do not hijack Send. Grok duplex stays overlay `wss://api.x.ai/v1/realtime?model=grok-voice-latest`. Settings → Voice remains the mode picker (`chained` | `gpt-live` | `grok-live`).
 
 Stamp: `dragon-ai-composer-chrome:1`. Voice contract: `docs/airmaze/VOICE.md`.
 

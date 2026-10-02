@@ -5,9 +5,10 @@ Upstream Hermes voice chat is ``voice.voice_chat_mode: chained | gpt-live``.
 ``gpt-live`` is the existing OpenAI GPT voice path (``gpt-live-1``). This
 module ADDS Grok voice beside it on that same key. It never removes GPT.
 
-Selection is Settings → Voice → Voice conversation mode (and this helper),
-not the chat-screen GPT/Grok pills. Those pills stay; they are not the
-place this option is added.
+Selection is Settings → Voice → Voice conversation mode (and this helper).
+The chat-screen GPT/Grok pills are removed. The composer waveform opens
+the Grok-Bot capsule (avatar | bars | gear | chat | mic | X). Gear
+persists official xAI voice / speed / language on this helper.
 
 Grok full duplex uses documented xAI Voice APIs (not invented):
 
@@ -71,7 +72,18 @@ XAI_STT_MODEL = "grok-voice-transcribe-2.0"
 XAI_VOICE_MODEL = "grok-voice-latest"
 XAI_DEFAULT_VOICE = "eve"
 XAI_DEFAULT_LANGUAGE = "en"
+XAI_DEFAULT_SPEED = 1.0
 XAI_PCM_RATE = 24000
+# Official built-in voices — https://docs.x.ai/developers/model-capabilities/audio/voice
+XAI_VOICES = (
+    {"id": "eve", "label": "Eve", "tone": "Energetic, upbeat"},
+    {"id": "ara", "label": "Ara", "tone": "Warm, friendly"},
+    {"id": "rex", "label": "Rex", "tone": "Confident, clear"},
+    {"id": "sal", "label": "Sal", "tone": "Smooth, balanced"},
+    {"id": "leo", "label": "Leo", "tone": "Authoritative, strong"},
+)
+XAI_VOICE_IDS = {row["id"] for row in XAI_VOICES}
+XAI_LANGUAGES = ("en", "auto", "es-ES", "fr", "de", "ja", "zh")
 XAI_AUDIO_FORMAT = {"type": "audio/pcm", "rate": XAI_PCM_RATE}
 XAI_WS_PROTOCOL_PREFIX = "xai-client-secret."
 GROK_LIVE_MODE = "grok-live"
@@ -121,7 +133,9 @@ PROVIDERS: list[dict[str, Any]] = [
         "model": XAI_VOICE_MODEL,
         "sttModel": XAI_STT_MODEL,
         "voice": XAI_DEFAULT_VOICE,
+        "voices": [dict(row) for row in XAI_VOICES],
         "language": XAI_DEFAULT_LANGUAGE,
+        "speed": XAI_DEFAULT_SPEED,
         "auth": ["XAI_API_KEY", "xAI OAuth already on this PC"],
         "endpoints": {
             "tts": XAI_TTS_URL,
@@ -144,7 +158,7 @@ PROVIDERS: list[dict[str, Any]] = [
         "notes": (
             "xAI Grok Voice full duplex (grok-voice-latest). Settings Voice "
             "conversation mode writes voice.voice_chat_mode: grok-live — the "
-            "same key as gpt-live. Overlay Talk with Grok mints "
+            "same key as gpt-live. Overlay waveform capsule mints "
             "POST /v1/realtime/client_secrets and opens the documented "
             "WebSocket (not OpenAI /v1/live/sessions). Unary STT/TTS remain "
             "fallback if the helper or key is missing."
@@ -326,11 +340,107 @@ def default_grok_live() -> dict[str, Any]:
         "client_secrets": XAI_CLIENT_SECRETS_URL,
         "transport": "websocket",
         "turn_detection": {"type": "server_vad"},
+        "speed": XAI_DEFAULT_SPEED,
+        "language": XAI_DEFAULT_LANGUAGE,
+        "interrupt": True,
         "audio": {
             "input": {"format": dict(XAI_AUDIO_FORMAT)},
             "output": {"format": dict(XAI_AUDIO_FORMAT)},
         },
     }
+
+
+def grok_voices() -> list[dict[str, Any]]:
+    return [dict(row) for row in XAI_VOICES]
+
+
+def normalize_voice_id(raw: Any) -> str:
+    value = str(raw or "").strip().lower()
+    return value if value in XAI_VOICE_IDS else XAI_DEFAULT_VOICE
+
+
+def normalize_speed(raw: Any) -> float:
+    try:
+        speed = float(raw)
+    except (TypeError, ValueError):
+        return XAI_DEFAULT_SPEED
+    speed = max(0.75, min(2.0, speed))
+    return round(speed * 4) / 4
+
+
+def normalize_language(raw: Any) -> str:
+    value = str(raw or "").strip()
+    return value if value in XAI_LANGUAGES else XAI_DEFAULT_LANGUAGE
+
+
+def current_prefs(parsed: dict[str, Any]) -> dict[str, Any]:
+    voice = _as_map(parsed.get("voice"))
+    grok = _as_map(voice.get("grok_live"))
+    tts = _as_map(_as_map(parsed.get("tts")).get("xai"))
+    interrupt = grok.get("interrupt")
+    if isinstance(interrupt, str):
+        interrupt = interrupt.strip().lower() in {"1", "true", "yes"}
+    elif interrupt is None:
+        interrupt = True
+    return {
+        "voice": normalize_voice_id(grok.get("voice") or tts.get("voice_id") or XAI_DEFAULT_VOICE),
+        "speed": normalize_speed(grok.get("speed") if grok.get("speed") not in (None, "") else XAI_DEFAULT_SPEED),
+        "language": normalize_language(grok.get("language") or tts.get("language") or XAI_DEFAULT_LANGUAGE),
+        "interrupt": bool(interrupt),
+        "voices": grok_voices(),
+    }
+
+
+def apply_voice_prefs(home: Path | str, prefs: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Persist gear-panel voice / speed / language. Does not switch provider."""
+    incoming = prefs if isinstance(prefs, dict) else {}
+    path = config_path(home)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    existing = path.read_text(encoding="utf-8") if path.is_file() else ""
+    parsed = gm._simple_load(existing) if existing.strip() else {}
+    current = current_prefs(parsed)
+    voice_id = normalize_voice_id(incoming.get("voice") or current["voice"])
+    speed = normalize_speed(incoming["speed"] if "speed" in incoming else current["speed"])
+    language = normalize_language(incoming.get("language") or current["language"])
+    interrupt = incoming.get("interrupt")
+    if interrupt is None:
+        interrupt = current["interrupt"]
+    interrupt = bool(interrupt)
+    existing_voice = _as_map(parsed.get("voice"))
+    grok_live = _merge_keep(
+        default_grok_live(),
+        _merge_keep(
+            _as_map(existing_voice.get("grok_live")),
+            {
+                "voice": voice_id,
+                "speed": speed,
+                "language": language,
+                "interrupt": interrupt,
+            },
+        ),
+    )
+    validate_grok_live(grok_live)
+    voice = _merge_keep(existing_voice, {"grok_live": grok_live})
+    tts = _merge_keep(
+        _as_map(parsed.get("tts")),
+        {
+            "xai": _merge_keep(
+                _as_map(_as_map(parsed.get("tts")).get("xai")),
+                {"voice_id": voice_id, "language": language},
+            )
+        },
+    )
+    text = existing
+    text = gm._upsert_block(text, "voice", f"voice:\n{_yaml_map(voice, 1)}")
+    text = gm._upsert_block(text, "tts", f"tts:\n{_yaml_map(tts, 1)}")
+    if not text.endswith("\n"):
+        text += "\n"
+    dumped = (_yaml_map(voice) + _yaml_map(tts)).lower()
+    if "api_key:" in dumped or "xai_api_key:" in dumped or "openai_api_key:" in dumped:
+        raise ValueError("refuse to write API keys into config.yaml")
+    path.write_text(text, encoding="utf-8")
+    final = gm._simple_load(path.read_text(encoding="utf-8"))
+    return {"ok": True, "path": str(path), "prefs": current_prefs(final)}
 
 
 def validate_grok_live(block: dict[str, Any]) -> None:
@@ -541,8 +651,14 @@ def mint_ephemeral_token(
     api_key: str | None = None,
     home: Path | str | None = None,
     opener: Any = None,
+    voice: str | None = None,
 ) -> dict[str, Any]:
     """POST /v1/realtime/client_secrets. Returns value + realtime URL, never the API key."""
+    parsed: dict[str, Any] = {}
+    if home is not None:
+        cfg = config_path(home)
+        parsed = gm._simple_load(cfg.read_text(encoding="utf-8")) if cfg.is_file() else {}
+    chosen = normalize_voice_id(voice or current_prefs(parsed).get("voice"))
     key = str(api_key or resolve_xai_api_key(home)).strip()
     if not key:
         return {
@@ -551,7 +667,7 @@ def mint_ephemeral_token(
             "message": "Set XAI_API_KEY or keep the existing xAI Grok login. Do not paste a key into the desktop UI.",
             "docs": DOCS["ephemeral"],
             "realtimeUrl": realtime_session_url(),
-            "session": realtime_session_update(),
+            "session": realtime_session_update(chosen),
         }
     spec = client_secrets_request()
     body = json.dumps(spec["json"]).encode("utf-8")
@@ -594,7 +710,7 @@ def mint_ephemeral_token(
         "expires_at": payload.get("expires_at"),
         "token": payload,
         "realtimeUrl": realtime_session_url(),
-        "session": realtime_session_update(),
+        "session": realtime_session_update(chosen),
         "wsProtocolPrefix": XAI_WS_PROTOCOL_PREFIX,
         "docs": DOCS["ephemeral"],
     }
@@ -611,6 +727,8 @@ def selection_payload(home: Path | str) -> dict[str, Any]:
         "voiceChatMode": mode,
         "modes": voice_chat_modes(),
         "providers": provider_catalog(),
+        "prefs": current_prefs(parsed),
+        "voices": grok_voices(),
         "path": str(path),
         "hasXaiKey": bool(resolve_xai_api_key(Path(home))),
         "docs": DOCS,
@@ -650,6 +768,12 @@ def make_handler(home: Path) -> type[BaseHTTPRequestHandler]:
                 status, body = _json_bytes(selection_payload(home))
                 self._send(status, body)
                 return
+            if path in ("/api/voice/prefs", "/voice/prefs"):
+                path_cfg = config_path(home)
+                parsed = gm._simple_load(path_cfg.read_text(encoding="utf-8")) if path_cfg.is_file() else {}
+                status, body = _json_bytes({"ok": True, "prefs": current_prefs(parsed), "voices": grok_voices()})
+                self._send(status, body)
+                return
             if path in ("/api/health", "/health"):
                 self._send(200, b'{"ok":true,"service":"dragon-voice"}\n')
                 return
@@ -676,8 +800,13 @@ def make_handler(home: Path) -> type[BaseHTTPRequestHandler]:
                     self._send(status, body)
                     return
                 if path in ("/api/voice/ephemeral", "/voice/ephemeral"):
-                    result = mint_ephemeral_token(home=home)
+                    result = mint_ephemeral_token(home=home, voice=str(data.get("voice") or ""))
                     status, body = _json_bytes(result, 200 if result.get("ok") else 400)
+                    self._send(status, body)
+                    return
+                if path in ("/api/voice/prefs", "/voice/prefs"):
+                    result = apply_voice_prefs(home, data)
+                    status, body = _json_bytes(result)
                     self._send(status, body)
                     return
             except Exception as exc:  # noqa: BLE001 — HTTP boundary
@@ -739,6 +868,13 @@ def self_test() -> int:
         return 1
     if grok.get("voiceChatMode") != GROK_LIVE_MODE:
         print(f"self-test: Grok must write voice_chat_mode grok-live, got {grok}", file=sys.stderr)
+        return 1
+    voice_ids = [row["id"] for row in grok_voices()]
+    if voice_ids != ["eve", "ara", "rex", "sal", "leo"]:
+        print(f"self-test: official Grok voices drifted, got {voice_ids}", file=sys.stderr)
+        return 1
+    if normalize_voice_id("NOPE") != XAI_DEFAULT_VOICE or normalize_speed(9) != 2.0:
+        print("self-test: voice/speed normalize must stay on official ranges", file=sys.stderr)
         return 1
     modes = [row["id"] for row in voice_chat_modes()]
     if modes != [CHAINED_MODE, OPENAI_LIVE_MODE, GROK_LIVE_MODE]:
