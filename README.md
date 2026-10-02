@@ -170,6 +170,7 @@ scripts/airmaze/
   desktop_branding.json
   Test-DesktopBranding.py
   Test-LaunchSmoke.py
+  Test-WindowsLaunchParse.py
   Test-DesktopServeAdapter.py
   Test-UnderstandAnything.py
   Test-BotGroups.py

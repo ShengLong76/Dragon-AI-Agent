@@ -5,7 +5,7 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$Home = "",
+    [string]$HermesHome = "",
     [string]$Chat = "grok-4.6",
     [string]$Image = "grok-imagine-image",
     [switch]$IfMissing,
@@ -20,8 +20,8 @@ if (-not (Test-Path -LiteralPath $engine)) {
     Write-Error "gateway_models.py not found beside Apply-GatewayModels.ps1"
     exit 1
 }
-if ([string]::IsNullOrWhiteSpace($Home)) {
-    $Home = Join-Path $env:USERPROFILE ".hermes-airmaze-embedded"
+if ([string]::IsNullOrWhiteSpace($HermesHome)) {
+    $HermesHome = Join-Path $env:USERPROFILE ".hermes-airmaze-embedded"
 }
 
 $py = $null
@@ -34,7 +34,7 @@ if (-not $py) {
     exit 1
 }
 
-$pyArgs = @($engine, "apply", "--home", $Home, "--chat", $Chat, "--image", $Image)
+$pyArgs = @($engine, "apply", "--home", $HermesHome, "--chat", $Chat, "--image", $Image)
 if ($IfMissing) { $pyArgs += "--if-missing" }
 & $py @pyArgs
 $code = $LASTEXITCODE

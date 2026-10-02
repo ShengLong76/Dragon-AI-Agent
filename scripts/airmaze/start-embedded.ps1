@@ -433,7 +433,6 @@ function Set-DockerTrayOnlySettings {
     }
     $patch = @{
         openUIOnStartupDisabled = $true
-        OpenUIOnStartupDisabled = $true
         startMinimized          = $true
         minimizeToTray          = $true
         displayedOnboarding     = $true
@@ -525,7 +524,7 @@ function Start-GatewayContainer {
     $applyModels = Join-Path $PSScriptRoot "Apply-GatewayModels.ps1"
     if (Test-Path -LiteralPath $applyModels) {
         try {
-            & $applyModels -Home $data -IfMissing | Out-Null
+            & $applyModels -HermesHome $data -IfMissing | Out-Null
             Write-LaunchLog "Applied default chat/image LLMs if gateway config was missing them"
         } catch {
             Write-LaunchLog "Gateway model defaults skipped: $($_.Exception.Message)" "WARN"
@@ -810,11 +809,11 @@ function Start-DragonAIVoiceChat {
     $py = Get-Command python3 -ErrorAction SilentlyContinue
     if (-not $py) { $py = Get-Command python -ErrorAction SilentlyContinue }
     if (-not $py) { return }
-    $home = if ($env:USERPROFILE) { Join-Path $env:USERPROFILE ".hermes-airmaze-embedded" } else { Join-Path $InstallRoot "hermes-home" }
+    $embeddedHome = if ($env:USERPROFILE) { Join-Path $env:USERPROFILE ".hermes-airmaze-embedded" } else { Join-Path $InstallRoot "hermes-home" }
     try {
         Start-Process -FilePath $py.Source -ArgumentList @(
             $engine, "serve",
-            "--home", $home,
+            "--home", $embeddedHome,
             "--host", "127.0.0.1",
             "--port", "8654"
         ) -WindowStyle Hidden -ErrorAction SilentlyContinue | Out-Null
