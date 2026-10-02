@@ -199,7 +199,7 @@ With `:*-desktop` images, packages should already be present; `install` should r
 1. Brings compose up (gateway + `hermes-airmaze-desktop` + proxy).
 2. Mirrors `%LOCALAPPDATA%\hermes\profiles\*` into `%USERPROFILE%\.hermes-airmaze-embedded\profiles\` so Remote sees the same bots.
 3. Waits for `http://127.0.0.1:8650/api/health` with `X-Hermes-Session-Token: dragon-local`.
-4. Upserts `%APPDATA%\Hermes\connections.json` — Remote **Embedded Linux** → `http://127.0.0.1:8650`, primary (rewrites a leftover `:8642` Remote from the UltraDragon retest).
+4. Upserts `%LOCALAPPDATA%\DragonAIAgent\electron-userdata\connections.json` (`HERMES_DESKTOP_USER_DATA_DIR`) — Remote **Embedded Linux** → `http://127.0.0.1:8650`, primary (rewrites a leftover `:8642` Remote). Standalone `%APPDATA%\Hermes\connections.json` primary stays **local**.
 
 Manual wiring (if you skip the shortcut):
 
@@ -225,7 +225,7 @@ If the Screen pane says packages missing, you are on a slim tag — switch compo
 - [ ] From Windows: `http://127.0.0.1:8642/` does not connection-close (Bearer `dragon-local` if asked). `http://127.0.0.1:9119/` serves the dashboard login (user `dragon`).
 - [ ] Desktop serve: `http://127.0.0.1:8650/api/health` returns 200 with header `X-Hermes-Session-Token: dragon-local`. `GET /api/ws` without Upgrade may 404 — that is normal; the client uses a WebSocket upgrade + `?token=`.
 - [ ] Offline wiring check (no secrets): `python3 scripts/airmaze/Test-LaunchSmoke.py` (includes `Test-DesktopServeAdapter.py`) or `powershell -File scripts\airmaze\start-embedded.ps1 -Smoke`
-- [ ] After a normal Dragon AI Agent start, `%APPDATA%\Hermes\connections.json` has Remote `embedded-linux` → `http://127.0.0.1:8650` as primary (token value is the placeholder, not a production secret)
+- [ ] After a normal Dragon AI Agent start, `%LOCALAPPDATA%\DragonAIAgent\electron-userdata\connections.json` has Remote `embedded-linux` → `http://127.0.0.1:8650` as primary (token value is the placeholder, not a production secret). Standalone `%APPDATA%\Hermes\connections.json` primary stays local.
 - [ ] Screen pane on the **Embedded Linux** Remote offers Start / live preview (not “No bot screen on this host” — that message is **This device** on Windows)
 - [ ] `hermes computer-use screen status` (in container) → installed / running
 - [ ] Headed browser login survives handoff (shared browser profile)

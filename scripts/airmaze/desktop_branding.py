@@ -24,6 +24,10 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from private_desktop import assert_private_dragon_path, is_private_dragon_path
+
+# Refuse branding outside DragonAIAgent (standalone Hermes tree is not mutated).
+
 HERE = Path(__file__).resolve().parent
 TABLE_PATH = HERE / "desktop_branding.json"
 BRAND_DIR_NAME = "dragon-ai-branding"
@@ -128,6 +132,7 @@ def extra_install_unpacked_roots() -> list[Path]:
 
 
 def discover_roots(exe_path: Path) -> list[Path]:
+    assert_private_dragon_path(exe_path)
     exe_dir = exe_path.parent
     roots: list[Path] = []
     seen: set[Path] = set()
@@ -140,15 +145,16 @@ def discover_roots(exe_path: Path) -> list[Path]:
             roots.append(candidate)
             seen.add(candidate.resolve())
     desktop_root = exe_dir.parent.parent
-    intro = desktop_root / "src" / "components" / "chat" / "intro.tsx"
-    if intro.is_file():
-        src = desktop_root / "src"
-        roots.append(src)
-        seen.add(src.resolve())
-    dist = desktop_root / "dist"
-    if dist.is_dir() and dist.resolve() not in seen:
-        roots.append(dist)
-        seen.add(dist.resolve())
+    if is_private_dragon_path(desktop_root):
+        intro = desktop_root / "src" / "components" / "chat" / "intro.tsx"
+        if intro.is_file():
+            src = desktop_root / "src"
+            roots.append(src)
+            seen.add(src.resolve())
+        dist = desktop_root / "dist"
+        if dist.is_dir() and dist.resolve() not in seen:
+            roots.append(dist)
+            seen.add(dist.resolve())
     for extra in extra_install_unpacked_roots():
         resolved = extra.resolve()
         if resolved not in seen:
@@ -605,6 +611,7 @@ def stamp_app_icon(exe_path: Path) -> dict[str, Any]:
 def apply_to_exe(exe_path: Path, table: dict[str, Any] | None = None) -> dict[str, Any]:
     table = table or load_table()
     exe = exe_path.resolve()
+    assert_private_dragon_path(exe)
     roots = discover_roots(exe)
     summary = overlay_roots(roots, table)
     summary["font"] = install_font_pack(roots)
@@ -985,6 +992,7 @@ def main(argv: list[str] | None = None) -> int:
     table = load_table(Path(args.table))
     if args.root:
         root = Path(args.root)
+        assert_private_dragon_path(root)
         summary = overlay_roots([root], table)
         summary["font"] = install_font_pack([root])
     elif args.exe:

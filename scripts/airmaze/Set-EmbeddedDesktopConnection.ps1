@@ -4,9 +4,15 @@
   Point Dragon AI Agent Desktop at the embedded Linux Desktop serve proxy.
 
 .DESCRIPTION
-  Upserts %APPDATA%\Hermes\connections.json with Remote "Embedded Linux" →
-  http://127.0.0.1:8650 and the compose placeholder session token (dragon-local).
-  Rewrites a prior Remote that targeted the OpenAI API on :8642.
+  Upserts Dragon AI connections.json (HERMES_DESKTOP_USER_DATA_DIR /
+  %LOCALAPPDATA%\DragonAIAgent\electron-userdata\connections.json) with Remote
+  "Embedded Linux" → http://127.0.0.1:8650 and the compose placeholder session
+  token (dragon-local). Rewrites a prior Remote that targeted the OpenAI API
+  on :8642.
+
+  Standalone %APPDATA%\Hermes\connections.json is not the default. If you pass
+  that path (or -Standalone), Embedded Linux may be listed but -NoPrimary keeps
+  primary local.
 
   Prefer the Python helper when python3/py is on PATH (same merge rules).
 #>
@@ -16,6 +22,7 @@ param(
     [string]$Token = "dragon-local",
     [string]$ConnectionsPath = "",
     [switch]$NoPrimary,
+    [switch]$Standalone,
     [switch]$Smoke
 )
 
@@ -34,11 +41,26 @@ function Get-PythonExe {
 }
 
 function Get-DefaultConnectionsPath {
-    $appdata = $env:APPDATA
-    if ([string]::IsNullOrWhiteSpace($appdata)) {
-        $appdata = Join-Path $env:USERPROFILE "AppData\Roaming"
+    if ($Standalone) {
+        $appdata = $env:APPDATA
+        if ([string]::IsNullOrWhiteSpace($appdata)) {
+            $appdata = Join-Path $env:USERPROFILE "AppData\Roaming"
+        }
+        return (Join-Path $appdata "Hermes\connections.json")
     }
-    return (Join-Path $appdata "Hermes\connections.json")
+    if ($env:HERMES_DESKTOP_USER_DATA_DIR) {
+        return (Join-Path $env:HERMES_DESKTOP_USER_DATA_DIR "connections.json")
+    }
+    $install = Join-Path $env:LOCALAPPDATA "DragonAIAgent"
+    return (Join-Path $install "electron-userdata\connections.json")
+}
+
+function Test-StandaloneHermesConnectionsPath {
+    param([string]$Path)
+    if ([string]::IsNullOrWhiteSpace($Path)) { return $false }
+    $norm = $Path.Replace("/", "\").ToLowerInvariant()
+    if ($norm -match '\\dragonaiagent\\') { return $false }
+    return $norm.EndsWith("\hermes\connections.json")
 }
 
 if ($Smoke) {
@@ -68,6 +90,10 @@ if ($Smoke) {
 $dest = $ConnectionsPath
 if ([string]::IsNullOrWhiteSpace($dest)) {
     $dest = Get-DefaultConnectionsPath
+}
+# Standalone Hermes primary stays local.
+if ($Standalone -or (Test-StandaloneHermesConnectionsPath -Path $dest)) {
+    $NoPrimary = $true
 }
 
 $py = Get-PythonExe

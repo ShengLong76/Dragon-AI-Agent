@@ -65,6 +65,12 @@ def test_connection_merge() -> None:
         fail("token must stay the compose placeholder")
     if fresh["primary"] != "embedded-linux":
         fail(f"primary {fresh['primary']}")
+    standalone_kept = edc.merge_registry(
+        {"version": 2, "primary": "local", "connections": [{"id": "local", "kind": "local", "label": "This device"}]},
+        make_primary=False,
+    )
+    if standalone_kept["primary"] != "local":
+        fail("standalone connections primary must stay local")
 
     broken = {
         "version": 2,
@@ -150,6 +156,11 @@ def test_compose_and_scripts() -> None:
 
     if not CONN_PS1.is_file():
         fail(f"missing {CONN_PS1}")
+    conn_ps = read(CONN_PS1)
+    conn_py = read(CONN_PY)
+    for token in ("HERMES_DESKTOP_USER_DATA_DIR", "electron-userdata", "NoPrimary"):
+        if token not in conn_ps or token not in conn_py:
+            fail(f"connection helpers must mention {token}")
     print("OK  compose + launcher contract")
 
 

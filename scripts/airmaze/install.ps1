@@ -385,10 +385,13 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\Test-WindowsLaunchParse.py",
         "scripts\airmaze\DragonAI-SecureStore.ps1",
         "scripts\airmaze\Find-HermesDesktop.ps1",
+        "scripts\airmaze\private_desktop.py",
+        "scripts\airmaze\Test-PrivateDesktop.py",
         "scripts\airmaze\Apply-DesktopBranding.ps1",
         "scripts\airmaze\desktop_branding.py",
         "scripts\airmaze\desktop_branding.json",
         "scripts\airmaze\Test-DesktopBranding.py",
+        "docs\airmaze\PRIVATE_DESKTOP.md",
         "scripts\airmaze\exclude_hermes_bot.py",
         "scripts\airmaze\Test-ExcludeHermesBot.py",
         "scripts\airmaze\teams_picker.py",
@@ -601,33 +604,47 @@ function Invoke-BotGroupSetup([string]$Root) {
 }
 
 function Start-AgentDesktop {
-    Write-Log "Looking for agent desktop client..."
+    Write-Log "Looking for private Dragon AI desktop client..."
     $finder = Join-Path $InstallRoot "scripts\airmaze\Find-HermesDesktop.ps1"
     if (-not (Test-Path -LiteralPath $finder)) {
         $finder = Join-Path $PSScriptRoot "Find-HermesDesktop.ps1"
     }
     if (Test-Path -LiteralPath $finder) { . $finder }
     $exe = $null
-    if (Get-Command Find-HermesDesktopExe -ErrorAction SilentlyContinue) {
+    if (Get-Command Set-DragonAIDesktopUserDataEnv -ErrorAction SilentlyContinue) {
+        Set-DragonAIDesktopUserDataEnv -InstallRoot $InstallRoot | Out-Null
+    } else {
+        $env:HERMES_DESKTOP_USER_DATA_DIR = Join-Path $InstallRoot "electron-userdata"
+    }
+    if (Get-Command Install-DragonAIPrivateDesktop -ErrorAction SilentlyContinue) {
+        $exe = Install-DragonAIPrivateDesktop -InstallRoot $InstallRoot
+    } elseif (Get-Command Find-HermesDesktopExe -ErrorAction SilentlyContinue) {
         $exe = Find-HermesDesktopExe -InstallRoot $InstallRoot
     }
+    if ($exe -and (Get-Command Test-DragonAIPrivateDesktopPath -ErrorAction SilentlyContinue)) {
+        if (-not (Test-DragonAIPrivateDesktopPath -Path $exe)) { $exe = $null }
+    }
     if ($exe) {
-        Write-Log "Launching agent desktop client: $exe"
+        Write-Log "Launching private Dragon AI desktop: $exe (HERMES_DESKTOP_USER_DATA_DIR=$($env:HERMES_DESKTOP_USER_DATA_DIR))"
         try {
             Save-DragonAIDesktopPointer -ExePath $exe -InstallRoot $InstallRoot | Out-Null
-            Start-HermesDesktopClient -ExePath $exe
+            Start-HermesDesktopClient -ExePath $exe -InstallRoot $InstallRoot
         } catch {
+            if ($_.Exception.Message -like "Refuse *outside DragonAIAgent*") { throw }
+            if (Get-Command Test-DragonAIPrivateDesktopPath -ErrorAction SilentlyContinue) {
+                if (-not (Test-DragonAIPrivateDesktopPath -Path $exe)) { throw }
+            }
             Start-Process -FilePath $exe -WorkingDirectory (Split-Path -Parent $exe) -ErrorAction SilentlyContinue
         }
         Write-Log "Point Desktop Remote at http://127.0.0.1:8650 (session token dragon-local). :8642 is OpenAI API only; :9119 is the browser dashboard."
         return $true
     }
-    $hint = Join-Path $env:LOCALAPPDATA "hermes\hermes-agent\apps\desktop\release\win-unpacked\Hermes.exe"
+    $hint = Join-Path $InstallRoot "desktop\win-unpacked\Hermes.exe"
     Write-Host ""
-    Write-Host "Dragon AI Agent desktop was not found (on-disk name Hermes.exe)."
+    Write-Host "Dragon AI Agent desktop was not found (private win-unpacked Hermes.exe)."
     Write-Host "  Expected: $hint"
     Write-Host "Next steps:"
-    Write-Host "  1. Install the Dragon AI Agent desktop client (win-unpacked Hermes.exe on disk)."
+    Write-Host "  1. Install standalone Hermes (win-unpacked Hermes.exe), then re-run Setup so it copies that tree into DragonAIAgent\desktop\win-unpacked."
     Write-Host "  2. Add Remote gateway: http://127.0.0.1:8650 with session token dragon-local (not :8642)"
     Write-Host "     Local dashboard credentials are in THIRD_PARTY_NOTICES.md / EMBEDDED_GATEWAY.md"
     Write-Host "  3. Open Teams Marketplace, deploy a group, pick one of its bots, then open Bot Screen."

@@ -37,8 +37,26 @@ function Get-DragonAIDesktopBrandingTable {
     return (Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json)
 }
 
+function Test-DragonAIPrivateDesktopPath {
+    param([string]$Path)
+    if ([string]::IsNullOrWhiteSpace($Path)) { return $false }
+    $norm = $Path.Replace("/", "\")
+    return ($norm -match '(?i)\\DragonAIAgent\\' -or $norm -match '(?i)\\DragonAIAgent$')
+}
+
+function Assert-DragonAIPrivateDesktopPath {
+    param(
+        [string]$Path,
+        [string]$Role = "branding"
+    )
+    if (-not (Test-DragonAIPrivateDesktopPath -Path $Path)) {
+        throw "Refuse branding outside DragonAIAgent (standalone Hermes tree is not mutated): $Path"
+    }
+}
+
 function Get-DragonAIDesktopBrandingRoots {
     param([Parameter(Mandatory = $true)][string]$ExePath)
+    Assert-DragonAIPrivateDesktopPath -Path $ExePath -Role "branding"
     $exeDir = Split-Path -Parent $ExePath
     $roots = New-Object System.Collections.Generic.List[string]
     foreach ($rel in @("resources\app.asar.unpacked", "resources\app")) {
@@ -46,10 +64,12 @@ function Get-DragonAIDesktopBrandingRoots {
         if (Test-Path -LiteralPath $candidate) { $roots.Add($candidate) }
     }
     $desktopRoot = Split-Path -Parent (Split-Path -Parent $exeDir)
-    $intro = Join-Path $desktopRoot "src\components\chat\intro.tsx"
-    if (Test-Path -LiteralPath $intro) { $roots.Add((Join-Path $desktopRoot "src")) }
-    $dist = Join-Path $desktopRoot "dist"
-    if (Test-Path -LiteralPath $dist) { $roots.Add($dist) }
+    if (Test-DragonAIPrivateDesktopPath -Path $desktopRoot) {
+        $intro = Join-Path $desktopRoot "src\components\chat\intro.tsx"
+        if (Test-Path -LiteralPath $intro) { $roots.Add((Join-Path $desktopRoot "src")) }
+        $dist = Join-Path $desktopRoot "dist"
+        if (Test-Path -LiteralPath $dist) { $roots.Add($dist) }
+    }
     return @($roots)
 }
 
@@ -354,6 +374,8 @@ function Invoke-DragonAIDesktopBrandingOverlay {
         [string]$Root = "",
         [switch]$Quiet
     )
+    if ($ExePath) { Assert-DragonAIPrivateDesktopPath -Path $ExePath -Role "branding" }
+    if ($Root) { Assert-DragonAIPrivateDesktopPath -Path $Root -Role "branding" }
     $table = Get-DragonAIDesktopBrandingTable
     $rows = @($table.replacements | Sort-Object { $_.from.Length } -Descending)
     $roots = @()

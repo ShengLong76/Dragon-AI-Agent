@@ -15,6 +15,14 @@ import os
 from pathlib import Path
 from typing import Any
 
+from private_desktop import (
+    USER_DATA_ENV,
+    dragon_connections_path,
+    is_standalone_hermes_connections,
+    should_make_embedded_primary,
+    standalone_hermes_connections_path,
+)
+
 DEFAULT_ID = "embedded-linux"
 DEFAULT_LABEL = "Embedded Linux"
 DEFAULT_URL = "http://127.0.0.1:8650"
@@ -33,10 +41,16 @@ LEGACY_API_URLS = frozenset(
 
 
 def default_connections_path() -> Path:
-    appdata = os.environ.get("APPDATA") or os.environ.get("XDG_CONFIG_HOME")
-    if appdata:
-        return Path(appdata) / "Hermes" / "connections.json"
-    return Path.home() / "AppData" / "Roaming" / "Hermes" / "connections.json"
+    """Dragon userdata when HERMES_DESKTOP_USER_DATA_DIR / install root exist.
+
+    Standalone %APPDATA%\\Hermes\\connections.json is never the Dragon default.
+    """
+    if os.environ.get(USER_DATA_ENV):
+        return dragon_connections_path()
+    local = os.environ.get("LOCALAPPDATA")
+    if local:
+        return Path(local) / "DragonAIAgent" / "electron-userdata" / "connections.json"
+    return standalone_hermes_connections_path()
 
 
 def merge_registry(
@@ -120,34 +134,55 @@ def apply(
     *,
     url: str = DEFAULT_URL,
     token: str = DEFAULT_TOKEN,
-    make_primary: bool = True,
+    make_primary: bool | None = None,
 ) -> dict[str, Any]:
     dest = path or default_connections_path()
-    updated = merge_registry(load_registry(dest), url=url, token=token, make_primary=make_primary)
+    primary = make_primary
+    if primary is None:
+        # Standalone Hermes connections.json primary stays local.
+        primary = should_make_embedded_primary(dest)
+        if is_standalone_hermes_connections(dest):
+            primary = False
+    updated = merge_registry(load_registry(dest), url=url, token=token, make_primary=primary)
     write_registry(dest, updated)
     return {"path": str(dest), "primary": updated.get("primary"), "url": url}
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
-    parser.add_argument("--path", default="", help="connections.json path (default %%APPDATA%%/Hermes)")
+    parser.add_argument(
+        "--path",
+        default="",
+        help="connections.json path (default HERMES_DESKTOP_USER_DATA_DIR / DragonAIAgent\\electron-userdata)",
+    )
     parser.add_argument("--url", default=DEFAULT_URL)
     parser.add_argument("--token", default=DEFAULT_TOKEN)
     parser.add_argument("--no-primary", action="store_true")
+    parser.add_argument("--primary", action="store_true")
     parser.add_argument("--print-only", action="store_true")
     args = parser.parse_args(argv)
     dest = Path(args.path) if args.path else default_connections_path()
-    updated = merge_registry(
-        load_registry(dest) if dest.is_file() else None,
-        url=args.url,
-        token=args.token,
-        make_primary=not args.no_primary,
-    )
+    # NoPrimary: standalone Hermes connections.json primary stays local.
+    make_primary: bool | None
+    if args.no_primary:
+        make_primary = False
+    elif args.primary:
+        make_primary = True
+    else:
+        make_primary = None
     if args.print_only:
+        updated = merge_registry(
+            load_registry(dest) if dest.is_file() else None,
+            url=args.url,
+            token=args.token,
+            make_primary=False if make_primary is False else (
+                True if make_primary is True else should_make_embedded_primary(dest)
+            ),
+        )
         print(json.dumps(updated, indent=2))
         return 0
-    write_registry(dest, updated)
-    print(json.dumps({"path": str(dest), "primary": updated.get("primary"), "url": args.url}))
+    result = apply(dest, url=args.url, token=args.token, make_primary=make_primary)
+    print(json.dumps(result))
     return 0
 
 

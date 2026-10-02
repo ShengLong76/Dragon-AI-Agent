@@ -323,7 +323,7 @@ const session = 'dragon-local';
 const protocol = 'hermes://copilot-key/start';
 """
     with tempfile.TemporaryDirectory(prefix="dragon-ui-brand-") as tmp:
-        base = pathlib.Path(tmp)
+        base = pathlib.Path(tmp) / "DragonAIAgent" / "desktop"
         unpacked = base / "win-unpacked"
         dist = unpacked / "resources" / "app.asar.unpacked" / "dist"
         dist.mkdir(parents=True)
@@ -517,6 +517,16 @@ const protocol = 'hermes://copilot-key/start';
             fail("apply must refresh the appended renderer CSS block, not skip it")
         print("OK  fake win-unpacked overlay")
 
+        standalone = pathlib.Path(tmp) / "hermes" / "win-unpacked" / "Hermes.exe"
+        standalone.parent.mkdir(parents=True, exist_ok=True)
+        standalone.write_bytes(b"MZ")
+        try:
+            db.apply_to_exe(standalone)
+            fail("apply_to_exe must refuse branding outside DragonAIAgent")
+        except ValueError as exc:
+            if "Refuse branding outside DragonAIAgent" not in str(exc):
+                fail(f"standalone refuse message unclear: {exc}")
+
 
 def test_packaging_not_regressed() -> None:
     compose = read(COMPOSE)
@@ -558,6 +568,12 @@ def test_packaging_not_regressed() -> None:
         fail("Apply-DesktopBranding.ps1 must verify the Teams Marketplace label landed")
     if "Get-DragonAIInstallUnpackedRoots" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must also land assets under DragonAIAgent app.asar.unpacked")
+    if "Refuse branding outside DragonAIAgent" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must refuse branding outside DragonAIAgent")
+    if "HERMES_DESKTOP_USER_DATA_DIR" not in finder:
+        fail("Find-HermesDesktop.ps1 must set HERMES_DESKTOP_USER_DATA_DIR")
+    if "desktop\\win-unpacked" not in finder and "desktop\\win-unpacked" not in launcher:
+        fail("launcher/finder must provision DragonAIAgent\\desktop\\win-unpacked")
     if "Remove-DragonAICrimsonLockupBorder" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must strip a live crimson lockup border")
     if "return $summary" in apply_ps:

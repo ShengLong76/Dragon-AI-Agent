@@ -1,15 +1,70 @@
 #requires -Version 5.1
 <#
 .SYNOPSIS
-  Locate the Hermes/Electron desktop client on Windows and remember a stable path.
+  Locate a *source* Hermes.exe, then launch the private Dragon AI copy.
 
 .DESCRIPTION
-  UltraDragon ships the client as an unpacked Electron build, e.g.
+  Hermes and Dragon AI are separate programs. Standalone UltraDragon Hermes
+  stays at e.g.
   %LOCALAPPDATA%\hermes\hermes-agent\apps\desktop\release\win-unpacked\Hermes.exe
-  — not "Hermes Desktop.exe" under Programs. Dot-source this file.
+  Dragon AI copies that win-unpacked tree to
+  %LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked
+  and sets HERMES_DESKTOP_USER_DATA_DIR to
+  %LOCALAPPDATA%\DragonAIAgent\electron-userdata.
+  Branding / window rename never touch the standalone tree.
+  Dot-source this file.
 #>
 
+function Get-DragonAIInstallRoot {
+    param([string]$InstallRoot = "")
+    if ([string]::IsNullOrWhiteSpace($InstallRoot)) {
+        $InstallRoot = Join-Path $env:LOCALAPPDATA "DragonAIAgent"
+    }
+    return $InstallRoot
+}
+
+function Get-DragonAIPrivateDesktopExe {
+    param([string]$InstallRoot = "")
+    return (Join-Path (Get-DragonAIInstallRoot -InstallRoot $InstallRoot) "desktop\win-unpacked\Hermes.exe")
+}
+
+function Get-DragonAIElectronUserDataDir {
+    param([string]$InstallRoot = "")
+    if ($env:HERMES_DESKTOP_USER_DATA_DIR) {
+        return $env:HERMES_DESKTOP_USER_DATA_DIR
+    }
+    return (Join-Path (Get-DragonAIInstallRoot -InstallRoot $InstallRoot) "electron-userdata")
+}
+
+function Test-DragonAIPrivateDesktopPath {
+    param([string]$Path)
+    if ([string]::IsNullOrWhiteSpace($Path)) { return $false }
+    $norm = $Path.Replace("/", "\")
+    return ($norm -match '(?i)\\DragonAIAgent\\' -or $norm -match '(?i)\\DragonAIAgent$')
+}
+
+function Assert-DragonAIPrivateDesktopPath {
+    param(
+        [string]$Path,
+        [string]$Role = "branding"
+    )
+    if (-not (Test-DragonAIPrivateDesktopPath -Path $Path)) {
+        throw "Refuse branding outside DragonAIAgent (standalone Hermes tree is not mutated; $Role): $Path"
+    }
+}
+
+function Set-DragonAIDesktopUserDataEnv {
+    param([string]$InstallRoot = "")
+    $dir = Get-DragonAIElectronUserDataDir -InstallRoot $InstallRoot
+    if (-not (Test-Path -LiteralPath $dir)) {
+        New-Item -ItemType Directory -Force -Path $dir | Out-Null
+    }
+    $env:HERMES_DESKTOP_USER_DATA_DIR = $dir
+    return $dir
+}
+
 function Get-HermesDesktopExactCandidates {
+    # Source-only standalone Hermes locations. Do not brand these.
     $la = $env:LOCALAPPDATA
     $pf = $env:ProgramFiles
     $pf86 = ${env:ProgramFiles(x86)}
@@ -48,21 +103,13 @@ function Get-DragonAIDesktopPointerPath {
     return (Join-Path $InstallRoot "desktop-client.json")
 }
 
-function Find-HermesDesktopExe {
+function Find-HermesDesktopSourceExe {
     param([string]$InstallRoot = "")
 
-    $pointer = Get-DragonAIDesktopPointerPath -InstallRoot $InstallRoot
-    if (Test-Path -LiteralPath $pointer) {
-        try {
-            $saved = Get-Content -LiteralPath $pointer -Raw -Encoding UTF8 | ConvertFrom-Json
-            if ($saved.exe -and (Test-Path -LiteralPath ([string]$saved.exe))) {
-                return [string]$saved.exe
-            }
-        } catch {}
-    }
-
     foreach ($c in Get-HermesDesktopExactCandidates) {
-        if ($c -and (Test-Path -LiteralPath $c)) { return $c }
+        if ($c -and (Test-Path -LiteralPath $c) -and -not (Test-DragonAIPrivateDesktopPath -Path $c)) {
+            return $c
+        }
     }
 
     foreach ($root in Get-HermesDesktopSearchRoots) {
@@ -70,7 +117,7 @@ function Find-HermesDesktopExe {
         try {
             $hit = Get-ChildItem -LiteralPath $root -Filter "Hermes.exe" -Recurse -File -ErrorAction SilentlyContinue |
                 Where-Object {
-                    $_.Name -eq "Hermes.exe" -and (
+                    $_.Name -eq "Hermes.exe" -and -not (Test-DragonAIPrivateDesktopPath -Path $_.FullName) -and (
                         $_.DirectoryName -like "*win-unpacked*" -or
                         $_.DirectoryName -like "*release*" -or
                         $_.FullName -like "*\Hermes\Hermes.exe"
@@ -84,6 +131,94 @@ function Find-HermesDesktopExe {
     return $null
 }
 
+function Copy-DragonAIWinUnpackedTree {
+    param(
+        [Parameter(Mandatory = $true)][string]$SourceDir,
+        [Parameter(Mandatory = $true)][string]$DestDir
+    )
+    Assert-DragonAIPrivateDesktopPath -Path $DestDir -Role "copy-dest"
+    if (Test-DragonAIPrivateDesktopPath -Path $SourceDir) {
+        return
+    }
+    if (-not (Test-Path -LiteralPath $SourceDir -PathType Container)) {
+        throw "Source win-unpacked folder missing: $SourceDir"
+    }
+    if (-not (Test-Path -LiteralPath $DestDir)) {
+        New-Item -ItemType Directory -Force -Path $DestDir | Out-Null
+    }
+    $robo = Get-Command robocopy -ErrorAction SilentlyContinue
+    if ($robo) {
+        $prev = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        try {
+            & robocopy $SourceDir $DestDir /E /XO /NFL /NDL /NJH /NJS /NC /NS /NP | Out-Null
+            if ($LASTEXITCODE -ge 8) {
+                throw "robocopy failed with exit $LASTEXITCODE ($SourceDir -> $DestDir)"
+            }
+        } finally {
+            $ErrorActionPreference = $prev
+        }
+        return
+    }
+    Copy-Item -Path (Join-Path $SourceDir "*") -Destination $DestDir -Recurse -Force
+}
+
+function Copy-DragonAIPrivateDesktopFromSource {
+    param(
+        [Parameter(Mandatory = $true)][string]$SourceExe,
+        [string]$InstallRoot = ""
+    )
+    $destExe = Get-DragonAIPrivateDesktopExe -InstallRoot $InstallRoot
+    $destDir = Split-Path -Parent $destExe
+    if (Test-Path -LiteralPath $destExe) { return $destExe }
+    if (-not (Test-Path -LiteralPath $SourceExe)) { return $null }
+    if (Test-DragonAIPrivateDesktopPath -Path $SourceExe) { return $SourceExe }
+    $srcDir = Split-Path -Parent $SourceExe
+    $engine = Join-Path $PSScriptRoot "private_desktop.py"
+    $py = Get-Command python3 -ErrorAction SilentlyContinue
+    if (-not $py) { $py = Get-Command python -ErrorAction SilentlyContinue }
+    if ($py -and (Test-Path -LiteralPath $engine)) {
+        try {
+            $json = & $py.Source $engine copy --source $SourceExe --dest-root (Get-DragonAIInstallRoot -InstallRoot $InstallRoot) 2>&1 | Out-String
+            if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $destExe)) { return $destExe }
+        } catch {}
+    }
+    Copy-DragonAIWinUnpackedTree -SourceDir $srcDir -DestDir $destDir
+    if (Test-Path -LiteralPath $destExe) { return $destExe }
+    return $null
+}
+
+function Install-DragonAIPrivateDesktop {
+    param([string]$InstallRoot = "")
+    $dest = Get-DragonAIPrivateDesktopExe -InstallRoot $InstallRoot
+    if (Test-Path -LiteralPath $dest) { return $dest }
+    $src = Find-HermesDesktopSourceExe -InstallRoot $InstallRoot
+    if (-not $src) { return $null }
+    return (Copy-DragonAIPrivateDesktopFromSource -SourceExe $src -InstallRoot $InstallRoot)
+}
+
+function Find-HermesDesktopExe {
+    param([string]$InstallRoot = "")
+
+    $private = Get-DragonAIPrivateDesktopExe -InstallRoot $InstallRoot
+    if (Test-Path -LiteralPath $private) { return $private }
+
+    $pointer = Get-DragonAIDesktopPointerPath -InstallRoot $InstallRoot
+    if (Test-Path -LiteralPath $pointer) {
+        try {
+            $saved = Get-Content -LiteralPath $pointer -Raw -Encoding UTF8 | ConvertFrom-Json
+            $savedExe = [string]$saved.exe
+            if ($savedExe -and (Test-Path -LiteralPath $savedExe)) {
+                if (Test-DragonAIPrivateDesktopPath -Path $savedExe) { return $savedExe }
+                $copied = Copy-DragonAIPrivateDesktopFromSource -SourceExe $savedExe -InstallRoot $InstallRoot
+                if ($copied) { return $copied }
+            }
+        } catch {}
+    }
+
+    return (Install-DragonAIPrivateDesktop -InstallRoot $InstallRoot)
+}
+
 function Save-DragonAIDesktopPointer {
     param(
         [Parameter(Mandatory = $true)][string]$ExePath,
@@ -95,12 +230,14 @@ function Save-DragonAIDesktopPointer {
     if (-not (Test-Path -LiteralPath $InstallRoot)) {
         New-Item -ItemType Directory -Force -Path $InstallRoot | Out-Null
     }
+    Assert-DragonAIPrivateDesktopPath -Path $ExePath -Role "launch"
     $wd = Split-Path -Parent $ExePath
     $obj = [ordered]@{
         exe              = $ExePath
         workingDirectory = $wd
+        userDataDir      = (Get-DragonAIElectronUserDataDir -InstallRoot $InstallRoot)
         updatedAt        = (Get-Date).ToString("o")
-        notes            = "On-disk filename stays Hermes.exe. Unpackaged renderer chrome is overlaid to Dragon AI Agent."
+        notes            = "Private Dragon AI copy. On-disk filename stays Hermes.exe. Standalone Hermes tree is not mutated."
     }
     $pointer = Get-DragonAIDesktopPointerPath -InstallRoot $InstallRoot
     ($obj | ConvertTo-Json) | Set-Content -LiteralPath $pointer -Encoding UTF8
@@ -228,6 +365,7 @@ function Set-DragonAIMainWindowTitle {
     <#
     .SYNOPSIS
       Rename the unpacked Electron window to Dragon AI Agent (packaging wrap).
+      Only processes whose path is under DragonAIAgent (private desktop).
       Taskbar AppUserModelID / About / tray still need a rebuilt client binary.
     #>
     param(
@@ -273,6 +411,10 @@ public class DragonAIWinTitle {
         $procs = @()
         $procs += @(Get-Process -Name "Hermes" -ErrorAction SilentlyContinue)
         $procs += @(Get-Process -Name "hermes-agent" -ErrorAction SilentlyContinue)
+        # Window rename only for the private Dragon path — never standalone Hermes.
+        $procs = @($procs | Where-Object {
+            $_.Path -and (Test-DragonAIPrivateDesktopPath -Path ([string]$_.Path))
+        })
         $pids = @($procs | ForEach-Object { [int]$_.Id } | Select-Object -Unique)
         if ($pids.Count -gt 0) {
             try {
@@ -297,11 +439,13 @@ function Apply-DragonAIDesktopUiBranding {
     <#
     .SYNOPSIS
       Rewrite unpacked Electron renderer product chrome to Dragon AI Agent.
-      Does not rebuild Hermes.exe and does not touch app.asar integrity.
+      Private DragonAIAgent copy only. Does not rebuild Hermes.exe and does
+      not touch app.asar integrity or the standalone Hermes tree.
     #>
     param(
         [Parameter(Mandatory = $true)][string]$ExePath
     )
+    Assert-DragonAIPrivateDesktopPath -Path $ExePath -Role "branding"
     $apply = Join-Path $PSScriptRoot "Apply-DesktopBranding.ps1"
     if (-not (Test-Path -LiteralPath $apply)) {
         return $false
@@ -321,15 +465,20 @@ function Apply-DragonAIDesktopUiBranding {
 
 function Start-HermesDesktopClient {
     param(
-        [Parameter(Mandatory = $true)][string]$ExePath
+        [Parameter(Mandatory = $true)][string]$ExePath,
+        [string]$InstallRoot = ""
     )
+    Assert-DragonAIPrivateDesktopPath -Path $ExePath -Role "launch"
+    Set-DragonAIDesktopUserDataEnv -InstallRoot $InstallRoot | Out-Null
     $wd = Split-Path -Parent $ExePath
     # Overlay empty-state / composer / settings copy before the window opens.
     # PowerShell copies dragon-ui.css + inject even when python3 is not on PATH.
+    # Branding is refused outside DragonAIAgent.
     Exclude-DragonAIHermesBots | Out-Null
     try {
         Apply-DragonAIDesktopUiBranding -ExePath $ExePath | Out-Null
     } catch {
+        if ($_.Exception.Message -like "Refuse *outside DragonAIAgent*") { throw }
         Write-Warning "Dragon AI Agent UI overlay did not update unpacked dist: $($_.Exception.Message)"
     }
     try {
