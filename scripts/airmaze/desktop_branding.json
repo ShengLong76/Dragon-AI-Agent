@@ -57,7 +57,7 @@
     "excludedProfileIds": ["default", "hermes"],
     "headerTitle": "Dragon AI",
     "headerAccessibleName": "Dragon AI Agent",
-    "why": "Exclude the built-in default Hermes agent. Header lockup is Dragon AI + Teams Marketplace. Column hosts first; else body data-dragon-ai-sidebar-fixed in a clearance spacer above Sessions / Bots (do not cover those tabs). Sidebar and middle session names share 16px body. Personal Assistant stays."
+    "why": "Exclude the built-in default Hermes agent. Header lockup is Dragon AI + blue Teams Marketplace above Sessions / Bots (lockup → Teams Marketplace → Sessions/Bots). Full label, reserved gap under the 32px logo. Column hosts first; else in-flow data-dragon-ai-sidebar-chrome; else body data-dragon-ai-sidebar-fixed in a first-child clearance spacer (do not cover those tabs). Sidebar and middle session names share 16px body. Personal Assistant stays."
   },
   "replacements": [
     {

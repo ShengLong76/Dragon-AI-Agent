@@ -71,12 +71,82 @@ def _js_code_only(text: str) -> str:
     return re.sub(r"//.*?$", "", stripped, flags=re.M)
 
 
+def assert_marketplace_label_blue_and_logo_clearance(css: str, sidebar_js: str, teams_js: str) -> None:
+    if "dragon-ai-marketplace-label:1" not in css:
+        fail("dragon-ui.css must stamp dragon-ai-marketplace-label so unpacked copies refresh")
+    if "dragon-ai-marketplace-blue:1" not in css:
+        fail("dragon-ui.css must stamp dragon-ai-marketplace-blue for the filled blue control")
+    if "dragon-ai-logo-clearance:1" not in css:
+        fail("dragon-ui.css must stamp dragon-ai-logo-clearance so the logo keeps reserved space")
+    if "min-width: max-content" in css:
+        fail("Teams Marketplace must not use min-width:max-content (clips to Teams Marke)")
+    open_block = css.split("[data-dragon-ai-teams-open] {", 1)
+    if len(open_block) < 2:
+        fail("dragon-ui.css must style [data-dragon-ai-teams-open]")
+    open_rule = open_block[1].split("}", 1)[0]
+    if "text-overflow: ellipsis" in open_rule:
+        fail("Teams Marketplace label must not ellipsize mid-word")
+    if "overflow: visible" not in open_rule:
+        fail("Teams Marketplace button must keep overflow:visible")
+    if "white-space: nowrap" not in open_rule and "white-space: normal" not in css:
+        fail("Teams Marketplace must stay on one line or wrap at the word")
+    if "#2563eb" not in open_rule.lower() or "#ffffff" not in open_rule.lower():
+        fail("Teams Marketplace button must be filled blue (#2563eb) with white text")
+    if "var(--color-primary)" in open_rule or "#c41e3a" in open_rule.lower():
+        fail("Teams Marketplace button must not use crimson fill (blue only)")
+    if "--dragon-logo-clearance: 12px" not in css:
+        fail("lockup row must reserve 12px gap under the logo")
+    brand_block = css.split("[data-dragon-ai-sidebar-brand]", 1)[-1][:900]
+    if "flex: 0 0 auto" not in brand_block:
+        fail("logo lockup must not shrink (flex: 0 0 auto)")
+    if "isolation: isolate" not in brand_block or "z-index: 2" not in brand_block:
+        fail("logo lockup must isolate so Marketplace cannot paint over it")
+    if "padding: 0 0 8px" not in brand_block and "padding-bottom: 8px" not in brand_block:
+        fail("logo lockup must keep padding-bottom so controls sit below the mark")
+    for label, text in (("sidebar-header.js", sidebar_js), ("teams-picker.js", teams_js)):
+        compact = text.replace(" ", "")
+        if "Math.max(256" not in compact:
+            fail(f"{label} overlay width must be at least 16rem (Math.max(256))")
+        if "isolation:isolate" not in compact and label == "sidebar-header.js":
+            fail("sidebar-header.js must pin the lockup with isolation:isolate")
+
+
+def assert_composer_chrome(css: str, voice_js: str) -> None:
+    if "dragon-ai-composer-chrome:1" not in css:
+        fail("dragon-ui.css must stamp dragon-ai-composer-chrome")
+    if "[data-dragon-ai-composer-action]" not in css:
+        fail("dragon-ui.css must style the composer action cluster")
+    if "[data-dragon-ai-composer-chrome]" not in css:
+        fail("dragon-ui.css must neutralize the composer wrapper outline")
+    talk_block = css.split("[data-dragon-grok-talk] {", 1)
+    if len(talk_block) < 2:
+        fail("dragon-ui.css must style Talk with Grok / Start conversation")
+    talk_rule = talk_block[1].split("}", 1)[0]
+    if "var(--color-primary)" in talk_rule or "#c41e3a" in talk_rule.lower():
+        fail("Talk control must not keep a persistent crimson border")
+    if "border: 0" not in talk_rule and "border: none" not in talk_rule:
+        fail("Talk / Start conversation must not be a bordered island")
+    if "Start conversation" not in voice_js:
+        fail("voice overlay must expose Start conversation on the composer action")
+    if "findComposerAction" not in voice_js or "data-dragon-ai-composer-action" not in voice_js:
+        fail("voice overlay must integrate Start conversation into the composer action")
+    if "Talk with Grok" not in voice_js:
+        fail("voice overlay must keep Talk with Grok as the accessible Grok duplex name")
+    if "outline: 2px solid #c41e3a" not in css:
+        fail("composer textbox and pills must keep a 2px crimson focus-visible ring")
+
+
 def assert_sidebar_host_fallback(sidebar_js: str, teams_js: str, css: str) -> None:
+    order = "lockup → Teams Marketplace → Sessions/Bots"
     for label, text in (("sidebar-header.js", sidebar_js), ("teams-picker.js", teams_js)):
         if "findColumnHost" not in text:
             fail(f"{label} must try column hosts first")
         if "findDragonSidebarHost" not in text:
             fail(f"{label} must share findDragonSidebarHost")
+        if "findInFlowColumn" not in text or "data-dragon-ai-sidebar-chrome" not in text:
+            fail(f"{label} must prefer an in-flow rail column above Sessions/Bots")
+        if "looksHorizontalChrome" not in text or "isAppShell" not in text:
+            fail(f"{label} must skip horizontal tab rows and the app shell")
         if 'sidebar-header' not in text or 'sidebar-inner' not in text:
             fail(f"{label} must still prefer sidebar-header / sidebar-inner")
         if "data-dragon-ai-sidebar-fixed" not in text:
@@ -85,25 +155,37 @@ def assert_sidebar_host_fallback(sidebar_js: str, teams_js: str, css: str) -> No
             fail(f"{label} must mount the fixed overlay on document.body")
         if "findBotsTab" not in text or "data-dragon-ai-sidebar-clearance" not in text:
             fail(f"{label} must reserve clearance so the overlay does not cover the BOTS tab")
+        if order not in text:
+            fail(f"{label} must document expected DOM order: {order}")
         compact = text.replace(" ", "")
-        if "vartop=96" not in compact:
-            fail(f"{label} fixed overlay default top must be 96px (48px sits on BOTS)")
+        if "vartop=0" not in compact:
+            fail(f"{label} fixed overlay default top must be 0 (rail/clearance top, above Sessions/Bots)")
+        if "vartop=96" in compact:
+            fail(f"{label} must not default overlay top to 96px (leaves SESSIONS visually first)")
         if "vartop=48" in compact:
             fail(f"{label} must not default overlay top to 48px (covers BOTS)")
         if "return96" not in compact:
-            fail(f"{label} lockupHeight must reserve 96px so wrapped Teams Marketplace does not cover BOTS")
+            fail(f"{label} lockupHeight must reserve 96px so stacked Teams Marketplace fits above BOTS")
         if "return48" in compact:
             fail(f"{label} lockupHeight must not default to 48px (covers BOTS)")
         if "spacer||strip" in compact or "(spacer||strip)" in compact:
             fail(f"{label} must pin overlay to the clearance spacer, never the BOTS tab strip")
-        if "sidebar-wrapper" in _js_code_only(text):
-            fail(f"{label} must not treat sidebar-wrapper as a column host")
+        if "order:-1" not in compact:
+            fail(f"{label} in-flow chrome must use order:-1 so it stays above the tab strip")
+        if re.search(r'querySelector\(\s*[\'"]\[data-slot="sidebar-wrapper"\]', text):
+            fail(f"{label} must not query sidebar-wrapper as a column host")
     if "Teams Marketplace" not in teams_js:
         fail("teams-picker.js control label must be Teams Marketplace")
     if re.search(r'textContent\s*=\s*"Teams"', teams_js):
         fail("user-visible control label must be Teams Marketplace, not Teams")
     if "[data-dragon-ai-sidebar-fixed]" not in css:
         fail("dragon-ui.css must style the body fixed overlay")
+    if "[data-dragon-ai-sidebar-chrome]" not in css:
+        fail("dragon-ui.css must style the in-flow sidebar chrome stack")
+    if "dragon-ai-sidebar-chrome-order:1" not in css:
+        fail("packaged dragon-ui.css must stamp sidebar chrome order for unpacked-copy verification")
+    if order not in css:
+        fail("dragon-ui.css must document expected DOM order: lockup → Teams Marketplace → Sessions/Bots")
     if "min-width: 16rem" not in css:
         fail("fixed overlay row must keep a 16rem width (not collapse to ~24px)")
     css_code = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
@@ -114,12 +196,20 @@ def assert_sidebar_host_fallback(sidebar_js: str, teams_js: str, css: str) -> No
     if "container-type: inline-size" not in css or "@container" not in css:
         fail("real sidebar slots must keep @container wrap")
     fixed_rule = re.search(r"\[data-dragon-ai-sidebar-fixed\]\s*\{[^}]*\}", css_code)
-    if not fixed_rule or "top: 96px" not in fixed_rule.group(0):
-        fail("fixed overlay CSS default top must be 96px (clear of BOTS)")
+    if not fixed_rule or "top: 0" not in fixed_rule.group(0):
+        fail("fixed overlay CSS default top must be 0 (pin to reserved rail top)")
+    if "top: 96px" in fixed_rule.group(0):
+        fail("fixed overlay CSS default must not sit 96px down (leaves SESSIONS first)")
     if "top: 48px" in fixed_rule.group(0):
         fail("fixed overlay CSS default must not sit on the BOTS tab (top: 48px)")
     if "[data-dragon-ai-sidebar-clearance]" not in css or "min-height: 96px" not in css:
         fail("clearance spacer must reserve 96px above the BOTS tab")
+    chrome_rule = re.search(r"\[data-dragon-ai-sidebar-chrome\]\s*\{[^}]*\}", css_code)
+    if not chrome_rule or "min-height: 96px" not in chrome_rule.group(0):
+        fail("in-flow chrome must reserve 96px for stacked logo + Teams Marketplace")
+    if chrome_rule and "order: -1" not in chrome_rule.group(0):
+        fail("in-flow chrome CSS must keep order: -1 above the tab strip")
+    assert_marketplace_label_blue_and_logo_clearance(css, sidebar_js, teams_js)
     name_block = css.split("[data-slot=\"bots-roster\"]", 1)[-1][:900]
     if "font-size: var(--dragon-ui-font-size-body)" not in name_block:
         fail("sidebar bot names must use the 16px body size (match middle session names)")
@@ -353,8 +443,14 @@ const protocol = 'hermes://copilot-key/start';
             fail("injected CSS must hide the default Hermes sidebar bot")
         if "[data-dragon-ai-sidebar-brand]" not in css_txt or "Dragon AI" not in css_txt:
             fail("injected CSS must style the sidebar header lockup")
-        if "flex-wrap: wrap" not in css_txt or "min-width: max-content" not in css_txt:
-            fail("injected CSS must wrap Teams below a fixed-size logo")
+        if "dragon-ai-marketplace-label:1" not in css_txt or "min-width: max-content" in css_txt:
+            fail("injected CSS must show the full Teams Marketplace label (no max-content clip)")
+        if "dragon-ai-marketplace-blue:1" not in css_txt or "#2563eb" not in css_txt.lower():
+            fail("injected CSS must paint a filled blue Teams Marketplace button")
+        if "dragon-ai-logo-clearance:1" not in css_txt or "--dragon-logo-clearance: 12px" not in css_txt:
+            fail("injected CSS must reserve gap under the logo so controls do not overlay it")
+        if "dragon-ai-composer-chrome:1" not in css_txt:
+            fail("injected CSS must stamp composer chrome (no persistent red island)")
         if "dragon-ai-lockup-wrap:1" not in css_txt:
             fail("copied dragon-ui.css must stamp lockup wrap so live unpacked UI is not an older hash")
         if "container-type: inline-size" not in css_txt or "@container" not in css_txt:
@@ -407,15 +503,15 @@ const protocol = 'hermes://copilot-key/start';
         if summary3.get("font", {}).get("copied") is not True:
             fail(f"stale unpacked refresh did not copy the pack: {summary3}")
         refreshed_css = css.read_text(encoding="utf-8")
-        if "flex-wrap: wrap" not in refreshed_css or "dragon-ai-lockup-wrap:1" not in refreshed_css:
-            fail("apply must overwrite an older dragon-ai-branding/dragon-ui.css with wrap rules")
+        if "dragon-ai-marketplace-label:1" not in refreshed_css or "dragon-ai-lockup-wrap:1" not in refreshed_css:
+            fail("apply must overwrite an older dragon-ai-branding/dragon-ui.css with label + wrap rules")
         refreshed_html = (dist / "index.html").read_text(encoding="utf-8")
         if "rgba(196,30,58" in refreshed_html.replace(" ", ""):
             fail("apply must strip a live crimson lockup border from index.html")
         if "pinWrap" not in refreshed_html or 'data-dragon-ai-branding="sidebar-header"' not in refreshed_html:
             fail("apply must refresh the sidebar lockup inject on a previously branded index.html")
         refreshed_bundle = (dist / "assets" / "index.css").read_text(encoding="utf-8")
-        if "flex-wrap: wrap" not in refreshed_bundle or "stale appended sheet" in refreshed_bundle:
+        if "dragon-ai-marketplace-label:1" not in refreshed_bundle or "stale appended sheet" in refreshed_bundle:
             fail("apply must refresh the appended renderer CSS block, not skip it")
         print("OK  fake win-unpacked overlay")
 
@@ -452,6 +548,8 @@ def test_packaging_not_regressed() -> None:
         fail("Apply-DesktopBranding.ps1 must ship/copy prebuilt inject scripts without Python")
     if "data-dragon-ai-sidebar-fixed" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must verify the body fixed-overlay fallback landed")
+    if "findInFlowColumn" not in apply_ps or "data-dragon-ai-sidebar-chrome" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must verify in-flow chrome above Sessions/Bots landed")
     if "findBotsTab" not in apply_ps or "data-dragon-ai-sidebar-clearance" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must verify BOTS-tab clearance landed")
     if "Teams Marketplace" not in apply_ps:
@@ -515,8 +613,16 @@ def test_packaging_not_regressed() -> None:
         fail("dragon-ui.css must hide the default Hermes sidebar bot")
     if "[data-dragon-ai-sidebar-brand]" not in css or "Dragon AI" not in css:
         fail("dragon-ui.css must style the sidebar header lockup (Dragon AI)")
-    if "flex-wrap: wrap" not in css or "min-width: max-content" not in css:
-        fail("sidebar Teams must wrap below a fixed logo (not clip, not shrink the mark)")
+    if "flex-direction: column" not in css or "min-width: max-content" in css:
+        fail("sidebar Teams must stack under the logo with the full label visible")
+    if "dragon-ai-marketplace-blue:1" not in css or "#2563eb" not in css.lower():
+        fail("sidebar Teams Marketplace must be a filled blue button")
+    if "dragon-ai-logo-clearance:1" not in css or "--dragon-logo-clearance: 12px" not in css:
+        fail("sidebar lockup must reserve padding/gap so nothing overlays the logo")
+    if "dragon-ai-composer-chrome:1" not in css:
+        fail("dragon-ui.css must stamp composer chrome (no persistent red island)")
+    voice_js = ROOT / "branding" / "voice" / "dragon-voice-selector.js"
+    assert_composer_chrome(css, read(voice_js) if voice_js.is_file() else "")
     if "dragon-ai-lockup-wrap:1" not in css:
         fail("packaged dragon-ui.css must stamp lockup wrap for unpacked-copy verification")
     if "container-type: inline-size" not in css or "@container" not in css:
@@ -527,20 +633,34 @@ def test_packaging_not_regressed() -> None:
     teams_js = read(pack / "teams-picker.js")
     assert_sidebar_host_fallback(sidebar_js, teams_js, css)
     host_note = ROOT / "docs" / "airmaze" / "SIDEBAR_HOST.md"
-    if not host_note.is_file() or "data-dragon-ai-sidebar-fixed" not in read(host_note):
+    host_txt = read(host_note)
+    if not host_note.is_file() or "data-dragon-ai-sidebar-fixed" not in host_txt:
         fail("docs/airmaze/SIDEBAR_HOST.md must describe the body fixed-overlay fallback")
-    if "Teams Marketplace" not in read(host_note):
+    if "Teams Marketplace" not in host_txt:
         fail("SIDEBAR_HOST.md must name the Teams Marketplace control")
-    if "16px" not in read(host_note) or "data-dragon-ai-sidebar-clearance" not in read(host_note):
+    if "16px" not in host_txt or "data-dragon-ai-sidebar-clearance" not in host_txt:
         fail("SIDEBAR_HOST.md must record 16px name parity and BOTS-tab clearance")
+    if "lockup → Teams Marketplace → Sessions/Bots" not in host_txt:
+        fail("SIDEBAR_HOST.md must document expected DOM order: lockup → Teams Marketplace → Sessions/Bots")
+    if "findInFlowColumn" not in host_txt or "data-dragon-ai-sidebar-chrome" not in host_txt:
+        fail("SIDEBAR_HOST.md must prefer the in-flow rail column above Sessions/Bots")
+    if "2563EB" not in host_txt.upper() or "logo clearance" not in host_txt.lower():
+        fail("SIDEBAR_HOST.md must record the blue Marketplace button and logo clearance")
+    chrome_note = ROOT / "docs" / "airmaze" / "PACKAGING_CHROME.md"
+    if not chrome_note.is_file() or "Start conversation" not in read(chrome_note):
+        fail("docs/airmaze/PACKAGING_CHROME.md must cover composer Start conversation")
     for label, text in (("sidebar-header.js", sidebar_js), ("teams-picker.js", teams_js), ("dragon-ui.css", css)):
         compact = text.replace(" ", "")
         if "rgba(196,30,58" in compact:
             fail(f"{label} must not include border rgba(196,30,58)")
     if "pinWrap" not in sidebar_js or "border:0" not in sidebar_js.replace(" ", ""):
         fail("sidebar-header.js must pin the lockup with border:0")
-    if "flex-wrap" not in apply_ps and "lockup-wrap" not in apply_ps:
-        fail("Apply-DesktopBranding.ps1 must verify wrap rules landed in the copied sheet")
+    if "lockup-wrap" not in apply_ps or "marketplace-label" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must verify wrap + Marketplace label stamps landed")
+    if "marketplace-blue" not in apply_ps or "logo-clearance" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must verify the blue Marketplace button and logo clearance")
+    if "composer-chrome" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must verify composer chrome landed")
     if "18cqi" in css or "clamp(20px, 18cqi, 32px)" in css:
         fail("sidebar logo must stay a fixed 32px (do not clamp/shrink)")
     if "--dragon-sidebar-control-height: 32px" not in css:

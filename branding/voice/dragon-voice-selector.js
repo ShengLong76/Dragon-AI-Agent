@@ -53,12 +53,13 @@
       btn.setAttribute("aria-checked", on ? "true" : "false");
       btn.tabIndex = on ? 0 : -1;
     });
-    var talk = $("[data-dragon-grok-talk]", root);
+    var talk = $("[data-dragon-grok-talk]", root) || $("[data-dragon-grok-talk]");
     if (talk) {
       talk.hidden = id !== "grok";
       if (id !== "grok") talk.setAttribute("hidden", "");
       else talk.removeAttribute("hidden");
-      talk.textContent = session && session.live ? "Stop Grok" : "Talk with Grok";
+      talk.textContent = session && session.live ? "Stop Grok" : "Start conversation";
+      talk.setAttribute("aria-label", session && session.live ? "Stop Grok" : "Start conversation — Talk with Grok");
       talk.setAttribute("aria-pressed", session && session.live ? "true" : "false");
     }
     if (id === "grok") {
@@ -275,15 +276,79 @@
       });
   }
 
-  function mount() {
-    if (document.querySelector("[data-dragon-voice-provider]")) return;
-    var host = document.querySelector('[data-slot="aui_composer"]')
+  function isOwnControl(el) {
+    if (!el || !el.getAttribute) return false;
+    return !!(el.getAttribute("data-dragon-voice-option")
+      || el.getAttribute("data-dragon-grok-talk")
+      || el.getAttribute("data-dragon-voice-provider")
+      || el.getAttribute("data-dragon-ai-composer-action")
+      || el.getAttribute("data-dragon-ai-composer-chrome"));
+  }
+
+  function findComposerHost() {
+    return document.querySelector('[data-slot="aui_composer"]')
       || document.querySelector('[data-slot="composer"]')
       || document.querySelector("textarea")
       || document.querySelector("form");
+  }
+
+  function findComposerAction(host) {
+    if (!host) return null;
+    var selectors = [
+      '[data-slot="aui_composer-speech"]',
+      '[data-slot="composer-speech"]',
+      '[data-slot="aui_composer-actions"] button:last-child',
+      'button[aria-label*="voice" i]',
+      'button[aria-label*="talk" i]',
+      'button[aria-label*="mic" i]',
+      'button[aria-label*="speech" i]',
+      'button[aria-label*="start conversation" i]'
+    ];
+    var i;
+    for (i = 0; i < selectors.length; i++) {
+      try {
+        var el = host.querySelector(selectors[i]);
+        if (el && !isOwnControl(el)) return el;
+      } catch (e) {}
+    }
+    var buttons = host.querySelectorAll("button");
+    var last = null;
+    for (i = 0; i < buttons.length; i++) {
+      if (!isOwnControl(buttons[i])) last = buttons[i];
+    }
+    return last;
+  }
+
+  function placeTalk(talk, host) {
+    var cluster = document.querySelector("[data-dragon-ai-composer-action]");
+    if (!cluster) {
+      cluster = document.createElement("div");
+      cluster.setAttribute("data-dragon-ai-composer-action", "true");
+    }
+    var action = findComposerAction(host);
+    if (action && action.parentNode) {
+      if (cluster.parentNode !== action.parentNode) {
+        action.parentNode.insertBefore(cluster, action);
+      }
+    } else if (host && cluster.parentNode !== host) {
+      host.appendChild(cluster);
+    }
+    if (talk.parentNode !== cluster) cluster.appendChild(talk);
+  }
+
+  function mount() {
+    var existing = document.querySelector("[data-dragon-voice-provider]");
+    var host = findComposerHost();
+    if (existing) {
+      var moved = $("[data-dragon-grok-talk]");
+      if (moved && host) placeTalk(moved, host);
+      return;
+    }
     if (!host) return;
+    if (host.setAttribute) host.setAttribute("data-dragon-ai-composer-chrome", "true");
     var root = document.createElement("div");
     root.setAttribute("data-dragon-voice-provider", "true");
+    root.setAttribute("data-dragon-ai-composer-chrome", "true");
     root.setAttribute("role", "radiogroup");
     root.setAttribute("aria-label", "Voice chat provider");
     var legend = document.createElement("span");
@@ -294,7 +359,8 @@
     var talk = document.createElement("button");
     talk.type = "button";
     talk.setAttribute("data-dragon-grok-talk", "true");
-    talk.textContent = "Talk with Grok";
+    talk.textContent = "Start conversation";
+    talk.setAttribute("aria-label", "Start conversation — Talk with Grok");
     talk.hidden = true;
     var status = document.createElement("p");
     status.setAttribute("data-dragon-voice-status", "true");
@@ -305,13 +371,13 @@
     root.appendChild(legend);
     root.appendChild(gpt);
     root.appendChild(grok);
-    root.appendChild(talk);
     root.appendChild(status);
     if (host.parentNode && host.tagName && host.tagName.toLowerCase() === "textarea") {
       host.parentNode.insertBefore(root, host);
     } else {
       host.insertBefore(root, host.firstChild);
     }
+    placeTalk(talk, host);
     var start = current();
     paint(root, start);
     fetch(API + "/api/voice/selection")

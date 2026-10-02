@@ -191,14 +191,22 @@ body,
 }
 
 /* dragon-ai-lockup-wrap:1
+   dragon-ai-sidebar-chrome-order:1
+   dragon-ai-marketplace-label:1
+   dragon-ai-logo-clearance:1
+   Expected DOM order: lockup → Teams Marketplace → Sessions/Bots
    Sidebar header lockup above SESSIONS / BOTS.
    Logo stays a fixed 32px transparent SVG (no plate / no red border) and
    matches the Teams Marketplace button height. The Marketplace control
-   sits under the logo. Hermes sidebar-wrapper is the full app shell —
-   never a column host. Fallback is a body overlay
-   [data-dragon-ai-sidebar-fixed] pinned into
-   [data-dragon-ai-sidebar-clearance] above the Sessions / Bots strip
-   (must not cover BOTS; default top: 96px, never 48px). Do not set
+   sits under the logo with the full label visible (no mid-word clip).
+   Hermes sidebar-wrapper is the full app shell — never a column host.
+   Prefer in-flow [data-dragon-ai-sidebar-chrome] on the Sessions-zone
+   column. Fallback is a body overlay [data-dragon-ai-sidebar-fixed]
+   pinned into [data-dragon-ai-sidebar-clearance] as the first child of
+   that column (must not cover BOTS; default top: 0 at the reserved rail
+   top, never 96px below the tabs, never 48px on the tab). Clearance/chrome
+   min-height 96px for the stacked lockup. Overlay host is at least 16rem
+   so Teams Marketplace is not clipped to "Teams Marke". Do not set
    container-type on the fixed row (it collapses to ~24px). Overlay wrap
    uses @media (max-width: 1100px). */
 [data-slot="sidebar-inner"],
@@ -210,10 +218,28 @@ body,
   overflow: visible !important;
 }
 
+[data-dragon-ai-sidebar-chrome] {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  min-height: 96px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 auto;
+  order: -1;
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+  background: transparent;
+  border: 0;
+}
+
 [data-dragon-ai-sidebar-fixed] {
   position: fixed;
   z-index: 40;
-  top: 96px;
+  top: 0;
   left: 0;
   width: 16rem;
   max-width: 16rem;
@@ -234,6 +260,7 @@ body,
   background: transparent;
   border: 0;
   flex: 0 0 auto;
+  order: -1;
 }
 
 [data-dragon-ai-sidebar-fixed] [data-dragon-ai-sidebar-row] {
@@ -249,17 +276,18 @@ body,
 
 [data-dragon-ai-sidebar-row] {
   --dragon-sidebar-control-height: 32px;
+  --dragon-logo-clearance: 12px;
   display: flex;
   flex-direction: column;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: stretch;
-  gap: 8px;
+  gap: var(--dragon-logo-clearance);
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
   min-width: 0;
   padding: 8px 12px;
-  overflow: visible;
+  overflow: visible !important;
   background: transparent;
   background-color: transparent;
   border: 0;
@@ -271,10 +299,14 @@ body,
   align-items: center;
   gap: 8px;
   box-sizing: border-box;
-  flex: 0 1 auto;
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 2;
+  isolation: isolate;
   min-width: 32px;
   min-height: var(--dragon-sidebar-control-height);
-  padding: 0;
+  padding: 0 0 8px;
+  margin: 0 0 4px;
   color: var(--color-foreground);
   background: transparent !important;
   background-color: transparent !important;
@@ -295,6 +327,8 @@ body,
   max-height: 32px;
   object-fit: contain;
   flex: 0 0 32px;
+  position: relative;
+  z-index: 2;
   padding: 0;
   margin: 0;
   border: 0 !important;
@@ -323,18 +357,27 @@ body,
   white-space: nowrap;
 }
 
-/* In-app Teams Marketplace (sidebar button under the logo + dialog). */
+/* In-app Teams Marketplace (sidebar button under the logo + dialog).
+   Full label on one line when the rail is 16rem; wrap at the word on a
+   narrow rail. Never ellipsis / mid-word clip ("Teams Marke"). */
 [data-dragon-ai-teams-root] {
   padding: 0;
   margin-left: 0;
-  flex: 1 1 100%;
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 100%;
-  min-width: max-content;
+  min-width: 0;
+  overflow: visible;
   background: transparent;
 }
 
 [data-dragon-ai-teams-open] {
+  --dragon-marketplace-blue: #2563eb;
+  --dragon-marketplace-blue-hover: #3b82f6;
+  --dragon-marketplace-blue-active: #1d4ed8;
+  --dragon-marketplace-on-blue: #ffffff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -344,16 +387,38 @@ body,
   width: 100%;
   flex-shrink: 0;
   max-width: 100%;
+  min-width: 0;
   padding: 6px 12px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--dragon-marketplace-blue);
   border-radius: 6px;
-  background: var(--color-card);
-  color: var(--color-foreground);
+  background: var(--dragon-marketplace-blue);
+  color: var(--dragon-marketplace-on-blue);
   font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
   font-weight: 700;
   font-size: var(--dragon-ui-font-size-ui);
   line-height: var(--dragon-ui-line-height-ui);
+  white-space: nowrap;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
   cursor: pointer;
+}
+
+/* dragon-ai-marketplace-blue:1
+   James: filled blue Teams Marketplace control only. Crimson stays
+   on focus/selected chrome elsewhere. */
+[data-dragon-ai-teams-open]:hover {
+  background: var(--dragon-marketplace-blue-hover);
+  border-color: var(--dragon-marketplace-blue-hover);
+  color: var(--dragon-marketplace-on-blue);
+}
+
+[data-dragon-ai-teams-open]:active {
+  background: var(--dragon-marketplace-blue-active);
+  border-color: var(--dragon-marketplace-blue-active);
+  color: var(--dragon-marketplace-on-blue);
 }
 
 /* Icon-rail / collapsed column: hide lockup so the BOTS tab stays clickable. */
@@ -373,6 +438,7 @@ body,
   [data-dragon-ai-teams-open] {
     width: 100%;
     justify-content: center;
+    white-space: normal;
   }
 }
 
@@ -386,10 +452,15 @@ body,
   [data-dragon-ai-sidebar-fixed] [data-dragon-ai-teams-open] {
     width: 100%;
     justify-content: center;
+    white-space: normal;
   }
 }
 
-[data-dragon-ai-teams-open]:focus-visible,
+[data-dragon-ai-teams-open]:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
+
 [data-dragon-ai-teams-panel] button:focus-visible,
 [data-dragon-ai-teams-panel] input:focus-visible,
 [data-dragon-ai-teams-panel] [data-dragon-ai-team-seats] li:focus-visible {
@@ -711,13 +782,39 @@ input::placeholder {
   opacity: 1;
 }
 
+/* dragon-ai-composer-chrome:1
+   No persistent crimson outline around the composer, GPT/Grok pills,
+   or Talk. Start conversation lives in the right-side action cluster.
+   Focus-visible stays on the textbox and controls (2px #C41E3A). */
+[data-slot="aui_composer"],
+[data-slot="composer"],
+[data-dragon-ai-composer-chrome],
+[data-dragon-voice-provider],
+[data-dragon-ai-composer-action] {
+  --tw-ring-color: transparent;
+  --tw-ring-shadow: 0 0 #0000;
+  --color-ring: transparent;
+  outline: none;
+  box-shadow: none;
+}
+
+[data-slot="aui_composer"],
+[data-slot="composer"],
+[data-slot="aui_composer"][data-dragon-ai-composer-chrome],
+[data-slot="composer"][data-dragon-ai-composer-chrome] {
+  border-color: var(--color-border);
+  box-shadow: none !important;
+  outline: none !important;
+}
+
 textarea:focus-visible,
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus-visible,
 [contenteditable="true"]:focus-visible,
 [role="textbox"]:focus-visible,
 [data-dragon-voice-option]:focus-visible,
 [data-dragon-grok-talk]:focus-visible {
-  outline: 2px solid var(--color-ring);
+  --color-ring: #c41e3a;
+  outline: 2px solid #c41e3a;
   outline-offset: 2px;
 }
 
@@ -729,6 +826,8 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="
   gap: 8px;
   margin: 0 0 8px;
   padding: 4px 0;
+  border: 0;
+  background: transparent;
   font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -761,14 +860,26 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="
   color: var(--color-on-primary);
 }
 
+[data-dragon-ai-composer-action] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  outline: none;
+  box-shadow: none;
+}
+
 [data-dragon-grok-talk] {
   box-sizing: border-box;
   min-height: 32px;
   padding: 0 12px;
-  border: 1px solid var(--color-primary);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--color-primary);
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-card);
+  color: var(--color-foreground);
   font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
   font-weight: 700;
   font-size: 0.875rem;

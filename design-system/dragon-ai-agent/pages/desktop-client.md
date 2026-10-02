@@ -50,7 +50,7 @@ James’s front-facing navy low-poly dragon (both eyes to the viewer, coiled nec
 
 The Bots rail must not list the built-in default Hermes agent next to Personal Assistant. The product **excludes** that bot (purge leftover `default` / `hermes` folders). Overlay CSS hides `[data-roster-key$="::default"]` as a backstop; the string overlay blanks `return 'Hermes'`. **Personal Assistant** stays. Imported bot groups file into a named section, not UNASSIGNED.
 
-The left-rail header above SESSIONS / BOTS is a brand lockup: decorative navy dragon (`aria-hidden`) + **Dragon AI** in Syne 700 (`#F0F0F5` on `#1C1C20`) + the **Teams Marketplace** control under the logo. The mark is transparent only (no red border, no plate) and a fixed `32px` square matching the Marketplace button. Wordmark ellipsizes. When Hermes only paints `sidebar-wrapper`, reserve clearance above the Sessions / Bots strip and pin a body overlay there — do not cover those tabs. Sidebar bot names and middle session/agent names share **16px** body. Accessible name **Dragon AI Agent**.
+The left-rail header above SESSIONS / BOTS is a brand lockup: decorative navy dragon (`aria-hidden`) + **Dragon AI** in Syne 700 (`#F0F0F5` on `#1C1C20`) + the **blue Teams Marketplace** control under the logo. Order is lockup → Teams Marketplace → Sessions / Bots. The mark is transparent only (no red border, no plate) and a fixed `32px` square with reserved padding/gap (`--dragon-logo-clearance: 12px`) so Marketplace and Sessions/Bots never overlay it. Wordmark ellipsizes; the Marketplace label does not. When Hermes only paints `sidebar-wrapper`, prepend in-flow chrome on the Sessions-zone column (or reserve first-child clearance and pin a body overlay there) — do not cover those tabs. Sidebar bot names and middle session/agent names share **16px** body. Accessible name **Dragon AI Agent**.
 
 The Teams dialog lists seats under each team as a **4-column CSS grid** (`repeat(4, 1fr)`; wrap, no empty filler cells). Each card is marketplace-style: a **32px** decorative SVG icon on the left (`aria-hidden`) beside title + brief. Brief (`description`) stays visible under the seat name; `descriptionDetail` is a hover/focus tooltip (`role="tooltip"`), not a native `title` and not the only path for the one-liner. Seat cards and the team Apply control share a **12px** radius and a dark-surface shadow. Apply is the team row. Seats are not nested buttons. Focus rings stay visible. Do not clamp essential seat names. Icons are navy/crimson low-poly SVGs in `branding/teams/`, not a runtime generate.
 
@@ -59,7 +59,7 @@ The Teams dialog lists seats under each team as a **4-column CSS grid** (`repeat
 - Empty-state wordmark, intro subtitle, and the front-facing dragon mark
 - Sidebar header brand lockup (logo + Dragon AI) and sidebar/chat type size + contrast
 - In-app Teams picker button + dialog (`[data-dragon-ai-teams-*]`)
-- Composer placeholder + `:focus-visible` ring (`2px` solid `--color-ring`, offset `2px`)
+- Composer placeholder + `:focus-visible` ring on the textbox/pills only (`2px` solid `#C41E3A`, offset `2px`). No persistent crimson outline around the composer island. **Start conversation** sits in the right-side action cluster.
 - Settings / About product copy (strings already in `desktop_branding.json`)
 - Shared CSS variables so a later branded Electron build can reuse them
 

@@ -30,7 +30,7 @@ python3 scripts/airmaze/Test-LaunchSmoke.py
 
 1. Copy this revision into `%LOCALAPPDATA%\DragonAIAgent\` (or install). Do not instruct a live reinstall until he says so.
 2. Open Start Menu **Dragon AI Agent**.
-3. Sidebar header above SESSIONS / BOTS shows the Dragon mark + **Dragon AI** + **Teams Marketplace**. If header/inner are missing, the body overlay sits in a clearance spacer above those tabs (they stay clickable). Sidebar bot names and middle session names match at 16px.
+3. Sidebar header above SESSIONS / BOTS shows the Dragon mark + **Dragon AI** + **Teams Marketplace** (lockup → Teams Marketplace → Sessions/Bots). If header/inner are missing, prefer in-flow chrome on the Sessions-zone column; else a body overlay in a first-child clearance spacer above those tabs (they stay clickable). Sidebar bot names and middle session names match at 16px.
 4. Taskbar / running window uses the Dragon ICO (not the purple Hermes square).
 5. BOTS list has no Hermes row. If an old box still has one: delete `%LOCALAPPDATA%\hermes\profiles\hermes` and `...\default` plus the same names under `%USERPROFILE%\.hermes-airmaze-embedded\profiles\`, then relaunch.
 6. Deploy or re-apply a bot group (e.g. Real Estate). Those bots sit under a named section matching the pack display name — not UNASSIGNED.

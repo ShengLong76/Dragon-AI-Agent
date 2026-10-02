@@ -17,7 +17,7 @@ PR #3 / #7 already overlay empty-state copy, Syne, the navy mark, and a CSS hide
 - **In-app mark:** the existing navy coiled dragon (`branding/dragon-ai-agent-logo.png`). No new logo. Empty-state and sidebar header stay navy / unboxed.
 - **Windows ICO:** the transparent sidebar mark (`branding/dragon-ai-agent-logo.png` → contain-max `installer/winres/icon.ico` and `branding/dragon-ai-agent-logo.ico`, same bytes). That is the Setup.exe icon and the asset for taskbar / Start Menu / `Hermes.exe` stamp. The circular copper badge reads smaller and leaves a rim; do not ship that as the live tray ICO. Do not invent a third mark. Do not pick a fixed display pixel size — contain-max the dragon into the Windows slot (`docs/airmaze/TRAY_ICON.md`).
 - **Name in the rail:** **Dragon AI** (fits the 16rem sidebar). Accessible name **Dragon AI Agent** (matches empty-state / settings copy).
-- **Type:** Syne 700, foreground `#F0F0F5` on `#1C1C20` (≥4.5:1). Sidebar / chat / Teams Marketplace overlay type matches Grok Bot: **16px** body, **14px** chrome, muted `#C4C4CE` (not Hermes 13px / 54% grey). Logo beside the name is decorative (`aria-hidden="true"`), the transparent SVG mark (no red border, no plate), height matched to the Teams Marketplace button (fixed 32px). The Marketplace control sits under the logo. Host fallback: `docs/airmaze/SIDEBAR_HOST.md`.
+- **Type:** Syne 700, foreground `#F0F0F5` on `#1C1C20` (≥4.5:1). Sidebar / chat / Teams Marketplace overlay type matches Grok Bot: **16px** body, **14px** chrome, muted `#C4C4CE` (not Hermes 13px / 54% grey). Logo beside the name is decorative (`aria-hidden="true"`), the transparent SVG mark (no red border, no plate), height matched to the Teams Marketplace button (fixed 32px) with reserved padding/gap so no control overlays it. The **blue** Marketplace control sits under the logo. Host fallback: `docs/airmaze/SIDEBAR_HOST.md`. Chrome: `docs/airmaze/PACKAGING_CHROME.md`.
 
 UI UX Pro Max: decorative-beside-text (`aria-hidden`); Color Contrast (High). No verified “sidebar brand lockup” row — general guidance only: keep the lockup out of the SESSIONS / BOTS tab hit targets.
 
@@ -25,7 +25,7 @@ UI UX Pro Max: decorative-beside-text (`aria-hidden`); Color Contrast (High). No
 
 Upstream chrome *defined* `data-slot="sidebar-header"` / `sidebar-inner`. Live UltraDragon Hermes does not paint those — only `sidebar-wrapper`, and that node is the full app shell.
 
-**Do:** at overlay time, inject a brand lockup (CSS + `sidebar-header.js` / `teams-picker.js`). Try column hosts first (`sidebar-header`, `sidebar-inner`, `sidebar-container`, `sidebar`). If those are absent, mount a body overlay `[data-dragon-ai-sidebar-fixed]` **below** the Sessions / Bots strip so those tabs stay visible and clickable. Do **not** treat `sidebar-wrapper` as a column. Design: `docs/airmaze/SIDEBAR_HOST.md`.
+**Do:** at overlay time, inject a brand lockup (CSS + `sidebar-header.js` / `teams-picker.js`). Order is lockup → **Teams Marketplace** → Sessions / Bots. Try column hosts first (`sidebar-header`, `sidebar-inner`, `sidebar-container`, `sidebar`). If those are absent, prepend in-flow `[data-dragon-ai-sidebar-chrome]` on the Sessions-zone column so the native strip and everything below move down. Only if that column cannot be found, mount a body overlay `[data-dragon-ai-sidebar-fixed]` pinned into a first-child clearance spacer **above** the Sessions / Bots strip (tabs stay visible and clickable). Do **not** treat `sidebar-wrapper` as a column. Design: `docs/airmaze/SIDEBAR_HOST.md`.
 
 Do not cover SESSIONS / BOTS. Do not restyle Bot Screen.
 
@@ -89,7 +89,7 @@ Built-in Teams Marketplace (one click): **Real Estate Lead Gen**, **Marketing Te
 
 **Do (packaging overlay; no Electron rebuild):**
 
-1. Inject a **Teams Marketplace** button + dialog into the unpacked desktop client (`desktop_branding.py` / `dragon-ui.css`). The user-visible control label is **Teams Marketplace** (not “Teams”). The control sits under the 32px logo; the panel is black and opens with a fade + slight slide/scale.
+1. Inject a **Teams Marketplace** button + dialog into the unpacked desktop client (`desktop_branding.py` / `dragon-ui.css`). The user-visible control label is **Teams Marketplace** (not “Teams”). The control is a filled blue button under the 32px logo (full label, reserved gap); the panel is black and opens with a fade + slight slide/scale.
 2. Loopback helper `teams_picker.py` on `127.0.0.1:8653` (`GET /api/teams`, `POST /api/teams/apply`, `POST /api/teams/import`). Not Bot Screen `:8650`.
 3. Launch starts the helper (`start-embedded.ps1`). First-run wizard has **Teams Marketplace**. `Select-BotGroup.ps1` window title is **Teams Marketplace**; Import file remains.
 4. Helper always unions the bundled catalog so Marketing / Trading show even if GitHub is stale.
