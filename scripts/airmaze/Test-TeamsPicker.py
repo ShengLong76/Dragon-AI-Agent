@@ -28,6 +28,8 @@ SETUP = ROOT / "installer" / "DragonAIAgentSetup.ps1"
 PRODUCT = ROOT / "docs" / "airmaze" / "PRODUCT_BRANDING.md"
 MARKETING = ROOT / "bot-groups" / "marketing-team" / "bot-group.json"
 SEO_YAML = ROOT / "bot-groups" / "marketing-team" / "bots" / "seo-specialist" / "bot.yaml"
+TRADING = ROOT / "bot-groups" / "trading-team" / "bot-group.json"
+RESEARCHER_YAML = ROOT / "bot-groups" / "trading-team" / "bots" / "market-researcher" / "bot.yaml"
 DESIGN = ROOT / "docs" / "airmaze" / "TEAMS_SEAT_DESCRIPTIONS.md"
 BOT_GROUPS_DOC = ROOT / "docs" / "airmaze" / "BOT_GROUPS.md"
 
@@ -40,6 +42,27 @@ MARKETING_IDS = [
     "marketing-analyst",
 ]
 SEO_BRIEF = "Runs seoagent.com Skill/CLI audits and optional DataForSEO research."
+TRADING_IDS = [
+    "market-researcher",
+    "trade-journal",
+    "risk-analyst",
+    "news-scanner",
+]
+RESEARCHER_BRIEF = (
+    "Research notes from an adapted Anthropic financial-services skill pack (paper/read-only)."
+)
+RESEARCHER_DETAIL_NEEDLES = (
+    "Not a new teammate",
+    "four",
+    "financial-services",
+    "github.com/anthropics/financial-services",
+    "computer-use",
+    "browser",
+    "re-apply",
+    "Not a broker",
+    "FactSet",
+    "OpenBB",
+)
 SEO_DETAIL_NEEDLES = (
     "Not a new teammate",
     "six",
@@ -494,7 +517,7 @@ def test_overlay_and_launch_wired() -> None:
     if "branding" not in apply_ps or "teams" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must copy branding/teams icons")
     design = read(DESIGN)
-    for needle in ("descriptionDetail", "seoagent.com", "six", "hover", "4-column", "icon", "Teams Marketplace"):
+    for needle in ("descriptionDetail", "seoagent.com", "six", "hover", "4-column", "icon", "Teams Marketplace", "financial-services"):
         if needle not in design:
             fail(f"TEAMS_SEAT_DESCRIPTIONS.md must document {needle!r}")
     groups_doc = read(BOT_GROUPS_DOC)
@@ -543,6 +566,36 @@ def test_marketing_seat_descriptions() -> None:
     print("OK  Marketing seat brief + hover copy (SEO Specialist seoagent.com)")
 
 
+def test_trading_seat_descriptions() -> None:
+    group = json.loads(read(TRADING))
+    bots = [b for b in (group.get("bots") or []) if isinstance(b, dict) and b.get("id")]
+    ids = [str(b["id"]) for b in bots]
+    if ids != TRADING_IDS:
+        fail(f"Trading Team must stay Cos's 4 seats {TRADING_IDS}, got {ids}")
+    for forbidden in ("financial-services", "finance", "investment"):
+        if forbidden in ids:
+            fail(f"{forbidden} must not be a Trading seat")
+    by_id = {str(b["id"]): b for b in bots}
+    researcher = by_id["market-researcher"]
+    if researcher.get("description") != RESEARCHER_BRIEF:
+        fail(f"Market Researcher brief must be {RESEARCHER_BRIEF!r}, got {researcher.get('description')!r}")
+    detail = str(researcher.get("descriptionDetail") or "")
+    for needle in RESEARCHER_DETAIL_NEEDLES:
+        if needle not in detail:
+            fail(f"Market Researcher hover detail must include {needle!r}")
+    yaml_text = read(RESEARCHER_YAML)
+    if RESEARCHER_BRIEF not in yaml_text:
+        fail("Market Researcher bot.yaml brief must match the Teams picker one-liner")
+    for bot_id, bot in by_id.items():
+        if not str(bot.get("description") or "").strip():
+            fail(f"{bot_id} must have a brief description under the seat name")
+        if bot_id == "market-researcher":
+            continue
+        if str(bot.get("descriptionDetail") or "").strip():
+            fail(f"{bot_id} must omit descriptionDetail")
+    print("OK  Trading seat brief + hover copy (Market Researcher financial-services)")
+
+
 def test_present_team_exposes_seat_copy(tp) -> None:
     with tempfile.TemporaryDirectory(prefix="dragon-teams-seats-") as tmp:
         install = pathlib.Path(tmp) / "install"
@@ -566,6 +619,20 @@ def test_present_team_exposes_seat_copy(tp) -> None:
             fail("present_team must ship SEO Specialist descriptionDetail")
         if any(s.get("id") == "seoagent" for s in seats):
             fail("seoagent is a tool, not a Teams picker seat")
+        trading = next((t for t in listed.get("teams") or [] if t.get("id") == "trading-team"), None)
+        if not trading:
+            fail("list_teams must include Trading Team")
+        trading_seats = trading.get("bots") or []
+        trading_ids = [s.get("id") for s in trading_seats]
+        if trading_ids != TRADING_IDS:
+            fail(f"present_team must list Cos's 4 Trading seats, got {trading_ids}")
+        researcher = next((s for s in trading_seats if s.get("id") == "market-researcher"), {})
+        if researcher.get("description") != RESEARCHER_BRIEF:
+            fail("present_team must ship the Market Researcher brief")
+        if not researcher.get("descriptionDetail") or "financial-services" not in researcher["descriptionDetail"]:
+            fail("present_team must ship Market Researcher descriptionDetail")
+        if any(s.get("id") == "financial-services" for s in trading_seats):
+            fail("financial-services is a tool, not a Teams picker seat")
         for team in listed.get("teams") or []:
             for seat in team.get("bots") or []:
                 if not seat.get("title") or "description" not in seat:
@@ -599,6 +666,7 @@ def main() -> int:
     test_apply_files_named_section(tp)
     test_launch_many_named_sections(tp)
     test_marketing_seat_descriptions()
+    test_trading_seat_descriptions()
     test_present_team_exposes_seat_copy(tp)
     test_overlay_and_launch_wired()
     print("SMOKE OK: Teams popup lists Install per team + 4-col seats; Launch files each named section; export/import stay.")

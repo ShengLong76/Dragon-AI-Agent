@@ -85,3 +85,14 @@ Marketing Team **SEO Specialist** ships Hermes instructions for the official SEO
 |------|--------|
 | DataForSEO MCP | https://github.com/dataforseo/mcp-server-typescript |
 | Package | `dataforseo-mcp-server` |
+
+## Financial Services (Anthropic reference kit) on Market Researcher
+
+Trading Team **Market Researcher** ships Hermes instructions adapted from Anthropic’s public financial-services kit. The Claude Cowork plugins, Managed Agent cookbooks, and vendor MCP connectors are **not** vendored.
+
+| Item | Value |
+|------|--------|
+| Project | https://github.com/anthropics/financial-services |
+| License | Apache License 2.0 © Anthropic |
+| Adapted path | `bot-groups/trading-team/bots/market-researcher/skills/` |
+| Design | `docs/airmaze/FINANCIAL-SERVICES.md` |

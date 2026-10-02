@@ -29,9 +29,20 @@ The Teams helper (`GET /api/teams` on `127.0.0.1:8653`) already listed team `dis
 
 PR #18 wires those tools on the same seat. This branch starts from **current main** (copy + picker UI only). It does not restack #18.
 
+## Market Researcher (financial-services)
+
+**Brief:** `Research notes from an adapted Anthropic financial-services skill pack (paper/read-only).`
+
+**Detail** (hover / focus):
+
+- Not a new teammate. Apply Trading Team still yields four bots. Only this seat gets extra research tooling.
+- Tools: `financial-services` (local skill/docs pack adapted from https://github.com/anthropics/financial-services), plus `computer-use` and `browser`.
+- Drafts/research only. Not a broker. Re-apply Trading Team after install.
+- FactSet / Morningstar / S&P / OpenBB are out of scope in v1.
+
 ## Other Marketing seats
 
-Same brief + hover fields. Briefs stay Cos’s one-liners. Hover restates charter, handoff, and (where it matters) Buffer / Brevo. Real Estate and Trading keep `description` as the brief under the name; they omit `descriptionDetail` until someone writes one.
+Same brief + hover fields. Briefs stay Cos’s one-liners. Hover restates charter, handoff, and (where it matters) Buffer / Brevo. Real Estate still omits `descriptionDetail`. Trading **Market Researcher** ships brief + hover like SEO Specialist (adapted Anthropic financial-services skill pack; paper/read-only; not a fifth seat). Other Trading seats keep brief only.
 
 ## UX
 

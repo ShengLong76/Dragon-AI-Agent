@@ -1,0 +1,10 @@
+{
+  "id": "financial-services",
+  "type": "docs",
+  "displayName": "Financial Services (Anthropic reference kit)",
+  "status": "placeholder",
+  "docs": "https://github.com/anthropics/financial-services",
+  "source": "https://github.com/anthropics/financial-services",
+  "license": "Apache-2.0",
+  "notes": "Local skill/docs pack for Market Researcher. Adapted from anthropics/financial-services (Apache-2.0). No installable CLI or npm package. No Claude Cowork required. Paper/read-only research notes. FactSet / Morningstar / S&P / OpenBB are out of scope in this pack. No secrets in this file. Setup: docs/airmaze/FINANCIAL-SERVICES.md."
+}

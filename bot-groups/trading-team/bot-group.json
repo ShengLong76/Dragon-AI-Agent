@@ -14,13 +14,14 @@
     {"id": "computer-use", "displayName": "Computer use"},
     {"id": "browser", "displayName": "Browser"}
   ],
-  "version": "2.0.0",
+  "version": "2.1.0",
   "bots": [
     {
       "id": "market-researcher",
       "title": "Market Researcher",
-      "description": "Summarizes public market context and writes research notes. Does not place orders.",
-      "tools": ["computer-use", "browser"],
+      "description": "Research notes from an adapted Anthropic financial-services skill pack (paper/read-only).",
+      "descriptionDetail": "Not a new teammate. Apply Trading Team still yields the same four Cos seats. Only this seat gets extra research tooling.\n\nTools: financial-services (local Hermes skill/docs pack adapted from https://github.com/anthropics/financial-services, Apache-2.0; no Claude Cowork required), plus computer-use and browser.\n\nDrafts and research only. Paper/read-only. Not a broker. Does not place orders, hold brokerage credentials, or give personalized investment advice.\n\nAfter install: re-apply Trading Team. Read docs/airmaze/FINANCIAL-SERVICES.md. Cite operator-supplied or public filings; mark unsourced figures.\n\nFactSet, Morningstar, S&P, and other Anthropic vendor MCPs are out of scope in this pack (optional later). OpenBB is also out of scope.",
+      "tools": ["computer-use", "browser", "financial-services"],
       "soul": "bots/market-researcher/SOUL.md",
       "config": "bots/market-researcher/bot.yaml"
     },
@@ -47,6 +48,15 @@
       "tools": ["computer-use", "browser"],
       "soul": "bots/news-scanner/SOUL.md",
       "config": "bots/news-scanner/bot.yaml"
+    }
+  ],
+  "connectors": [
+    {
+      "id": "financial-services",
+      "type": "docs",
+      "displayName": "Financial Services (Anthropic reference kit)",
+      "description": "Local skill/docs pack adapted from anthropics/financial-services. Paper/read-only research notes. No Cowork, no vendor MCPs.",
+      "configTemplate": "connectors/financial-services.json"
     }
   ]
 }
