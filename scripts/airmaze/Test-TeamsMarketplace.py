@@ -20,6 +20,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "scripts" / "airmaze"
 CATALOG = ROOT / "bot-groups" / "catalog.json"
 MARKETING = ROOT / "bot-groups" / "marketing-team" / "bot-group.json"
+TRADING = ROOT / "bot-groups" / "trading-team" / "bot-group.json"
 DESIGN = ROOT / "docs" / "airmaze" / "TEAMS_MARKETPLACE.md"
 POPUP = ROOT / "docs" / "airmaze" / "TEAMS_POPUP.md"
 BRANDING_PY = SCRIPTS / "desktop_branding.py"
@@ -40,6 +41,12 @@ COS_MARKETING = [
     "paid-media-specialist",
     "lifecycle-marketer",
     "marketing-analyst",
+]
+COS_TRADING = [
+    "market-researcher",
+    "trade-journal",
+    "risk-analyst",
+    "news-scanner",
 ]
 SECRET_NEEDLES = (
     "sk-secretLIVEKEY1234567890",
@@ -113,6 +120,12 @@ def test_catalog_parse(bg) -> None:
         fail(f"Marketing Team must stay Cos's 6 seats, got {ids}")
     if "seoagent" in ids or len(ids) != 6:
         fail("do not add a 7th Marketing seat")
+    trading_group = json.loads(read(TRADING))
+    trading_ids = [b.get("id") for b in trading_group.get("bots") or []]
+    if trading_ids != COS_TRADING:
+        fail(f"Trading Team must stay Cos's 4 seats, got {trading_ids}")
+    if "financial-services" in trading_ids or len(trading_ids) != 4:
+        fail("do not add a 5th Trading seat")
     print("OK  catalog parse: marketplace fields + three featured packs")
 
 

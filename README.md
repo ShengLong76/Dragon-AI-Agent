@@ -66,7 +66,7 @@ The Teams Marketplace popup fetches `bot-groups/catalog.json` from https://githu
 | `personal-assistant` | Personal Assistant | 1 — general PA (sidebar default; not a Teams row) |
 | `real-estate-cold-call-lead-refresher` | Real Estate Lead Gen | 4 — Lead Sourcer, Email Warmer, Cold Call Script Writer, Follow-up Sequencer |
 | `marketing-team` | Marketing Team | 6 — Cos marketing roster (SEO Specialist: seoagent.com CLI + Skill; DataForSEO connector kept) |
-| `trading-team` | Trading Team | 4 — Cos trading roster |
+| `trading-team` | Trading Team | 4 — Cos trading roster (Market Researcher: adapted Anthropic financial-services skill pack) |
 
 ### Scripts
 

@@ -35,6 +35,11 @@ SEOAGENT_SKILLS = SEO_SPECIALIST / "skills"
 DATAFORSEO_CONNECTOR = ROOT / "bot-groups" / "marketing-team" / "connectors" / "dataforseo.json"
 SEOAGENT_CONNECTOR = ROOT / "bot-groups" / "marketing-team" / "connectors" / "seoagent.json"
 SEOAGENT_DESIGN = DOCS / "SEOAGENT.md"
+TRADING = ROOT / "bot-groups" / "trading-team" / "bot-group.json"
+MARKET_RESEARCHER = ROOT / "bot-groups" / "trading-team" / "bots" / "market-researcher"
+FSI_SKILLS = MARKET_RESEARCHER / "skills"
+FSI_CONNECTOR = ROOT / "bot-groups" / "trading-team" / "connectors" / "financial-services.json"
+FSI_DESIGN = DOCS / "FINANCIAL-SERVICES.md"
 CLAUDE_SEO_LEAVES = (
     "seo-audit.md",
     "seo-page.md",
@@ -970,6 +975,150 @@ def test_seo_specialist_seoagent_com_pack(bg) -> None:
     print("OK  SEO Specialist has seoagent.com CLI+Skill; DataForSEO kept; 6 seats")
 
 
+def test_market_researcher_financial_services_pack(bg) -> None:
+    """Financial-services is a local skill/docs pack on Market Researcher, not a 5th seat."""
+    group = json.loads(read(TRADING))
+    bots = {str(b.get("id")): b for b in group.get("bots") or [] if b.get("id")}
+    expected = COS_ROSTERS["trading-team"]
+    if list(bots) != expected:
+        fail(f"Trading Team must stay Cos's 4 seats {expected}, got {list(bots)}")
+    if group.get("version") != "2.1.0":
+        fail(f"trading-team version must bump to 2.1.0, got {group.get('version')}")
+    for forbidden in ("financial-services", "finance", "investment", "openbb"):
+        if forbidden in bots:
+            fail(f"{forbidden} must be a tool/skill, not a Trading seat")
+    researcher = bots.get("market-researcher") or {}
+    tools = [str(t) for t in researcher.get("tools") or []]
+    for required in ("computer-use", "browser", "financial-services"):
+        if required not in tools:
+            fail(f"Market Researcher tools must include {required}, got {tools}")
+    brief = str(researcher.get("description") or "")
+    if "financial-services" not in brief or "paper/read-only" not in brief:
+        fail(f"Market Researcher brief must name the skill pack and paper/read-only, got {brief!r}")
+    detail = str(researcher.get("descriptionDetail") or "")
+    for needle in (
+        "Not a new teammate",
+        "financial-services",
+        "github.com/anthropics/financial-services",
+        "computer-use",
+        "browser",
+        "re-apply",
+        "Not a broker",
+        "FactSet",
+        "OpenBB",
+    ):
+        if needle not in detail:
+            fail(f"Market Researcher hover detail must include {needle!r}")
+    others = [bot_id for bot_id in expected if bot_id != "market-researcher"]
+    for bot_id in others:
+        if (bots[bot_id].get("tools") or []) != ["computer-use", "browser"]:
+            fail(f"{bot_id} tools must stay computer-use/browser, got {bots[bot_id].get('tools')}")
+        if (ROOT / "bot-groups" / "trading-team" / "bots" / bot_id / "skills").exists():
+            fail(f"{bot_id} must not receive the Market Researcher skill pack")
+        if str(bots[bot_id].get("descriptionDetail") or "").strip():
+            fail(f"{bot_id} must keep brief-only copy (no descriptionDetail)")
+
+    soul = read(MARKET_RESEARCHER / "SOUL.md")
+    for needle in (
+        "Financial Services",
+        "anthropics/financial-services",
+        "Paper/read-only",
+        "personalized investment advice",
+    ):
+        if needle not in soul:
+            fail(f"Market Researcher SOUL must reference {needle}")
+    if "Do not require Claude Cowork" not in soul:
+        fail("SOUL must say Claude Cowork is not required")
+    yaml_text = read(MARKET_RESEARCHER / "bot.yaml")
+    if brief not in yaml_text:
+        fail("Market Researcher bot.yaml brief must match the Teams picker one-liner")
+    if not FSI_SKILLS.is_dir():
+        fail("Market Researcher must ship Hermes skill instructions for financial-services")
+    index = read(FSI_SKILLS / "INDEX.md")
+    skill = read(FSI_SKILLS / "SKILL.md")
+    pack = index + "\n" + skill
+    for needle in (
+        "anthropics/financial-services",
+        "Apache",
+        "paper",
+        "read-only",
+        "comps",
+        "earnings",
+        "FactSet",
+        "OpenBB",
+        "Cowork",
+    ):
+        if needle not in pack:
+            fail(f"financial-services skill pack must document {needle!r}")
+    attribution = read(FSI_SKILLS / "ATTRIBUTION.md")
+    if "anthropics/financial-services" not in attribution or "Apache" not in attribution:
+        fail("skill pack must attribute anthropics/financial-services (Apache-2.0)")
+    if (MARKET_RESEARCHER / ".claude-plugin").exists() or (ROOT / "bot-groups" / "trading-team" / "install.sh").exists():
+        fail("do not vendor a Claude Cowork plugin installer into Trading Team")
+    leftover_skills = {p.name for p in FSI_SKILLS.iterdir() if p.is_file()}
+    if leftover_skills - {"INDEX.md", "SKILL.md", "ATTRIBUTION.md"}:
+        fail(f"do not vendor extra upstream skill files: {leftover_skills}")
+
+    conn = json.loads(read(FSI_CONNECTOR))
+    blob = json.dumps(conn)
+    if conn.get("id") != "financial-services":
+        fail("financial-services connector id must be financial-services")
+    if conn.get("type") != "docs":
+        fail("financial-services connector type must be docs (no fake CLI/npm)")
+    if conn.get("cli") or conn.get("mcp") or conn.get("package"):
+        fail("do not invent a CLI, MCP, or npm package for financial-services")
+    if "anthropics/financial-services" not in blob:
+        fail("financial-services connector must cite the upstream repo")
+    if any(token in blob for token in ("sk-", "sk-ant-", "@anthropic")):
+        fail("do not ship secrets in the financial-services connector")
+    if any(vendor in blob.lower() for vendor in ("npx", "factset", "morningstar", "openbb")) and "out of scope" not in conn.get("notes", "").lower():
+        fail("connector must not wire vendor MCPs; mention them only as out of scope")
+    if not any(isinstance(c, dict) and c.get("id") == "financial-services" for c in group.get("connectors") or []):
+        fail("bot-group.json must list the financial-services connector")
+
+    design = read(FSI_DESIGN)
+    for needle in (
+        "anthropics/financial-services",
+        "Apache",
+        "Market Researcher",
+        "four",
+        "re-apply",
+        "FactSet",
+        "OpenBB",
+        "Cowork",
+        "Not a broker",
+        "docs",
+    ):
+        if needle not in design:
+            fail(f"FINANCIAL-SERVICES.md must document {needle!r}")
+
+    with tempfile.TemporaryDirectory(prefix="dragon-fsi-") as tmp:
+        tmp_path = pathlib.Path(tmp)
+        install = tmp_path / "install"
+        desktop = tmp_path / "hermes-profiles"
+        result = bg.deploy_group(
+            "trading-team",
+            payload_root=ROOT,
+            install_root=install,
+            desktop_profiles_root=desktop,
+        )
+        deployed = [b.get("id") for b in result.get("bots") or []]
+        if deployed != expected:
+            fail(f"apply Trading Team must still yield 4 Cos bots, got {deployed}")
+        meta = json.loads((desktop / "market-researcher" / "bot.meta.json").read_text(encoding="utf-8"))
+        if "financial-services" not in meta.get("tools", []):
+            fail(f"deployed Market Researcher meta must include financial-services: {meta.get('tools')}")
+        if not (desktop / "market-researcher" / "skills" / "INDEX.md").is_file():
+            fail("deploy must copy Market Researcher skills/ onto the desktop profile")
+        if not (desktop / "market-researcher" / "skills" / "SKILL.md").is_file():
+            fail("deploy must copy financial-services SKILL.md onto the Market Researcher profile")
+        if (desktop / "news-scanner" / "skills").exists():
+            fail("deploy must not copy FSI skills onto other Trading seats")
+        if not (install / "connectors" / "trading-team" / "financial-services.json").is_file():
+            fail("deploy must copy the financial-services connector placeholder")
+    print("OK  Market Researcher has financial-services skill/docs; 4 seats; paper/read-only")
+
+
 def test_customization_paths() -> None:
     text = read(DESIGN)
     for path in (
@@ -1000,6 +1149,7 @@ def main() -> int:
     test_bundled_team_rosters()
     test_deploy_full_roster_replaces_stale(bg)
     test_seo_specialist_seoagent_com_pack(bg)
+    test_market_researcher_financial_services_pack(bg)
     test_no_profiles_ui()
     test_desktop_agent_untouched()
     test_customization_paths()

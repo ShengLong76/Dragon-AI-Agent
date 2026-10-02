@@ -213,6 +213,12 @@ James locked [seoagent.com](https://seoagent.com) / `@seoagent-official/seoagent
 
 **DataForSEO** (`connectors/dataforseo.json`) stays as a separate connector. Buffer / Brevo stay the locked defaults for Social / Lifecycle and are not wired here. Deploy copies `bots/seo-specialist/skills/` onto that profile only.
 
+## Trading Team — Financial Services (Market Researcher only)
+
+James locked an adapted [anthropics/financial-services](https://github.com/anthropics/financial-services) skill/docs pack (Apache-2.0) on **Market Researcher**. Not a fifth seat. Not a Finance team. Local Hermes guidance only — no Claude Cowork, no FactSet/Morningstar/S&P/OpenBB in this pack. Design: [`docs/airmaze/FINANCIAL-SERVICES.md`](FINANCIAL-SERVICES.md).
+
+Deploy copies `bots/market-researcher/skills/` onto that profile only. Connector type is `docs` (no installable CLI).
+
 ## Tests
 
 ```bash
