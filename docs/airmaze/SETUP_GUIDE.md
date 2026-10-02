@@ -114,11 +114,11 @@ The summary shows **connected / skipped / failed** only — no secret values. Fi
 
 ## After setup — open the app
 
-Desktop / Start Menu **Dragon AI Agent** starts the gateway with no PowerShell window and opens the **desktop client** (not the web dashboard). If Docker, the gateway API, or the client is missing you get a MessageBox. Optional dashboard: `start-embedded.ps1 -OpenDashboard`. Launch log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`.
+Desktop / Start Menu **Dragon AI Agent** starts the gateway with no PowerShell window and opens the **desktop client** (not the web dashboard). The WinForms “Waiting for gateway…” Setup/Close status window is **not** shown — Hermes desktop is the loading experience. If Docker, the gateway API, or the client is missing you get a MessageBox. Optional dashboard: `start-embedded.ps1 -OpenDashboard`. Launch log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`.
 
 ## Re-run / resume
 
-Open **Dragon AI Agent** and use the in-app Models UI. There is no Desktop / Start Menu **Dragon AI Agent Setup** shortcut.
+Open **Dragon AI Agent** and use the in-app Models UI. There is no Desktop / Start Menu **Dragon AI Agent Setup** shortcut. Launch no longer offers a Setup button on a wait window.
 
 The WinForms wizard remains in-tree as a deprecated fallback only:
 

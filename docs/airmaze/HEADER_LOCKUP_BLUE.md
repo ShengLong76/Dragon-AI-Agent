@@ -9,7 +9,7 @@ The red lockup is the **WinForms title band** (logo + product name), not the in-
 | Surface | File | Change |
 |---------|------|--------|
 | Onboard wizard | `scripts/airmaze/Onboard-Wizard.ps1` | `$header.BackColor` → Marketplace blue |
-| Launch status | `scripts/airmaze/start-embedded.ps1` `New-LaunchStatusForm` | same RGB |
+| Launch status | `scripts/airmaze/start-embedded.ps1` `New-LaunchStatusForm` | same RGB (form kept; **not shown** on normal launch) |
 | Teams Marketplace (WinForms) | `scripts/airmaze/Select-BotGroup.ps1` | same token (product name in the band) |
 
 **Leave alone**

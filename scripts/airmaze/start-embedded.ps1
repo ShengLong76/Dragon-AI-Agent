@@ -7,13 +7,16 @@
   This is the Desktop / Start Menu "Dragon AI Agent" entrypoint.
   It checks whether Docker is running and starts Docker Desktop in the
   system tray when it is not (no Containers dashboard). Then it brings the
-  gateway up, waits until the API is reachable on the Windows host, then
-  launches the Dragon AI Agent desktop (on-disk Hermes.exe). Failures
-  (engine still down after a wait, compose errors, missing client) show a
-  MessageBox / popup and exit non-zero. -StartDocker is kept as an alias.
+  gateway up, wires Desktop Remote, and launches the Dragon AI Agent desktop
+  (on-disk Hermes.exe) so Hermes's own loading is the wait UX. It still
+  waits until :8642 / :8650 are reachable and fail-closes if they are not.
+  Failures (engine still down after a wait, compose errors, missing client)
+  show a MessageBox / popup and exit non-zero. -StartDocker is kept as an alias.
 
   The installed Desktop / Start Menu shortcut runs Start-DragonAI.vbs (wscript)
-  so no PowerShell console flashes. Use this .ps1 directly for debugging
+  so no PowerShell console flashes. A normal start does not show the WinForms
+  "Waiting for gateway…" Setup/Close status window — Hermes desktop is the
+  loading UX. Status goes to launch.log. Use this .ps1 directly for debugging
   (-DebugConsole keeps the console). Use -GatewayOnly for CLI-only compose.
   Use -OpenDashboard to open :9119 (never opened on a normal start).
   Use -Smoke to validate the launch plan without touching Docker (no secrets).
@@ -910,6 +913,7 @@ function Get-LaunchPlan {
             "launch Dragon AI Agent desktop only (not $DashboardUrl)",
             "start Docker Desktop in the tray when docker info fails (already running is a no-op)",
             "first-run uses in-app Models UI (WinForms Onboard-Wizard not launched)",
+            "do not show Waiting for gateway Setup/Close status window (Hermes desktop is the loading UX)",
             "docker CLI stderr progress is not a terminating error",
             "Desktop Remote → $($script:DesktopServeUrl) (token mode; not :8642)",
             "wait for /api/health on the Desktop serve proxy with X-Hermes-Session-Token"
@@ -946,6 +950,7 @@ function Invoke-Smoke {
         "openUIOnStartupDisabled",
         "DebugConsole",
         "New-LaunchStatusForm",
+        "do not show Waiting for gateway Setup/Close status window",
         "Invoke-NativeDocker",
         "Repair-DragonAIProductShortcuts",
         "Remove-DeprecatedProductShortcuts",
@@ -1002,7 +1007,10 @@ if ($DebugConsole) {
 try {
     Repair-DragonAIProductShortcuts
     if ($showUi) {
-        New-LaunchStatusForm | Out-Null
+        # James: do not pop the Waiting for gateway / Setup / Close monitor.
+        # Hermes desktop is the default loading experience. New-LaunchStatusForm
+        # stays in-tree for branding tests / optional debug, but is not shown
+        # on a normal Desktop / Start Menu launch. Progress is launch.log only.
         if ($script:Windowless) { Hide-ConsoleWindow }
     }
 
@@ -1027,6 +1035,15 @@ try {
     try { Sync-EmbeddedGatewayProfiles | Out-Null } catch {
         Write-LaunchLog "Profile sync skipped: $($_.Exception.Message)" "WARN"
     }
+    Set-EmbeddedDesktopRemoteConnection | Out-Null
+
+    if ($showUi) {
+        Start-OnboardingIfNeeded
+        # Open Hermes first so its default splash/loading is what James sees
+        # while :8642 / :8650 become reachable. Do not insert a Dragon status form.
+        $exe = Start-AgentDesktopOrThrow
+    }
+
     Update-LaunchStatus "Waiting for gateway API on ${ApiHost}:${ApiPort} and Desktop serve on ${ApiHost}:${DesktopServePort}..."
     $ready = Wait-GatewayReady -TimeoutSec 120 -RequireDesktopServe
     if (-not $ready.Ok) {
@@ -1035,11 +1052,8 @@ try {
     if (-not $ready.DesktopServe) {
         throw "The Desktop Bot Screen backend is not reachable at $($script:DesktopServeUrl)/api/health (expected X-Hermes-Session-Token + /api/ws). Check: docker logs hermes-airmaze-desktop && docker logs hermes-airmaze-desktop-proxy. Do not point Remote at :8642 (OpenAI API only)."
     }
-    Set-EmbeddedDesktopRemoteConnection | Out-Null
 
     if ($showUi) {
-        Start-OnboardingIfNeeded
-        $exe = Start-AgentDesktopOrThrow
         if ($OpenDashboard) {
             try { Open-Dashboard } catch { Write-LaunchLog "Dashboard open skipped: $($_.Exception.Message)" "WARN" }
         }
