@@ -176,13 +176,29 @@ def test_apply_does_not_replace_gpt(vc) -> None:
             fail("selecting Grok must not delete voice.gpt_live")
         if voice.get("selected_provider") != "grok":
             fail("Grok select must record selected_provider grok")
-        if voice.get("voice_chat_mode") != "chained":
-            fail("Grok select writes chained until Hermes accepts grok-live")
+        if voice.get("voice_chat_mode") != "grok-live":
+            fail("Grok Voice must write the same voice_chat_mode key as gpt-live (grok-live)")
         grok_live = voice.get("grok_live") or {}
         if str(grok_live.get("duplex")).lower() not in {"true", "1"}:
             fail("Grok select must record grok_live.duplex so overlay hosts STS")
         if "grok-voice-latest" not in str(grok_live.get("realtime") or ""):
             fail("grok_live.realtime must name grok-voice-latest")
+        if grok_live.get("model") != "grok-voice-latest" or grok_live.get("voice") != "eve":
+            fail("grok_live must mirror gpt_live model/voice fields")
+        if "api.x.ai" not in str(grok_live.get("endpoint") or "") or "openai.com" in str(grok_live.get("endpoint") or ""):
+            fail("grok_live.endpoint must be xAI realtime, not OpenAI")
+        turn = grok_live.get("turn_detection") or {}
+        if (turn.get("type") if isinstance(turn, dict) else turn) != "server_vad":
+            fail("grok_live.turn_detection must be server_vad")
+        chained = vc.apply_voice_provider(home, "chained")
+        data = _mapping(cfg.read_text(encoding="utf-8"))
+        voice = data.get("voice") or {}
+        if voice.get("voice_chat_mode") != "chained":
+            fail("Chained Settings option must still write chained")
+        if "gpt_live" not in voice or "grok_live" not in voice:
+            fail("chained must not delete gpt_live or grok_live")
+        if chained.get("voiceChatMode") != "chained":
+            fail("apply chained must report voiceChatMode chained")
         if grok.get("duplexHost") != "overlay":
             fail("apply must report overlay as the Grok duplex host")
         if (data.get("stt") or {}).get("provider") != "xai":
@@ -299,11 +315,17 @@ def test_overlay_selector_coexists(vc) -> None:
         fail("voice script inject must be part of html branding and idempotent")
     if once.count('data-dragon-ai-branding="voice-provider"') != 1:
         fail("voice script must inject exactly once")
+    if once.count('data-dragon-ai-branding="voice-settings"') != 1:
+        fail("Settings Voice conversation overlay must inject exactly once")
+    if "Grok Voice" not in once or "Voice conversation mode" not in once:
+        fail("Settings overlay must add Grok Voice to Voice conversation mode")
     if "GPT" not in once or "Grok" not in once:
         fail("injected HTML must contain both GPT and Grok")
     css = read(CSS)
     if "[data-dragon-voice-provider]" not in css:
         fail("dragon-ui.css must style the voice provider control")
+    if '[data-dragon-voice-mode="select"]' not in css:
+        fail("dragon-ui.css must style the Settings Voice conversation mode select")
     if "aria-checked" not in css and "[aria-checked=" not in css:
         fail("voice selector CSS must style the selected option")
     if "[data-dragon-grok-talk]" not in css:
@@ -319,6 +341,14 @@ def test_overlay_selector_coexists(vc) -> None:
         fail("desktop_branding.json voice.options must be gpt + grok")
     if voice.get("default") != "gpt":
         fail("default voice option must stay GPT so Grok is additive")
+    if voice.get("settingsModes") != ["chained", "gpt-live", "grok-live"]:
+        fail("Settings Voice conversation modes must add grok-live beside chained|gpt-live")
+    settings_js = ROOT / "branding" / "voice" / "dragon-voice-settings.js"
+    settings = read(settings_js)
+    if "Grok Voice" not in settings or "grok-live" not in settings:
+        fail("dragon-voice-settings.js must add Grok Voice / grok-live")
+    if "data-dragon-voice-option" in settings:
+        fail("Settings overlay must not add chat-screen GPT/Grok pills")
     print("OK  overlay selector shows GPT and Grok")
 
 
@@ -340,6 +370,9 @@ def test_docs_and_packaging(vc) -> None:
         "xai-client-secret",
         "voice-live.ts",
         "voice_live.py",
+        "Grok Voice",
+        "Voice conversation",
+        "OpenAI realtime",
     ):
         if needle.lower() not in docs.lower() and needle not in docs:
             fail(f"VOICE.md must document {needle!r}")
@@ -356,6 +389,9 @@ def test_docs_and_packaging(vc) -> None:
     log = read(CHANGELOG)
     if "Grok voice" not in log or "GPT voice" not in log:
         fail("CHANGELOG.md must record Grok added beside GPT voice")
+    gateway = read(SCRIPTS / "start-gateway.sh")
+    if "accept_grok_voice_mode" not in gateway or "patch_grok_voice_mode.py" not in gateway:
+        fail("start-gateway.sh must accept grok-live beside gpt-live")
     launcher = read(LAUNCHER)
     if "Start-DragonAIVoiceChat" not in launcher:
         fail("launcher must define Start-DragonAIVoiceChat")
@@ -373,8 +409,18 @@ def test_docs_and_packaging(vc) -> None:
             fail(f"{path.name} must install voice_chat.py and VOICE.md")
         if "Apply-VoiceChat.ps1" not in text:
             fail(f"{path.name} must install Apply-VoiceChat.ps1")
+        if "patch_grok_voice_mode.py" not in text:
+            fail(f"{path.name} must install patch_grok_voice_mode.py")
         if "branding\\voice" not in text and "branding/voice" not in text:
             fail(f"{path.name} must copy branding/voice for the duplex overlay")
+    patch = read(SCRIPTS / "patch_grok_voice_mode.py")
+    if "grok-live" not in patch or "gpt-live" not in patch:
+        fail("patch_grok_voice_mode.py must accept grok-live beside gpt-live")
+    sys.path.insert(0, str(SCRIPTS))
+    import patch_grok_voice_mode as patch_mod  # noqa: WPS433
+
+    if patch_mod.self_test() != 0:
+        fail("patch_grok_voice_mode --self-test failed")
     if vc.self_test() != 0:
         fail("voice_chat --self-test failed")
     print("OK  docs, launcher, and installer wiring")

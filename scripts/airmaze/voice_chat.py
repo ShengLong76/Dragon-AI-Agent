@@ -3,7 +3,11 @@
 
 Upstream Hermes voice chat is ``voice.voice_chat_mode: chained | gpt-live``.
 ``gpt-live`` is the existing OpenAI GPT voice path (``gpt-live-1``). This
-module ADDS Grok voice beside it. It never removes or replaces GPT.
+module ADDS Grok voice beside it on that same key. It never removes GPT.
+
+Selection is Settings → Voice → Voice conversation mode (and this helper),
+not the chat-screen GPT/Grok pills. Those pills stay; they are not the
+place this option is added.
 
 Grok full duplex uses documented xAI Voice APIs (not invented):
 
@@ -12,11 +16,16 @@ Grok full duplex uses documented xAI Voice APIs (not invented):
     * TTS  POST https://api.x.ai/v1/tts  (unary fallback)
     * STT  POST https://api.x.ai/v1/stt  (model grok-voice-transcribe-2.0)
 
-The Electron overlay hosts Grok duplex (Talk with Grok). This helper mints
-the ephemeral token so the renderer never sees ``XAI_API_KEY``. Selecting
-Grok still writes ``voice_chat_mode: chained`` because Hermes rejects
-``grok-live`` today — that keeps native gpt-live from starting at the same
-time. Unary xAI STT/TTS stay as fallback if the helper/key is missing.
+Provider difference vs OpenAI GPT-Live: Grok is xAI Realtime WebSocket +
+ephemeral ``xai-client-secret``; GPT-Live is OpenAI WebRTC
+``POST /v1/live/sessions`` (SDP). Do not point Grok at OpenAI realtime.
+
+Selecting Grok Voice writes ``voice_chat_mode: grok-live`` (same switch as
+``gpt-live``) plus a ``voice.grok_live`` block mirrored on ``gpt_live``
+(model, voice, instructions, endpoint, turn detection). Native Hermes
+``voice_chat_mode()`` still maps unknown modes to chained, so gpt-live
+does not also start. Overlay duplex stays the Grok host until Hermes
+ships a grok-live engine. Unary xAI STT/TTS stay as fallback.
 
 Selecting GPT writes ``gpt-live`` and leaves the Grok/xAI blocks in place.
 
@@ -48,6 +57,7 @@ VOICE_PORT = 8654
 CONFIG_NAME = gm.CONFIG_NAME
 PROVIDER_GPT = "gpt"
 PROVIDER_GROK = "grok"
+PROVIDER_CHAINED = "chained"
 DEFAULT_PROVIDER = PROVIDER_GPT
 
 # Official xAI Voice endpoints — https://docs.x.ai/developers/model-capabilities/audio/voice
@@ -105,7 +115,7 @@ PROVIDERS: list[dict[str, Any]] = [
         "title": "Grok voice",
         "vendor": "xai",
         "kind": "full-duplex",
-        "voiceChatMode": CHAINED_MODE,
+        "voiceChatMode": GROK_LIVE_MODE,
         "targetVoiceChatMode": GROK_LIVE_MODE,
         "duplexHost": "overlay",
         "model": XAI_VOICE_MODEL,
@@ -132,17 +142,19 @@ PROVIDERS: list[dict[str, Any]] = [
         },
         "docs": DOCS["sts"],
         "notes": (
-            "xAI Grok Voice full duplex (grok-voice-latest). Overlay Talk with "
-            "Grok mints POST /v1/realtime/client_secrets and opens the documented "
-            "WebSocket. Hermes voice_chat_mode stays chained so native gpt-live "
-            "does not also start. Unary STT/TTS remain fallback if the helper "
-            "or key is missing."
+            "xAI Grok Voice full duplex (grok-voice-latest). Settings Voice "
+            "conversation mode writes voice.voice_chat_mode: grok-live — the "
+            "same key as gpt-live. Overlay Talk with Grok mints "
+            "POST /v1/realtime/client_secrets and opens the documented "
+            "WebSocket (not OpenAI /v1/live/sessions). Unary STT/TTS remain "
+            "fallback if the helper or key is missing."
         ),
         "upstreamLimitation": (
-            "Hermes voice.voice_chat_mode only accepts chained|gpt-live "
-            "(methods_config_set.py). voice-live.ts / tools/voice_live.py must "
-            "accept grok-live beside gpt-live before this package can write "
-            "voice_chat_mode: grok-live. Until then the Electron overlay hosts duplex."
+            "Hermes methods_config_set.py ships chained|gpt-live only; this "
+            "package patches that allow-list and the Settings dropdown so "
+            "grok-live persists. tools/voice_live.py still treats non-gpt-live "
+            "as chained, so native OpenAI WebRTC does not start. Overlay hosts "
+            "Grok duplex until Hermes ships a grok-live engine."
         ),
     },
 ]
@@ -150,6 +162,33 @@ PROVIDERS: list[dict[str, Any]] = [
 
 def provider_catalog() -> list[dict[str, Any]]:
     return [dict(row) for row in PROVIDERS]
+
+
+def voice_chat_modes() -> list[dict[str, Any]]:
+    """Settings → Voice → Voice conversation mode options."""
+    return [
+        {
+            "id": CHAINED_MODE,
+            "label": "Chained",
+            "provider": PROVIDER_CHAINED,
+            "notes": "Native Hermes STT → turn → TTS. Unchanged.",
+        },
+        {
+            "id": OPENAI_LIVE_MODE,
+            "label": "Gpt-live",
+            "provider": PROVIDER_GPT,
+            "notes": "OpenAI GPT-Live WebRTC (POST /v1/live/sessions). Unchanged.",
+        },
+        {
+            "id": GROK_LIVE_MODE,
+            "label": "Grok Voice",
+            "provider": PROVIDER_GROK,
+            "notes": (
+                "xAI Grok realtime WebSocket (wss://api.x.ai/v1/realtime), not "
+                "OpenAI realtime. Same voice.voice_chat_mode switch as gpt-live."
+            ),
+        },
+    ]
 
 
 def _lookup(provider_id: str) -> dict[str, Any]:
@@ -161,15 +200,26 @@ def _lookup(provider_id: str) -> dict[str, Any]:
         "openai": PROVIDER_GPT,
         "grok": PROVIDER_GROK,
         "grok-live": PROVIDER_GROK,
+        "grok-voice": PROVIDER_GROK,
         "groklive": PROVIDER_GROK,
         "xai": PROVIDER_GROK,
         "x-ai": PROVIDER_GROK,
+        "chained": PROVIDER_CHAINED,
     }
     want = aliases.get(want, want)
+    if want == PROVIDER_CHAINED:
+        return {
+            "id": PROVIDER_CHAINED,
+            "label": "Chained",
+            "vendor": "hermes",
+            "kind": "chained",
+            "voiceChatMode": CHAINED_MODE,
+            "notes": "Native Hermes STT → turn → TTS.",
+        }
     for row in PROVIDERS:
         if row["id"] == want:
             return dict(row)
-    raise ValueError(f"unknown voice provider {provider_id!r}; pick gpt or grok")
+    raise ValueError(f"unknown voice provider {provider_id!r}; pick chained, gpt-live, or grok-live")
 
 
 def default_embedded_home() -> Path:
@@ -207,14 +257,35 @@ def _as_map(value: Any) -> dict[str, Any]:
     return dict(value) if isinstance(value, dict) else {}
 
 
+def current_voice_chat_mode(parsed: dict[str, Any]) -> str:
+    voice = _as_map(parsed.get("voice"))
+    mode = str(voice.get("voice_chat_mode") or "").strip().lower().replace("_", "-")
+    if mode in {OPENAI_LIVE_MODE, "gptlive", "live"}:
+        return OPENAI_LIVE_MODE
+    if mode in {GROK_LIVE_MODE, "groklive", "grok-voice"}:
+        return GROK_LIVE_MODE
+    if mode == CHAINED_MODE:
+        return CHAINED_MODE
+    raw = str(voice.get("selected_provider") or "").strip().lower()
+    if raw in {PROVIDER_GROK, "grok-live", "xai"}:
+        return GROK_LIVE_MODE
+    if raw in {PROVIDER_GPT, "gpt-live", "openai"}:
+        return OPENAI_LIVE_MODE
+    return CHAINED_MODE
+
+
 def current_selection(parsed: dict[str, Any]) -> str:
     voice = _as_map(parsed.get("voice"))
     raw = str(voice.get("selected_provider") or "").strip().lower()
-    if raw in {PROVIDER_GPT, PROVIDER_GROK}:
+    if raw in {PROVIDER_GPT, PROVIDER_GROK, PROVIDER_CHAINED}:
         return raw
-    mode = str(voice.get("voice_chat_mode") or "").strip().lower().replace("_", "-")
-    if mode in {OPENAI_LIVE_MODE, "gptlive", "live"}:
+    mode = current_voice_chat_mode(parsed)
+    if mode == OPENAI_LIVE_MODE:
         return PROVIDER_GPT
+    if mode == GROK_LIVE_MODE:
+        return PROVIDER_GROK
+    if mode == CHAINED_MODE:
+        return PROVIDER_CHAINED
     stt = str(_as_map(parsed.get("stt")).get("provider") or "").strip().lower()
     tts = str(_as_map(parsed.get("tts")).get("provider") or "").strip().lower()
     if stt == "xai" or tts == "xai":
@@ -232,25 +303,71 @@ def _merge_keep(existing: dict[str, Any], updates: dict[str, Any]) -> dict[str, 
     return out
 
 
+def default_gpt_live() -> dict[str, Any]:
+    """Hermes gpt_live block — OpenAI Live WebRTC, not xAI realtime."""
+    return {
+        "model": OPENAI_LIVE_MODEL,
+        "voice": OPENAI_LIVE_VOICE,
+        "instructions": "",
+        "endpoint": f"{OPENAI_LIVE_BASE}/live/sessions",
+        "transport": "webrtc",
+    }
+
+
+def default_grok_live() -> dict[str, Any]:
+    """gpt_live-shaped Grok block. xAI realtime WS, not OpenAI /v1/live/sessions."""
+    return {
+        "model": XAI_VOICE_MODEL,
+        "voice": XAI_DEFAULT_VOICE,
+        "instructions": "",
+        "duplex": True,
+        "endpoint": XAI_REALTIME_URL,
+        "realtime": realtime_session_url(),
+        "client_secrets": XAI_CLIENT_SECRETS_URL,
+        "transport": "websocket",
+        "turn_detection": {"type": "server_vad"},
+        "audio": {
+            "input": {"format": dict(XAI_AUDIO_FORMAT)},
+            "output": {"format": dict(XAI_AUDIO_FORMAT)},
+        },
+    }
+
+
+def validate_grok_live(block: dict[str, Any]) -> None:
+    """Fail closed if required Grok realtime fields are missing."""
+    grok = _as_map(block)
+    missing: list[str] = []
+    if not str(grok.get("model") or "").strip():
+        missing.append("model")
+    if not str(grok.get("voice") or "").strip():
+        missing.append("voice")
+    realtime = str(grok.get("realtime") or grok.get("endpoint") or "").strip()
+    if not realtime:
+        missing.append("realtime")
+    elif "api.x.ai" not in realtime or "openai.com" in realtime:
+        raise ValueError(
+            "grok_live realtime must be the xAI WebSocket "
+            "(wss://api.x.ai/v1/realtime), not OpenAI realtime / GPT-Live"
+        )
+    turn = _as_map(grok.get("turn_detection"))
+    if str(turn.get("type") or "").strip() != "server_vad":
+        missing.append("turn_detection.type")
+    if missing:
+        raise ValueError(
+            "grok_live missing required fields: " + ", ".join(missing)
+        )
+
+
 def voice_blocks_for(provider_id: str, parsed: dict[str, Any]) -> dict[str, dict[str, Any]]:
     """Build voice/stt/tts maps. GPT settings survive a Grok select and vice versa."""
     choice = _lookup(provider_id)
     existing_voice = _as_map(parsed.get("voice"))
     existing_stt = _as_map(parsed.get("stt"))
     existing_tts = _as_map(parsed.get("tts"))
-    gpt_live = _merge_keep(
-        {"model": OPENAI_LIVE_MODEL, "voice": OPENAI_LIVE_VOICE},
-        _as_map(existing_voice.get("gpt_live")),
-    )
-    grok_live = _merge_keep(
-        {
-            "model": XAI_VOICE_MODEL,
-            "voice": XAI_DEFAULT_VOICE,
-            "duplex": True,
-            "realtime": realtime_session_url(),
-        },
-        _as_map(existing_voice.get("grok_live")),
-    )
+    gpt_live = _merge_keep(default_gpt_live(), _as_map(existing_voice.get("gpt_live")))
+    grok_live = _merge_keep(default_grok_live(), _as_map(existing_voice.get("grok_live")))
+    if choice["id"] == PROVIDER_GROK:
+        validate_grok_live(grok_live)
     voice = _merge_keep(
         existing_voice,
         {
@@ -312,7 +429,11 @@ def apply_voice_provider(home: Path | str, provider_id: str) -> dict[str, Any]:
         "keptGrokLive": bool(gm._nested_get(final, "voice", "grok_live")),
         "sttProvider": str(gm._nested_get(final, "stt", "provider") or ""),
         "ttsProvider": str(gm._nested_get(final, "tts", "provider") or ""),
-        "duplexHost": "overlay" if choice["id"] == PROVIDER_GROK else "hermes-gpt-live",
+        "duplexHost": (
+            "overlay"
+            if choice["id"] == PROVIDER_GROK
+            else ("hermes-chained" if choice["id"] == PROVIDER_CHAINED else "hermes-gpt-live")
+        ),
         "targetVoiceChatMode": choice.get("targetVoiceChatMode") or choice["voiceChatMode"],
     }
 
@@ -483,9 +604,12 @@ def selection_payload(home: Path | str) -> dict[str, Any]:
     path = config_path(home)
     parsed = gm._simple_load(path.read_text(encoding="utf-8")) if path.is_file() else {}
     current = current_selection(parsed)
+    mode = current_voice_chat_mode(parsed)
     return {
         "ok": True,
         "provider": current,
+        "voiceChatMode": mode,
+        "modes": voice_chat_modes(),
         "providers": provider_catalog(),
         "path": str(path),
         "hasXaiKey": bool(resolve_xai_api_key(Path(home))),
@@ -544,7 +668,9 @@ def make_handler(home: Path) -> type[BaseHTTPRequestHandler]:
                 data = {}
             try:
                 if path in ("/api/voice/selection", "/voice/selection", "/api/voice/select", "/voice/select"):
-                    provider_id = str(data.get("id") or data.get("provider") or "").strip()
+                    provider_id = str(
+                        data.get("id") or data.get("provider") or data.get("voiceChatMode") or data.get("mode") or ""
+                    ).strip()
                     result = apply_voice_provider(home, provider_id)
                     status, body = _json_bytes(result)
                     self._send(status, body)
@@ -611,6 +737,32 @@ def self_test() -> int:
     if grok.get("kind") != "full-duplex" or grok.get("duplexHost") != "overlay":
         print(f"self-test: Grok catalog must be overlay full-duplex, got {grok}", file=sys.stderr)
         return 1
+    if grok.get("voiceChatMode") != GROK_LIVE_MODE:
+        print(f"self-test: Grok must write voice_chat_mode grok-live, got {grok}", file=sys.stderr)
+        return 1
+    modes = [row["id"] for row in voice_chat_modes()]
+    if modes != [CHAINED_MODE, OPENAI_LIVE_MODE, GROK_LIVE_MODE]:
+        print(f"self-test: Settings modes must be chained, gpt-live, grok-live, got {modes}", file=sys.stderr)
+        return 1
+    try:
+        validate_grok_live({"model": "", "voice": "eve"})
+        print("self-test: incomplete grok_live must fail closed", file=sys.stderr)
+        return 1
+    except ValueError:
+        pass
+    try:
+        validate_grok_live(
+            {
+                "model": XAI_VOICE_MODEL,
+                "voice": XAI_DEFAULT_VOICE,
+                "realtime": "https://api.openai.com/v1/realtime",
+                "turn_detection": {"type": "server_vad"},
+            }
+        )
+        print("self-test: OpenAI realtime URL must not pass as Grok", file=sys.stderr)
+        return 1
+    except ValueError:
+        pass
     secrets = client_secrets_request()
     if secrets["url"] != XAI_CLIENT_SECRETS_URL or secrets["json"] != {"expires_after": {"seconds": 300}}:
         print(f"self-test: client_secrets spec drifted: {secrets}", file=sys.stderr)
@@ -634,7 +786,7 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("catalog")
     apply_p = sub.add_parser("apply")
     apply_p.add_argument("--home", default="")
-    apply_p.add_argument("--provider", required=True, help="gpt or grok")
+    apply_p.add_argument("--provider", required=True, help="chained, gpt-live, or grok-live")
     sel_p = sub.add_parser("selection")
     sel_p.add_argument("--home", default="")
     serve_p = sub.add_parser("serve")

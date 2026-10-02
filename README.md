@@ -102,7 +102,7 @@ Open **Dragon AI Agent** (Desktop / Start Menu launcher). First-run chat + image
 
 Connector steps (email / CRM / telephony) for Real Estate packs are documented in [`docs/airmaze/SETUP_GUIDE.md`](docs/airmaze/SETUP_GUIDE.md). Secrets, when used, stay in **Windows DPAPI** under `%LOCALAPPDATA%\DragonAIAgent\onboarding\secrets\` — never in plaintext JSON. Real Estate bots remain **`needs_setup`** until email + CRM + telephony succeed.
 
-Voice chat: **GPT** stays (`gpt-live`); **Grok** is a second option (overlay full duplex via `grok-voice-latest`). [`docs/airmaze/VOICE.md`](docs/airmaze/VOICE.md).
+Voice chat: Settings → Voice → Voice conversation mode lists **Chained**, **Gpt-live**, and **Grok Voice**. **GPT** stays (`gpt-live`); **Grok Voice** writes `grok-live` (xAI realtime, not OpenAI) and keeps overlay full duplex via `grok-voice-latest`. [`docs/airmaze/VOICE.md`](docs/airmaze/VOICE.md).
 
 ---
 

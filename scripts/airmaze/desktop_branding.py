@@ -35,6 +35,7 @@ HTML_MARK = 'data-dragon-ai-branding="ui-face"'
 SIDEBAR_SCRIPT_MARK = 'data-dragon-ai-branding="sidebar-header"'
 TEAMS_SCRIPT_MARK = 'data-dragon-ai-branding="teams-picker"'
 VOICE_SCRIPT_MARK = 'data-dragon-ai-branding="voice-provider"'
+VOICE_SETTINGS_SCRIPT_MARK = 'data-dragon-ai-branding="voice-settings"'
 OLD_HTML_MARKS = ('data-dragon-ai-branding="outfit"',)
 STYLESHEET_NAME = "dragon-ui.css"
 CSS_APPEND_MARK = "/* dragon-ai-ui-face */"
@@ -439,13 +440,31 @@ def inject_voice_provider_script(html: str) -> tuple[str, bool]:
     return upsert_marked_script(html, VOICE_SCRIPT_MARK, voice_provider_script())
 
 
+def voice_settings_js_path() -> Path:
+    return branding_dir() / "voice" / "dragon-voice-settings.js"
+
+
+def voice_settings_script() -> str:
+    """Settings → Voice conversation mode: Chained | Gpt-live | Grok Voice."""
+    path = voice_settings_js_path()
+    body = path.read_text(encoding="utf-8").strip()
+    if VOICE_SETTINGS_SCRIPT_MARK in body:
+        raise ValueError("voice settings JS must not include its own script mark")
+    return f"<script {VOICE_SETTINGS_SCRIPT_MARK}>\n{body}\n</script>"
+
+
+def inject_voice_settings_script(html: str) -> tuple[str, bool]:
+    return upsert_marked_script(html, VOICE_SETTINGS_SCRIPT_MARK, voice_settings_script())
+
+
 def inject_html_branding(html: str) -> tuple[str, bool]:
     out, changed = inject_font_link(html)
     out2, changed2 = inject_sidebar_header_script(out)
     out3, changed3 = inject_teams_picker_script(out2)
     out4, changed4 = inject_voice_provider_script(out3)
-    out5, stripped = strip_crimson_lockup_border(out4)
-    return out5, changed or changed2 or changed3 or changed4 or bool(stripped)
+    out5, changed5 = inject_voice_settings_script(out4)
+    out6, stripped = strip_crimson_lockup_border(out5)
+    return out6, changed or changed2 or changed3 or changed4 or changed5 or bool(stripped)
 
 
 def append_font_css(css_text: str, sheet: str) -> tuple[str, bool]:
@@ -1024,6 +1043,12 @@ def self_test() -> int:
     if once.count(VOICE_SCRIPT_MARK) != 1 or "GPT" not in once or "Grok" not in once:
         print("FAIL: voice selector must inject GPT and Grok (GPT stays)", file=sys.stderr)
         return 1
+    if once.count(VOICE_SETTINGS_SCRIPT_MARK) != 1 or "Grok Voice" not in once:
+        print("FAIL: Settings Voice conversation mode must inject Grok Voice", file=sys.stderr)
+        return 1
+    if "voice.voice_chat_mode" not in once and "Voice conversation mode" not in once:
+        print("FAIL: settings overlay must target Voice conversation mode", file=sys.stderr)
+        return 1
     if "Talk with Grok" not in once or "xai-client-secret." not in once:
         print("FAIL: overlay must host Grok duplex (Talk + xai-client-secret)", file=sys.stderr)
         return 1
@@ -1063,6 +1088,12 @@ def self_test() -> int:
     voice_meta = table.get("voice") or {}
     if voice_meta.get("options") != ["gpt", "grok"] or voice_meta.get("default") != "gpt":
         print("FAIL: table voice.options must be gpt + grok with GPT as default", file=sys.stderr)
+        return 1
+    if voice_meta.get("settingsModes") != ["chained", "gpt-live", "grok-live"]:
+        print("FAIL: table voice.settingsModes must add grok-live beside chained|gpt-live", file=sys.stderr)
+        return 1
+    if not voice_settings_js_path().is_file():
+        print("FAIL: branding/voice/dragon-voice-settings.js missing", file=sys.stderr)
         return 1
     if icon_source() is None:
         print("FAIL: Dragon ICO missing for taskbar/resources/icon.ico", file=sys.stderr)

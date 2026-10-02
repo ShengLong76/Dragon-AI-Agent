@@ -33,6 +33,7 @@ services:
     volumes:
       - ${HERMES_EMBEDDED_DATA:-${USERPROFILE}/.hermes-airmaze-embedded}:/opt/data
       - ./scripts/airmaze/start-gateway.sh:/opt/dragon/start-gateway.sh:ro
+      - ./scripts/airmaze/patch_grok_voice_mode.py:/opt/dragon/patch_grok_voice_mode.py:ro
     environment:
       HERMES_DASHBOARD: "1"
       HERMES_DASHBOARD_HOST: "0.0.0.0"

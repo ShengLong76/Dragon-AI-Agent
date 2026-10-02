@@ -396,6 +396,7 @@ function Install-PackageFiles([string]$Root) {
         "docs\airmaze\FIRST_RUN_MODELS.md",
         "scripts\airmaze\voice_chat.py",
         "scripts\airmaze\Apply-VoiceChat.ps1",
+        "scripts\airmaze\patch_grok_voice_mode.py",
         "scripts\airmaze\Test-VoiceChat.py",
         "docs\airmaze\VOICE.md",
         "docs\airmaze\DOCKER_LAUNCH.md",

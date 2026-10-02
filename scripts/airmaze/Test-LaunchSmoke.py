@@ -97,6 +97,7 @@ REQUIRED_COMPOSE = (
     "hermes-airmaze-desktop",
     "start-desktop-serve.sh",
     "start-gateway.sh",
+    "patch_grok_voice_mode.py",
 )
 
 REQUIRED_INSTALLER = (
@@ -113,6 +114,7 @@ REQUIRED_INSTALLER = (
     "HERMES_DESKTOP_USER_DATA_DIR",
     "desktop\\win-unpacked",
     "start-gateway.sh",
+    "patch_grok_voice_mode.py",
 )
 
 REQUIRED_VBS = (
