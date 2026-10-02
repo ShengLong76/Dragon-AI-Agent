@@ -93,6 +93,17 @@
   --space-sm: 8px;
   --space-md: 16px;
   --space-lg: 24px;
+
+  /* Grok-Bot conversational transcript: black pane, blue-shade bubbles.
+     Chrome / logo stay Syne + crimson. Marketplace blue is the user fill. */
+  --dragon-chat-bg: #000000;
+  --dragon-bubble-user: #2563eb;
+  --dragon-bubble-user-fg: #ffffff;
+  --dragon-bubble-user-border: #3b82f6;
+  --dragon-bubble-assistant: #17345a;
+  --dragon-bubble-assistant-fg: #f0f0f5;
+  --dragon-bubble-assistant-border: #1e4b8c;
+  --dragon-bubble-radius: 18px;
 }
 
 /* Beat Hermes html 1rem / body 0.8125rem and 54%-mix greys. Overlay
@@ -197,6 +208,7 @@ body,
    dragon-ai-marketplace-label:1
    dragon-ai-logo-clearance:1
    dragon-ai-logo-175:1
+   dragon-ai-chat-bubbles:1
    Expected DOM order: lockup → Teams Marketplace → Sessions/Bots
    Sidebar header lockup above SESSIONS / BOTS.
    Logo is a fixed 56px transparent SVG (1.75× the prior 32px mark; no
@@ -925,6 +937,72 @@ span[class*="text-[0.8125rem]"][class*="truncate"] {
   font-size: var(--dragon-ui-font-size-body);
   line-height: var(--dragon-ui-line-height-body);
   color: var(--color-foreground);
+}
+
+/* dragon-ai-chat-bubbles:1
+   James: Grok-Bot conversational bubbles on a black transcript pane.
+   User fill is Marketplace blue (#2563EB); assistant is a darker navy-blue.
+   Do not paint html/body (sidebar chrome stays #1C1C20). Do not retint
+   crimson focus/selected, Teams Marketplace, logo clearance, or GPT/Grok.
+   HUD overlay keeps its own transparent bubbles. */
+[data-chat-surface],
+[data-slot="aui_thread"],
+[data-slot="thread"],
+[data-slot="aui_thread-viewport"],
+[data-slot="aui_viewport"] {
+  --ui-chat-surface-background: var(--dragon-chat-bg);
+  --dt-user-bubble: var(--dragon-bubble-user);
+  --dt-user-bubble-border: var(--dragon-bubble-user-border);
+  --ui-chat-bubble-background: var(--dragon-bubble-user);
+  --user-bubble-keep: 100%;
+  --conversation-turn-gap: 12px;
+  background-color: var(--dragon-chat-bg);
+  color: var(--color-foreground);
+}
+
+[data-slot="aui_thread-content"] {
+  background-color: transparent;
+}
+
+[data-slot="aui_user-message-root"] .composer-human-message {
+  box-sizing: border-box;
+  width: fit-content;
+  max-width: min(36rem, 86%);
+  min-width: 0;
+  margin-inline-start: auto;
+  padding: 10px 14px;
+  border: 1px solid var(--dragon-bubble-user-border);
+  border-radius: var(--dragon-bubble-radius);
+  background-color: var(--dragon-bubble-user);
+  color: var(--dragon-bubble-user-fg);
+  overflow-wrap: anywhere;
+}
+
+[data-slot="aui_assistant-message-root"] {
+  align-items: flex-start;
+}
+
+[data-slot="aui_assistant-message-content"] {
+  box-sizing: border-box;
+  width: fit-content;
+  max-width: min(44rem, 92%);
+  min-width: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--dragon-bubble-assistant-border);
+  border-radius: var(--dragon-bubble-radius);
+  background-color: var(--dragon-bubble-assistant);
+  color: var(--dragon-bubble-assistant-fg);
+  overflow-wrap: anywhere;
+}
+
+[data-slot="aui_assistant-message-content"] a {
+  color: #93c5fd;
+}
+
+[data-hud-shell] [data-slot="aui_user-message-root"] .composer-human-message,
+[data-hud-shell] [data-slot="aui_assistant-message-content"] {
+  background-color: transparent;
+  border-color: transparent;
 }
 
 textarea,

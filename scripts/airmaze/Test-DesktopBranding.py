@@ -174,6 +174,55 @@ def assert_composer_chrome(css: str, voice_js: str) -> None:
         fail("composer textbox and pills must keep a 2px crimson focus-visible ring")
 
 
+def assert_chat_bubbles(css: str, table: dict | None = None) -> None:
+    if "dragon-ai-chat-bubbles:1" not in css:
+        fail("dragon-ui.css must stamp dragon-ai-chat-bubbles")
+    if "--dragon-chat-bg: #000000" not in css:
+        fail("chat transcript pane must be black (#000000)")
+    if "--dragon-bubble-user: #2563eb" not in css:
+        fail("user chat bubbles must use the Marketplace blue shade (#2563eb)")
+    if "--dragon-bubble-assistant: #17345a" not in css:
+        fail("assistant chat bubbles must use a darker blue shade (#17345a)")
+    if "--dragon-bubble-user-fg: #ffffff" not in css:
+        fail("user bubble text must be #ffffff")
+    if "--dragon-bubble-assistant-fg: #f0f0f5" not in css:
+        fail("assistant bubble text must be #f0f0f5")
+    if "--dragon-bubble-radius: 18px" not in css:
+        fail("chat bubbles must use an 18px Grok-like radius")
+    if ".composer-human-message" not in css:
+        fail("overlay must restyle Hermes user bubbles (.composer-human-message)")
+    assistant_rule = css.split('[data-slot="aui_assistant-message-content"]', 2)
+    if len(assistant_rule) < 3:
+        fail("assistant message content must keep type rules and gain a bubble fill")
+    bubble_block = assistant_rule[2].split("}", 1)[0]
+    if "background-color: var(--dragon-bubble-assistant)" not in bubble_block:
+        fail("assistant message content must paint the dark blue bubble fill")
+    if "border-radius: var(--dragon-bubble-radius)" not in bubble_block:
+        fail("assistant bubbles must be rounded")
+    if "overflow-wrap: anywhere" not in bubble_block:
+        fail("assistant bubbles must wrap long tokens")
+    if "[data-hud-shell]" not in css:
+        fail("chat bubbles must leave the HUD overlay transparent")
+    if "--color-primary: #c41e3a" not in css:
+        fail("chat bubbles must not retint chrome crimson")
+    if _contrast_ratio("#FFFFFF", "#2563EB") < 4.5 or _contrast_ratio("#F0F0F5", "#17345A") < 4.5:
+        fail("blue bubble text must clear 4.5:1")
+    note = ROOT / "docs" / "airmaze" / "CHAT_BUBBLES.md"
+    note_txt = read(note)
+    if "2563EB" not in note_txt.upper() or "17345A" not in note_txt.upper():
+        fail("docs/airmaze/CHAT_BUBBLES.md must record the blue bubble fills")
+    if "000000" not in note_txt and "#000" not in note_txt:
+        fail("CHAT_BUBBLES.md must record the black transcript pane")
+    if table is not None:
+        chat = table.get("chat") or {}
+        if chat.get("background") != "#000000":
+            fail("desktop_branding.json chat.background must be #000000")
+        if chat.get("userBubble") != "#2563EB" or chat.get("assistantBubble") != "#17345A":
+            fail("desktop_branding.json must record blue-shade bubble fills")
+        if (table.get("tokens") or {}).get("primary") != "#C41E3A":
+            fail("chat bubble tokens must not replace chrome crimson")
+
+
 def assert_sidebar_host_fallback(sidebar_js: str, teams_js: str, css: str) -> None:
     order = "lockup → Teams Marketplace → Sessions/Bots"
     for label, text in (("sidebar-header.js", sidebar_js), ("teams-picker.js", teams_js)):
@@ -507,6 +556,8 @@ const protocol = 'hermes://copilot-key/start';
             fail("injected CSS must reserve gap under the logo so controls do not overlay it")
         if "dragon-ai-composer-chrome:1" not in css_txt:
             fail("injected CSS must stamp composer chrome (no persistent red island)")
+        if "dragon-ai-chat-bubbles:1" not in css_txt or "--dragon-chat-bg: #000000" not in css_txt:
+            fail("injected CSS must stamp Grok-Bot chat bubbles on a black pane")
         if "dragon-ai-lockup-wrap:1" not in css_txt:
             fail("copied dragon-ui.css must stamp lockup wrap so live unpacked UI is not an older hash")
         if "container-type: inline-size" not in css_txt or "@container" not in css_txt:
@@ -697,6 +748,8 @@ def test_packaging_not_regressed() -> None:
         fail("dragon-ui.css must stamp composer chrome (no persistent red island)")
     voice_js = ROOT / "branding" / "voice" / "dragon-voice-selector.js"
     assert_composer_chrome(css, read(voice_js) if voice_js.is_file() else "")
+    table = json.loads(read(TABLE))
+    assert_chat_bubbles(css, table)
     if "dragon-ai-lockup-wrap:1" not in css:
         fail("packaged dragon-ui.css must stamp lockup wrap for unpacked-copy verification")
     if "container-type: inline-size" not in css or "@container" not in css:
@@ -739,6 +792,8 @@ def test_packaging_not_regressed() -> None:
         fail("Apply-DesktopBranding.ps1 must verify the 1.75x / 56px sidebar logo")
     if "composer-chrome" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must verify composer chrome landed")
+    if "chat-bubbles" not in apply_ps or "dragon-chat-bg" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must verify Grok-Bot chat bubbles landed")
     if "18cqi" in css or "clamp(20px, 18cqi, 32px)" in css:
         fail("sidebar logo must stay a fixed 56px (do not clamp/shrink)")
     if "--dragon-sidebar-control-height: 32px" not in css:
@@ -846,6 +901,10 @@ def test_packaging_not_regressed() -> None:
         fail("DESIGN.md must record Grok Bot type size (16px) and contrast")
     if "#C4C4CE" not in design_txt and "#c4c4ce" not in design_txt.lower():
         fail("DESIGN.md must record the brighter muted token")
+    if "CHAT_BUBBLES.md" not in design_txt or "#2563EB" not in design_txt:
+        fail("DESIGN.md must record Grok-Bot blue chat bubbles")
+    if "black" not in design_txt.lower():
+        fail("DESIGN.md must record the black transcript pane")
     print("OK  packaging Bot Screen / installer wiring")
 
 

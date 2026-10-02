@@ -867,6 +867,12 @@ def self_test() -> int:
     if "dragon-ai-composer-chrome:1" not in css:
         print("FAIL: dragon-ui.css must stamp composer chrome", file=sys.stderr)
         return 1
+    if "dragon-ai-chat-bubbles:1" not in css or "--dragon-chat-bg: #000000" not in css:
+        print("FAIL: dragon-ui.css must stamp Grok-Bot black chat pane + bubbles", file=sys.stderr)
+        return 1
+    if "--dragon-bubble-user: #2563eb" not in css or "--dragon-bubble-assistant: #17345a" not in css:
+        print("FAIL: overlay CSS must use blue-shade user/assistant bubble fills", file=sys.stderr)
+        return 1
     if "rgba(196,30,58" in css.replace(" ", "") or "rgba(196, 30, 58" in css:
         print("FAIL: overlay CSS must not paint a crimson lockup border", file=sys.stderr)
         return 1
@@ -918,6 +924,13 @@ def self_test() -> int:
         return 1
     if tokens.get("headerBand") != "#2563EB":
         print("FAIL: table tokens.headerBand must be Marketplace blue #2563EB", file=sys.stderr)
+        return 1
+    chat = table.get("chat") or {}
+    if chat.get("background") != "#000000" or chat.get("userBubble") != "#2563EB":
+        print("FAIL: table chat tokens must be black pane + blue user bubble", file=sys.stderr)
+        return 1
+    if chat.get("assistantBubble") != "#17345A":
+        print("FAIL: table chat.assistantBubble must be the darker blue shade", file=sys.stderr)
         return 1
     if tokens.get("mutedForeground") != "#C4C4CE":
         print("FAIL: table mutedForeground must be Grok-like #C4C4CE", file=sys.stderr)

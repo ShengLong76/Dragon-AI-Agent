@@ -27,7 +27,19 @@
     "ring": "#C41E3A",
     "fontSizeBody": "16px",
     "fontSizeUi": "14px",
-    "lineHeightBody": "1.55"
+    "lineHeightBody": "1.55",
+    "chatBackground": "#000000",
+    "userBubble": "#2563EB",
+    "assistantBubble": "#17345A"
+  },
+  "chat": {
+    "background": "#000000",
+    "userBubble": "#2563EB",
+    "userBubbleForeground": "#FFFFFF",
+    "assistantBubble": "#17345A",
+    "assistantBubbleForeground": "#F0F0F5",
+    "radius": "18px",
+    "why": "James: Grok-Bot conversational bubbles. Black transcript pane. Blue-shade fills. Crimson stays on chrome/logo/focus."
   },
   "logo": {
     "svg": "branding/dragon-ai-agent-logo.svg",

@@ -31,12 +31,19 @@ Dark, quiet chrome. Composer focus uses crimson `#C41E3A`. Type is **Syne** (OFL
 | Body / chat / composer | `16px` / `1.55` |
 | Sidebar chrome | `14px` / `1.4` |
 | Wordmark face | Syne 700 |
+| Chat pane | `#000000` (transcript only; chrome stays `#1C1C20`) |
+| User bubble | `#2563EB` / `#FFFFFF` |
+| Assistant bubble | `#17345A` / `#F0F0F5` |
 
 ### Type and contrast (Grok Bot parity)
 
 James: Hermes desktop type is too small and low-contrast next to Cursor Grok Bot. Upstream `apps/desktop/src/styles.css` sets `body` and `--conversation-text-base-size` to **0.8125rem (13px)** and `--ui-text-tertiary` to a **54%** mix of `--ui-base`. That fails the skill’s 4.5:1 normal-text bar for secondary chrome.
 
 The overlay (still Syne + crimson, no rebuild) remaps those Hermes variables and sets explicit rules on sidebar, chat slots, composer, and the Teams picker so body copy is **16px / 1.55** with opaque `#F0F0F5` on `#1C1C20`. Muted chrome is `#C4C4CE`, not a transparent grey. Tray-icon contain-fit is untouched.
+
+### Transcript bubbles (Grok Bot feel)
+
+James: the transcript must not stay flat text on crimson panels. Match Grok Bot’s conversational cards — black pane, rounded user vs assistant bubbles — with **blue-shade** fills. Overlay remaps Hermes `--dt-user-bubble` on the thread and paints `[data-slot="aui_assistant-message-content"]`. Chrome / logo / focus stay crimson. Design: `docs/airmaze/CHAT_BUBBLES.md`.
 
 Full token table and skill-vs-override notes: `design-system/dragon-ai-agent/` (`MASTER.md` = raw generator output, `pages/desktop-client.md` = what we ship).
 
@@ -59,6 +66,7 @@ Full token table and skill-vs-override notes: `design-system/dragon-ai-agent/` (
 - **Teams Marketplace** opens a roomy centered popup (backdrop, checkboxes, Launch / Import / Export / Details → Install). Seats stay 4-column cards under each pack, with a left-side icon, a brief line, and hover/focus detail. Marketing SEO Specialist copy is seoagent.com. Design: `docs/airmaze/TEAMS_POPUP.md`, `docs/airmaze/TEAMS_SEAT_DESCRIPTIONS.md`.
 - Voice chat shows **GPT** and **Grok** as two options. GPT voice is unchanged (`gpt-live`). Grok is additive overlay full duplex (`grok-voice-latest`). Design: `docs/airmaze/VOICE.md`.
 - The running-app / taskbar dragon is the **transparent sidebar mark**, contain-maxed into the Windows slot (no fixed pixel size, no copper badge rim). Apply copies that ICO **and** PNG onto the private `win-unpacked` tree (`icon.ico`, `icon.png`, `apple-touch-icon.png`) and refuses standalone Hermes. Design: `docs/airmaze/TRAY_ICON.md`, `docs/airmaze/DURABLE_BRANDING.md`.
+- Chat transcript uses Grok-Bot conversational bubbles: **black** pane, user `#2563EB`, assistant `#17345A`. Syne + crimson chrome unchanged. Design: `docs/airmaze/CHAT_BUBBLES.md`.
 
 ## What does not change
 
