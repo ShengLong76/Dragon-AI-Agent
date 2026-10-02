@@ -107,8 +107,14 @@ function Format-WizardStepWord {
         '^success$' { return "OK" }
         '^failed$'  { return "failed" }
         '^skipped$' { return "skipped" }
+        '^in_app$'  { return "in-app" }
         default     { return "pending" }
     }
+}
+
+function Test-WizardStepComplete {
+    param([string]$Status)
+    return ([string]$Status -in @("success", "skipped", "in_app"))
 }
 
 function Format-WizardStatusLine {
@@ -245,7 +251,7 @@ function Get-FirstIncompleteStep {
     $order = @("welcome", "models", "email", "crm", "telephony", "property_data", "dialer", "review")
     foreach ($s in $order) {
         $v = Get-StepValue -Progress $Progress -Name $s
-        if ($v -ne "success" -and $v -ne "skipped") { return $s }
+        if (-not (Test-WizardStepComplete -Status $v)) { return $s }
     }
     return "done"
 }
@@ -1498,6 +1504,23 @@ function Invoke-WizardSelfTest {
         if ($good.Text -ne "new") { $failures.Add("settable Text was not updated") | Out-Null }
     } catch {
         $failures.Add("Set-WizardControlText threw on object with Text: $($_.Exception.Message)") | Out-Null
+    }
+
+    $inAppProgress = [pscustomobject]@{
+        skipped = $false
+        steps   = [ordered]@{
+            welcome = "success"
+            models  = "in_app"
+            email   = "pending"
+        }
+    }
+    $inAppLine = Format-WizardStatusLine -Progress $inAppProgress
+    if ($inAppLine -ne "Welcome: OK · Models: in-app") {
+        $failures.Add("in_app models must format as 'in-app', got '$inAppLine'") | Out-Null
+    }
+    $next = Get-FirstIncompleteStep -Progress $inAppProgress
+    if ($next -ne "email") {
+        $failures.Add("in_app models must skip the WinForms Models step (got '$next')") | Out-Null
     }
 
     if ($failures.Count -gt 0) {

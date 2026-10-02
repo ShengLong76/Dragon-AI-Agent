@@ -111,6 +111,7 @@ function Get-DragonAIOnboardingProgress {
             updatedAt = $null
             steps     = [ordered]@{
                 welcome       = "pending"
+                models        = "pending"
                 email         = "pending"
                 crm           = "pending"
                 telephony     = "pending"
@@ -131,13 +132,75 @@ function Get-DragonAIOnboardingProgress {
             skipped   = $false
             updatedAt = $null
             steps     = [ordered]@{
-                welcome = "pending"; email = "pending"; crm = "pending"
-                telephony = "pending"; property_data = "pending"
-                dialer = "pending"; review = "pending"
+                welcome       = "pending"
+                models        = "pending"
+                email         = "pending"
+                crm           = "pending"
+                telephony     = "pending"
+                property_data = "pending"
+                dialer        = "pending"
+                review        = "pending"
             }
             nonSecret = [ordered]@{}
         }
     }
+}
+
+function Set-DragonAIStepValue {
+    param($Progress, [string]$Name, [string]$Value)
+    if ($null -eq $Progress.steps) {
+        $Progress | Add-Member -MemberType NoteProperty -Name steps -Value ([pscustomobject]@{}) -Force
+    }
+    $steps = $Progress.steps
+    if ($steps -is [hashtable] -or $steps -is [System.Collections.IDictionary]) {
+        $steps[$Name] = $Value
+    } else {
+        $steps | Add-Member -MemberType NoteProperty -Name $Name -Value $Value -Force
+    }
+}
+
+function Set-DragonAIMember {
+    param($Target, [string]$Name, $Value)
+    if ($Target.PSObject.Properties.Name -contains $Name) {
+        $Target.$Name = $Value
+    } else {
+        $Target | Add-Member -MemberType NoteProperty -Name $Name -Value $Value -Force
+    }
+}
+
+function Set-DragonAIInAppProviderOnboarding {
+    <#
+    .SYNOPSIS
+      Mark first-run Models as handled by the in-app provider connect UI.
+
+      Does not launch WinForms Onboard-Wizard. Does not set skipped=true, so
+      email / CRM / telephony still need Dragon AI Agent Setup when those
+      connectors are required. Launcher still Apply-GatewayModels -IfMissing
+      so Grok defaults land until Hermes writes a provider choice.
+    #>
+    [CmdletBinding()]
+    param(
+        [string]$ProfileId = ""
+    )
+    $progress = Get-DragonAIOnboardingProgress
+    if (-not [string]::IsNullOrWhiteSpace($ProfileId)) {
+        Set-DragonAIMember -Target $progress -Name "profileId" -Value $ProfileId
+    }
+    Set-DragonAIMember -Target $progress -Name "skipped" -Value $false
+    Set-DragonAIMember -Target $progress -Name "inAppProviderUi" -Value $true
+    Set-DragonAIStepValue -Progress $progress -Name "welcome" -Value "success"
+    Set-DragonAIStepValue -Progress $progress -Name "models" -Value "in_app"
+    if ($null -eq $progress.nonSecret) {
+        $progress | Add-Member -MemberType NoteProperty -Name nonSecret -Value ([pscustomobject]@{}) -Force
+    }
+    $ns = $progress.nonSecret
+    if ($ns -is [hashtable] -or $ns -is [System.Collections.IDictionary]) {
+        $ns["inAppProviderUi"] = $true
+    } else {
+        $ns | Add-Member -MemberType NoteProperty -Name inAppProviderUi -Value $true -Force
+    }
+    Save-DragonAIOnboardingProgress -Progress $progress
+    return $progress
 }
 
 function Save-DragonAIOnboardingProgress {

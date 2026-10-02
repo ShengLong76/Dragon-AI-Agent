@@ -95,6 +95,8 @@ def test_design_recorded() -> None:
         "openai-api",
         "anthropic",
         "gemini",
+        "in-app",
+        "Other providers",
     ):
         if needle not in design:
             fail(f"FIRST_RUN_MODELS.md must document {needle!r}")
@@ -284,12 +286,21 @@ def test_wizard_and_launch_wired() -> None:
         fail("start-embedded.ps1 must apply model defaults before compose up")
     if "-HermesHome" not in launcher:
         fail("start-embedded.ps1 must pass -HermesHome to Apply-GatewayModels.ps1")
+    if "Set-DragonAIInAppProviderOnboarding" not in launcher:
+        fail("start-embedded.ps1 must mark in-app provider onboarding instead of launching the wizard")
+    if "Start-HiddenPowerShell" in launcher.split("function Start-OnboardingIfNeeded", 1)[-1].split("function Get-LaunchPlan", 1)[0] and "Onboard-Wizard.ps1" in launcher.split("function Start-OnboardingIfNeeded", 1)[-1].split("function Get-LaunchPlan", 1)[0]:
+        fail("Start-OnboardingIfNeeded must not launch Onboard-Wizard.ps1")
     for path in (INSTALL, SETUP):
         text = read(path)
         if "gateway_models.py" not in text:
             fail(f"{path.name} must install gateway_models.py")
         if "Apply-GatewayModels.ps1" not in text:
             fail(f"{path.name} must install Apply-GatewayModels.ps1")
+    install = read(INSTALL)
+    if "& $wizard" in install or "Launching onboarding wizard" in install:
+        fail("install.ps1 must not auto-launch WinForms Onboard-Wizard")
+    if "Set-DragonAIInAppProviderOnboarding" not in install:
+        fail("install.ps1 must mark first-run Models as the in-app provider UI")
     guide = read(SETUP_GUIDE)
     if "Default chat LLM" not in guide or "Grok Imagine" not in guide:
         fail("SETUP_GUIDE.md must document the Models step")

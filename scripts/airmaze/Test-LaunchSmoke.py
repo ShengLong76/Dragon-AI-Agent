@@ -53,6 +53,8 @@ REQUIRED_LAUNCHER = (
     "8653",
     "voice_chat",
     "8654",
+    "Set-DragonAIInAppProviderOnboarding",
+    "in-app first-run",
 )
 
 REQUIRED_FINDER = (
@@ -75,6 +77,8 @@ REQUIRED_WIZARD = (
     "Set-WizardControlText",
     "Test-WizardCanSetText",
     "Set-WizardMessage",
+    "Test-WizardStepComplete",
+    "in_app",
 )
 
 REQUIRED_COMPOSE = (
@@ -110,6 +114,16 @@ REQUIRED_VBS = (
 def fail(msg: str) -> None:
     print(f"FAIL: {msg}", file=sys.stderr)
     raise SystemExit(1)
+
+
+def extract_function(src: str, name: str) -> str:
+    token = f"function {name}"
+    start = src.find(token)
+    if start < 0:
+        fail(f"missing function {name}")
+    rest = src[start:]
+    nxt = rest.find("\nfunction ", 1)
+    return rest if nxt < 0 else rest[:nxt]
 
 
 def require_tokens(path: pathlib.Path, tokens: tuple[str, ...], label: str) -> None:
@@ -170,6 +184,13 @@ def check_launcher() -> None:
         fail("launcher missing Continue around Docker CLI (stderr progress must not terminate)")
     if "$output = & docker compose" in text or "& docker inspect" in text or "& docker info" in text:
         fail("launcher still calls docker compose/inspect/info without Invoke-NativeDocker")
+    onboard = extract_function(text, "Start-OnboardingIfNeeded")
+    if "Start-HiddenPowerShell" in onboard and "Onboard-Wizard.ps1" in onboard:
+        fail("Start-OnboardingIfNeeded must not auto-launch WinForms Onboard-Wizard")
+    if "Set-DragonAIInAppProviderOnboarding" not in onboard:
+        fail("Start-OnboardingIfNeeded must mark in-app provider onboarding instead of the wizard")
+    if "first-run Onboard-Wizard if welcome is still pending" in text:
+        fail("launch plan must not still auto-open Onboard-Wizard on first run")
 
 
 def check_shortcuts() -> None:

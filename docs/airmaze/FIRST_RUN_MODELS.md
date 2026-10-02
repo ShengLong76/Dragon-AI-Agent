@@ -44,11 +44,17 @@ image_gen:
 
 ## UI path
 
-Extend **Dragon AI Agent Setup** (`Onboard-Wizard.ps1`), not a second Electron screen.
+**Primary:** the in-app Electron first-run Models / provider connect dialog (“Let’s get you setup with Dragon AI Agent”). James’s screenshot is this screen — it already lists **Nous Portal**, **Run models locally**, and **Other providers** (popular clouds + self-hosted). Install and launch **do not** auto-open WinForms `Onboard-Wizard.ps1` for Models. They mark `welcome=success` and `models=in_app` (`Set-DragonAIInAppProviderOnboarding`) so the wizard is not redundant. `skipped` stays false so email / CRM / telephony still need **Dragon AI Agent Setup** when those connectors are required.
 
-Step order:
+Copy overlay (`desktop_branding.json` + `provider-setup.js`): user-visible **Hermes** → **Dragon AI**. Do not rewrite `hermes model` / `hermes auth` / `Hermes.exe` / tokens. **Other providers** opens by default; the dialog is taller so those rows are visible without hunting.
 
-`welcome` → **`models`** → `email` → `crm` → `telephony` → `property_data` → `dialer` → `review`
+**Handoff to gateway + bots:** launch still runs `Apply-GatewayModels.ps1 -IfMissing` before `docker compose up`. That writes Grok / Grok Imagine only when `principal` / `image_gen` are missing. Once the in-app picker saves a provider into the embedded Hermes home, `-IfMissing` leaves it alone and bots inherit that gateway principal. The in-app screen writes Hermes’s own provider config; this package does not parse that dialog’s result.
+
+**Edge case:** Start Menu **Dragon AI Agent Setup** / the launch splash **Setup** button still opens `Onboard-Wizard.ps1` for email / CRM / telephony (and a Models step if `models` is still pending). That path keeps the cloud + self-hosted catalog, Grok defaults, Continue `.Text` guard, and short `Welcome: OK · Models: pending` status (or `Models: in-app` after the in-app mark).
+
+Step order (wizard, when opened):
+
+`welcome` → **`models`** (skipped when `in_app`) → `email` → `crm` → `telephony` → `property_data` → `dialer` → `review`
 
 WinForms + console fallback both get two ComboBoxes / numbered lists:
 

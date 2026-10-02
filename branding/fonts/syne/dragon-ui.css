@@ -1043,6 +1043,21 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="
   font-size: 0.75rem;
 }
 
+/* dragon-ai-provider-setup:1
+   First-run in-app Models / provider connect: taller dialog, Other providers open. */
+[data-dragon-ai-provider-setup] {
+  max-height: min(94vh, 920px) !important;
+  min-height: min(36rem, 88vh) !important;
+  height: auto !important;
+  overflow: auto !important;
+  width: min(42rem, 94vw) !important;
+}
+
+[data-dragon-ai-other-providers],
+[data-dragon-ai-provider-setup] details[open] {
+  display: block;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

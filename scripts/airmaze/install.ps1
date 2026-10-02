@@ -525,7 +525,7 @@ function Install-Shortcuts {
             $sc4.TargetPath = $targetPs
             $sc4.Arguments = "-STA -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$onboardScript`" -InstallRoot `"$InstallRoot`" -PayloadRoot `"$InstallRoot`""
             $sc4.WorkingDirectory = $InstallRoot
-            $sc4.Description = "Dragon AI Agent — first-run onboarding wizard"
+            $sc4.Description = "Dragon AI Agent — email, CRM, and telephony connectors"
             $sc4.WindowStyle = 7
             if ($iconLocation -and (Test-Path $iconLocation)) { $sc4.IconLocation = "$iconLocation,0" }
             $sc4.Save()
@@ -535,7 +535,7 @@ function Install-Shortcuts {
             $sc5.TargetPath = $targetPs
             $sc5.Arguments = "-STA -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$onboardScript`" -InstallRoot `"$InstallRoot`" -PayloadRoot `"$InstallRoot`""
             $sc5.WorkingDirectory = $InstallRoot
-            $sc5.Description = "Dragon AI Agent — first-run onboarding wizard"
+            $sc5.Description = "Dragon AI Agent — email, CRM, and telephony connectors"
             $sc5.WindowStyle = 7
             if ($iconLocation -and (Test-Path $iconLocation)) { $sc5.IconLocation = "$iconLocation,0" }
             $sc5.Save()
@@ -708,44 +708,23 @@ if ($dockerOk -and (Test-DockerEngine)) {
 
 Invoke-BotGroupSetup -Root $root
 
-# First-run onboarding wizard (do not fail entire install if wizard errors)
+# First-run Models lives in the in-app provider connect UI. Do not block
+# install on WinForms Onboard-Wizard — Setup shortcut still covers email/CRM.
 try {
-    $wizard = Join-Path $InstallRoot "scripts\airmaze\Onboard-Wizard.ps1"
-    if (-not (Test-Path -LiteralPath $wizard)) {
-        $wizard = Join-Path $root "scripts\airmaze\Onboard-Wizard.ps1"
+    $store = Join-Path $InstallRoot "scripts\airmaze\DragonAI-SecureStore.ps1"
+    if (-not (Test-Path -LiteralPath $store)) {
+        $store = Join-Path $root "scripts\airmaze\DragonAI-SecureStore.ps1"
     }
-    if (Test-Path -LiteralPath $wizard) {
-        $wizGroup = if ($BotGroupId) { $BotGroupId } else { $ProfileId }
-        $activeGroup = Join-Path $InstallRoot "active-bot-group.json"
-        if ([string]::IsNullOrWhiteSpace($wizGroup) -and (Test-Path -LiteralPath $activeGroup)) {
-            try {
-                $active = Get-Content -LiteralPath $activeGroup -Raw -Encoding UTF8 | ConvertFrom-Json
-                $wizGroup = [string]$active.botGroupId
-            } catch {}
-        }
-        $activePath = Join-Path $InstallRoot "active-profile.json"
-        if ([string]::IsNullOrWhiteSpace($wizGroup) -and (Test-Path -LiteralPath $activePath)) {
-            try {
-                $active = Get-Content -LiteralPath $activePath -Raw -Encoding UTF8 | ConvertFrom-Json
-                $wizGroup = [string]$active.botGroupId
-                if (-not $wizGroup) { $wizGroup = [string]$active.profileId }
-            } catch {}
-        }
-        Write-Log "Launching onboarding wizard (bot group=$wizGroup)..."
-        $wizArgs = @{
-            InstallRoot = $InstallRoot
-            PayloadRoot = $InstallRoot
-        }
-        if (-not [string]::IsNullOrWhiteSpace($wizGroup)) {
-            $wizArgs["BotGroupId"] = $wizGroup
-        }
-        & $wizard @wizArgs
-        Write-Log "Onboarding wizard finished (exit $LASTEXITCODE)"
+    $wizGroup = if ($BotGroupId) { $BotGroupId } else { $ProfileId }
+    if (Test-Path -LiteralPath $store) {
+        . $store
+        Set-DragonAIInAppProviderOnboarding -ProfileId $wizGroup | Out-Null
+        Write-Log "Marked first-run Models as in-app provider UI (bot group=$wizGroup); WinForms wizard not launched"
     } else {
-        Write-Log "Onboard-Wizard.ps1 not found; skipping wizard" "WARN"
+        Write-Log "DragonAI-SecureStore.ps1 not found; in-app Models mark skipped" "WARN"
     }
 } catch {
-    Write-Log "Onboarding wizard failed (install continues): $($_.Exception.Message)" "WARN"
+    Write-Log "In-app provider onboarding mark failed (install continues): $($_.Exception.Message)" "WARN"
 }
 
 Install-Shortcuts

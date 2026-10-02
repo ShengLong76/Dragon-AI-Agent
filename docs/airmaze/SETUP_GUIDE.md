@@ -3,7 +3,7 @@
 **Product:** Dragon AI Agent v0.1.0  
 **Audience:** First-run users (especially the **Real Estate Cold Call Lead Refresher** bot group)
 
-This guide mirrors the **Dragon AI Agent Setup** wizard (`scripts/airmaze/Onboard-Wizard.ps1`). Prefer the wizard when possible; use this doc if you configure connectors manually.
+First-run **Models / provider connect** is the in-app dialog (“Let’s get you setup with Dragon AI Agent”). Install and launch do **not** open the WinForms wizard for that step. This guide still covers **Dragon AI Agent Setup** (`scripts/airmaze/Onboard-Wizard.ps1`) for email / CRM / telephony, and for Models if you open Setup before a provider is chosen. Use this doc if you configure connectors manually.
 
 > **Not legal advice.** Dragon AI Agent is software for drafting and workflow automation. TCPA, CAN-SPAM, Do Not Call, and consent rules vary by jurisdiction. Consult your own counsel before outbound email or calling.
 
@@ -33,14 +33,17 @@ Bots stay **`needs_setup`** until required wizard steps **email + CRM + telephon
 
 ## Step 1 — Welcome
 
-- Launch **Dragon AI Agent Setup** from the Start Menu (or re-run `Onboard-Wizard.ps1`).
+- First run opens the **in-app** provider connect screen. Copy says **Dragon AI** (not Hermes). **Other providers** is expanded so popular clouds and self-hosted/local are visible.
+- **Dragon AI Agent Setup** from the Start Menu (or `Onboard-Wizard.ps1`) is for email / CRM / telephony, or if you need the WinForms Models pickers.
 - You can **Skip wizard**; bots remain `needs_setup` until you complete required connections later. Skipping still writes Grok / Grok Imagine defaults if the gateway config has no chat or image model yet.
 
 ---
 
 ## Step 2 — Default chat LLM and default image LLM
 
-Pick the models Dragon AI Agent should use. Product defaults (preselected):
+**In-app (primary):** pick a provider on first run (Nous Portal, local models, **Other providers** for cloud + self-hosted). Launch writes Grok / Grok Imagine only if the embedded gateway config is still empty (`Apply-GatewayModels -IfMissing`). After you choose a provider in-app, that Hermes config stays; bots inherit the gateway principal.
+
+**WinForms Setup (edge case):** pick the models Dragon AI Agent should use. Product defaults (preselected):
 
 | Picker | Default | Written keys |
 |--------|---------|----------------|

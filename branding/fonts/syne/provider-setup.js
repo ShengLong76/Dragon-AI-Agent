@@ -1,0 +1,120 @@
+(function () {
+  // First-run in-app Models / provider connect. Copy only — keep CLI names
+  // (`hermes model`) and binary/token strings intact.
+  var MARK = "data-dragon-ai-provider-setup";
+  var OTHER = "data-dragon-ai-other-providers";
+  var OTHER_LABEL = "Other providers";
+  var PROTECTED = /hermes\s+model|hermes\s+auth|hermes\s+setup|hermes\.exe|hermes-airmaze|x-hermes-session-token|hermes:\/\/|~\/\.hermes/i;
+
+  function labelOf(el) {
+    return (el && el.textContent ? el.textContent : "").replace(/\s+/g, " ").trim();
+  }
+
+  function looksLikeProviderUi(text) {
+    return /let'?s get you setup|connect a model provider|other providers|nous portal|run models locally|i'?ll choose a provider later/i.test(text || "") || (text || "").indexOf(OTHER_LABEL) !== -1;
+  }
+
+  function findProviderRoot() {
+    var nodes = document.querySelectorAll('[role="dialog"], [data-state="open"], [data-radix-dialog-content], [class*="modal"], [class*="dialog"]');
+    var i;
+    for (i = 0; i < nodes.length; i++) {
+      if (looksLikeProviderUi(labelOf(nodes[i]))) return nodes[i];
+    }
+    var all = document.querySelectorAll("h1, h2, [class*='title']");
+    for (i = 0; i < all.length; i++) {
+      if (/let'?s get you setup/i.test(labelOf(all[i]))) {
+        return all[i].closest('[role="dialog"]') || all[i].closest('[data-state]') || all[i].parentElement;
+      }
+    }
+    return null;
+  }
+
+  function rewriteText(raw) {
+    var text = String(raw || "");
+    if (!/hermes/i.test(text)) return text;
+    if (PROTECTED.test(text) && !/hermes is not connected|recommended way to run hermes|setup with hermes|run hermes\b/i.test(text)) {
+      return text;
+    }
+    return text
+      .replace(/Hermes Agent/g, "Dragon AI Agent")
+      .replace(/Hermes Desktop/g, "Dragon AI Agent")
+      .replace(/Hermes is not connected/g, "Dragon AI is not connected")
+      .replace(/the recommended way to run Hermes/g, "the recommended way to run Dragon AI")
+      .replace(/\brun Hermes\b/g, "run Dragon AI")
+      .replace(/\bHermes\b/g, function (match, offset, full) {
+        var window = full.slice(Math.max(0, offset - 2), offset + 18);
+        if (/`hermes|hermes model|hermes auth|hermes setup|hermes\.exe/i.test(window)) {
+          return match;
+        }
+        return "Dragon AI";
+      });
+  }
+
+  function walkText(root) {
+    if (!root) return;
+    var skip = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, CODE: 1, PRE: 1, KBD: 1 };
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode: function (node) {
+        var parent = node.parentElement;
+        if (!parent || skip[parent.tagName]) return NodeFilter.FILTER_REJECT;
+        if (!node.nodeValue || !/hermes/i.test(node.nodeValue)) return NodeFilter.FILTER_SKIP;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    var node;
+    while ((node = walker.nextNode())) {
+      var next = rewriteText(node.nodeValue);
+      if (next !== node.nodeValue) node.nodeValue = next;
+    }
+  }
+
+  function expandOther(root) {
+    if (!root) return;
+    var details = root.querySelectorAll("details");
+    var i;
+    for (i = 0; i < details.length; i++) {
+      if (/other providers/i.test(labelOf(details[i])) || labelOf(details[i]).indexOf(OTHER_LABEL) !== -1) {
+        details[i].open = true;
+        details[i].setAttribute(OTHER, "1");
+      }
+    }
+    var buttons = root.querySelectorAll("button, [role='button'], [aria-expanded], summary");
+    for (i = 0; i < buttons.length; i++) {
+      var b = buttons[i];
+      if (!/other providers/i.test(labelOf(b)) && labelOf(b).indexOf(OTHER_LABEL) === -1) continue;
+      b.setAttribute(OTHER, "1");
+      if (b.getAttribute("aria-expanded") !== "true") {
+        try { b.click(); } catch (e) {}
+      }
+    }
+  }
+
+  function polish(root) {
+    if (!root) return;
+    root.setAttribute(MARK, "1");
+    walkText(root);
+    expandOther(root);
+  }
+
+  function tick() {
+    try {
+      polish(findProviderRoot());
+      walkText(document.body);
+    } catch (e) {}
+  }
+
+  function start() {
+    tick();
+    var obs = new MutationObserver(function () { tick(); });
+    if (document.body) {
+      obs.observe(document.body, { childList: true, subtree: true, characterData: true });
+    }
+    setInterval(tick, 1500);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start);
+  } else {
+    start();
+  }
+})();

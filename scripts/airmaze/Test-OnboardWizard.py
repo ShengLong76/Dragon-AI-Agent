@@ -67,7 +67,12 @@ def extract_function(src: str, name: str) -> str:
 
 def format_wizard_step_word(status: str | None) -> str:
     key = (status or "pending").strip().lower()
-    return {"success": "OK", "failed": "failed", "skipped": "skipped"}.get(key, "pending")
+    return {
+        "success": "OK",
+        "failed": "failed",
+        "skipped": "skipped",
+        "in_app": "in-app",
+    }.get(key, "pending")
 
 
 def format_wizard_status_line(steps: dict | None) -> str:
@@ -115,6 +120,8 @@ def test_status_formatting() -> None:
             fail(f"status line must not contain {token!r}: {smashed}")
     if format_wizard_status_line({"welcome": "failed", "models": "skipped"}) != "Welcome: failed · Models: skipped":
         fail("failed/skipped words are wrong")
+    if format_wizard_status_line({"welcome": "success", "models": "in_app"}) != "Welcome: OK · Models: in-app":
+        fail("in_app models must format as in-app")
     if format_wizard_status_line({}) != "Welcome: pending · Models: pending":
         fail("empty steps must default to pending")
     print("OK  status formatting is Welcome/Models only")
@@ -160,6 +167,7 @@ def test_wizard_source() -> None:
     for name in (
         "Format-WizardStatusLine",
         "Format-WizardStepWord",
+        "Test-WizardStepComplete",
         "Test-WizardCanSetText",
         "Set-WizardControlText",
         "Set-WizardMessage",
@@ -207,6 +215,15 @@ def test_wizard_source() -> None:
     fmt = extract_function(wizard, "Format-WizardStatusLine")
     if 'return "Welcome: $welcome · Models: $models"' not in fmt:
         fail("Format-WizardStatusLine must return the short Welcome/Models template")
+    word = extract_function(wizard, "Format-WizardStepWord")
+    if "in_app" not in word or "in-app" not in word:
+        fail("Format-WizardStepWord must map in_app to in-app")
+    resume = extract_function(wizard, "Get-FirstIncompleteStep")
+    if "Test-WizardStepComplete" not in resume:
+        fail("Get-FirstIncompleteStep must treat in_app as a completed Models step")
+    complete = extract_function(wizard, "Test-WizardStepComplete")
+    if "in_app" not in complete:
+        fail("Test-WizardStepComplete must include in_app")
 
     guard = extract_function(wizard, "Set-WizardControlText")
     if "Test-WizardCanSetText" not in guard:
@@ -217,6 +234,8 @@ def test_wizard_source() -> None:
         fail("SelfTest -like is case-insensitive and would reject lowercase pending")
     if "$line.Contains($banned)" not in selftest:
         fail("SelfTest must case-sensitively reject SUCCESS/PENDING mashups")
+    if "in_app" not in selftest or "Get-FirstIncompleteStep" not in selftest:
+        fail("SelfTest must prove in_app skips the WinForms Models step")
 
     print("OK  wizard source wired for Continue + short status")
 
@@ -227,6 +246,11 @@ def test_packaged() -> None:
         text = read(path)
         if rel not in text:
             fail(f"{path.name} must install Test-OnboardWizard.py")
+    install = read(INSTALL)
+    if "& $wizard" in install or "Launching onboarding wizard" in install:
+        fail("install.ps1 must not auto-launch WinForms Onboard-Wizard")
+    if "Set-DragonAIInAppProviderOnboarding" not in install:
+        fail("install.ps1 must mark first-run Models as the in-app provider UI")
     print("OK  installer copies Test-OnboardWizard.py")
 
 

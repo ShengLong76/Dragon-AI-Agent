@@ -95,6 +95,40 @@ function Get-DragonAIPackScript {
     return [System.IO.File]::ReadAllText($path).Trim()
 }
 
+function Apply-DragonAITextReplacements {
+    param(
+        [string]$Text,
+        $Rows,
+        [switch]$PreserveBrandScripts
+    )
+    if ($PreserveBrandScripts -and $Text -match 'data-dragon-ai-branding=') {
+        $re = New-Object System.Text.RegularExpressions.Regex '(<script\s+data-dragon-ai-branding="[^"]+">.*?</script>)', 'IgnoreCase, Singleline'
+        $parts = $re.Split($Text)
+        $out = New-Object System.Text.StringBuilder
+        $hits = 0
+        foreach ($part in $parts) {
+            if ($part -and $part.StartsWith("<script", [StringComparison]::OrdinalIgnoreCase) -and $part -match 'data-dragon-ai-branding=') {
+                [void]$out.Append($part)
+                continue
+            }
+            $chunk = Apply-DragonAITextReplacements -Text $part -Rows $Rows
+            $hits += [int]$chunk.hits
+            [void]$out.Append([string]$chunk.text)
+        }
+        return @{ text = $out.ToString(); hits = $hits }
+    }
+    $out = $Text
+    $hits = 0
+    foreach ($row in $Rows) {
+        if ($out.Contains($row.from)) {
+            $n = ([regex]::Matches($out, [regex]::Escape($row.from))).Count
+            $out = $out.Replace($row.from, $row.to)
+            $hits += $n
+        }
+    }
+    return @{ text = $out; hits = $hits }
+}
+
 function Remove-DragonAICrimsonLockupBorder {
     param([string]$Text)
     $re = New-Object System.Text.RegularExpressions.Regex 'border\s*:\s*1px\s+solid\s+rgba\(\s*196\s*,\s*30\s*,\s*58\s*,\s*[^)]+\)', 'IgnoreCase'
@@ -149,8 +183,10 @@ function Install-DragonAIDesktopFontPack {
     $link = '<link rel="stylesheet" href="./dragon-ai-branding/dragon-ui.css" data-dragon-ai-branding="ui-face" />'
     $sidebarMark = 'data-dragon-ai-branding="sidebar-header"'
     $teamsMark = 'data-dragon-ai-branding="teams-picker"'
+    $providerMark = 'data-dragon-ai-branding="provider-setup"'
     $sidebarSnippet = "<script $sidebarMark>`n" + (Get-DragonAIPackScript -Name "sidebar-header.js") + "`n</script>"
     $teamsSnippet = "<script $teamsMark>`n" + (Get-DragonAIPackScript -Name "teams-picker.js") + "`n</script>"
+    $providerSnippet = "<script $providerMark>`n" + (Get-DragonAIPackScript -Name "provider-setup.js") + "`n</script>"
     if ($sidebarSnippet -notmatch 'data-dragon-ai-sidebar-fixed' -or $sidebarSnippet -notmatch 'findDragonSidebarHost' -or $sidebarSnippet -notmatch 'findColumnHost') {
         throw "Apply-DesktopBranding: sidebar-header.js is missing the body fixed-overlay fallback host"
     }
@@ -168,6 +204,12 @@ function Install-DragonAIDesktopFontPack {
     }
     if ($teamsSnippet -notmatch 'findBotsTab' -or $teamsSnippet -notmatch 'data-dragon-ai-sidebar-clearance') {
         throw "Apply-DesktopBranding: teams-picker.js must reserve clearance so the overlay does not cover BOTS"
+    }
+    if ($providerSnippet -notmatch 'data-dragon-ai-provider-setup' -or $providerSnippet -notmatch 'Other providers') {
+        throw "Apply-DesktopBranding: provider-setup.js must expand Other providers on the in-app Models popup"
+    }
+    if ($providerSnippet -notmatch 'hermes model' -or $providerSnippet -notmatch 'Dragon AI') {
+        throw "Apply-DesktopBranding: provider-setup.js must rewrite Hermes copy and keep the hermes model CLI"
     }
     $utf8 = New-Object System.Text.UTF8Encoding $false
     foreach ($root in $Roots) {
@@ -221,6 +263,9 @@ function Install-DragonAIDesktopFontPack {
             if ($sheet -notmatch "dragon-ai-composer-chrome:1") {
                 throw "Apply-DesktopBranding: copied dragon-ui.css is missing composer chrome stamp ($sheetPath)"
             }
+            if ($sheet -notmatch "dragon-ai-provider-setup:1") {
+                throw "Apply-DesktopBranding: copied dragon-ui.css is missing the taller in-app provider dialog stamp ($sheetPath)"
+            }
             $copiedCss++
             $cssMark = "/* dragon-ai-ui-face */"
             $cssFiles = @(Get-ChildItem -LiteralPath $cand -Filter "*.css" -File -ErrorAction SilentlyContinue)
@@ -261,6 +306,9 @@ function Install-DragonAIDesktopFontPack {
                 $teams = Update-DragonAIMarkedSnippet -Html $text -Mark $teamsMark -Snippet $teamsSnippet
                 $text = $teams.text
                 if ($teams.changed) { $changed = $true }
+                $provider = Update-DragonAIMarkedSnippet -Html $text -Mark $providerMark -Snippet $providerSnippet
+                $text = $provider.text
+                if ($provider.changed) { $changed = $true }
                 $stripped = Remove-DragonAICrimsonLockupBorder -Text $text
                 if ($stripped -ne $text) {
                     $text = $stripped
@@ -393,7 +441,7 @@ function Invoke-DragonAIDesktopBrandingOverlay {
         } else {
             $files = @(Get-ChildItem -LiteralPath $dir -Recurse -File -ErrorAction SilentlyContinue |
                 Where-Object {
-                    $_.FullName -notmatch '\\node_modules\\|\\\.git\\|\\prebuilds\\' -and
+                    $_.FullName -notmatch '\\node_modules\\|\\\.git\\|\\prebuilds\\|\\dragon-ai-branding\\' -and
                     -not (Test-DragonAISkipBrandingFile -Name $_.Name) -and
                     $_.Length -lt 40MB
                 })
@@ -405,15 +453,10 @@ function Invoke-DragonAIDesktopBrandingOverlay {
             if ($text.Length -gt 0 -and $text[0] -eq [char]0xFEFF) {
                 $text = $text.Substring(1)
             }
-            $out = $text
-            $hits = 0
-            foreach ($row in $rows) {
-                if ($out.Contains($row.from)) {
-                    $n = ([regex]::Matches($out, [regex]::Escape($row.from))).Count
-                    $out = $out.Replace($row.from, $row.to)
-                    $hits += $n
-                }
-            }
+            $preserve = $file.Extension -in @(".html", ".htm")
+            $applied = Apply-DragonAITextReplacements -Text $text -Rows $rows -PreserveBrandScripts:$preserve
+            $out = [string]$applied.text
+            $hits = [int]$applied.hits
             $posix = $file.FullName.Replace("\", "/")
             foreach ($row in @($table.source_only)) {
                 if (-not $row) { continue }

@@ -723,18 +723,34 @@ A branded shortcut is written to %LOCALAPPDATA%\DragonAIAgent\Dragon AI Agent Cl
     return $exe
 }
 
+function Import-DragonAISecureStore {
+    $store = Join-Path $PSScriptRoot "DragonAI-SecureStore.ps1"
+    if (-not (Test-Path -LiteralPath $store)) {
+        $store = Join-Path $InstallRoot "scripts\airmaze\DragonAI-SecureStore.ps1"
+    }
+    if (-not (Test-Path -LiteralPath $store)) { return $false }
+    . $store
+    return $true
+}
+
 function Test-OnboardingNeedsUi {
     $progressPath = Join-Path $env:LOCALAPPDATA "DragonAIAgent\onboarding\progress.json"
     if (-not (Test-Path -LiteralPath $progressPath)) { return $true }
     try {
         $p = Get-Content -LiteralPath $progressPath -Raw -Encoding UTF8 | ConvertFrom-Json
         if ($p.skipped) { return $false }
+        if ($p.inAppProviderUi) { return $false }
         $welcome = $null
+        $models = $null
         if ($p.steps) {
             if ($p.steps.PSObject.Properties.Name -contains "welcome") {
                 $welcome = [string]$p.steps.welcome
             }
+            if ($p.steps.PSObject.Properties.Name -contains "models") {
+                $models = [string]$p.steps.models
+            }
         }
+        if ($models -in @("in_app", "success", "skipped")) { return $false }
         if ([string]::IsNullOrWhiteSpace($welcome) -or $welcome -eq "pending") { return $true }
         return $false
     } catch {
@@ -826,13 +842,17 @@ function Start-DragonAIVoiceChat {
 function Start-OnboardingIfNeeded {
     if ($NoWizard) { return }
     if (-not (Test-OnboardingNeedsUi)) { return }
-    $wiz = Join-Path $InstallRoot "scripts\airmaze\Onboard-Wizard.ps1"
-    if (-not (Test-Path -LiteralPath $wiz)) { return }
-    Update-LaunchStatus "Opening first-run setup wizard..."
-    Start-HiddenPowerShell -ArgumentList @(
-        "-STA", "-NoProfile", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass",
-        "-File", $wiz, "-InstallRoot", $InstallRoot
-    )
+    Update-LaunchStatus "First-run Models: in-app provider connect (WinForms wizard not launched)..."
+    try {
+        if (Import-DragonAISecureStore) {
+            Set-DragonAIInAppProviderOnboarding | Out-Null
+            Write-LaunchLog "Marked welcome/models as in-app provider UI; Dragon AI Agent Setup stays available for email/CRM/telephony"
+        } else {
+            Write-LaunchLog "DragonAI-SecureStore.ps1 missing; in-app Models mark skipped" "WARN"
+        }
+    } catch {
+        Write-LaunchLog "In-app provider onboarding mark failed: $($_.Exception.Message)" "WARN"
+    }
 }
 
 function Get-LaunchPlan {
@@ -853,7 +873,7 @@ function Get-LaunchPlan {
             "overlay unpacked Electron UI chrome to Dragon AI Agent before launch",
             "launch Dragon AI Agent desktop only (not $DashboardUrl)",
             "start Docker Desktop in the tray when docker info fails (already running is a no-op)",
-            "first-run Onboard-Wizard if welcome is still pending",
+            "in-app first-run Models/provider connect (WinForms Onboard-Wizard not auto-launched)",
             "docker CLI stderr progress is not a terminating error",
             "Desktop Remote → $($script:DesktopServeUrl) (token mode; not :8642)",
             "wait for /api/health on the Desktop serve proxy with X-Hermes-Session-Token"
@@ -902,7 +922,9 @@ function Invoke-Smoke {
         "teams_picker",
         "8653",
         "voice_chat",
-        "8654"
+        "8654",
+        "Set-DragonAIInAppProviderOnboarding",
+        "in-app first-run Models"
     )
     foreach ($token in $required) {
         if ($text -notlike "*$token*") {
