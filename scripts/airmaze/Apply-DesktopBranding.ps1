@@ -248,6 +248,9 @@ function Install-DragonAIDesktopFontPack {
             if ($sheet -notmatch "dragon-ai-composer-chrome:1") {
                 throw "Apply-DesktopBranding: copied dragon-ui.css is missing composer chrome stamp ($sheetPath)"
             }
+            if ($sheet -notmatch "dragon-ai-chat-bubbles:1" -or $sheet -notmatch "--dragon-chat-bg: #000000") {
+                throw "Apply-DesktopBranding: copied dragon-ui.css is missing Grok-Bot chat bubbles ($sheetPath)"
+            }
             $copiedCss++
             $cssMark = "/* dragon-ai-ui-face */"
             $cssFiles = @(Get-ChildItem -LiteralPath $cand -Filter "*.css" -File -ErrorAction SilentlyContinue)

@@ -42,6 +42,7 @@ Text on `#1C1C20`: `#F0F0F5` (~13.5:1) and `#C4C4CE` (~9.8:1) both clear 4.5:1. 
 
 - Wordmark: **Syne 700**, `letter-spacing: 0.04em`, color `--color-foreground`
 - **Grok Bot parity (type + contrast, not a new face):** body / chat / composer **16px** / **1.55**; sidebar chrome **14px** / **1.4**; captions **13px**. Overlay remaps Hermes `--dt-base-size`, `--conversation-text-base-size`, and `--ui-text-*` to opaque `#F0F0F5` / `#C4C4CE` so chat is not 13px / 54% grey.
+- **Grok Bot conversational bubbles:** transcript pane `#000000`; user bubble `#2563EB` / `#FFFFFF`; assistant bubble `#17345A` / `#F0F0F5`; `18px` radius. Scoped to `[data-chat-surface]` / `aui_thread*` so `html`/`body` and sidebar chrome stay `#1C1C20`. Stamp `dragon-ai-chat-bubbles:1`. See `docs/airmaze/CHAT_BUBBLES.md`.
 - Composer / settings chrome the overlay already touches: same family, weight 400–600
 - Register the files as `Collapse` as well so leftover upstream wordmark rules cannot reload Collapse-Bold
 
@@ -59,6 +60,7 @@ The Teams Marketplace **popup** (centered modal + backdrop) lists seats under ea
 
 - Empty-state wordmark, intro subtitle, and the front-facing dragon mark
 - Sidebar header brand lockup (logo + Dragon AI) and sidebar/chat type size + contrast
+- Chat transcript pane + user/assistant bubbles (`[data-chat-surface]`, `aui_thread*`, `.composer-human-message`, `aui_assistant-message-content`)
 - In-app Teams picker button + dialog (`[data-dragon-ai-teams-*]`)
 - Composer placeholder + `:focus-visible` ring on the textbox/pills only (`2px` solid `#C41E3A`, offset `2px`). No persistent crimson outline around the composer island. **Start conversation** sits in the right-side action cluster.
 - Settings / About product copy (strings already in `desktop_branding.json`)

@@ -49,7 +49,7 @@ $exe = (Get-Content "$env:LOCALAPPDATA\DragonAIAgent\desktop-client.json" -Raw |
 powershell -NoProfile -File "$env:LOCALAPPDATA\DragonAIAgent\scripts\airmaze\Apply-DesktopBranding.ps1" -ExePath $exe
 ```
 
-Confirm the live sheet is the tip pack (must contain `dragon-ai-lockup-wrap:1`, `dragon-ai-marketplace-label:1`, `dragon-ai-marketplace-blue:1`, `dragon-ai-logo-clearance:1`, `dragon-ai-logo-175:1`, `dragon-ai-composer-chrome:1`; must not contain `border:1px solid rgba(196,30,58`):
+Confirm the live sheet is the tip pack (must contain `dragon-ai-lockup-wrap:1`, `dragon-ai-marketplace-label:1`, `dragon-ai-marketplace-blue:1`, `dragon-ai-logo-clearance:1`, `dragon-ai-logo-175:1`, `dragon-ai-composer-chrome:1`, `dragon-ai-chat-bubbles:1`; must not contain `border:1px solid rgba(196,30,58`):
 
 `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked\resources\app.asar.unpacked\dist\dragon-ai-branding\dragon-ui.css`
 
@@ -76,7 +76,7 @@ This is the smallest durable path that actually changes what the user sees witho
 
 The Cursor skill is installed in-repo at `.cursor/skills/ui-ux-pro-max` (`npx ui-ux-pro-max-cli init --ai cursor`; paid brand/logo extras are not kept). Generator output: `design-system/dragon-ai-agent/MASTER.md`. Applied chrome: `pages/desktop-client.md` and `docs/airmaze/DESIGN.md`.
 
-Style is **AI-Native UI** (minimal chrome, single accent). Catalog Inter and AI purple are not shipped. Overlay tokens match the existing wizard: dark `#1C1C20` / `#282830`, crimson `#C41E3A`, Syne 700 on the wordmark, visible `:focus-visible`, `prefers-reduced-motion`. Sidebar / chat / Teams type is Grok Bot–sized (**16px** body, **14px** chrome, muted `#C4C4CE`) by remapping Hermes `--conversation-text-base-size` and `--ui-text-*` — no `Hermes.exe` rebuild. No new UI framework.
+Style is **AI-Native UI** (minimal chrome, single accent). Catalog Inter and AI purple are not shipped. Overlay tokens match the existing wizard: dark `#1C1C20` / `#282830`, crimson `#C41E3A`, Syne 700 on the wordmark, visible `:focus-visible`, `prefers-reduced-motion`. Sidebar / chat / Teams type is Grok Bot–sized (**16px** body, **14px** chrome, muted `#C4C4CE`) by remapping Hermes `--conversation-text-base-size` and `--ui-text-*` — no `Hermes.exe` rebuild. The transcript pane is **black** with blue-shade user (`#2563EB`) and assistant (`#17345A`) bubbles (`docs/airmaze/CHAT_BUBBLES.md`). No new UI framework.
 
 ## What still requires a rebuilt Electron binary
 
