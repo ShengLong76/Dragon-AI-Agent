@@ -288,8 +288,12 @@ def test_overlay_and_launch_wired() -> None:
         fail("Teams Marketplace must not query sidebar-wrapper as a column host")
     if "finishApply" not in picker_js or "location.reload" not in picker_js:
         fail("after apply the Teams dialog must close and reload the bot roster")
-    if 'type="checkbox"' not in picker_js and "type=\"checkbox\"" not in picker_js:
-        fail("Teams popup must list each team with a checkbox")
+    if 'box.type = "checkbox"' in picker_js or 'type = "checkbox"' in picker_js:
+        fail("Teams popup must not list each team with a checkbox")
+    if 'textContent = "Install"' not in picker_js or "data-dragon-ai-team-apply" not in picker_js:
+        fail("Teams popup must list each team with an Install button")
+    if "function installTeam" not in picker_js or "/api/marketplace/install" not in picker_js:
+        fail("Install must apply that team's pack through the existing marketplace install path")
     if "data-dragon-ai-teams-launch" not in picker_js or "Launch" not in picker_js:
         fail("Teams popup must have a Launch button for the checked teams")
     if "data-dragon-ai-teams-export" not in picker_js or "/api/teams/export" not in picker_js:
@@ -327,7 +331,17 @@ def test_overlay_and_launch_wired() -> None:
         fail("Teams overlay must share the 16px Grok Bot body size")
     if "font-size: var(--dragon-ui-font-size-body)" not in css:
         fail("Teams list rows must use the 16px body token, not 0.8125rem")
-    if "font-size: 0.8125rem" in css:
+    teams_css = "".join(
+        css.split(marker, 1)[-1].split("}", 1)[0]
+        for marker in (
+            "[data-dragon-ai-teams-panel] {",
+            "[data-dragon-ai-team-row] {",
+            "[data-dragon-ai-team-row] [data-dragon-ai-team-apply] {",
+            "[data-dragon-ai-teams-list] {",
+        )
+        if marker in css
+    )
+    if "font-size: 0.8125rem" in teams_css:
         fail("Teams picker CSS must not keep Hermes 13px captions")
     if "background: #000" not in css.split("[data-dragon-ai-teams-panel] {", 1)[-1].split("}", 1)[0]:
         fail("marketplace panel must use a black background")
@@ -341,8 +355,8 @@ def test_overlay_and_launch_wired() -> None:
         fail("Teams popup must use a backdrop, not a tight dropdown")
     if "[data-dragon-ai-teams-panel][hidden]" not in css or "display: none !important" not in css:
         fail("Teams popup CSS must honor [hidden] so display:flex does not leave the dialog stuck open")
-    if 'input[type="checkbox"]' not in css and "checkbox" not in css:
-        fail("overlay CSS must style Teams checkboxes")
+    if "[data-dragon-ai-team-row] [data-dragon-ai-team-apply]" not in css:
+        fail("overlay CSS must style the per-team Install button")
     if "left: 50%" not in css.split("[data-dragon-ai-teams-panel] {", 1)[-1].split("}", 1)[0]:
         fail("Teams popup must be a centered modal, not a left-rail dropdown")
     helper = read(ENGINE)
@@ -587,7 +601,7 @@ def main() -> int:
     test_marketing_seat_descriptions()
     test_present_team_exposes_seat_copy(tp)
     test_overlay_and_launch_wired()
-    print("SMOKE OK: Teams popup lists checkboxes + 4-col seats; Launch files each named section; export/import stay.")
+    print("SMOKE OK: Teams popup lists Install per team + 4-col seats; Launch files each named section; export/import stay.")
     return 0
 
 

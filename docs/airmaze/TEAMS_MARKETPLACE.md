@@ -1,6 +1,6 @@
 # Dragon AI Agent — Teams marketplace v1
 
-James locked this as **the same job as the Teams popup** (`docs/airmaze/TEAMS_POPUP.md`). One surface: checkbox Launch / Import / Export **plus** a GitHub-hosted catalog browse → detail → Install, with PR #19’s **4-column seat cards** inside that popup. Recipe packs, not live logins. No payments. No cloning running bots.
+James locked this as **the same job as the Teams popup** (`docs/airmaze/TEAMS_POPUP.md`). One surface: per-team **Install** / Launch / Import / Export **plus** a GitHub-hosted catalog browse → detail → Install, with PR #19’s **4-column seat cards** inside that popup. Recipe packs, not live logins. No payments. No cloning running bots.
 
 Plan: `docs/airmaze/TEAMS_POPUP_PLAN.md` (marketplace tasks are in that same plan). James merges.
 
@@ -86,7 +86,7 @@ A published zip may include `catalog-entry.json` — a stub to paste into `group
 
 Same overlay as the Teams Marketplace popup (`127.0.0.1:8653`, not Bot Screen `:8650`):
 
-1. **Browse** — checkbox row per pack: name, blurb, seats, author, required connectors.
+1. **Browse** — **Install** button per pack: name, blurb, seats, author, required connectors. Click **Install** applies that pack.
 2. **4-column seat cards** under each pack (icons, briefs, hover/focus detail). Marketing wraps 4+2.
 3. **Details** — full detail + seat list + connectors. **Install** applies that one pack (same as Launch of one id).
 4. **Launch** — apply every checked pack into its **own** named section (no merged roster).

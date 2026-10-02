@@ -57,7 +57,7 @@ python3 scripts/airmaze/Test-LaunchSmoke.py
 
 A **bot group** is a department-level set of bots (a security team, a research team, a real-estate team). Each bot has a **title**, **description**, and **tools**. Bots exist because a group defines them — there is no Grokbot-style create-a-bot path. Deploy and import file those bots into a **named BOTS section** labeled with the pack display name (not UNASSIGNED). Design: [`docs/airmaze/BOT_GROUPS.md`](docs/airmaze/BOT_GROUPS.md).
 
-The Teams Marketplace popup fetches `bot-groups/catalog.json` from https://github.com/ShengLong76/airmaze-agent. It does not hard-code the list. Browse a pack, **Install**, or check one or more teams and click **Launch**. **Export** writes a scrubbed catalog-ready zip. When GitHub is unreachable, the last cache then the bundled catalog is used. Design: [`docs/airmaze/TEAMS_POPUP.md`](docs/airmaze/TEAMS_POPUP.md), [`docs/airmaze/TEAMS_MARKETPLACE.md`](docs/airmaze/TEAMS_MARKETPLACE.md).
+The Teams Marketplace popup fetches `bot-groups/catalog.json` from https://github.com/ShengLong76/airmaze-agent. It does not hard-code the list. Browse a pack and click **Install** to add that team's bots. **Launch**, **Export**, and **Import** stay. **Export** writes a scrubbed catalog-ready zip. When GitHub is unreachable, the last cache then the bundled catalog is used. Design: [`docs/airmaze/TEAMS_POPUP.md`](docs/airmaze/TEAMS_POPUP.md), [`docs/airmaze/TEAMS_MARKETPLACE.md`](docs/airmaze/TEAMS_MARKETPLACE.md).
 
 ### Catalog (`bot-groups/catalog.json`)
 
@@ -196,7 +196,7 @@ design-system/dragon-ai-agent/   (UI UX Pro Max MASTER + desktop-client override
 5. `docs/airmaze/UPSTREAM_NOTES.md` — Linux-gateway-only + Desktop token/WS vs `gateway run`
 6. `docs/airmaze/SETUP_GUIDE.md` — first-run onboarding (email / CRM / telephony) + Real Estate flow
 7. `docs/airmaze/BOT_GROUPS.md` — bot groups (data model, GitHub list, export, singular toggle)
-8. `docs/airmaze/TEAMS_POPUP.md` — Teams Marketplace popup (checkboxes, 4-column seats, Launch, Import, Export)
+8. `docs/airmaze/TEAMS_POPUP.md` — Teams Marketplace popup (per-team Install, 4-column seats, Launch, Import, Export)
 9. `docs/airmaze/BRANDING.md` — Dragon AI Agent vs Hermes (window wrap + unpacked UI overlay vs Electron rebuild)
 10. `docs/airmaze/DESIGN.md` — UI UX Pro Max design system applied to overlay chrome (Syne, dark + crimson)
 11. `docs/airmaze/UNDERSTAND_ANYTHING.md` — MIT Understand-Anything skill (`/understand`, `/understand-dashboard`); first scan later; `.ua/` gitignored

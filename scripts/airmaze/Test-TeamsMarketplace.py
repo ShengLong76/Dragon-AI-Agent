@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Tests first: Teams marketplace v1 on the Teams Marketplace popup.
 
-James: same job as the roomy popup (checkbox Launch / Import / Export)
+James: same job as the roomy popup (per-team Install / Launch / Import / Export)
 plus GitHub catalog browse + detail + Install + scrubbed export.
 4-column seat cards from main stay inside the popup.
 No secrets. Safe on Linux CI.
@@ -293,8 +293,12 @@ def test_overlay_is_popup_plus_marketplace() -> None:
     design = read(DESIGN)
     popup = read(POPUP)
     overlay = branding + "\n" + picker_js
+    if 'box.type = "checkbox"' in picker_js or 'type = "checkbox"' in picker_js:
+        fail("Teams popup team rows must use Install, not a checkbox")
     for needle in (
-        'type="checkbox"',
+        "data-dragon-ai-team-apply",
+        "function installTeam",
+        "/api/marketplace/install",
         "data-dragon-ai-teams-launch",
         "Launch",
         "data-dragon-ai-teams-export",
@@ -347,7 +351,7 @@ def test_overlay_is_popup_plus_marketplace() -> None:
         text = read(path)
         if "team_marketplace.py" not in text:
             fail(f"{path.name} must ship team_marketplace.py")
-    print("OK  popup stays Launch/Import/Export and adds marketplace browse/Install")
+    print("OK  popup stays Launch/Import/Export and uses per-team Install")
 
 
 def main() -> int:

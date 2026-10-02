@@ -253,7 +253,7 @@
     panel.setAttribute("aria-label", LABEL);
     panel.setAttribute("aria-hidden", "true");
     panel.hidden = true;
-    panel.innerHTML = '<header><h2>Teams Marketplace</h2><p>Browse the GitHub catalog. Check teams to Launch. Personal Assistant is already installed. Each team files under its own name, not Unassigned. Each seat shows a brief; hover or focus a seat for details. Recipe packs — no live logins.</p></header><div data-dragon-ai-teams-browse><div data-dragon-ai-teams-list></div></div><section data-dragon-ai-teams-detail hidden><button type="button" data-dragon-ai-teams-back>Back</button><h3 data-dragon-ai-teams-detail-title></h3><p data-dragon-ai-teams-detail-meta></p><p data-dragon-ai-teams-detail-blurb></p><p data-dragon-ai-teams-detail-body></p><p data-dragon-ai-teams-detail-connectors></p><ul data-dragon-ai-teams-detail-seats data-dragon-ai-team-seats></ul><button type="button" data-dragon-ai-teams-install data-dragon-ai-team-apply="true">Install</button></section><p data-dragon-ai-teams-status role="status"></p><div data-dragon-ai-teams-actions><button type="button" data-dragon-ai-teams-launch>Launch</button><button type="button" data-dragon-ai-teams-export>Export</button><label data-dragon-ai-teams-import-label>Import<input type="file" accept=".zip,.json,application/json,application/zip" data-dragon-ai-teams-import></label><button type="button" data-dragon-ai-teams-close>Close</button></div>';
+    panel.innerHTML = '<header><h2>Teams Marketplace</h2><p>Browse the GitHub catalog. Install a team to add its bots. Personal Assistant is already installed. Each team files under its own name, not Unassigned. Each seat shows a brief; hover or focus a seat for details. Recipe packs — no live logins.</p></header><div data-dragon-ai-teams-browse><div data-dragon-ai-teams-list></div></div><section data-dragon-ai-teams-detail hidden><button type="button" data-dragon-ai-teams-back>Back</button><h3 data-dragon-ai-teams-detail-title></h3><p data-dragon-ai-teams-detail-meta></p><p data-dragon-ai-teams-detail-blurb></p><p data-dragon-ai-teams-detail-body></p><p data-dragon-ai-teams-detail-connectors></p><ul data-dragon-ai-teams-detail-seats data-dragon-ai-team-seats></ul><button type="button" data-dragon-ai-teams-install data-dragon-ai-team-apply="true">Install</button></section><p data-dragon-ai-teams-status role="status"></p><div data-dragon-ai-teams-actions><button type="button" data-dragon-ai-teams-launch>Launch</button><button type="button" data-dragon-ai-teams-export>Export</button><label data-dragon-ai-teams-import-label>Import<input type="file" accept=".zip,.json,application/json,application/zip" data-dragon-ai-teams-import></label><button type="button" data-dragon-ai-teams-close>Close</button></div>';
     var catalog = [];
     var detailId = "";
     function setStatus(t) {
@@ -278,7 +278,8 @@
       detailId = "";
     }
     function firstFocusable() {
-      return $('input[type="checkbox"]', panel)
+      return $("[data-dragon-ai-team-row] [data-dragon-ai-team-apply]", panel)
+        || $("[data-dragon-ai-teams-install]", panel)
         || $("[data-dragon-ai-teams-launch]", panel)
         || $("[data-dragon-ai-teams-close]", panel);
     }
@@ -404,17 +405,25 @@
           : "Required connectors: none listed";
       }
       if (seats) fillSeats(seats, team);
-      setStatus("Review the pack, then Install, or go Back and Launch checked teams.");
+      setStatus("Review the pack, then Install, or go Back.");
     }
     function card(team) {
       var wrap = document.createElement("article");
       wrap.setAttribute("data-dragon-ai-team-id", team.id || "");
       wrap.setAttribute("data-dragon-ai-team-row", "true");
-      var label = document.createElement("label");
-      var box = document.createElement("input");
-      box.type = "checkbox";
-      box.setAttribute("data-dragon-ai-team-id", team.id || "");
-      box.value = team.id || "";
+      var heading = document.createElement("div");
+      heading.setAttribute("data-dragon-ai-team-heading", "true");
+      var apply = document.createElement("button");
+      apply.type = "button";
+      apply.textContent = "Install";
+      apply.setAttribute("data-dragon-ai-team-apply", "true");
+      apply.setAttribute("data-dragon-ai-team-id", team.id || "");
+      apply.setAttribute("aria-label", "Install " + (team.displayName || team.name || team.id || "team"));
+      apply.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        installTeam(team.id);
+      });
       var copy = document.createElement("span");
       copy.innerHTML = "<strong></strong><span></span><small></small><small></small>";
       copy.querySelector("strong").textContent = team.displayName || team.name || team.id;
@@ -422,8 +431,8 @@
       copy.querySelectorAll("small")[0].textContent =
         (team.seats || team.botCount || 0) + " seats · " + (team.author || "Dragon AI");
       copy.querySelectorAll("small")[1].textContent = connectorText(team);
-      label.appendChild(box);
-      label.appendChild(copy);
+      heading.appendChild(apply);
+      heading.appendChild(copy);
       var details = document.createElement("button");
       details.type = "button";
       details.setAttribute("data-dragon-ai-teams-open-detail", "true");
@@ -433,7 +442,7 @@
         ev.stopPropagation();
         showDetail(team.id);
       });
-      wrap.appendChild(label);
+      wrap.appendChild(heading);
       wrap.appendChild(details);
       var seats = document.createElement("ul");
       seats.setAttribute("data-dragon-ai-team-seats", "true");
@@ -454,22 +463,26 @@
         list.textContent = "";
         catalog = data.teams || [];
         catalog.forEach(function (t) { list.appendChild(card(t)); });
-        setStatus(catalog.length ? "Check teams to Launch, or open Details to Install." : "No teams listed.");
+        setStatus(catalog.length ? "Install a team to add its bots, or open Details." : "No teams listed.");
       }).catch(function () {
         setStatus("Teams Marketplace helper is not running on 127.0.0.1:8653.");
       });
     }
-    function installOne() {
-      if (!detailId) { setStatus("Open Details, then Install."); return; }
-      setStatus("Installing " + detailId + "…");
+    function installTeam(id) {
+      if (!id) { setStatus("Open Details, then Install."); return; }
+      setStatus("Installing " + id + "…");
       fetch(API + "/api/marketplace/install", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: detailId })
+        body: JSON.stringify({ id: id })
       }).then(function (r) { return r.json(); }).then(function (data) {
         if (data.error) { setStatus(data.message || data.error); return; }
         finishApply();
       }).catch(function () { setStatus("Install failed. Is the Teams Marketplace helper running?"); });
+    }
+    function installOne() {
+      if (!detailId) { setStatus("Open Details, then Install."); return; }
+      installTeam(detailId);
     }
     function launch() {
       var ids = selectedIds();
@@ -543,7 +556,7 @@
     if (back) {
       back.addEventListener("click", function () {
         showBrowse();
-        setStatus("Check teams to Launch, or open Details to Install.");
+        setStatus("Install a team to add its bots, or open Details.");
       });
     }
     var inst = $("[data-dragon-ai-teams-install]", panel);

@@ -10,7 +10,7 @@ Restack: PR #14’s roomy marketplace popup on **current main**, folding in PR #
 
 1. **Teams Marketplace control opens a cramped sidebar dropdown.** Too tight. Seats need a **popup window** with a **4-column** card grid.
 2. **Export is missing** on the in-app Teams surface (WinForms already had Export; overlay apply/import did not).
-3. **Import UX:** the popup must list every loadable team, each with a **checkbox** (multi-select), a **Launch** button that loads the checked teams, and **Import** sitting next to **Export**.
+3. **Import UX:** the popup must list every loadable team, each with an **Install** button (applies that pack), a **Launch** button for batch apply, and **Import** sitting next to **Export**.
 
 Keep: catalog / Cos rosters, Personal Assistant not a team, apply files a named section (not UNASSIGNED), close + reload after apply. Syne + crimson stay. Seat briefs + hover detail + left icons stay.
 
@@ -24,7 +24,7 @@ Keep: catalog / Cos rosters, Personal Assistant not a team, apply files a named 
 2. Width is at least `min(72rem, calc(100vw - 48px))` so a **4-column** seat grid fits. Marketing lays out 4+2. Do not paint empty cells to force a 4×4 board.
 3. WinForms fallback (`Select-BotGroup.ps1`): **CheckedListBox** popup. Not ComboBox.
 4. List every picker team from the GitHub catalog (`GET /api/marketplace` with `GET /api/teams` fallback). Same `bot-groups/` source as today.
-5. Each row is a native checkbox + name + blurb + seats + author + required connectors. **Details** opens the longer pack copy; **Install** applies that one pack.
+5. Each row is an **Install** button + name + blurb + seats + author + required connectors. Clicking **Install** applies that pack (same `apply_team` path as Details → Install). **Details** opens the longer pack copy.
 6. Under each pack, seats are **cards** in `grid-template-columns: repeat(4, 1fr)` — shadows, 12px radius, left icon, brief, hover/focus detail (PR #19).
 
 Do not restyle Bot Screen. Do not add a Hermes team. Do not pull PR #18 seoagent tools unless they are already on main.

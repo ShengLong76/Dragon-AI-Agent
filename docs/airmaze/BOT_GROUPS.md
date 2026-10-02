@@ -102,7 +102,7 @@ To stay current, every open refetches. A successful fetch replaces the cache. Ad
 
 **Deploy (no manual file handling):**
 
-1. User checks a group in the popup and clicks **Launch** (or **Install** from Details)
+1. User clicks **Install** on a group in the popup (or **Install** from Details, or **Launch** for a batch)
 2. Client fetches that group's `bot-group.json` and each bot's `SOUL.md` / `bot.yaml` from the same GitHub tree (or cache/bundle)
 3. Each bot is written to the **existing desktop picker path** `%LOCALAPPDATA%\hermes\profiles\<bot-id>\` (title, description, tools in `bot.meta.json`; soul + yaml as today)
 4. File every bot in that pack into a **named BOTS section** labeled with the group display name (see below). They must not land under UNASSIGNED.
