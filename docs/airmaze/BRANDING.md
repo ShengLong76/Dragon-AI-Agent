@@ -31,11 +31,11 @@ Internal protocol, image, and path names stay Hermes/AirMaze where changing them
 
 ## In-app overlay (no Electron rebuild)
 
-The shipped client is still upstream `Hermes.exe` (`…\win-unpacked\Hermes.exe`). This package does **not** contain `apps/desktop` source and does not rebuild it.
+The shipped client is still upstream `Hermes.exe`, but Dragon AI runs a **private copy** at `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked\Hermes.exe` with `HERMES_DESKTOP_USER_DATA_DIR=%LOCALAPPDATA%\DragonAIAgent\electron-userdata`. This package does **not** contain `apps/desktop` source and does not rebuild it. The standalone Hermes tree is a read-only source. Branding is **refused** outside `DragonAIAgent`. See `docs/airmaze/PRIVATE_DESKTOP.md`.
 
 Upstream `electron-builder` packs most of the app into `resources/app.asar` (integrity-protected — do not rewrite that archive) and **unpacks `dist/**`** to `resources/app.asar.unpacked/dist`. The empty-state wordmark, composer placeholders, and settings strings live in that unpacked renderer.
 
-`Apply-DesktopBranding.ps1` run from `Start-HermesDesktopClient` (every launch, idempotent) and rewrite those files in place. Table: `scripts/airmaze/desktop_branding.json`. The same pass injects the sidebar header lockup and copies the Dragon ICO to `resources/icon.ico`. **Python is optional.** PowerShell always copies the prebuilt `branding/fonts/syne` pack (`dragon-ui.css`, inject `.js`, fonts, logos) into every discovered `app.asar.unpacked\dist\dragon-ai-branding\` — including under `%LOCALAPPDATA%\DragonAIAgent\` — and upserts `index.html`. It does not skip when `index.html` is already branded, and it throws if the CSS does not land. Offline check: `python3 scripts/airmaze/Test-DesktopBranding.py`. Launch also runs `exclude_hermes_bot.py` so leftover Hermes profile folders are dropped, not only hidden.
+`Apply-DesktopBranding.ps1` run from `Start-HermesDesktopClient` (every launch, idempotent) rewrites those files **only on the private Dragon copy**. Table: `scripts/airmaze/desktop_branding.json`. The same pass injects the sidebar header lockup and copies the Dragon ICO to `resources/icon.ico`. **Python is optional.** PowerShell always copies the prebuilt `branding/fonts/syne` pack (`dragon-ui.css`, inject `.js`, fonts, logos) into every discovered `app.asar.unpacked\dist\dragon-ai-branding\` under `%LOCALAPPDATA%\DragonAIAgent\` and upserts `index.html`. It refuses a path outside `DragonAIAgent`, does not skip when `index.html` is already branded, and it throws if the CSS does not land. Offline check: `python3 scripts/airmaze/Test-DesktopBranding.py` / `Test-PrivateDesktop.py`. Launch also runs `exclude_hermes_bot.py` so leftover Hermes profile folders are dropped, not only hidden.
 
 ### How UltraDragon apply must be run so unpacked UI updates
 
@@ -51,9 +51,9 @@ powershell -NoProfile -File "$env:LOCALAPPDATA\DragonAIAgent\scripts\airmaze\App
 
 Confirm the live sheet is the tip pack (must contain `dragon-ai-lockup-wrap:1`, `dragon-ai-marketplace-label:1`, `dragon-ai-marketplace-blue:1`, `dragon-ai-logo-clearance:1`, `dragon-ai-composer-chrome:1`; must not contain `border:1px solid rgba(196,30,58`):
 
-`%LOCALAPPDATA%\hermes\hermes-agent\apps\desktop\release\win-unpacked\resources\app.asar.unpacked\dist\dragon-ai-branding\dragon-ui.css`
+`%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked\resources\app.asar.unpacked\dist\dragon-ai-branding\dragon-ui.css`
 
-and the same folder under `%LOCALAPPDATA%\DragonAIAgent\**\app.asar.unpacked\dist\dragon-ai-branding\` if that tree exists. Updating only the git checkout / install-root `branding/fonts/syne/dragon-ui.css` does nothing until this apply copies it.
+Do **not** look under `%LOCALAPPDATA%\hermes\…` — that standalone tree is not branded. Updating only the git checkout / install-root `branding/fonts/syne/dragon-ui.css` does nothing until this apply copies it.
 
 ### UI font (Syne) — empty-state wordmark first
 
@@ -102,5 +102,5 @@ To ship a true Dragon AI Agent binary, rebuild the desktop app with e.g. `produc
 - Data dir `%USERPROFILE%\.hermes-airmaze-embedded`
 - Env prefix `HERMES_*`, `API_SERVER_*`
 - Profile copy target `%LOCALAPPDATA%\hermes\profiles\<bot-id>\`
-- On-disk discovery of `Hermes.exe` under `%LOCALAPPDATA%\hermes\…`
+- On-disk discovery of standalone `Hermes.exe` under `%LOCALAPPDATA%\hermes\…` (source for the private copy only)
 - Desktop Remote `http://127.0.0.1:8650` + `X-Hermes-Session-Token` / `dragon-local` (Bot Screen)

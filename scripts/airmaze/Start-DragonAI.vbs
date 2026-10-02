@@ -1,12 +1,14 @@
 ' Dragon AI Agent — windowless launch host.
 ' Shortcut target must be wscript.exe (not cscript, not powershell.exe).
-' Starts start-embedded.ps1 with a hidden console; errors are MessageBox / WinForms.
+' Starts start-embedded.ps1 with a hidden console; that script provisions and
+' launches the private client at DragonAIAgent\desktop\win-unpacked (never the
+' standalone Hermes tree). Errors are MessageBox / WinForms.
 ' Also rewrites Desktop / Start Menu product shortcuts so an old powershell.exe
 ' .lnk cannot flash a console on the next open.
 
 Option Explicit
 
-Dim fso, sh, here, installRoot, ps1, psExe, cmd
+Dim fso, sh, here, installRoot, ps1, psExe, cmd, userData
 
 Set fso = CreateObject("Scripting.FileSystemObject")
 Set sh = CreateObject("WScript.Shell")
@@ -14,6 +16,11 @@ Set sh = CreateObject("WScript.Shell")
 here = fso.GetParentFolderName(WScript.ScriptFullName)
 ps1 = fso.BuildPath(here, "start-embedded.ps1")
 installRoot = fso.GetParentFolderName(fso.GetParentFolderName(here))
+userData = fso.BuildPath(installRoot, "electron-userdata")
+On Error Resume Next
+If Not fso.FolderExists(userData) Then fso.CreateFolder userData
+On Error GoTo 0
+sh.Environment("PROCESS")("HERMES_DESKTOP_USER_DATA_DIR") = userData
 
 If Not fso.FileExists(ps1) Then
     MsgBox "Dragon AI Agent is not installed (missing start-embedded.ps1).", 16, "Dragon AI Agent"

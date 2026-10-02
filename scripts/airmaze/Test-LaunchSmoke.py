@@ -52,6 +52,9 @@ REQUIRED_LAUNCHER = (
     "X-Hermes-Session-Token",
     "8650",
     "Apply-DragonAIDesktopUiBranding",
+    "Install-DragonAIPrivateDesktop",
+    "HERMES_DESKTOP_USER_DATA_DIR",
+    "electron-userdata",
     "Exclude-DragonAIHermesBots",
     "teams_picker",
     "8653",
@@ -68,6 +71,10 @@ REQUIRED_FINDER = (
     "Set-DragonAIMainWindowTitle",
     "SetTitleForPids",
     "Dragon AI Agent Client.lnk",
+    "Install-DragonAIPrivateDesktop",
+    "HERMES_DESKTOP_USER_DATA_DIR",
+    "electron-userdata",
+    "Refuse branding outside DragonAIAgent",
 )
 
 REQUIRED_WIZARD = (
@@ -99,6 +106,9 @@ REQUIRED_INSTALLER = (
     "Dragon AI Agent Bot Groups.lnk",
     "Dragon AI Agent Dashboard.lnk",
     "Dragon AI Agent Profiles.lnk",
+    "Install-DragonAIPrivateDesktop",
+    "HERMES_DESKTOP_USER_DATA_DIR",
+    "desktop\\win-unpacked",
 )
 
 REQUIRED_VBS = (
@@ -114,6 +124,9 @@ REQUIRED_VBS = (
     "Dragon AI Agent Dashboard.lnk",
     "Dragon AI Agent Profiles.lnk",
     "DeleteFile",
+    "HERMES_DESKTOP_USER_DATA_DIR",
+    "electron-userdata",
+    "desktop\\win-unpacked",
 )
 
 RETIRED_START_MENU_LINKS = (
@@ -363,6 +376,11 @@ def main() -> int:
         proc = subprocess.run([sys.executable, str(parse_test)], cwd=str(ROOT))
         if proc.returncode != 0:
             fail("Test-WindowsLaunchParse.py failed")
+    private_test = ROOT / "scripts" / "airmaze" / "Test-PrivateDesktop.py"
+    if private_test.is_file():
+        proc = subprocess.run([sys.executable, str(private_test)], cwd=str(ROOT))
+        if proc.returncode != 0:
+            fail("Test-PrivateDesktop.py failed")
     run_host_smoke()
     print("SMOKE OK: opening Dragon AI Agent is wired to branded UI or a blocking error.")
     return 0

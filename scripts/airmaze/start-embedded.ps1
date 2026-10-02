@@ -667,8 +667,14 @@ function Set-EmbeddedDesktopRemoteConnection {
         return $false
     }
     try {
-        & $setter -Url $script:DesktopServeUrl -Token $script:DesktopSessionToken
-        Write-LaunchLog "Desktop Remote Embedded Linux wired to $($script:DesktopServeUrl) (session token placeholder, not echoed)"
+        if (Get-Command Set-DragonAIDesktopUserDataEnv -ErrorAction SilentlyContinue) {
+            Set-DragonAIDesktopUserDataEnv -InstallRoot $InstallRoot | Out-Null
+        } elseif (-not $env:HERMES_DESKTOP_USER_DATA_DIR) {
+            $env:HERMES_DESKTOP_USER_DATA_DIR = Join-Path $InstallRoot "electron-userdata"
+        }
+        $conn = Join-Path $env:HERMES_DESKTOP_USER_DATA_DIR "connections.json"
+        & $setter -Url $script:DesktopServeUrl -Token $script:DesktopSessionToken -ConnectionsPath $conn
+        Write-LaunchLog "Desktop Remote Embedded Linux wired to $($script:DesktopServeUrl) ($conn; standalone Hermes primary stays local)"
         return $true
     } catch {
         Write-LaunchLog "Desktop Remote wire skipped: $($_.Exception.Message)" "WARN"
@@ -729,27 +735,44 @@ function Start-AgentDesktopOrThrow {
     if (-not (Get-Command Find-HermesDesktopExe -ErrorAction SilentlyContinue)) {
         throw "Find-HermesDesktop.ps1 was not loaded. Re-run DragonAIAgentSetup so scripts\airmaze\Find-HermesDesktop.ps1 is installed."
     }
-    $exe = Find-HermesDesktopExe -InstallRoot $InstallRoot
+    if (Get-Command Set-DragonAIDesktopUserDataEnv -ErrorAction SilentlyContinue) {
+        Set-DragonAIDesktopUserDataEnv -InstallRoot $InstallRoot | Out-Null
+    }
+    $exe = $null
+    if (Get-Command Install-DragonAIPrivateDesktop -ErrorAction SilentlyContinue) {
+        $exe = Install-DragonAIPrivateDesktop -InstallRoot $InstallRoot
+    }
     if (-not $exe) {
-        $hint = Join-Path $env:LOCALAPPDATA "hermes\hermes-agent\apps\desktop\release\win-unpacked\Hermes.exe"
+        $exe = Find-HermesDesktopExe -InstallRoot $InstallRoot
+    }
+    $hint = Join-Path $InstallRoot "desktop\win-unpacked\Hermes.exe"
+    $sourceHint = Join-Path $env:LOCALAPPDATA "hermes\hermes-agent\apps\desktop\release\win-unpacked\Hermes.exe"
+    if (-not $exe -or -not (Test-Path -LiteralPath $exe)) {
         throw @"
 Dragon AI Agent desktop was not found, so there is no app window to show.
 
-Expected on-disk client (internal filename Hermes.exe):
+Expected private client:
   $hint
 
-Install the desktop client, then open Dragon AI Agent again.
-A branded shortcut is written to %LOCALAPPDATA%\DragonAIAgent\Dragon AI Agent Client.lnk once it is found.
+Source (copied, never branded):
+  $sourceHint
+
+Install standalone Hermes (win-unpacked), then open Dragon AI Agent again so it can copy that tree into DragonAIAgent.
+A branded shortcut is written to %LOCALAPPDATA%\DragonAIAgent\Dragon AI Agent Client.lnk once the private copy exists.
 "@
     }
-    Write-LaunchLog "Launching Dragon AI Agent desktop: $exe"
+    if (Get-Command Test-DragonAIPrivateDesktopPath -ErrorAction SilentlyContinue) {
+        if (-not (Test-DragonAIPrivateDesktopPath -Path $exe)) {
+            throw "Refuse launch outside DragonAIAgent (standalone Hermes tree is not mutated): $exe"
+        }
+    }
+    Write-LaunchLog "Launching private Dragon AI Agent desktop: $exe (HERMES_DESKTOP_USER_DATA_DIR=$($env:HERMES_DESKTOP_USER_DATA_DIR))"
     Save-DragonAIDesktopPointer -ExePath $exe -InstallRoot $InstallRoot | Out-Null
     # Belt-and-suspenders: some Desktop builds honor these on first boot.
     $env:HERMES_DESKTOP_REMOTE_URL = $script:DesktopServeUrl
     $env:HERMES_DESKTOP_REMOTE_TOKEN = $script:DesktopSessionToken
-    # Start-HermesDesktopClient runs Apply-DragonAIDesktopUiBranding on unpacked
-    # renderer files (empty state / composer / settings) before Hermes.exe opens.
-    Start-HermesDesktopClient -ExePath $exe
+    # Start-HermesDesktopClient brands only the private copy, then opens it.
+    Start-HermesDesktopClient -ExePath $exe -InstallRoot $InstallRoot
     return $exe
 }
 
@@ -875,8 +898,10 @@ function Get-LaunchPlan {
         ui            = @(
             "windowless host: Start-DragonAI.vbs / wscript.exe (no console)",
             "blocking error dialog on failure (never a raw console)",
-            "require desktop client (win-unpacked Hermes.exe on disk)",
-            "overlay unpacked Electron UI chrome to Dragon AI Agent before launch",
+            "require private desktop client (%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked\Hermes.exe)",
+            "set HERMES_DESKTOP_USER_DATA_DIR to %LOCALAPPDATA%\DragonAIAgent\electron-userdata",
+            "overlay unpacked Electron UI chrome on the private Dragon copy only (refuse branding outside DragonAIAgent)",
+            "standalone Hermes connections.json primary stays local",
             "launch Dragon AI Agent desktop only (not $DashboardUrl)",
             "start Docker Desktop in the tray when docker info fails (already running is a no-op)",
             "first-run uses in-app Models UI (WinForms Onboard-Wizard not launched)",
@@ -925,6 +950,9 @@ function Invoke-Smoke {
         "X-Hermes-Session-Token",
         "8650",
         "Apply-DragonAIDesktopUiBranding",
+        "Install-DragonAIPrivateDesktop",
+        "HERMES_DESKTOP_USER_DATA_DIR",
+        "electron-userdata",
         "Exclude-DragonAIHermesBots",
         "teams_picker",
         "8653",

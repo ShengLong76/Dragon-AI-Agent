@@ -79,7 +79,7 @@ In that layout, agent desktop client (Windows VM) talks to a separate Linux gate
 
 ## Config intent (conceptual)
 
-- Windows client: Remote gateway → `http://127.0.0.1:8650` with session token `dragon-local` (compose placeholder). `start-embedded.ps1` writes `%APPDATA%\Hermes\connections.json` so first launch lands here.
+- Windows client: private Dragon copy at `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked` with `HERMES_DESKTOP_USER_DATA_DIR=%LOCALAPPDATA%\DragonAIAgent\electron-userdata`. Remote gateway → `http://127.0.0.1:8650` with session token `dragon-local` (compose placeholder). `start-embedded.ps1` writes that userdata `connections.json` so first Dragon launch lands here. Standalone Hermes `%APPDATA%\Hermes\connections.json` primary stays local.
 - Container: `bot_desktop` enabled; prefer `-desktop` image so Install-on-host is unnecessary.
 - Optional: `terminal.backend: docker` + `docker_image: nousresearch/hermes-sandbox:desktop` so screen + shell share the sandbox boundary.
 - Secrets stay in the operator’s local Hermes home volume (`%USERPROFILE%\.hermes` or container `/opt/data`) — never in this package.
@@ -99,4 +99,4 @@ Details: `EMBEDDED_GATEWAY.md`. Upstream map: `UPSTREAM_NOTES.md`.
 
 ## Packaging note (v0.1.0)
 
-Distribution lives in `ShengLong76/airmaze-agent` (this packaging repo). Windows `DragonAIAgentSetup` provisions WSL2/Docker best-effort, suppresses Docker dashboard on startup (tray-only), brings up the embedded gateway, and deploys the Personal Assistant bot group. The desktop client remains a separate install when missing (on-disk `Hermes.exe`; display name Dragon AI Agent — see `BRANDING.md`).
+Distribution lives in `ShengLong76/airmaze-agent` (this packaging repo). Windows `DragonAIAgentSetup` provisions WSL2/Docker best-effort, suppresses Docker dashboard on startup (tray-only), brings up the embedded gateway, and deploys the Personal Assistant bot group. The desktop client remains a separate install when missing. Setup copies standalone `Hermes.exe` into `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked` (display name Dragon AI Agent — see `BRANDING.md` and `PRIVATE_DESKTOP.md`).
