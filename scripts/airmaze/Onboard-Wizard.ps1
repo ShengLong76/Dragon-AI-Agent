@@ -186,10 +186,33 @@ function Get-EmbeddedHermesHome {
     return (Join-Path $env:USERPROFILE ".hermes-airmaze-embedded")
 }
 
+function Get-WizardChatCatalog {
+    @(
+        @{ id = "grok-4.6"; label = "Grok (xAI) — grok-4.6" },
+        @{ id = "grok-4.5"; label = "Grok (xAI) — grok-4.5" },
+        @{ id = "grok-4.3"; label = "Grok (xAI) — grok-4.3" },
+        @{ id = "gpt-4o"; label = "OpenAI — gpt-4o" },
+        @{ id = "claude-sonnet-4-6"; label = "Anthropic — claude-sonnet-4-6" },
+        @{ id = "gemini-2.5-pro"; label = "Google Gemini — gemini-2.5-pro" },
+        @{ id = "openrouter-gpt-4o"; label = "OpenRouter — openai/gpt-4o" },
+        @{ id = "self-hosted"; label = "Self-hosted / custom endpoint" }
+    )
+}
+
+function Get-WizardImageCatalog {
+    @(
+        @{ id = "grok-imagine-image"; label = "Grok Imagine — grok-imagine-image" },
+        @{ id = "grok-imagine-image-quality"; label = "Grok Imagine (Quality) — grok-imagine-image-quality" },
+        @{ id = "grok-imagine-image-2.0"; label = "Grok Imagine 2.0 — grok-imagine-image-2.0" }
+    )
+}
+
 function Invoke-ApplyGatewayModels {
     param(
         [string]$Chat = "grok-4.6",
         [string]$Image = "grok-imagine-image",
+        [string]$CustomModel = "",
+        [string]$BaseUrl = "",
         [switch]$IfMissing
     )
     $apply = Join-Path $scriptDir "Apply-GatewayModels.ps1"
@@ -202,10 +225,12 @@ function Invoke-ApplyGatewayModels {
     }
     $embeddedHome = Get-EmbeddedHermesHome
     $applyArgs = @("-HermesHome", $embeddedHome, "-Chat", $Chat, "-Image", $Image)
+    if (-not [string]::IsNullOrWhiteSpace($CustomModel)) { $applyArgs += @("-CustomModel", $CustomModel) }
+    if (-not [string]::IsNullOrWhiteSpace($BaseUrl)) { $applyArgs += @("-BaseUrl", $BaseUrl) }
     if ($IfMissing) { $applyArgs += "-IfMissing" } else { $applyArgs += "-RestartGateway" }
     try {
         & $apply @applyArgs | Out-Null
-        Write-WizardLog "Applied gateway models chat=$Chat image=$Image ifMissing=$IfMissing home=$embeddedHome"
+        Write-WizardLog "Applied gateway models chat=$Chat image=$Image custom=$CustomModel baseUrl=$BaseUrl ifMissing=$IfMissing home=$embeddedHome"
         return ($LASTEXITCODE -eq 0)
     } catch {
         Write-WizardLog "Apply-GatewayModels failed: $($_.Exception.Message)" "WARN"
@@ -413,6 +438,12 @@ $script:WizProgress = $null
 $script:WizForm = $null
 $script:WizChatBox = $null
 $script:WizImageBox = $null
+$script:WizChatCatalog = @()
+$script:WizImageCatalog = @()
+$script:WizCustomPanel = $null
+$script:WizBaseUrlBox = $null
+$script:WizCustomModelBox = $null
+$script:WizCustomKeyBox = $null
 
 function Initialize-WizardWinForms {
     if ($script:WinFormsReady) { return $true }
@@ -498,8 +529,15 @@ function Invoke-ConsoleWizard {
         if ((Get-StepValue $Progress "models") -ne "success" -or $Force) {
             Write-Host ""
             Write-Host "--- Default chat LLM and default image LLM ---"
-            Write-Host "Dragon AI Agent uses the xAI Grok login already on this PC (OAuth or XAI_API_KEY). This step does not ask for a new key."
-            Write-Host "Chat:  [1] Grok (xAI) grok-4.6  [2] grok-4.5  [3] grok-4.3  [S] Skip (write defaults if missing)"
+            Write-Host "Suggested default is Grok (xAI). Cloud picks reuse keys already on this PC (XAI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY / GEMINI_API_KEY, OPENROUTER_API_KEY)."
+            $chatRows = @(Get-WizardChatCatalog)
+            $n = 1
+            foreach ($row in $chatRows) {
+                $mark = if ($n -eq 1) { " (suggested)" } else { "" }
+                Write-Host ("  [{0}] {1}{2}" -f $n, $row.label, $mark)
+                $n++
+            }
+            Write-Host "  [S] Skip (write Grok defaults if missing)"
             $chatChoice = Read-Host "Default chat LLM"
             Write-Host "Image: [1] Grok Imagine grok-imagine-image  [2] grok-imagine-image-quality  [3] grok-imagine-image-2.0  [S] Skip"
             $imgChoice = Read-Host "Default image LLM"
@@ -507,18 +545,31 @@ function Invoke-ConsoleWizard {
                 Invoke-ApplyGatewayModels -IfMissing | Out-Null
                 Set-StepValue $Progress "models" "skipped"
             } else {
-                $chat = switch ($chatChoice) {
-                    "2" { "grok-4.5" }
-                    "3" { "grok-4.3" }
-                    default { "grok-4.6" }
-                }
+                $chatIdx = 0
+                [void][int]::TryParse($chatChoice, [ref]$chatIdx)
+                if ($chatIdx -lt 1 -or $chatIdx -gt $chatRows.Count) { $chatIdx = 1 }
+                $chat = [string]$chatRows[$chatIdx - 1].id
                 $image = switch ($imgChoice) {
                     "2" { "grok-imagine-image-quality" }
                     "3" { "grok-imagine-image-2.0" }
                     default { "grok-imagine-image" }
                 }
-                Invoke-ApplyGatewayModels -Chat $chat -Image $image | Out-Null
-                Set-NonSecret $Progress "chat_model" $chat
+                $customModel = ""
+                $baseUrl = ""
+                if ($chat -eq "self-hosted") {
+                    $baseUrl = Read-Host "Self-hosted base URL (OpenAI-compatible, e.g. http://127.0.0.1:11434/v1)"
+                    $customModel = Read-Host "Self-hosted model id"
+                    $customKey = Read-Host "API key (optional; blank for local)"
+                    if ([string]::IsNullOrWhiteSpace($baseUrl)) { $baseUrl = "http://127.0.0.1:11434/v1" }
+                    if ([string]::IsNullOrWhiteSpace($customModel)) { $customModel = "local-model" }
+                    if (-not [string]::IsNullOrWhiteSpace($customKey)) {
+                        Save-DragonAISecret -Name "chat_api_key" -PlainText $customKey
+                    }
+                    Set-NonSecret $Progress "chat_base_url" $baseUrl
+                    Set-NonSecret $Progress "chat_provider" "custom"
+                }
+                Invoke-ApplyGatewayModels -Chat $chat -Image $image -CustomModel $customModel -BaseUrl $baseUrl | Out-Null
+                Set-NonSecret $Progress "chat_model" $(if ($customModel) { $customModel } else { $chat })
                 Set-NonSecret $Progress "image_model" $image
                 Set-StepValue $Progress "models" "success"
             }
@@ -919,62 +970,109 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
     function Show-StepModels {
         Clear-Content
         Update-StatusStrip $statusStrip $Progress
-        $content.Controls.Add((New-BrandLabel -Text "Default chat LLM and image LLM" -Location (New-Object Drawing.Point(40, 16)) -Width 620 -Height 28 -Title))
-        $content.Controls.Add((New-BrandLabel -Text "Dragon AI Agent uses the xAI Grok login already on this PC (OAuth or XAI_API_KEY). This step does not ask for a new key." -Location (New-Object Drawing.Point(40, 52)) -Width 620 -Height 40 -Muted))
+        $content.Controls.Add((New-BrandLabel -Text "Default chat LLM and image LLM" -Location (New-Object Drawing.Point(40, 8)) -Width 620 -Height 26 -Title))
+        $content.Controls.Add((New-BrandLabel -Text "Suggested default is Grok (xAI). Cloud picks reuse keys already on this PC (XAI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY, OPENROUTER_API_KEY). Self-hosted asks for a base URL and model id." -Location (New-Object Drawing.Point(40, 36)) -Width 620 -Height 36 -Muted))
 
-        $content.Controls.Add((New-BrandLabel -Text "Default chat LLM" -Location (New-Object Drawing.Point(40, 104)) -Width 240 -Height 20 -Muted))
+        $chatRows = @(Get-WizardChatCatalog)
+        $imageRows = @(Get-WizardImageCatalog)
+        $script:WizChatCatalog = $chatRows
+        $script:WizImageCatalog = $imageRows
+
+        $content.Controls.Add((New-BrandLabel -Text "Default chat LLM" -Location (New-Object Drawing.Point(40, 76)) -Width 240 -Height 18 -Muted))
         $cbChat = New-Object Windows.Forms.ComboBox
         $cbChat.DropDownStyle = [Windows.Forms.ComboBoxStyle]::DropDownList
-        $cbChat.Location = New-Object Drawing.Point(40, 126)
-        $cbChat.Size = New-Object Drawing.Size(400, 28)
+        $cbChat.Location = New-Object Drawing.Point(40, 94)
+        $cbChat.Size = New-Object Drawing.Size(440, 26)
         $cbChat.BackColor = [System.Drawing.Color]::FromArgb(50, 50, 58)
         $cbChat.ForeColor = $script:BrandText
-        [void]$cbChat.Items.Add("Grok (xAI) — grok-4.6")
-        [void]$cbChat.Items.Add("Grok (xAI) — grok-4.5")
-        [void]$cbChat.Items.Add("Grok (xAI) — grok-4.3")
+        foreach ($row in $chatRows) { [void]$cbChat.Items.Add($row.label) }
         $cbChat.SelectedIndex = 0
         $content.Controls.Add($cbChat)
 
-        $content.Controls.Add((New-BrandLabel -Text "Default image LLM" -Location (New-Object Drawing.Point(40, 168)) -Width 240 -Height 20 -Muted))
+        $content.Controls.Add((New-BrandLabel -Text "Default image LLM" -Location (New-Object Drawing.Point(40, 124)) -Width 240 -Height 18 -Muted))
         $cbImage = New-Object Windows.Forms.ComboBox
         $cbImage.DropDownStyle = [Windows.Forms.ComboBoxStyle]::DropDownList
-        $cbImage.Location = New-Object Drawing.Point(40, 190)
-        $cbImage.Size = New-Object Drawing.Size(400, 28)
+        $cbImage.Location = New-Object Drawing.Point(40, 142)
+        $cbImage.Size = New-Object Drawing.Size(440, 26)
         $cbImage.BackColor = [System.Drawing.Color]::FromArgb(50, 50, 58)
         $cbImage.ForeColor = $script:BrandText
-        [void]$cbImage.Items.Add("Grok Imagine — grok-imagine-image")
-        [void]$cbImage.Items.Add("Grok Imagine (Quality) — grok-imagine-image-quality")
-        [void]$cbImage.Items.Add("Grok Imagine 2.0 — grok-imagine-image-2.0")
+        foreach ($row in $imageRows) { [void]$cbImage.Items.Add($row.label) }
         $cbImage.SelectedIndex = 0
         $content.Controls.Add($cbImage)
 
-        $content.Controls.Add((New-BrandLabel -Text "Writes into the embedded gateway config so chat and profile Generate work. Restart the gateway if Generate still says no image model." -Location (New-Object Drawing.Point(40, 232)) -Width 620 -Height 40 -Muted))
+        $customPanel = New-Object Windows.Forms.Panel
+        $customPanel.Location = New-Object Drawing.Point(40, 174)
+        $customPanel.Size = New-Object Drawing.Size(620, 88)
+        $customPanel.BackColor = $script:BrandBack
+        $customPanel.Visible = $false
+        $customPanel.Controls.Add((New-BrandLabel -Text "Base URL" -Location (New-Object Drawing.Point(0, 4)) -Width 120 -Height 18 -Muted))
+        $tbBase = New-BrandTextBox -Location (New-Object Drawing.Point(130, 2)) -Width 460
+        $tbBase.Text = "http://127.0.0.1:11434/v1"
+        $customPanel.Controls.Add($tbBase)
+        $customPanel.Controls.Add((New-BrandLabel -Text "Model id" -Location (New-Object Drawing.Point(0, 32)) -Width 120 -Height 18 -Muted))
+        $tbCustomModel = New-BrandTextBox -Location (New-Object Drawing.Point(130, 30)) -Width 460
+        $tbCustomModel.Text = "local-model"
+        $customPanel.Controls.Add($tbCustomModel)
+        $customPanel.Controls.Add((New-BrandLabel -Text "API key" -Location (New-Object Drawing.Point(0, 60)) -Width 120 -Height 18 -Muted))
+        $tbCustomKey = New-BrandTextBox -Location (New-Object Drawing.Point(130, 58)) -Width 460 -Password
+        $customPanel.Controls.Add($tbCustomKey)
+        $content.Controls.Add($customPanel)
 
-        $btnContinue = New-BrandButton -Text "Continue" -Location (New-Object Drawing.Point(40, 300)) -Size (New-Object Drawing.Size(140, 36)) -Primary
-        $btnSkip = New-BrandButton -Text "Skip for now" -Location (New-Object Drawing.Point(200, 300)) -Size (New-Object Drawing.Size(140, 36))
+        $content.Controls.Add((New-BrandLabel -Text "Writes provider + model (and a self-hosted base URL) into the embedded gateway config. API keys stay on this PC (env or DPAPI), never in config.yaml. Restart the gateway if Generate still says no image model." -Location (New-Object Drawing.Point(40, 266)) -Width 620 -Height 36 -Muted))
+
+        $btnContinue = New-BrandButton -Text "Continue" -Location (New-Object Drawing.Point(40, 308)) -Size (New-Object Drawing.Size(140, 36)) -Primary
+        $btnSkip = New-BrandButton -Text "Skip for now" -Location (New-Object Drawing.Point(200, 308)) -Size (New-Object Drawing.Size(140, 36))
         $content.Controls.Add($btnContinue)
         $content.Controls.Add($btnSkip)
 
         $script:WizChatBox = $cbChat
         $script:WizImageBox = $cbImage
+        $script:WizCustomPanel = $customPanel
+        $script:WizBaseUrlBox = $tbBase
+        $script:WizCustomModelBox = $tbCustomModel
+        $script:WizCustomKeyBox = $tbCustomKey
+
+        $cbChat.Add_SelectedIndexChanged({
+            $show = $false
+            if ($script:WizChatBox -and $script:WizChatCatalog -and $script:WizChatBox.SelectedIndex -ge 0 -and $script:WizChatBox.SelectedIndex -lt $script:WizChatCatalog.Count) {
+                $show = ([string]$script:WizChatCatalog[$script:WizChatBox.SelectedIndex].id -eq "self-hosted")
+            }
+            if ($script:WizCustomPanel) { $script:WizCustomPanel.Visible = $show }
+        })
+
         $btnContinue.Add_Click({
             $chatIdx = 0
             $imgIdx = 0
             if ($script:WizChatBox) { $chatIdx = [int]$script:WizChatBox.SelectedIndex }
             if ($script:WizImageBox) { $imgIdx = [int]$script:WizImageBox.SelectedIndex }
-            $chat = switch ($chatIdx) {
-                1 { "grok-4.5" }
-                2 { "grok-4.3" }
-                default { "grok-4.6" }
+            $chat = "grok-4.6"
+            if ($script:WizChatCatalog -and $chatIdx -ge 0 -and $chatIdx -lt $script:WizChatCatalog.Count) {
+                $chat = [string]$script:WizChatCatalog[$chatIdx].id
             }
-            $image = switch ($imgIdx) {
-                1 { "grok-imagine-image-quality" }
-                2 { "grok-imagine-image-2.0" }
-                default { "grok-imagine-image" }
+            $image = "grok-imagine-image"
+            if ($script:WizImageCatalog -and $imgIdx -ge 0 -and $imgIdx -lt $script:WizImageCatalog.Count) {
+                $image = [string]$script:WizImageCatalog[$imgIdx].id
+            }
+            $customModel = ""
+            $baseUrl = ""
+            if ($chat -eq "self-hosted") {
+                if ($script:WizBaseUrlBox) { $baseUrl = [string]$script:WizBaseUrlBox.Text }
+                if ($script:WizCustomModelBox) { $customModel = [string]$script:WizCustomModelBox.Text }
+                if ([string]::IsNullOrWhiteSpace($baseUrl) -or [string]::IsNullOrWhiteSpace($customModel)) {
+                    Set-WizardMessage "Self-hosted needs a base URL and a model id."
+                    return
+                }
+                $key = ""
+                if ($script:WizCustomKeyBox) { $key = [string]$script:WizCustomKeyBox.Text }
+                if (-not [string]::IsNullOrWhiteSpace($key)) {
+                    Save-DragonAISecret -Name "chat_api_key" -PlainText $key
+                }
+                Set-NonSecret $script:WizProgress "chat_base_url" $baseUrl
+                Set-NonSecret $script:WizProgress "chat_provider" "custom"
             }
             Set-WizardMessage "Writing Dragon AI Agent model defaults..."
-            Invoke-ApplyGatewayModels -Chat $chat -Image $image | Out-Null
-            Set-NonSecret $script:WizProgress "chat_model" $chat
+            Invoke-ApplyGatewayModels -Chat $chat -Image $image -CustomModel $customModel -BaseUrl $baseUrl | Out-Null
+            Set-NonSecret $script:WizProgress "chat_model" $(if ($customModel) { $customModel } else { $chat })
             Set-NonSecret $script:WizProgress "image_model" $image
             Set-StepValue $script:WizProgress "models" "success"
             Save-DragonAIOnboardingProgress $script:WizProgress

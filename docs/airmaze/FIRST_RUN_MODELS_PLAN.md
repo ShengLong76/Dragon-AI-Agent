@@ -6,7 +6,7 @@ Small plan after `docs/airmaze/FIRST_RUN_MODELS.md`. Tests first. No Electron re
 
 1. `scripts/airmaze/gateway_models.py` — catalog + merge of `principal` and `image_gen` into Hermes `config.yaml` (stdlib only).
 2. `scripts/airmaze/Apply-GatewayModels.ps1` — wizard / launcher wrapper (`--home`, `--chat`, `--image`, `--if-missing`).
-3. Wizard step `models` after Welcome (WinForms ComboBoxes + console lists). Dragon copy. No new OAuth.
+3. Wizard step `models` after Welcome (WinForms ComboBoxes + console lists). Catalog is Grok defaults plus OpenAI / Anthropic / Gemini / OpenRouter and a self-hosted custom endpoint. Dragon copy. No new OAuth.
 4. `start-embedded.ps1` applies product defaults if missing **before** compose up.
 5. Installers copy the new scripts + design docs.
 6. Docs: `SETUP_GUIDE.md`, README onboarding list, `CHANGELOG.md`, one line in `DESIGN.md`.

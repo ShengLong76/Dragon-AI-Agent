@@ -101,7 +101,7 @@ Singular import/export of one bot is an optional toggle (`allowSingularBotImport
 After bot group deploy, the installer launches **Dragon AI Agent Setup** (`Onboard-Wizard.ps1`):
 
 1. Welcome  
-2. Default chat LLM + default image LLM (Grok / **Grok Imagine**; writes Hermes `principal` + `image_gen`)  
+2. Default chat LLM + default image LLM (Grok / **Grok Imagine** suggested; also OpenAI / Anthropic / Gemini / OpenRouter / self-hosted; writes Hermes `principal` + `model` + `image_gen`)  
 3. Connect email (Gmail / Outlook / SMTP + verify)  
 4. Connect CRM (Vtiger webservice)  
 5. Connect telephony (Twilio + Bland/Vapi)  

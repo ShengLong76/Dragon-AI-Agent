@@ -31,6 +31,8 @@ CHANGELOG = ROOT / "CHANGELOG.md"
 DEFAULT_CHAT = "grok-4.6"
 DEFAULT_IMAGE = "grok-imagine-image"
 CHAT_CHOICES = ("grok-4.6", "grok-4.5", "grok-4.3")
+CLOUD_CHAT_IDS = ("gpt-4o", "claude-sonnet-4-6", "gemini-2.5-pro", "openrouter-gpt-4o")
+CLOUD_PROVIDERS = ("xai", "openai-api", "anthropic", "gemini", "openrouter")
 IMAGE_CHOICES = ("grok-imagine-image", "grok-imagine-image-quality", "grok-imagine-image-2.0")
 
 
@@ -89,6 +91,10 @@ def test_design_recorded() -> None:
         "Onboard-Wizard",
         "XAI_API_KEY",
         "Dragon AI Agent",
+        "self-hosted",
+        "openai-api",
+        "anthropic",
+        "gemini",
     ):
         if needle not in design:
             fail(f"FIRST_RUN_MODELS.md must document {needle!r}")
@@ -111,6 +117,23 @@ def test_defaults_and_apply(gm) -> None:
     for mid in IMAGE_CHOICES:
         if mid not in image_ids:
             fail(f"image catalog missing {mid}")
+    for mid in CLOUD_CHAT_IDS:
+        if mid not in chat_ids:
+            fail(f"chat catalog missing popular cloud option {mid}")
+    if "self-hosted" not in chat_ids:
+        fail("chat catalog must include a self-hosted / custom endpoint option")
+    if chat_ids[0] != DEFAULT_CHAT:
+        fail(f"Grok {DEFAULT_CHAT} must stay the first/suggested chat catalog entry")
+    providers = {c["provider"] for c in gm.chat_catalog()}
+    for pid in CLOUD_PROVIDERS:
+        if pid not in providers:
+            fail(f"chat catalog missing provider {pid}")
+    if "custom" not in providers:
+        fail("chat catalog must include Hermes provider custom for self-hosted")
+    if hasattr(gm, "popular_cloud_providers"):
+        got = set(gm.popular_cloud_providers())
+        if not set(CLOUD_PROVIDERS).issubset(got):
+            fail(f"popular_cloud_providers missing {set(CLOUD_PROVIDERS) - got}")
     with tempfile.TemporaryDirectory(prefix="dragon-models-") as tmp:
         home = pathlib.Path(tmp) / "embedded"
         home.mkdir()
@@ -184,6 +207,44 @@ def test_quality_variant_and_merge(gm) -> None:
     print("OK  quality variants + merge preserve unrelated keys")
 
 
+def test_cloud_and_self_hosted(gm) -> None:
+    with tempfile.TemporaryDirectory(prefix="dragon-models-cloud-") as tmp:
+        home = pathlib.Path(tmp)
+        gm.apply_models(home, chat_model="gpt-4o", overwrite=True)
+        data = _mapping((home / "config.yaml").read_text(encoding="utf-8"))
+        principal = data.get("principal") or {}
+        hermes_model = data.get("model") or {}
+        if principal.get("provider") != "openai-api" or principal.get("model") != "gpt-4o":
+            fail(f"OpenAI pick must write principal openai-api/gpt-4o, got {principal}")
+        if hermes_model.get("provider") != "openai-api" or hermes_model.get("default") != "gpt-4o":
+            fail(f"OpenAI pick must also write Hermes model.provider openai-api, got {hermes_model}")
+        gm.apply_models(
+            home,
+            chat_model="self-hosted",
+            custom_model="llama3.1",
+            base_url="http://127.0.0.1:11434/v1",
+            overwrite=True,
+        )
+        text = (home / "config.yaml").read_text(encoding="utf-8")
+        again = _mapping(text)
+        principal = again.get("principal") or {}
+        if principal.get("provider") != "custom" or principal.get("model") != "llama3.1":
+            fail(f"self-hosted must write principal custom/llama3.1, got {principal}")
+        if "11434" not in str(principal.get("base_url") or ""):
+            fail(f"self-hosted must persist base_url, got {principal}")
+        if re_search_key(text):
+            fail("self-hosted apply must not write api_key into config.yaml")
+        image = again.get("image_gen") or {}
+        if image.get("model") != DEFAULT_IMAGE:
+            fail("self-hosted chat must keep Grok Imagine as the image default")
+    print("OK  cloud + self-hosted catalog writes (no secrets in YAML)")
+
+
+def re_search_key(text: str) -> bool:
+    low = text.lower()
+    return "api_key:" in low or "xai_api_key:" in low or "openai_api_key:" in low
+
+
 def test_wizard_and_launch_wired() -> None:
     wizard = read(WIZARD)
     if '"models"' not in wizard and "'models'" not in wizard:
@@ -196,6 +257,11 @@ def test_wizard_and_launch_wired() -> None:
         fail("wizard must surface Grok Imagine")
     if "Grok (xAI)" not in wizard and "xAI Grok" not in wizard:
         fail("wizard must label the chat default as Grok / xAI")
+    for needle in ("OpenAI", "Anthropic", "Google Gemini", "Self-hosted / custom endpoint"):
+        if needle not in wizard:
+            fail(f"wizard chat picker must offer {needle}")
+    if "function Get-WizardChatCatalog" not in wizard:
+        fail("wizard must share a chat catalog (cloud + self-hosted)")
     if "Hermes Agent" in wizard:
         fail("wizard copy must say Dragon AI Agent, not Hermes Agent")
     if "XAI_API_KEY" not in wizard:
@@ -211,6 +277,8 @@ def test_wizard_and_launch_wired() -> None:
         fail("Apply-GatewayModels.ps1 must call gateway_models.py")
     if "[string]$HermesHome" not in apply:
         fail("Apply-GatewayModels.ps1 must take -HermesHome (not -Home; $HOME is read-only)")
+    if "[string]$BaseUrl" not in apply or "[string]$CustomModel" not in apply:
+        fail("Apply-GatewayModels.ps1 must pass self-hosted --base-url / --custom-model")
     launcher = read(LAUNCHER)
     if "gateway_models" not in launcher and "Apply-GatewayModels" not in launcher:
         fail("start-embedded.ps1 must apply model defaults before compose up")
@@ -241,6 +309,7 @@ def main() -> int:
         fail("gateway_models --self-test failed")
     test_defaults_and_apply(gm)
     test_quality_variant_and_merge(gm)
+    test_cloud_and_self_hosted(gm)
     test_wizard_and_launch_wired()
     if ONBOARD_WIZARD_TEST.is_file():
         proc = subprocess.run([sys.executable, str(ONBOARD_WIZARD_TEST)], cwd=str(ROOT))
