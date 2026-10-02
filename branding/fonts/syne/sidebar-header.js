@@ -300,29 +300,35 @@
       if (node.getAttribute("data-dragon-ai-sidebar-row") === "true") return node;
       node = node.parentNode;
     }
-    return el;
+    return null;
+  }
+  function ensureRow(host) {
+    var row = document.querySelector("[data-dragon-ai-sidebar-row]");
+    if (!row) {
+      row = document.createElement("div");
+      row.setAttribute("data-dragon-ai-sidebar-row", "true");
+      row.style.pointerEvents = "auto";
+    }
+    if (row.parentElement !== host) {
+      host.insertBefore(row, host.firstChild);
+    }
+    return row;
   }
   function mount() {
     var host = findDragonSidebarHost();
     if (!host) return;
+    var row = ensureRow(host);
     var existing = document.querySelector("[data-dragon-ai-sidebar-brand]");
     if (existing) {
-      var oldRow = closestRow(existing);
-      if (oldRow && !host.contains(oldRow)) {
-        host.insertBefore(oldRow, host.firstChild);
-      }
       var old = existing.querySelector("img");
       if (old) pinLogo(old);
-      if (!placeBrand(existing) && oldRow && existing.parentNode !== oldRow) {
-        oldRow.insertBefore(existing, oldRow.firstChild);
+      if (!placeBrand(existing) && existing.parentNode !== row) {
+        row.insertBefore(existing, row.firstChild);
       }
       syncChromePad();
       if (host.getAttribute("data-dragon-ai-sidebar-fixed")) pinFixedHost(host);
       return;
     }
-    var row = document.createElement("div");
-    row.setAttribute("data-dragon-ai-sidebar-row", "true");
-    row.style.pointerEvents = "auto";
     var wrap = document.createElement("div");
     pinWrap(wrap, false);
     var img = document.createElement("img");
@@ -333,7 +339,6 @@
     wrap.appendChild(img);
     wrap.appendChild(span);
     row.appendChild(wrap);
-    host.insertBefore(row, host.firstChild);
     placeBrand(wrap);
     syncChromePad();
     if (host.getAttribute("data-dragon-ai-sidebar-fixed")) pinFixedHost(host);

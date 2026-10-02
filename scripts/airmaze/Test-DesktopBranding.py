@@ -135,6 +135,10 @@ def assert_logo_175_right_of_hide(css: str, sidebar_js: str) -> None:
         fail("sidebar-header.js must find the hide-sidebar control")
     if "placeBrand" not in sidebar_js or "hide.nextSibling" not in sidebar_js:
         fail("sidebar-header.js must insert the lockup to the right of hide-sidebar")
+    if "function closestRow" not in sidebar_js or "return null" not in sidebar_js.split("function closestRow", 1)[-1][:400]:
+        fail("closestRow must return null (not the lockup) so remount does not yank it off hide-sidebar")
+    if "ensureRow" not in sidebar_js:
+        fail("sidebar-header.js must keep a sidebar row for Teams Marketplace when the lockup sits after hide-sidebar")
     if "Hide sidebar" not in sidebar_js and "hide sidebar" not in sidebar_js.lower():
         fail("sidebar-header.js must match the Hermes Hide sidebar titlebar label")
     if "sidebar-trigger" not in sidebar_js or 'data-sidebar="trigger"' not in sidebar_js:
