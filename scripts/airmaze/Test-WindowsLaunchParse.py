@@ -175,6 +175,48 @@ def test_hotfix_symbols() -> None:
     print("OK  hotfix symbols (embeddedHome / HermesHome)")
 
 
+# UTF-8 punctuation that Windows PowerShell 5.1 (no BOM) mis-decodes as a
+# string closer. Em dash E2 80 94 becomes Windows-1252 ``â€"`` so
+# ``"Dragon AI Agent — start"`` dies with unexpected token ``start``.
+PS51_BAD_PUNCT = (
+    "\u2014",  # em dash
+    "\u2013",  # en dash
+    "\u2026",  # ellipsis
+    "\u201c",  # left double quote
+    "\u201d",  # right double quote
+    "\u2018",  # left single quote
+    "\u2019",  # right single quote
+)
+
+
+def test_ascii_punctuation() -> None:
+    """Installer + launch .ps1 files must use ASCII punctuation (no BOM required)."""
+    for path in iter_ps1():
+        raw = path.read_bytes()
+        if raw.startswith(b"\xef\xbb\xbf"):
+            fail(
+                f"{path.relative_to(ROOT)} has a UTF-8 BOM; "
+                "fix punctuation to ASCII instead of requiring a BOM"
+            )
+        text = raw.decode("utf-8")
+        for ch in PS51_BAD_PUNCT:
+            if ch in text:
+                lineno = next(
+                    i for i, line in enumerate(text.splitlines(), 1) if ch in line
+                )
+                fail(
+                    f"{path.relative_to(ROOT)}:{lineno} contains U+{ord(ch):04X} "
+                    f"({ch!r}) which Windows PowerShell 5.1 misparses without a BOM"
+                )
+        non_ascii = sorted({c for c in text if ord(c) > 127})
+        if non_ascii:
+            shown = " ".join(f"U+{ord(c):04X}" for c in non_ascii[:8])
+            fail(
+                f"{path.relative_to(ROOT)} still has non-ASCII characters: {shown}"
+            )
+    print("OK  installer PowerShell scripts use ASCII punctuation (no BOM)")
+
+
 def test_host_parse() -> None:
     host = shutil.which("pwsh") or shutil.which("powershell")
     if not host:
@@ -211,8 +253,9 @@ def main() -> int:
     test_single_openui_key()
     test_no_home_shadow()
     test_hotfix_symbols()
+    test_ascii_punctuation()
     test_host_parse()
-    print("SMOKE OK: Windows launch scripts do not shadow $HOME or duplicate OpenUI keys.")
+    print("SMOKE OK: Windows launch scripts do not shadow $HOME, duplicate OpenUI keys, or use PS 5.1-breaking punctuation.")
     return 0
 
 

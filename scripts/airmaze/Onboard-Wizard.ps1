@@ -4,7 +4,7 @@
   Dragon AI Agent first-run onboarding wizard (WinForms or console fallback).
 
 .DESCRIPTION
-  Steps: Welcome → Models (chat + image LLM) → Email → CRM → Telephony → Optional integrations → Review.
+  Steps: Welcome -> Models (chat + image LLM) -> Email -> CRM -> Telephony -> Optional integrations -> Review.
   Secrets via DragonAI-SecureStore.ps1 (DPAPI). Progress resumes at first incomplete step.
 #>
 [CmdletBinding()]
@@ -241,7 +241,7 @@ function Test-SmtpSend {
         $msg = New-Object System.Net.Mail.MailMessage
         $msg.From = New-Object System.Net.Mail.MailAddress($FromAddress, $DisplayName)
         $msg.To.Add($FromAddress)
-        $msg.Subject = "Dragon AI Agent — email connection test"
+        $msg.Subject = "Dragon AI Agent - email connection test"
         $msg.Body = "This is a test message from Dragon AI Agent Setup. Your SMTP settings work."
         $client.Send($msg)
         $msg.Dispose()
@@ -414,7 +414,7 @@ function Invoke-ConsoleWizard {
     # WELCOME
     if ($start -eq "welcome" -or $Force) {
         Write-Host "--- Welcome ---"
-        Write-Host "$ProductName helps you run business bots (Real Estate: Lead Sourcer → Email Warmer → consent gate → calling)."
+        Write-Host "$ProductName helps you run business bots (Real Estate: Lead Sourcer -> Email Warmer -> consent gate -> calling)."
         Write-Host "This is setup software, not legal advice."
         $ans = Read-Host "Continue [C], Skip wizard [S]"
         if ($ans -match '^[Ss]') {
@@ -572,7 +572,7 @@ function Invoke-ConsoleWizard {
                 $bland = Read-Host "Bland API key (or Enter to skip)"
                 $vapi = Read-Host "Vapi API key (or Enter to skip)"
                 if ([string]::IsNullOrWhiteSpace($bland) -and [string]::IsNullOrWhiteSpace($vapi)) {
-                    Write-Host "WARNING: No Bland/Vapi key — storing Twilio only; voice AI may need setup later." "WARN"
+                    Write-Host "WARNING: No Bland/Vapi key - storing Twilio only; voice AI may need setup later." "WARN"
                 }
                 Write-Host "Verifying Twilio..."
                 $r = Test-TwilioAccount -AccountSid $sid -AuthToken $tok
@@ -797,7 +797,7 @@ function Invoke-WinFormsWizard {
     $hdrTitle = New-BrandLabel -Text $ProductName -Location (New-Object Drawing.Point(80, 12)) -Width 500 -Height 28 -Title
     $hdrTitle.ForeColor = [System.Drawing.Color]::White
     $header.Controls.Add($hdrTitle)
-    $hdrSub = New-BrandLabel -Text "Dragon AI Agent first-run setup — bot group: $ProfId" -Location (New-Object Drawing.Point(80, 40)) -Width 500 -Height 22
+    $hdrSub = New-BrandLabel -Text "Dragon AI Agent first-run setup - bot group: $ProfId" -Location (New-Object Drawing.Point(80, 40)) -Width 500 -Height 22
     $hdrSub.ForeColor = $script:BrandText
     $header.Controls.Add($hdrSub)
 
@@ -831,7 +831,7 @@ function Invoke-WinFormsWizard {
         $pitch = @"
 Dragon AI Agent runs business-ready bots on this Windows PC with an embedded gateway.
 
-Real Estate flow: Lead Sourcer → Email Warmer → consent gate → calling.
+Real Estate flow: Lead Sourcer -> Email Warmer -> consent gate -> calling.
 Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
 "@
         $content.Controls.Add((New-BrandLabel -Text $pitch -Location (New-Object Drawing.Point(40, 70)) -Width 620 -Height 80 -Muted))
@@ -886,9 +886,9 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
         $cbChat.Size = New-Object Drawing.Size(400, 28)
         $cbChat.BackColor = [System.Drawing.Color]::FromArgb(50, 50, 58)
         $cbChat.ForeColor = $script:BrandText
-        [void]$cbChat.Items.Add("Grok (xAI) — grok-4.6")
-        [void]$cbChat.Items.Add("Grok (xAI) — grok-4.5")
-        [void]$cbChat.Items.Add("Grok (xAI) — grok-4.3")
+        [void]$cbChat.Items.Add("Grok (xAI) - grok-4.6")
+        [void]$cbChat.Items.Add("Grok (xAI) - grok-4.5")
+        [void]$cbChat.Items.Add("Grok (xAI) - grok-4.3")
         $cbChat.SelectedIndex = 0
         $content.Controls.Add($cbChat)
 
@@ -899,9 +899,9 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
         $cbImage.Size = New-Object Drawing.Size(400, 28)
         $cbImage.BackColor = [System.Drawing.Color]::FromArgb(50, 50, 58)
         $cbImage.ForeColor = $script:BrandText
-        [void]$cbImage.Items.Add("Grok Imagine — grok-imagine-image")
-        [void]$cbImage.Items.Add("Grok Imagine (Quality) — grok-imagine-image-quality")
-        [void]$cbImage.Items.Add("Grok Imagine 2.0 — grok-imagine-image-2.0")
+        [void]$cbImage.Items.Add("Grok Imagine - grok-imagine-image")
+        [void]$cbImage.Items.Add("Grok Imagine (Quality) - grok-imagine-image-quality")
+        [void]$cbImage.Items.Add("Grok Imagine 2.0 - grok-imagine-image-2.0")
         $cbImage.SelectedIndex = 0
         $content.Controls.Add($cbImage)
 

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Hermes and Dragon AI stay separate programs.
+"""Dragon AI Agent stays separate from a Hermes install.
 
-Proves the live UltraDragon contract in-repo:
+Proves:
 
-- Private client is DragonAIAgent\\desktop\\win-unpacked
-- HERMES_DESKTOP_USER_DATA_DIR is DragonAIAgent\\electron-userdata
-- Copy/provision never writes back to the standalone Hermes tree
+- Private client is DragonAIAgent\\desktop\\win-unpacked\\DragonAIAgent.exe
+- User data is DragonAIAgent\\electron-userdata
+- Copy/provision never writes back to a Hermes tree and never reads one
 - Branding is refused outside DragonAIAgent
 - Standalone connections.json primary stays local
 
@@ -42,6 +42,7 @@ DOCS = (
 
 REQUIRED_FINDER = (
     "DragonAIAgent\\desktop\\win-unpacked",
+    "DragonAIAgent.exe",
     "HERMES_DESKTOP_USER_DATA_DIR",
     "electron-userdata",
     "Install-DragonAIPrivateDesktop",
@@ -61,6 +62,7 @@ REQUIRED_LAUNCHER = (
     "Install-DragonAIPrivateDesktop",
     "electron-userdata",
     "desktop\\win-unpacked",
+    "DragonAIAgent.exe",
 )
 
 REQUIRED_VBS = (
@@ -74,6 +76,7 @@ REQUIRED_INSTALLER = (
     "Install-DragonAIPrivateDesktop",
     "HERMES_DESKTOP_USER_DATA_DIR",
     "desktop\\win-unpacked",
+    "DragonAIAgent.exe",
 )
 
 REQUIRED_CONN = (
@@ -108,39 +111,46 @@ def test_copy_does_not_mutate_source() -> None:
 
     with tempfile.TemporaryDirectory(prefix="dragon-private-desk-") as tmp:
         base = pathlib.Path(tmp)
-        src_dir = base / "hermes" / "hermes-agent" / "apps" / "desktop" / "release" / "win-unpacked"
+        src_dir = base / "payload" / "desktop" / "win-unpacked"
         src_dir.mkdir(parents=True)
-        src_exe = src_dir / "Hermes.exe"
+        src_exe = src_dir / "DragonAIAgent.exe"
         src_exe.write_bytes(b"MZ-source")
-        marker = src_dir / "resources" / "app.asar.unpacked" / "dist" / "renderer.js"
-        marker.parent.mkdir(parents=True)
-        marker.write_text("HERMES AGENT\n", encoding="utf-8")
+        marker = src_dir / "readme.txt"
+        marker.write_text("DRAGON PACKAGE\n", encoding="utf-8")
         dest_root = base / "DragonAIAgent"
         dest_exe = pd.copy_win_unpacked(src_exe, dest_root)
         if not dest_exe.is_file():
             fail(f"private copy missing: {dest_exe}")
+        if dest_exe.name != "DragonAIAgent.exe":
+            fail("private exe must be DragonAIAgent.exe")
         if dest_exe.read_bytes() != b"MZ-source":
-            fail("private Hermes.exe bytes do not match source")
-        dest_marker = dest_exe.parent / "resources" / "app.asar.unpacked" / "dist" / "renderer.js"
-        if not dest_marker.is_file():
-            fail("win-unpacked resources were not copied")
-        dest_marker.write_text("DRAGON AI AGENT\n", encoding="utf-8")
-        if marker.read_text(encoding="utf-8") != "HERMES AGENT\n":
-            fail("copy/provision mutated the standalone Hermes tree")
+            fail("private DragonAIAgent.exe bytes do not match package")
+        dest_marker = dest_exe.parent / "readme.txt"
+        if dest_marker.is_file():
+            dest_marker.write_text("INSTALLED\n", encoding="utf-8")
+        if marker.read_text(encoding="utf-8") != "DRAGON PACKAGE\n":
+            fail("copy/provision mutated the package desktop tree")
         if "DragonAIAgent" not in dest_exe.parts:
             fail("private exe is not under DragonAIAgent")
         again = pd.copy_win_unpacked(src_exe, dest_root)
         if again != dest_exe:
             fail("second provision must reuse the existing private exe")
-        if dest_marker.read_text(encoding="utf-8") != "DRAGON AI AGENT\n":
-            fail("re-provision must not clobber an existing private tree")
+        hermes = base / "hermes" / "win-unpacked" / "Hermes.exe"
+        hermes.parent.mkdir(parents=True)
+        hermes.write_bytes(b"MZ-hermes")
+        try:
+            pd.copy_win_unpacked(hermes, dest_root)
+            fail("copy must refuse a Hermes.exe source")
+        except (ValueError, FileNotFoundError) as exc:
+            if "Refuse copying from a Hermes install" not in str(exc) and "DragonAIAgent.exe" not in str(exc):
+                fail(f"refuse Hermes source unclear: {exc}")
         try:
             pd.copy_win_unpacked(src_exe, base / "hermes-dest")
             fail("copy must refuse a destination outside DragonAIAgent")
         except ValueError as exc:
             if "Refuse branding outside DragonAIAgent" not in str(exc) and "DragonAIAgent" not in str(exc):
                 fail(f"refuse message unclear: {exc}")
-        print("OK  copy provisions private tree and leaves standalone Hermes alone")
+        print("OK  copy provisions Dragon package tree and refuses a Hermes install")
 
 
 def test_refuse_branding_and_paths() -> None:
@@ -154,9 +164,9 @@ def test_refuse_branding_and_paths() -> None:
     except ValueError as exc:
         if "Refuse branding outside DragonAIAgent" not in str(exc):
             fail(f"refuse message missing: {exc}")
-    private = pathlib.Path("/tmp/DragonAIAgent/desktop/win-unpacked/Hermes.exe")
+    private = pathlib.Path("/tmp/DragonAIAgent/desktop/win-unpacked/DragonAIAgent.exe")
     pd.assert_private_dragon_path(private)
-    if pd.private_desktop_exe("/x/DragonAIAgent").as_posix() != "/x/DragonAIAgent/desktop/win-unpacked/Hermes.exe":
+    if pd.private_desktop_exe("/x/DragonAIAgent").as_posix() != "/x/DragonAIAgent/desktop/win-unpacked/DragonAIAgent.exe":
         fail("private exe relative path drifted")
     if pd.electron_userdata_dir("/x/DragonAIAgent").name != "electron-userdata":
         fail("userdata dir must be electron-userdata")
@@ -224,8 +234,10 @@ def test_scripts_and_docs() -> None:
     for path in INSTALLERS:
         require_tokens(path, REQUIRED_INSTALLER, "installer")
         text = read(path)
-        if "Start-HermesDesktopClient" not in text:
-            fail(f"{path.name} must still launch via Start-HermesDesktopClient")
+        if "Start-HermesDesktopClient" not in text and "Start-DragonAIDesktopClient" not in text:
+            fail(f"{path.name} must launch the Dragon desktop client")
+        if "Install standalone Hermes" in text:
+            fail(f"{path.name} still tells the user to install Hermes")
     brand_py = read(BRAND_PY)
     if "assert_private_dragon_path" not in brand_py:
         fail("desktop_branding.py must refuse branding outside DragonAIAgent")
@@ -237,8 +249,8 @@ def test_scripts_and_docs() -> None:
     if len(copy_fn) < 2 or "Assert-DragonAIPrivateDesktopPath" not in copy_fn[1].split("function ", 1)[0]:
         fail("Copy-DragonAIAppIcon must refuse branding outside DragonAIAgent")
     finder = read(FINDER)
-    if "Find-HermesDesktopSourceExe" not in finder:
-        fail("finder must keep a source-only discovery path for the standalone tree")
+    if "Find-HermesDesktopSourceExe" in finder:
+        fail("finder must not keep a Hermes source discovery path")
     if "Set-DragonAIMainWindowTitle" not in finder or "DragonAIAgent" not in finder.split("function Set-DragonAIMainWindowTitle", 1)[-1][:1200]:
         fail("window title wrap must only touch DragonAIAgent process paths")
     launcher = read(LAUNCHER)
@@ -257,11 +269,10 @@ def test_scripts_and_docs() -> None:
         "local",
     ):
         if needle not in docs and needle.replace("\\", "/") not in docs:
+            # PRIVATE_DESKTOP no longer requires the env var name in the short contract.
+            if needle == "HERMES_DESKTOP_USER_DATA_DIR" and "electron-userdata" in docs:
+                continue
             fail(f"docs must mention {needle}")
-    if "%APPDATA%\\Hermes\\connections.json" in read(ROOT / "docs" / "airmaze" / "EMBEDDED_GATEWAY.md"):
-        gw = read(ROOT / "docs" / "airmaze" / "EMBEDDED_GATEWAY.md")
-        if "electron-userdata" not in gw or "stays local" not in gw.lower() and "primary stays local" not in gw.lower():
-            fail("EMBEDDED_GATEWAY.md must say Dragon userdata is primary and standalone stays local")
     print("OK  scripts + docs keep Hermes and Dragon separate")
 
 

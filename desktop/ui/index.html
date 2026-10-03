@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dragon AI Agent</title>
+  <link rel="stylesheet" href="./app.css">
+  <link rel="icon" type="image/svg+xml" href="./dragon-ai-agent-logo.svg">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to chat</a>
+  <header class="lockup" data-dragon-ai-header>
+    <img src="./dragon-ai-agent-logo.svg" alt="" width="56" height="56" class="mark">
+    <div>
+      <h1>Dragon AI Agent</h1>
+      <p class="status" id="status">Starting gateway...</p>
+    </div>
+    <nav class="tabs" aria-label="Dragon AI Agent">
+      <button type="button" class="tab is-on" data-tab="chat" aria-pressed="true">Chat</button>
+      <button type="button" class="tab" data-tab="models" aria-pressed="false">Models</button>
+      <button type="button" class="tab" data-tab="teams" aria-pressed="false">Teams Marketplace</button>
+    </nav>
+  </header>
+  <main id="main">
+    <section id="panel-chat" class="panel is-on" data-chat-surface>
+      <div id="thread" class="thread" aria-live="polite"></div>
+      <form id="composer" class="composer">
+        <label class="sr" for="prompt">Give Dragon AI a task</label>
+        <textarea id="prompt" name="prompt" rows="1" placeholder="Give Dragon AI a task"></textarea>
+        <button type="submit" class="primary">Send</button>
+      </form>
+    </section>
+    <section id="panel-models" class="panel" hidden>
+      <h2>Models</h2>
+      <p class="lede">First-run chat and image defaults. Change these here; they are written to the local gateway. This screen does not ask for a new API key.</p>
+      <form id="models-form" class="card">
+        <label>Default chat LLM
+          <select id="chat-model">
+            <option value="grok-4.6" selected>Grok (xAI) grok-4.6</option>
+            <option value="grok-4.5">Grok (xAI) grok-4.5</option>
+            <option value="grok-4.3">Grok (xAI) grok-4.3</option>
+          </select>
+        </label>
+        <label>Default image LLM
+          <select id="image-model">
+            <option value="grok-imagine-image" selected>Grok Imagine</option>
+            <option value="grok-imagine-image-quality">Grok Imagine Quality</option>
+            <option value="grok-imagine-image-2.0">Grok Imagine 2.0</option>
+          </select>
+        </label>
+        <p id="models-note" class="note"></p>
+        <button type="submit" class="primary">Save models</button>
+      </form>
+    </section>
+    <section id="panel-teams" class="panel" hidden>
+      <h2>Teams Marketplace</h2>
+      <p class="lede">Install a department pack. Personal Assistant is already on this machine.</p>
+      <div id="teams" class="teams"></div>
+    </section>
+  </main>
+  <script src="./app.js"></script>
+</body>
+</html>

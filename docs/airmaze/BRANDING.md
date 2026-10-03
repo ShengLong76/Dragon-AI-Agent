@@ -31,7 +31,7 @@ Internal protocol, image, and path names stay Hermes/AirMaze where changing them
 
 ## In-app overlay (no Electron rebuild)
 
-The shipped client is still upstream `Hermes.exe`, but Dragon AI runs a **private copy** at `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked\Hermes.exe` with `HERMES_DESKTOP_USER_DATA_DIR=%LOCALAPPDATA%\DragonAIAgent\electron-userdata`. This package does **not** contain `apps/desktop` source and does not rebuild it. The standalone Hermes tree is a read-only source. Branding is **refused** outside `DragonAIAgent`. See `docs/airmaze/PRIVATE_DESKTOP.md`.
+The shipped client is **DragonAIAgent.exe** at `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked\DragonAIAgent.exe` with `HERMES_DESKTOP_USER_DATA_DIR=%LOCALAPPDATA%\DragonAIAgent\electron-userdata`. Setup copies that exe from the Dragon package. It does not search a Hermes install. Optional Electron overlay branding is **refused** outside `DragonAIAgent`. See `docs/airmaze/PRIVATE_DESKTOP.md`.
 
 Upstream `electron-builder` packs most of the app into `resources/app.asar` (integrity-protected — do not rewrite that archive) and **unpacks `dist/**`** to `resources/app.asar.unpacked/dist`. The empty-state wordmark, composer placeholders, and settings strings live in that unpacked renderer.
 

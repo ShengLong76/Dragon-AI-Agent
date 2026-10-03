@@ -5,17 +5,17 @@
 
 .DESCRIPTION
   This is the Desktop / Start Menu "Dragon AI Agent" entrypoint.
-  It checks whether Docker is running and starts Docker Desktop in the
-  system tray when it is not (no Containers dashboard). Then it brings the
-  gateway up, wires Desktop Remote, and launches the Dragon AI Agent desktop
-  (on-disk Hermes.exe) so Hermes's own loading is the wait UX. It still
+  It checks whether Docker is running and starts the engine invisibly when
+  it is not (no dashboard, no onboarding, no tray icon). Then it brings the
+  gateway up, wires Desktop Remote, and launches the packaged Dragon AI Agent
+  desktop (DragonAIAgent.exe). It still
   waits until :8642 / :8650 are reachable and fail-closes if they are not.
   Failures (engine still down after a wait, compose errors, missing client)
   show a MessageBox / popup and exit non-zero. -StartDocker is kept as an alias.
 
   The installed Desktop / Start Menu shortcut runs Start-DragonAI.vbs (wscript)
   so no PowerShell console flashes. A normal start does not show the WinForms
-  "Waiting for gateway…" Setup/Close status window — Hermes desktop is the
+  "Waiting for gateway..." Setup/Close status window - Dragon AI Agent is the
   loading UX. Status goes to launch.log. Use this .ps1 directly for debugging
   (-DebugConsole keeps the console). Use -GatewayOnly for CLI-only compose.
   Use -OpenDashboard to open :9119 (never opened on a normal start).
@@ -23,7 +23,7 @@
 
 .NOTES
   Fixes PATH for Docker Desktop CLI under common install locations.
-  Does not open the Docker Desktop dashboard (tray-only is intentional).
+  Does not open the Docker Desktop dashboard, onboarding, or tray icon.
 #>
 
 [CmdletBinding()]
@@ -47,7 +47,7 @@ $DashboardUrl = "http://127.0.0.1:9119/"
 $ApiHost = "127.0.0.1"
 $ApiPort = 8642
 $DashPort = 9119
-# Desktop Remote token/WS — NOT the OpenAI API on 8642 (that surface has no /api/ws).
+# Desktop Remote token/WS - NOT the OpenAI API on 8642 (that surface has no /api/ws).
 $DesktopServeUrl = "http://127.0.0.1:8650"
 $DesktopServePort = 8650
 $DesktopSessionToken = "dragon-local"
@@ -139,7 +139,7 @@ function Show-DragonDialog {
         $sh.Popup($Message, 0, $Title, $iconCode) | Out-Null
         return
     } catch {}
-    # Installed shortcut is windowless — never block on a hidden console.
+    # Installed shortcut is windowless - never block on a hidden console.
     if ($script:Windowless) { return }
     Write-Host ""
     Write-Host $Message
@@ -366,7 +366,7 @@ function Repair-DragonAIProductShortcuts {
             $sc.TargetPath = $wscript
             $sc.Arguments = $startArgs
             $sc.WorkingDirectory = $InstallRoot
-            $sc.Description = "Dragon AI Agent — start the gateway and open the app"
+            $sc.Description = "Dragon AI Agent - start the gateway and open the app"
             $sc.WindowStyle = 1
             if (Test-Path -LiteralPath $ico) { $sc.IconLocation = "$ico,0" }
             $sc.Save()
@@ -381,7 +381,7 @@ function Repair-DragonAIProductShortcuts {
 
 function Invoke-NativeDocker {
     <#
-      UltraDragon: Docker CLI writes progress ("Container … Running") to stderr.
+      UltraDragon: Docker CLI writes progress ("Container ... Running") to stderr.
       With $ErrorActionPreference=Stop, 2>&1 turns those ErrorRecords into a
       terminating error and a healthy launch exits 1. Same workaround as the
       machine-only patch: Continue around the native call, stringify stderr.
@@ -461,7 +461,7 @@ function Test-TcpOpen {
     }
 }
 
-function Set-DockerTrayOnlySettings {
+function Set-DockerHeadlessSettings {
     $dir = Join-Path $env:APPDATA "Docker"
     try {
         if (-not (Test-Path -LiteralPath $dir)) {
@@ -471,14 +471,36 @@ function Set-DockerTrayOnlySettings {
         Write-LaunchLog "Could not create Docker settings dir: $($_.Exception.Message)" "WARN"
         return
     }
-    $patch = @{
+    # PowerShell hashtables are case-insensitive. camelCase only here.
+    $legacy = @{
         openUIOnStartupDisabled = $true
         startMinimized          = $true
         minimizeToTray          = $true
         displayedOnboarding     = $true
+        displayedTutorial       = $true
+        analyticsEnabled        = $false
+        disableTips             = $true
+        licenseTermsVersion     = 2
+        disableTrayIcon         = $true
+        enableDockerAI          = $false
     }
-    foreach ($name in @("settings.json", "settings-store.json")) {
-        $file = Join-Path $dir $name
+    $store = @{
+        OpenUIOnStartupDisabled = $true
+        DisplayedOnboarding     = $true
+        DisplayedTutorial       = $true
+        AnalyticsEnabled        = $false
+        DisableTips             = $true
+        LicenseTermsVersion     = 2
+        DisableTrayIcon         = $true
+        EnableDockerAI          = $false
+    }
+    $targets = @(
+        @{ Name = "settings.json"; Patch = $legacy },
+        @{ Name = "settings-store.json"; Patch = $store }
+    )
+    foreach ($target in $targets) {
+        $file = Join-Path $dir $target.Name
+        $patch = $target.Patch
         try {
             $obj = $null
             if (Test-Path -LiteralPath $file) {
@@ -492,42 +514,138 @@ function Set-DockerTrayOnlySettings {
                 $obj | Add-Member -MemberType NoteProperty -Name $k -Value $patch[$k] -Force
             }
             Set-Content -LiteralPath $file -Value ($obj | ConvertTo-Json -Depth 20) -Encoding UTF8
-            Write-LaunchLog "Patched Docker tray-only settings: $file"
+            Write-LaunchLog "Patched Docker headless settings: $file"
         } catch {
             Write-LaunchLog "Could not patch $file : $($_.Exception.Message)" "WARN"
         }
     }
 }
 
+function Set-DockerTrayOnlySettings {
+    Set-DockerHeadlessSettings
+}
+
+function Get-DockerBackendExe {
+    $dirs = @()
+    $desktop = Get-DockerDesktopExe
+    if ($desktop) {
+        $dirs += (Join-Path (Split-Path -Parent $desktop) "resources")
+    }
+    $dirs += @(
+        (Join-Path $env:ProgramFiles "Docker\Docker\resources"),
+        (Join-Path ${env:ProgramFiles(x86)} "Docker\Docker\resources"),
+        (Join-Path $env:LOCALAPPDATA "Programs\DockerDesktop\resources"),
+        (Join-Path $env:LOCALAPPDATA "Docker\resources")
+    )
+    foreach ($d in $dirs) {
+        if (-not $d) { continue }
+        $p = Join-Path $d "com.docker.backend.exe"
+        if (Test-Path -LiteralPath $p) { return $p }
+    }
+    return $null
+}
+
+function Start-HiddenNativeProcess {
+    param([string]$FilePath, [string]$Arguments = "")
+    if (-not $FilePath -or -not (Test-Path -LiteralPath $FilePath)) { return }
+    try {
+        $si = New-Object System.Diagnostics.ProcessStartInfo
+        $si.FileName = $FilePath
+        if (-not [string]::IsNullOrWhiteSpace($Arguments)) { $si.Arguments = $Arguments }
+        $si.UseShellExecute = $false
+        $si.CreateNoWindow = $true
+        $si.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
+        [void][System.Diagnostics.Process]::Start($si)
+        return
+    } catch {}
+    try {
+        Start-Process -FilePath $FilePath -WindowStyle Hidden -ErrorAction Stop
+    } catch {
+        try {
+            Start-Process -FilePath $FilePath -WindowStyle Minimized -ErrorAction Stop
+        } catch {
+            Start-Process -FilePath $FilePath -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+function Hide-DockerDesktopUi {
+    try {
+        if (-not ("DragonAIDockerUi" -as [type])) {
+            Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class DragonAIDockerUi {
+    [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+}
+"@
+        }
+    } catch {}
+    $uiNames = @("Docker Desktop", "DockerDesktop")
+    foreach ($p in Get-Process -ErrorAction SilentlyContinue) {
+        if ($uiNames -notcontains $p.ProcessName) { continue }
+        try {
+            if ($p.MainWindowHandle -ne [IntPtr]::Zero) {
+                [DragonAIDockerUi]::ShowWindow($p.MainWindowHandle, 0) | Out-Null
+            }
+        } catch {}
+    }
+}
+
+function Stop-DockerDesktopTrayIfEngineUp {
+    if (-not (Test-DockerEngine)) { return }
+    $svc = Get-Service -Name "com.docker.service" -ErrorAction SilentlyContinue
+    if (-not $svc -or $svc.Status -ne "Running") { return }
+    foreach ($p in Get-Process -Name "Docker Desktop","DockerDesktop" -ErrorAction SilentlyContinue) {
+        try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch {}
+    }
+    Start-Sleep -Milliseconds 400
+}
+
 function Start-DockerIfNeeded {
     Fix-DockerPath
     if (Get-Command docker -ErrorAction SilentlyContinue) {
-        if (Test-DockerEngine) { return $true }
+        if (Test-DockerEngine) {
+            Hide-DockerDesktopUi
+            Stop-DockerDesktopTrayIfEngineUp
+            return $true
+        }
     }
     $exe = Get-DockerDesktopExe
     if (-not $exe) {
         return $false
     }
-    Set-DockerTrayOnlySettings
-    Update-LaunchStatus "Starting Docker Desktop (system tray). This can take a minute..."
-    try {
-        Start-Process -FilePath $exe -WindowStyle Hidden -ErrorAction Stop
-    } catch {
+    Set-DockerHeadlessSettings
+    $env:DOCKER_DESKTOP_DISABLE_LOGIN = "1"
+    Write-LaunchLog "Starting background engine (invisible; no dashboard, no tray, no onboarding)."
+    $svc = Get-Service -Name "com.docker.service" -ErrorAction SilentlyContinue
+    if ($svc -and $svc.Status -ne "Running") {
         try {
-            Start-Process -FilePath $exe -WindowStyle Minimized -ErrorAction Stop
+            Start-Service -Name "com.docker.service" -ErrorAction SilentlyContinue
         } catch {
-            Start-Process -FilePath $exe -ErrorAction SilentlyContinue
+            Start-Process -FilePath "net" -ArgumentList "start","com.docker.service" -Verb RunAs -WindowStyle Hidden -Wait -ErrorAction SilentlyContinue
         }
+    }
+    $backend = Get-DockerBackendExe
+    if ($backend) {
+        Start-HiddenNativeProcess -FilePath $backend
+    }
+    if (-not (Test-DockerEngine)) {
+        Start-HiddenNativeProcess -FilePath $exe
     }
     $deadline = (Get-Date).AddMinutes(3)
     while ((Get-Date) -lt $deadline) {
+        Hide-DockerDesktopUi
         Fix-DockerPath
         if ((Get-Command docker -ErrorAction SilentlyContinue) -and (Test-DockerEngine)) {
+            Hide-DockerDesktopUi
+            Stop-DockerDesktopTrayIfEngineUp
             return $true
         }
         Start-Sleep -Seconds 4
         if ($script:LaunchForm) { [Windows.Forms.Application]::DoEvents() }
     }
+    Hide-DockerDesktopUi
     return ((Get-Command docker -ErrorAction SilentlyContinue) -and (Test-DockerEngine))
 }
 
@@ -548,7 +666,7 @@ function Invoke-DockerCompose {
             throw "docker compose $($ComposeArgs -join ' ') failed (exit $($r.ExitCode)). $($r.Output)"
         }
         if (Test-DockerCliFailureText $r.Output) {
-            throw "Docker engine is not running (compose printed a connect/pipe error but did not fail closed). Start Docker Desktop from the tray and try again. $($r.Output)"
+            throw "Dragon AI Agent could not reach its background engine (compose printed a connect/pipe error but did not fail closed). Open the app again in a minute. $($r.Output)"
         }
         return $r.Output
     } finally {
@@ -572,7 +690,7 @@ function Start-GatewayContainer {
     }
 
     if (-not (Test-DockerEngine)) {
-        throw "Docker engine is not running (docker info failed). Start Docker Desktop from the system tray, wait until it is ready, then open Dragon AI Agent again."
+        throw "Dragon AI Agent could not start its background engine. Open the app again in a minute."
     }
 
     Push-Location $InstallRoot
@@ -742,7 +860,7 @@ function Open-Dashboard {
 }
 
 function Start-AgentDesktopOrThrow {
-    if (-not (Get-Command Find-HermesDesktopExe -ErrorAction SilentlyContinue)) {
+    if (-not (Get-Command Find-HermesDesktopExe -ErrorAction SilentlyContinue) -and -not (Get-Command Find-DragonDesktopExe -ErrorAction SilentlyContinue)) {
         throw "Find-HermesDesktop.ps1 was not loaded. Re-run DragonAIAgentSetup so scripts\airmaze\Find-HermesDesktop.ps1 is installed."
     }
     if (Get-Command Set-DragonAIDesktopUserDataEnv -ErrorAction SilentlyContinue) {
@@ -752,37 +870,41 @@ function Start-AgentDesktopOrThrow {
     if (Get-Command Install-DragonAIPrivateDesktop -ErrorAction SilentlyContinue) {
         $exe = Install-DragonAIPrivateDesktop -InstallRoot $InstallRoot
     }
-    if (-not $exe) {
+    if (-not $exe -and (Get-Command Find-DragonDesktopExe -ErrorAction SilentlyContinue)) {
+        $exe = Find-DragonDesktopExe -InstallRoot $InstallRoot
+    }
+    if (-not $exe -and (Get-Command Find-HermesDesktopExe -ErrorAction SilentlyContinue)) {
         $exe = Find-HermesDesktopExe -InstallRoot $InstallRoot
     }
-    $hint = Join-Path $InstallRoot "desktop\win-unpacked\Hermes.exe"
-    $sourceHint = Join-Path $env:LOCALAPPDATA "hermes\hermes-agent\apps\desktop\release\win-unpacked\Hermes.exe"
+    $hint = Join-Path $InstallRoot "desktop\win-unpacked\DragonAIAgent.exe"
+    if ($exe -and (Get-Command Test-DragonAIHermesInstallPath -ErrorAction SilentlyContinue)) {
+        if (Test-DragonAIHermesInstallPath -Path $exe) { $exe = $null }
+    }
     if (-not $exe -or -not (Test-Path -LiteralPath $exe)) {
         throw @"
-Dragon AI Agent desktop was not found, so there is no app window to show.
+Dragon AI Agent desktop was not found in this package, so there is no app window to show.
 
-Expected private client:
+Expected:
   $hint
 
-Source (copied, never branded):
-  $sourceHint
-
-Install standalone Hermes (win-unpacked), then open Dragon AI Agent again so it can copy that tree into DragonAIAgent.
-A branded shortcut is written to %LOCALAPPDATA%\DragonAIAgent\Dragon AI Agent Client.lnk once the private copy exists.
+Re-download Dragon-AI-Agent-v0.1.0-windows.zip and run DragonAIAgentSetup.exe.
 "@
     }
     if (Get-Command Test-DragonAIPrivateDesktopPath -ErrorAction SilentlyContinue) {
         if (-not (Test-DragonAIPrivateDesktopPath -Path $exe)) {
-            throw "Refuse launch outside DragonAIAgent (standalone Hermes tree is not mutated): $exe"
+            throw "Refuse launch outside DragonAIAgent: $exe"
         }
     }
-    Write-LaunchLog "Launching private Dragon AI Agent desktop: $exe (HERMES_DESKTOP_USER_DATA_DIR=$($env:HERMES_DESKTOP_USER_DATA_DIR))"
+    Write-LaunchLog "Launching Dragon AI Agent desktop: $exe"
     Save-DragonAIDesktopPointer -ExePath $exe -InstallRoot $InstallRoot | Out-Null
     # Belt-and-suspenders: some Desktop builds honor these on first boot.
     $env:HERMES_DESKTOP_REMOTE_URL = $script:DesktopServeUrl
     $env:HERMES_DESKTOP_REMOTE_TOKEN = $script:DesktopSessionToken
-    # Start-HermesDesktopClient brands only the private copy, then opens it.
-    Start-HermesDesktopClient -ExePath $exe -InstallRoot $InstallRoot
+    if (Get-Command Start-DragonAIDesktopClient -ErrorAction SilentlyContinue) {
+        Start-DragonAIDesktopClient -ExePath $exe -InstallRoot $InstallRoot
+    } else {
+        Start-HermesDesktopClient -ExePath $exe -InstallRoot $InstallRoot
+    }
     return $exe
 }
 
@@ -908,16 +1030,16 @@ function Get-LaunchPlan {
         ui            = @(
             "windowless host: Start-DragonAI.vbs / wscript.exe (no console)",
             "blocking error dialog on failure (never a raw console)",
-            "require private desktop client (%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked\Hermes.exe)",
+            "require packaged Dragon AI Agent desktop (%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked\DragonAIAgent.exe)",
             "set HERMES_DESKTOP_USER_DATA_DIR to %LOCALAPPDATA%\DragonAIAgent\electron-userdata",
             "overlay unpacked Electron UI chrome on the private Dragon copy only (refuse branding outside DragonAIAgent)",
             "standalone Hermes connections.json primary stays local",
             "launch Dragon AI Agent desktop only (not $DashboardUrl)",
-            "start Docker Desktop in the tray when docker info fails (already running is a no-op)",
+            "start the background engine invisibly when docker info fails (already running is a no-op; no dashboard, no onboarding, no tray icon)",
             "first-run uses in-app Models UI (WinForms Onboard-Wizard not launched)",
-            "do not show Waiting for gateway Setup/Close status window (Hermes desktop is the loading UX)",
+            "do not show Waiting for gateway Setup/Close status window (Dragon AI Agent is the loading UX)",
             "docker CLI stderr progress is not a terminating error",
-            "Desktop Remote → $($script:DesktopServeUrl) (token mode; not :8642)",
+            "Desktop Remote -> $($script:DesktopServeUrl) (token mode; not :8642)",
             "wait for /api/health on the Desktop serve proxy with X-Hermes-Session-Token"
         )
     }
@@ -949,6 +1071,9 @@ function Invoke-Smoke {
         "StartDocker",
         "Start-DockerIfNeeded",
         "Set-DockerTrayOnlySettings",
+        "Set-DockerHeadlessSettings",
+        "Hide-DockerDesktopUi",
+        "disableTrayIcon",
         "openUIOnStartupDisabled",
         "DebugConsole",
         "New-LaunchStatusForm",
@@ -963,6 +1088,8 @@ function Invoke-Smoke {
         "8650",
         "Apply-DragonAIDesktopUiBranding",
         "Install-DragonAIPrivateDesktop",
+        "DragonAIAgent.exe",
+        "Find-DragonDesktopExe",
         "HERMES_DESKTOP_USER_DATA_DIR",
         "electron-userdata",
         "Exclude-DragonAIHermesBots",
@@ -1010,7 +1137,7 @@ try {
     Repair-DragonAIProductShortcuts
     if ($showUi) {
         # James: do not pop the Waiting for gateway / Setup / Close monitor.
-        # Hermes desktop is the default loading experience. New-LaunchStatusForm
+        # Dragon AI Agent desktop is the default loading experience. New-LaunchStatusForm
         # stays in-tree for branding tests / optional debug, but is not shown
         # on a normal Desktop / Start Menu launch. Progress is launch.log only.
         if ($script:Windowless) { Hide-ConsoleWindow }
@@ -1021,13 +1148,13 @@ try {
         throw "Dragon AI Agent is not installed (missing $compose). Unzip the package and run DragonAIAgentSetup.exe first."
     }
 
-    Update-LaunchStatus "Checking Docker..."
+    Update-LaunchStatus "Starting background engine..."
     Fix-DockerPath
     if ($StartDocker) {
-        Write-LaunchLog "StartDocker is the default launch path; starting Docker in the tray if needed"
+        Write-LaunchLog "StartDocker is the default launch path; starting the background engine invisibly if needed"
     }
     if (-not (Start-DockerIfNeeded)) {
-        throw "Docker Desktop did not become ready. Start it from the system tray, wait until it is ready, then open Dragon AI Agent again."
+        throw "Dragon AI Agent could not start its background engine. Open the app again in a minute."
     }
 
     Start-GatewayContainer -ComposePath $compose
@@ -1041,7 +1168,7 @@ try {
 
     if ($showUi) {
         Start-OnboardingIfNeeded
-        # Open Hermes first so its default splash/loading is what James sees
+        # Open Dragon AI Agent first so its window is the loading UX
         # while :8642 / :8650 become reachable. Do not insert a Dragon status form.
         $exe = Start-AgentDesktopOrThrow
     }
@@ -1049,7 +1176,7 @@ try {
     Update-LaunchStatus "Waiting for gateway API on ${ApiHost}:${ApiPort} and Desktop serve on ${ApiHost}:${DesktopServePort}..."
     $ready = Wait-GatewayReady -TimeoutSec 120 -RequireDesktopServe
     if (-not $ready.Ok) {
-        throw "The embedded gateway API is not reachable from Windows at http://${ApiHost}:${ApiPort}/ (container may be loopback-bound or crash-looping). Check Docker tray, docker logs hermes-airmaze-gw, and %LOCALAPPDATA%\DragonAIAgent\launch.log."
+        throw "The embedded gateway API is not reachable from Windows at http://${ApiHost}:${ApiPort}/ (container may be loopback-bound or crash-looping). See %LOCALAPPDATA%\DragonAIAgent\launch.log and docker logs hermes-airmaze-gw."
     }
     if (-not $ready.DesktopServe) {
         throw "The Desktop Bot Screen backend is not reachable at $($script:DesktopServeUrl)/api/health (expected X-Hermes-Session-Token + /api/ws). Check: docker logs hermes-airmaze-desktop && docker logs hermes-airmaze-desktop-proxy. Do not point Remote at :8642 (OpenAI API only)."

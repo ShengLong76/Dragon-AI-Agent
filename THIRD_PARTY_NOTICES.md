@@ -1,6 +1,6 @@
 # Third-party notices
 
-Dragon AI Agent is a packaging/distribution product. Runtime pulls an upstream Docker image and may interact with a separately installed agent desktop client.
+Dragon AI Agent is a packaging/distribution product. Runtime pulls an upstream Docker image. The Windows desktop is first-party `DragonAIAgent.exe` shipped in this package. Hermes remains a separate product this installer does not touch.
 
 ## Upstream agent image (technical)
 
@@ -107,3 +107,13 @@ Trading Team **Market Researcher** ships Hermes instructions adapted from Anthro
 | License | Apache License 2.0 © Anthropic |
 | Adapted path | `bot-groups/trading-team/bots/market-researcher/skills/` |
 | Design | `docs/airmaze/FINANCIAL-SERVICES.md` |
+
+## DragonAIAgent.exe (Windows desktop host)
+
+The product window is a first-party Go host under `desktop/`. On Windows it uses WebView2 (Edge runtime already on the machine) with an Edge `--app` fallback.
+
+| Item | Value |
+|------|--------|
+| Binding | https://github.com/jchv/go-webview2 |
+| Loader | https://github.com/jchv/go-winloader |
+

@@ -5,7 +5,7 @@
 
 .DESCRIPTION
   Dot-source this script. Secrets are ProtectedData (CurrentUser) binary files under
-  %LOCALAPPDATA%\DragonAIAgent\onboarding\secrets\ — never written into JSON.
+  %LOCALAPPDATA%\DragonAIAgent\onboarding\secrets\ - never written into JSON.
 
 .NOTES
   Progress:  %LOCALAPPDATA%\DragonAIAgent\onboarding\progress.json
@@ -320,7 +320,7 @@ function Initialize-DragonAIBotsNeedsSetup {
         updatedAt = (Get-Date).ToString("o")
         bots      = $botsMap
         reason    = if ($state -eq "ready") {
-            "Personal Assistant bot group — no critical connectors required."
+            "Personal Assistant bot group - no critical connectors required."
         } else {
             "Bot group applied; finish required connectors in the app (in-app Models UI). WinForms Setup shortcut retired."
         }

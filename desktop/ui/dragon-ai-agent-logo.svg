@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Dragon AI Agent">
+  <polygon fill="#132847" points="46,128 78,148 58,188 28,152"/>
+  <polygon fill="#314A73" points="58,188 92,228 128,214 96,176 78,148"/>
+  <polygon fill="#33547F" points="92,228 118,248 148,220 128,214"/>
+  <polygon fill="#314A73" points="148,220 196,176 178,148 128,214"/>
+  <polygon fill="#132847" points="196,176 228,140 200,120 178,148"/>
+  <polygon fill="#33547F" points="78,8 108,78 72,76"/>
+  <polygon fill="#33547F" points="178,8 184,76 148,78"/>
+  <polygon fill="#314A73" points="88,80 128,52 168,80 184,118 164,152 92,152 72,118"/>
+  <polygon fill="#33547F" points="108,78 128,52 148,78 140,108 116,108"/>
+  <polygon fill="#132847" points="92,152 164,152 148,176 108,176"/>
+  <polygon fill="#33547F" points="112,148 128,178 144,148"/>
+  <polygon fill="#C41E3A" points="104,100 116,108 106,116 94,108"/>
+  <polygon fill="#C41E3A" points="152,100 162,108 150,116 140,108"/>
+</svg>

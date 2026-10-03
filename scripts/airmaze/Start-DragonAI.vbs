@@ -1,8 +1,8 @@
-' Dragon AI Agent — windowless launch host.
+' Dragon AI Agent - windowless launch host.
 ' Shortcut target must be wscript.exe (not cscript, not powershell.exe).
 ' Starts start-embedded.ps1 with a hidden console; that script provisions and
-' launches the private client at DragonAIAgent\desktop\win-unpacked (never the
-' standalone Hermes tree). Errors are MessageBox / WinForms.
+' launches the packaged Dragon AI Agent desktop at
+' DragonAIAgent\desktop\win-unpacked\DragonAIAgent.exe. Errors are MessageBox / WinForms.
 ' Also rewrites Desktop / Start Menu product shortcuts so an old powershell.exe
 ' .lnk cannot flash a console on the next open.
 
@@ -36,7 +36,7 @@ End If
 RepairProductShortcuts
 
 ' 0 = hide the host window from process create (avoids the powershell.exe flash).
-' -SilentHost skips the 9119 dashboard. start-embedded.ps1 starts Docker in the tray if needed.
+' -SilentHost skips the 9119 dashboard. start-embedded.ps1 starts the background engine invisibly if needed.
 cmd = """" & psExe & """ -STA -NoProfile -NoLogo -NonInteractive -WindowStyle Hidden" & _
       " -ExecutionPolicy Bypass -File """ & ps1 & """ -InstallRoot """ & installRoot & """ -SilentHost"
 sh.Run cmd, 0, False
@@ -76,7 +76,7 @@ Sub RepairProductShortcuts()
         sc.TargetPath = wscriptExe
         sc.Arguments = args
         sc.WorkingDirectory = installRoot
-        sc.Description = "Dragon AI Agent — start the gateway and open the app"
+        sc.Description = "Dragon AI Agent - start the gateway and open the app"
         sc.WindowStyle = 1
         If fso2.FileExists(ico) Then sc.IconLocation = ico & ",0"
         sc.Save
