@@ -1,8 +1,8 @@
 ' Dragon AI Agent - windowless launch host.
 ' Shortcut target must be wscript.exe (not cscript, not powershell.exe).
 ' Starts start-embedded.ps1 with a hidden console; that script provisions and
-' launches the private client at DragonAIAgent\desktop\win-unpacked (never the
-' standalone Hermes tree). Errors are MessageBox / WinForms.
+' launches the packaged Dragon AI Agent desktop at
+' DragonAIAgent\desktop\win-unpacked\DragonAIAgent.exe. Errors are MessageBox / WinForms.
 ' Also rewrites Desktop / Start Menu product shortcuts so an old powershell.exe
 ' .lnk cannot flash a console on the next open.
 

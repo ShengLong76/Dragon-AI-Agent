@@ -664,7 +664,7 @@ def test_packaging_not_regressed() -> None:
             fail(f"compose lost Bot Screen token {token}")
     launcher = read(LAUNCHER)
     if "Apply-DragonAIDesktopUiBranding" not in launcher and "Apply-DesktopBranding" not in launcher:
-        fail("launcher/finder must apply the UI overlay before opening Hermes.exe")
+        fail("launcher/finder must apply the UI overlay before opening the Dragon desktop")
     finder = read(FINDER)
     if "Apply-DragonAIDesktopUiBranding" not in finder:
         fail("Find-HermesDesktop.ps1 must call Apply-DragonAIDesktopUiBranding")

@@ -39,6 +39,7 @@ Dragon-AI-Agent-v0.1.0-windows/
     docker-compose.embedded.yml
     README.md
     vendor/docker/Docker Desktop Installer.exe   (staged; see below)
+    desktop/win-unpacked/DragonAIAgent.exe
     bot-groups/...
     scripts/airmaze/...
     templates/profiles/personal-assistant/...
@@ -76,12 +77,17 @@ Setting keys include `openUIOnStartupDisabled` = true, `displayedOnboarding` = t
 
 ## Launch UI
 
-The **Dragon AI Agent** shortcut targets `wscript.exe` + `scripts/airmaze/Start-DragonAI.vbs` (no console flash). The VBS sets `HERMES_DESKTOP_USER_DATA_DIR` to `%LOCALAPPDATA%\DragonAIAgent\electron-userdata` and `start-embedded.ps1` copies/provisions a private client at `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked`. That host starts the Docker engine **invisibly** when `docker info` fails (already running is a no-op; no tray icon), starts the gateway **and** Desktop serve proxy, wires Remote `connections.json` in Dragon userdata (standalone Hermes primary stays local), launches the **private** desktop client (Hermes default loading — no Waiting for gateway / Setup / Close status window), and waits for host HTTP on `127.0.0.1:8642` and `127.0.0.1:8650/api/health`. It does **not** open `:9119` or the Docker dashboard. Branding is refused outside `DragonAIAgent`. Missing Docker after a wait, or a missing client, is a MessageBox. `start-embedded.ps1` remains for debug. See `docs/airmaze/PRIVATE_DESKTOP.md`, `docs/airmaze/BRANDING.md` and `docs/airmaze/DOCKER_LAUNCH.md`. Verify with `python3 scripts/airmaze/Test-LaunchSmoke.py` (no secrets).
+The **Dragon AI Agent** shortcut targets `wscript.exe` + `scripts/airmaze/Start-DragonAI.vbs` (no console flash). The VBS sets user data to `%LOCALAPPDATA%\DragonAIAgent\electron-userdata` and `start-embedded.ps1` launches packaged `DragonAIAgent.exe` at `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked`. Setup copies that exe from the Dragon package. It does not search for a Hermes install. That host starts the Docker engine **invisibly** when `docker info` fails (already running is a no-op; no tray icon), starts the gateway **and** Desktop serve proxy, wires Remote `connections.json` in Dragon userdata (standalone Hermes primary stays local), launches **Dragon AI Agent**, and waits for host HTTP on `127.0.0.1:8642` and `127.0.0.1:8650/api/health`. It does **not** open `:9119` or the Docker dashboard. Branding is refused outside `DragonAIAgent`. Missing Docker after a wait, or a missing package desktop, is a MessageBox. `start-embedded.ps1` remains for debug. See `docs/airmaze/PRIVATE_DESKTOP.md`, `docs/airmaze/BRANDING.md` and `docs/airmaze/DOCKER_LAUNCH.md`. Verify with `python3 scripts/airmaze/Test-DragonDesktop.py` and `python3 scripts/airmaze/Test-LaunchSmoke.py` (no secrets).
+
+```bash
+cd desktop
+GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-H windowsgui -s -w" -o win-unpacked/DragonAIAgent.exe .
+```
 
 Gateway compose wraps the official image entrypoint with `scripts/airmaze/start-gateway.sh` so a dirty root-owned `/opt/data/logs/agent.log` (or a fresh `compose up`) does not leave `hermes-airmaze-gw` unhealthy. The wrapper heals `logs/` + `backups/` then exec's the image dispatcher (`/init` stays in the chain). Offline: `sh scripts/airmaze/start-gateway.sh --self-test`. UltraDragon dirty-log steps: `docs/airmaze/EMBEDDED_GATEWAY.md`.
 
 ## Limitations
 
 - Quiet Docker/WSL install may still need reboot or UAC/UI clicks. Setup still owns the Docker installer; a reboot is a continuation, not a hand-off to docker.com.
-- Agent desktop client is not bundled. Install/start copy standalone `win-unpacked` into `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked` and overlay chrome only there (see `docs/airmaze/PRIVATE_DESKTOP.md` and `docs/airmaze/BRANDING.md`). Dashboard `:9119` is optional (`start-embedded.ps1 -OpenDashboard`), not a Start Menu shortcut.
+- Agent desktop client **is** bundled as `desktop/win-unpacked/DragonAIAgent.exe`. Install/start copy that Dragon package tree into `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked`. They do not search a Hermes install (see `docs/airmaze/PRIVATE_DESKTOP.md` and `docs/airmaze/BRANDING.md`). Dashboard `:9119` is optional (`start-embedded.ps1 -OpenDashboard`), not a Start Menu shortcut.
 - Dashboard basic auth defaults remain the compose local-only values (see `THIRD_PARTY_NOTICES.md` / `EMBEDDED_GATEWAY.md`).

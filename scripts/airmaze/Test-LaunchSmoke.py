@@ -57,6 +57,7 @@ REQUIRED_LAUNCHER = (
     "8650",
     "Apply-DragonAIDesktopUiBranding",
     "Install-DragonAIPrivateDesktop",
+    "DragonAIAgent.exe",
     "HERMES_DESKTOP_USER_DATA_DIR",
     "electron-userdata",
     "Exclude-DragonAIHermesBots",
@@ -67,14 +68,15 @@ REQUIRED_LAUNCHER = (
 )
 
 REQUIRED_FINDER = (
-    "win-unpacked\\Hermes.exe",
+    "win-unpacked\\DragonAIAgent.exe",
     "Find-HermesDesktopExe",
+    "Find-DragonDesktopExe",
     "Save-DragonAIDesktopPointer",
     "Start-HermesDesktopClient",
+    "Start-DragonAIDesktopClient",
     "Apply-DragonAIDesktopUiBranding",
     "Set-DragonAIMainWindowTitle",
     "SetTitleForPids",
-    "Dragon AI Agent Client.lnk",
     "Install-DragonAIPrivateDesktop",
     "HERMES_DESKTOP_USER_DATA_DIR",
     "electron-userdata",
@@ -114,6 +116,7 @@ REQUIRED_INSTALLER = (
     "Dragon AI Agent Dashboard.lnk",
     "Dragon AI Agent Profiles.lnk",
     "Install-DragonAIPrivateDesktop",
+    "DragonAIAgent.exe",
     "HERMES_DESKTOP_USER_DATA_DIR",
     "desktop\\win-unpacked",
     "start-gateway.sh",
@@ -239,7 +242,7 @@ def check_launcher() -> None:
     wait_idx = main.find("Wait-GatewayReady")
     launch_idx = main.find("Start-AgentDesktopOrThrow")
     if launch_idx < 0 or wait_idx < 0 or launch_idx > wait_idx:
-        fail("Hermes desktop must open before Wait-GatewayReady so its default loading is the wait UX")
+        fail("Dragon AI Agent desktop must open before Wait-GatewayReady so it is the wait UX")
 
 
 def check_shortcuts() -> None:
@@ -428,6 +431,11 @@ def main() -> int:
         proc = subprocess.run([sys.executable, str(parse_test)], cwd=str(ROOT))
         if proc.returncode != 0:
             fail("Test-WindowsLaunchParse.py failed")
+    dragon_desk = ROOT / "scripts" / "airmaze" / "Test-DragonDesktop.py"
+    if dragon_desk.is_file():
+        proc = subprocess.run([sys.executable, str(dragon_desk)], cwd=str(ROOT))
+        if proc.returncode != 0:
+            fail("Test-DragonDesktop.py failed")
     private_test = ROOT / "scripts" / "airmaze" / "Test-PrivateDesktop.py"
     if private_test.is_file():
         proc = subprocess.run([sys.executable, str(private_test)], cwd=str(ROOT))

@@ -7,15 +7,15 @@
   This is the Desktop / Start Menu "Dragon AI Agent" entrypoint.
   It checks whether Docker is running and starts the engine invisibly when
   it is not (no dashboard, no onboarding, no tray icon). Then it brings the
-  gateway up, wires Desktop Remote, and launches the Dragon AI Agent desktop
-  (on-disk Hermes.exe) so Hermes's own loading is the wait UX. It still
+  gateway up, wires Desktop Remote, and launches the packaged Dragon AI Agent
+  desktop (DragonAIAgent.exe). It still
   waits until :8642 / :8650 are reachable and fail-closes if they are not.
   Failures (engine still down after a wait, compose errors, missing client)
   show a MessageBox / popup and exit non-zero. -StartDocker is kept as an alias.
 
   The installed Desktop / Start Menu shortcut runs Start-DragonAI.vbs (wscript)
   so no PowerShell console flashes. A normal start does not show the WinForms
-  "Waiting for gateway..." Setup/Close status window - Hermes desktop is the
+  "Waiting for gateway..." Setup/Close status window - Dragon AI Agent is the
   loading UX. Status goes to launch.log. Use this .ps1 directly for debugging
   (-DebugConsole keeps the console). Use -GatewayOnly for CLI-only compose.
   Use -OpenDashboard to open :9119 (never opened on a normal start).
@@ -860,7 +860,7 @@ function Open-Dashboard {
 }
 
 function Start-AgentDesktopOrThrow {
-    if (-not (Get-Command Find-HermesDesktopExe -ErrorAction SilentlyContinue)) {
+    if (-not (Get-Command Find-HermesDesktopExe -ErrorAction SilentlyContinue) -and -not (Get-Command Find-DragonDesktopExe -ErrorAction SilentlyContinue)) {
         throw "Find-HermesDesktop.ps1 was not loaded. Re-run DragonAIAgentSetup so scripts\airmaze\Find-HermesDesktop.ps1 is installed."
     }
     if (Get-Command Set-DragonAIDesktopUserDataEnv -ErrorAction SilentlyContinue) {
@@ -870,37 +870,41 @@ function Start-AgentDesktopOrThrow {
     if (Get-Command Install-DragonAIPrivateDesktop -ErrorAction SilentlyContinue) {
         $exe = Install-DragonAIPrivateDesktop -InstallRoot $InstallRoot
     }
-    if (-not $exe) {
+    if (-not $exe -and (Get-Command Find-DragonDesktopExe -ErrorAction SilentlyContinue)) {
+        $exe = Find-DragonDesktopExe -InstallRoot $InstallRoot
+    }
+    if (-not $exe -and (Get-Command Find-HermesDesktopExe -ErrorAction SilentlyContinue)) {
         $exe = Find-HermesDesktopExe -InstallRoot $InstallRoot
     }
-    $hint = Join-Path $InstallRoot "desktop\win-unpacked\Hermes.exe"
-    $sourceHint = Join-Path $env:LOCALAPPDATA "hermes\hermes-agent\apps\desktop\release\win-unpacked\Hermes.exe"
+    $hint = Join-Path $InstallRoot "desktop\win-unpacked\DragonAIAgent.exe"
+    if ($exe -and (Get-Command Test-DragonAIHermesInstallPath -ErrorAction SilentlyContinue)) {
+        if (Test-DragonAIHermesInstallPath -Path $exe) { $exe = $null }
+    }
     if (-not $exe -or -not (Test-Path -LiteralPath $exe)) {
         throw @"
-Dragon AI Agent desktop was not found, so there is no app window to show.
+Dragon AI Agent desktop was not found in this package, so there is no app window to show.
 
-Expected private client:
+Expected:
   $hint
 
-Source (copied, never branded):
-  $sourceHint
-
-Install standalone Hermes (win-unpacked), then open Dragon AI Agent again so it can copy that tree into DragonAIAgent.
-A branded shortcut is written to %LOCALAPPDATA%\DragonAIAgent\Dragon AI Agent Client.lnk once the private copy exists.
+Re-download Dragon-AI-Agent-v0.1.0-windows.zip and run DragonAIAgentSetup.exe.
 "@
     }
     if (Get-Command Test-DragonAIPrivateDesktopPath -ErrorAction SilentlyContinue) {
         if (-not (Test-DragonAIPrivateDesktopPath -Path $exe)) {
-            throw "Refuse launch outside DragonAIAgent (standalone Hermes tree is not mutated): $exe"
+            throw "Refuse launch outside DragonAIAgent: $exe"
         }
     }
-    Write-LaunchLog "Launching private Dragon AI Agent desktop: $exe (HERMES_DESKTOP_USER_DATA_DIR=$($env:HERMES_DESKTOP_USER_DATA_DIR))"
+    Write-LaunchLog "Launching Dragon AI Agent desktop: $exe"
     Save-DragonAIDesktopPointer -ExePath $exe -InstallRoot $InstallRoot | Out-Null
     # Belt-and-suspenders: some Desktop builds honor these on first boot.
     $env:HERMES_DESKTOP_REMOTE_URL = $script:DesktopServeUrl
     $env:HERMES_DESKTOP_REMOTE_TOKEN = $script:DesktopSessionToken
-    # Start-HermesDesktopClient brands only the private copy, then opens it.
-    Start-HermesDesktopClient -ExePath $exe -InstallRoot $InstallRoot
+    if (Get-Command Start-DragonAIDesktopClient -ErrorAction SilentlyContinue) {
+        Start-DragonAIDesktopClient -ExePath $exe -InstallRoot $InstallRoot
+    } else {
+        Start-HermesDesktopClient -ExePath $exe -InstallRoot $InstallRoot
+    }
     return $exe
 }
 
@@ -1026,14 +1030,14 @@ function Get-LaunchPlan {
         ui            = @(
             "windowless host: Start-DragonAI.vbs / wscript.exe (no console)",
             "blocking error dialog on failure (never a raw console)",
-            "require private desktop client (%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked\Hermes.exe)",
+            "require packaged Dragon AI Agent desktop (%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked\DragonAIAgent.exe)",
             "set HERMES_DESKTOP_USER_DATA_DIR to %LOCALAPPDATA%\DragonAIAgent\electron-userdata",
             "overlay unpacked Electron UI chrome on the private Dragon copy only (refuse branding outside DragonAIAgent)",
             "standalone Hermes connections.json primary stays local",
             "launch Dragon AI Agent desktop only (not $DashboardUrl)",
             "start the background engine invisibly when docker info fails (already running is a no-op; no dashboard, no onboarding, no tray icon)",
             "first-run uses in-app Models UI (WinForms Onboard-Wizard not launched)",
-            "do not show Waiting for gateway Setup/Close status window (Hermes desktop is the loading UX)",
+            "do not show Waiting for gateway Setup/Close status window (Dragon AI Agent is the loading UX)",
             "docker CLI stderr progress is not a terminating error",
             "Desktop Remote -> $($script:DesktopServeUrl) (token mode; not :8642)",
             "wait for /api/health on the Desktop serve proxy with X-Hermes-Session-Token"
@@ -1084,6 +1088,8 @@ function Invoke-Smoke {
         "8650",
         "Apply-DragonAIDesktopUiBranding",
         "Install-DragonAIPrivateDesktop",
+        "DragonAIAgent.exe",
+        "Find-DragonDesktopExe",
         "HERMES_DESKTOP_USER_DATA_DIR",
         "electron-userdata",
         "Exclude-DragonAIHermesBots",
@@ -1131,7 +1137,7 @@ try {
     Repair-DragonAIProductShortcuts
     if ($showUi) {
         # James: do not pop the Waiting for gateway / Setup / Close monitor.
-        # Hermes desktop is the default loading experience. New-LaunchStatusForm
+        # Dragon AI Agent desktop is the default loading experience. New-LaunchStatusForm
         # stays in-tree for branding tests / optional debug, but is not shown
         # on a normal Desktop / Start Menu launch. Progress is launch.log only.
         if ($script:Windowless) { Hide-ConsoleWindow }
@@ -1162,7 +1168,7 @@ try {
 
     if ($showUi) {
         Start-OnboardingIfNeeded
-        # Open Hermes first so its default splash/loading is what James sees
+        # Open Dragon AI Agent first so its window is the loading UX
         # while :8642 / :8650 become reachable. Do not insert a Dragon status form.
         $exe = Start-AgentDesktopOrThrow
     }

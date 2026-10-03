@@ -56,6 +56,7 @@ REQUIRED_INSTALLER = (
     "Dragon AI Agent Dashboard.lnk",
     "Dragon AI Agent Profiles.lnk",
     "Install-DragonAIPrivateDesktop",
+    "DragonAIAgent.exe",
     "HERMES_DESKTOP_USER_DATA_DIR",
     "desktop\\win-unpacked",
     "in-app Models UI",

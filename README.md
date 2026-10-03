@@ -17,9 +17,9 @@ Compatible with the open-source agent desktop stack (separate desktop client). T
 | Ports | `127.0.0.1:8650` (Desktop Remote / Bot Screen), `127.0.0.1:8642` (OpenAI API), `127.0.0.1:9119` (browser dashboard). Local credentials: see `docs/airmaze/EMBEDDED_GATEWAY.md`. |
 | **Bot groups / Teams** | In-app **Teams Marketplace** popup (sidebar + first-run) browses GitHub catalog packs (Real Estate Lead Gen, Marketing Team, Trading Team): brief, 4-column seat cards, author, required connectors. **Install** / **Launch** files bots under that name, not Unassigned. **Export** scrubs secrets. Import stays. Personal Assistant is already installed and is not a Teams row. |
 | **Onboarding** | First-run **in-app Models UI** (chat + image LLM defaults via `Apply-GatewayModels`). Connector steps (email / CRM / telephony) stay in `docs/airmaze/SETUP_GUIDE.md`. The WinForms **Dragon AI Agent Setup** wizard is deprecated (no Desktop / Start Menu shortcut). Real Estate bots stay `needs_setup` until required connectors succeed. |
-| Agent desktop | Copies standalone `Hermes.exe` into a **private** `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked` tree and sets `HERMES_DESKTOP_USER_DATA_DIR=%LOCALAPPDATA%\DragonAIAgent\electron-userdata`. Branding/window rename apply only there (refused outside `DragonAIAgent`). Standalone Hermes, including `%APPDATA%\Hermes\connections.json` primary=`local`, is not mutated. Overlay: empty state **DRAGON AI AGENT**, sidebar **Dragon AI**, **Give Dragon AI a task**, **Syne**, **Personal Assistant** only. Dashboard login: `dragon` / `dragon-local`. |
+| Agent desktop | Ships **DragonAIAgent.exe** in the Dragon package and copies it to `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked`. User data is `%LOCALAPPDATA%\DragonAIAgent\electron-userdata`. Install/launch do not search for, copy, require, or mention a Hermes install. Branding/window rename apply only under `DragonAIAgent`. Standalone Hermes, including `%APPDATA%\Hermes\connections.json` primary=`local`, is not mutated. First-run models stay the in-app Models screen. Dashboard login: `dragon` / `dragon-local`. |
 
-Be honest about limits: full silent WSL/Docker provision often needs a reboot and/or one-time UAC clicks. Docker is still installed by **Dragon AI Agent Setup**, not as a separate product the user fetches first. This package does **not** embed the agent desktop client itself.
+Be honest about limits: full silent WSL/Docker provision often needs a reboot and/or one-time UAC clicks. Docker is still installed by **Dragon AI Agent Setup**, not as a separate product the user fetches first. The Windows desktop is **DragonAIAgent.exe**, built from `desktop/` and copied from the package.
 
 ---
 
@@ -41,7 +41,7 @@ Gateway data: `%USERPROFILE%\.hermes-airmaze-embedded` (internal)
 
 Desktop / Start Menu shortcuts: **Dragon AI Agent** only (the product launcher). There are no **Bot Groups**, **Dashboard**, **Profiles**, or **Setup** shortcuts. Leftover `.lnk` files from older installs are deleted on install and on the next launch.
 
-Opening **Dragon AI Agent** uses a windowless host (`Start-DragonAI.vbs` / `wscript.exe`) — no PowerShell console. The VBS sets `HERMES_DESKTOP_USER_DATA_DIR` and `start-embedded.ps1` launches the **private** desktop client. If Docker is not running it starts the **background engine invisibly** (no dashboard, no onboarding, no tray icon), then starts the gateway **and** the Desktop-compatible Linux `hermes serve` (published at `http://127.0.0.1:8650`), writes the Remote connection into Dragon `electron-userdata`, and opens the **private desktop client** (not the :9119 dashboard). Standalone Hermes primary stays local. Already-running Docker is a no-op. Failures after a bounded wait are a MessageBox. **This device** Screen is Linux-only by upstream design — use the Embedded Linux Remote. Optional dashboard: `start-embedded.ps1 -OpenDashboard`. Debug: run `start-embedded.ps1` in a console. Launch log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`. Branding: [`docs/airmaze/BRANDING.md`](docs/airmaze/BRANDING.md). Design: [`docs/airmaze/DESIGN.md`](docs/airmaze/DESIGN.md). Docker launch: [`docs/airmaze/DOCKER_LAUNCH.md`](docs/airmaze/DOCKER_LAUNCH.md).
+Opening **Dragon AI Agent** uses a windowless host (`Start-DragonAI.vbs` / `wscript.exe`) - no PowerShell console. The VBS sets user data under `%LOCALAPPDATA%\DragonAIAgent` and `start-embedded.ps1` launches **DragonAIAgent.exe**. If Docker is not running it starts the **background engine invisibly** (no dashboard, no onboarding, no tray icon), then starts the gateway **and** the Desktop-compatible Linux serve (published at `http://127.0.0.1:8650`), writes the Remote connection into Dragon `electron-userdata`, and opens **Dragon AI Agent** (not the :9119 dashboard). Standalone Hermes primary stays local. Already-running Docker is a no-op. Failures after a bounded wait are a MessageBox. **This device** Screen is Linux-only by upstream design - use the Embedded Linux Remote. Optional dashboard: `start-embedded.ps1 -OpenDashboard`. Debug: run `start-embedded.ps1` in a console. Launch log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`. Branding: [`docs/airmaze/BRANDING.md`](docs/airmaze/BRANDING.md). Design: [`docs/airmaze/DESIGN.md`](docs/airmaze/DESIGN.md). Docker launch: [`docs/airmaze/DOCKER_LAUNCH.md`](docs/airmaze/DOCKER_LAUNCH.md).
 
 ```powershell
 # Same path the shortcut uses (no secrets)
@@ -147,6 +147,8 @@ bot-groups/
   personal-assistant/
   real-estate-cold-call-lead-refresher/
 vendor/docker/          (zip slot for Docker Desktop Installer.exe; exe gitignored)
+desktop/                (DragonAIAgent.exe Windows host + UI)
+vendor/desktop/         (optional zip slot for the same exe)
 scripts/airmaze/
   install.ps1
   start-embedded.ps1

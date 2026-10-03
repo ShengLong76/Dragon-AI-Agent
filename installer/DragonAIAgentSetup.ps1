@@ -526,6 +526,17 @@ function Install-PackageFiles([string]$Root) {
         Write-Log "Copied bot-groups catalog"
     }
 
+    $deskSrc = Join-Path $Root "desktop\win-unpacked"
+    if (-not (Test-Path -LiteralPath (Join-Path $deskSrc "DragonAIAgent.exe"))) {
+        $deskSrc = Join-Path $Root "vendor\desktop\win-unpacked"
+    }
+    if (Test-Path -LiteralPath (Join-Path $deskSrc "DragonAIAgent.exe")) {
+        $deskDst = Join-Path $InstallRoot "desktop\win-unpacked"
+        Ensure-Dir $deskDst
+        Copy-Item -Path (Join-Path $deskSrc "*") -Destination $deskDst -Recurse -Force
+        Write-Log "Copied packaged Dragon AI Agent desktop"
+    }
+
     # Branding / logo
     foreach ($logoName in @("dragon-ai-agent-logo.png", "dragon-ai-agent-logo.ico", "dragon-ai-agent-logo.svg")) {
         $logoSrc = Join-Path $Root $logoName
@@ -597,6 +608,9 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\Find-HermesDesktop.ps1",
         "scripts\airmaze\private_desktop.py",
         "scripts\airmaze\Test-PrivateDesktop.py",
+        "scripts\airmaze\Test-DragonDesktop.py",
+        "vendor\desktop\README.md",
+        "desktop\README.md",
         "scripts\airmaze\Apply-DesktopBranding.ps1",
         "scripts\airmaze\desktop_branding.py",
         "scripts\airmaze\desktop_branding.json",
@@ -816,7 +830,7 @@ function Invoke-BotGroupSetup([string]$Root) {
 }
 
 function Start-AgentDesktop {
-    Write-Log "Looking for private Dragon AI desktop client..."
+    Write-Log "Looking for packaged Dragon AI Agent desktop..."
     $finder = Join-Path $InstallRoot "scripts\airmaze\Find-HermesDesktop.ps1"
     if (-not (Test-Path -LiteralPath $finder)) {
         $finder = Join-Path $PSScriptRoot "..\scripts\airmaze\Find-HermesDesktop.ps1"
@@ -829,39 +843,44 @@ function Start-AgentDesktop {
         $env:HERMES_DESKTOP_USER_DATA_DIR = Join-Path $InstallRoot "electron-userdata"
     }
     if (Get-Command Install-DragonAIPrivateDesktop -ErrorAction SilentlyContinue) {
-        $exe = Install-DragonAIPrivateDesktop -InstallRoot $InstallRoot
+        $exe = Install-DragonAIPrivateDesktop -InstallRoot $InstallRoot -PayloadRoot $root
+    } elseif (Get-Command Find-DragonDesktopExe -ErrorAction SilentlyContinue) {
+        $exe = Find-DragonDesktopExe -InstallRoot $InstallRoot -PayloadRoot $root
     } elseif (Get-Command Find-HermesDesktopExe -ErrorAction SilentlyContinue) {
         $exe = Find-HermesDesktopExe -InstallRoot $InstallRoot
+    }
+    if ($exe -and (Get-Command Test-DragonAIHermesInstallPath -ErrorAction SilentlyContinue)) {
+        if (Test-DragonAIHermesInstallPath -Path $exe) { $exe = $null }
     }
     if ($exe -and (Get-Command Test-DragonAIPrivateDesktopPath -ErrorAction SilentlyContinue)) {
         if (-not (Test-DragonAIPrivateDesktopPath -Path $exe)) { $exe = $null }
     }
     if ($exe) {
-        Write-Log "Launching private Dragon AI desktop: $exe (HERMES_DESKTOP_USER_DATA_DIR=$($env:HERMES_DESKTOP_USER_DATA_DIR))"
+        Write-Log "Launching Dragon AI Agent desktop: $exe"
         try {
             Save-DragonAIDesktopPointer -ExePath $exe -InstallRoot $InstallRoot | Out-Null
-            Start-HermesDesktopClient -ExePath $exe -InstallRoot $InstallRoot
+            if (Get-Command Start-DragonAIDesktopClient -ErrorAction SilentlyContinue) {
+                Start-DragonAIDesktopClient -ExePath $exe -InstallRoot $InstallRoot
+            } else {
+                Start-HermesDesktopClient -ExePath $exe -InstallRoot $InstallRoot
+            }
         } catch {
             if ($_.Exception.Message -like "Refuse *outside DragonAIAgent*") { throw }
+            if ($_.Exception.Message -like "Refuse *Hermes install*") { throw }
             if (Get-Command Test-DragonAIPrivateDesktopPath -ErrorAction SilentlyContinue) {
                 if (-not (Test-DragonAIPrivateDesktopPath -Path $exe)) { throw }
             }
             Start-Process -FilePath $exe -WorkingDirectory (Split-Path -Parent $exe) -ErrorAction SilentlyContinue
         }
-        Write-Log "Point Desktop Remote at http://127.0.0.1:8650 (session token dragon-local). :8642 is OpenAI API only; :9119 is the browser dashboard."
         return $true
     }
-    $hint = Join-Path $InstallRoot "desktop\win-unpacked\Hermes.exe"
+    $hint = Join-Path $InstallRoot "desktop\win-unpacked\DragonAIAgent.exe"
     Write-Host ""
-    Write-Host "Dragon AI Agent desktop was not found (private win-unpacked Hermes.exe)."
+    Write-Host "Dragon AI Agent desktop was not found in this package."
     Write-Host "  Expected: $hint"
-    Write-Host "Next steps:"
-    Write-Host "  1. Install standalone Hermes (win-unpacked Hermes.exe), then re-run Setup so it copies that tree into DragonAIAgent\desktop\win-unpacked."
-    Write-Host "  2. Add Remote gateway: http://127.0.0.1:8650 with session token dragon-local (not :8642)"
-    Write-Host "     Local dashboard credentials are in THIRD_PARTY_NOTICES.md / EMBEDDED_GATEWAY.md"
-    Write-Host "  3. Open Teams Marketplace, deploy a group, pick one of its bots, then open Bot Screen."
+    Write-Host "Re-download Dragon-AI-Agent-v0.1.0-windows.zip and run DragonAIAgentSetup.exe."
     Write-Host ""
-    Write-Log "Agent desktop client not found; printed next steps" "WARN"
+    Write-Log "Packaged Dragon AI Agent desktop missing at $hint" "WARN"
     return $false
 }
 
