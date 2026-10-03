@@ -410,6 +410,7 @@ function Invoke-NativeDocker {
 function Fix-DockerPath {
     $binDirs = @(
         (Join-Path $env:ProgramFiles "Docker\Docker\resources\bin"),
+        (Join-Path $env:LOCALAPPDATA "Programs\DockerDesktop\resources\bin"),
         (Join-Path $env:LOCALAPPDATA "Docker\resources\bin")
     )
     foreach ($d in $binDirs) {
@@ -424,6 +425,7 @@ function Get-DockerDesktopExe {
     $candidates = @(
         (Join-Path $env:ProgramFiles "Docker\Docker\Docker Desktop.exe"),
         (Join-Path ${env:ProgramFiles(x86)} "Docker\Docker\Docker Desktop.exe"),
+        (Join-Path $env:LOCALAPPDATA "Programs\DockerDesktop\Docker Desktop.exe"),
         (Join-Path $env:LOCALAPPDATA "Docker\Docker Desktop.exe")
     )
     foreach ($c in $candidates) {

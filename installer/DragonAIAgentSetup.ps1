@@ -4,8 +4,9 @@
   Dragon AI Agent v0.1.0 Windows bootstrap installer.
 
 .DESCRIPTION
-  Best-effort provision of WSL2, Docker Desktop (tray-minimized, no dashboard popup),
-  embedded gateway, bot group dropdown (GitHub deploy), and agent desktop launch attempt.
+  Provisions WSL2 and Docker Desktop (Setup-owned: packaged installer, then
+  Setup-owned download, quiet install, half-install repair; tray-minimized, no
+  dashboard popup), then the embedded gateway, bot group dropdown, and desktop.
 
 .NOTES
   Log: %LOCALAPPDATA%\DragonAIAgent\install.log
@@ -130,6 +131,7 @@ function Get-DockerDesktopExe {
     $candidates = @(
         (Join-Path $env:ProgramFiles "Docker\Docker\Docker Desktop.exe"),
         (Join-Path ${env:ProgramFiles(x86)} "Docker\Docker\Docker Desktop.exe"),
+        (Join-Path $env:LOCALAPPDATA "Programs\DockerDesktop\Docker Desktop.exe"),
         (Join-Path $env:LOCALAPPDATA "Docker\Docker Desktop.exe")
     )
     foreach ($c in $candidates) {
@@ -140,6 +142,8 @@ function Get-DockerDesktopExe {
 
 function Test-DockerEngine {
     try {
+        Fix-DockerPath
+        if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { return $false }
         $null = & docker info 2>$null
         return ($LASTEXITCODE -eq 0)
     } catch {
@@ -149,6 +153,7 @@ function Test-DockerEngine {
 
 function Start-DockerHeadless {
     Write-Log "Starting Docker engine (headless / tray-friendly)..."
+    Fix-DockerPath
     Set-DockerTrayOnlySettings
 
     $svc = Get-Service -Name "com.docker.service" -ErrorAction SilentlyContinue
@@ -230,47 +235,143 @@ function Ensure-WSL2 {
     return $true
 }
 
-# --- Docker Desktop install -------------------------------------------------
+# --- Docker Desktop install (Setup owns this; not a user prerequisite) ------
+
+function Test-DockerCliPresent {
+    Fix-DockerPath
+    return [bool](Get-Command docker -ErrorAction SilentlyContinue)
+}
+
+function Test-DockerDesktopComplete {
+    # Exe + CLI. Engine-up is Start-DockerHeadless, not "installed".
+    return ([bool](Get-DockerDesktopExe) -and (Test-DockerCliPresent))
+}
+
+function Find-BundledDockerInstaller {
+    param([string]$PayloadRoot = "")
+    $names = @(
+        "Docker Desktop Installer.exe",
+        "DockerDesktopInstaller.exe",
+        "DockerDesktopInstaller-DragonAIAgent.exe"
+    )
+    $dirs = @()
+    if (-not [string]::IsNullOrWhiteSpace($PayloadRoot)) {
+        $dirs += (Join-Path $PayloadRoot "vendor\docker")
+        $dirs += (Join-Path $PayloadRoot "installer\vendor\docker")
+    }
+    if ($PSScriptRoot) {
+        $dirs += (Join-Path $PSScriptRoot "vendor\docker")
+        $dirs += (Join-Path $PSScriptRoot "..\vendor\docker")
+        $dirs += (Join-Path $PSScriptRoot "..\..\vendor\docker")
+        $dirs += (Join-Path $PSScriptRoot "installer\vendor\docker")
+    }
+    $dirs += (Join-Path $InstallRoot "vendor\docker")
+    foreach ($dir in $dirs) {
+        if (-not $dir) { continue }
+        foreach ($name in $names) {
+            $p = Join-Path $dir $name
+            if (Test-Path -LiteralPath $p) { return $p }
+        }
+    }
+    return $null
+}
+
+function Get-DockerInstallerCachePath {
+    $dir = Join-Path $InstallRoot "vendor\docker"
+    Ensure-Dir $dir
+    return (Join-Path $dir "Docker Desktop Installer.exe")
+}
+
+function Save-DockerInstallerFromUrl {
+    param([string]$Dest)
+    $url = "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe"
+    $destDir = Split-Path $Dest -Parent
+    Ensure-Dir $destDir
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    Write-Log "Downloading Docker Desktop installer (Setup-owned, not a separate manual install)..."
+    Invoke-WebRequest -Uri $url -OutFile $Dest -UseBasicParsing -ErrorAction Stop
+    if (-not (Test-Path -LiteralPath $Dest)) { throw "Download produced no file: $Dest" }
+    return $Dest
+}
+
+function Resolve-DockerInstaller {
+    param([string]$PayloadRoot)
+    $bundled = Find-BundledDockerInstaller -PayloadRoot $PayloadRoot
+    if ($bundled) {
+        Write-Log "Using packaged Docker Desktop installer: $bundled"
+        return $bundled
+    }
+    $cache = Get-DockerInstallerCachePath
+    if (Test-Path -LiteralPath $cache) {
+        Write-Log "Using cached Docker Desktop installer: $cache"
+        return $cache
+    }
+    Write-Log "Package has no vendor/docker installer; Setup will download it."
+    return (Save-DockerInstallerFromUrl -Dest $cache)
+}
+
+function Invoke-DockerDesktopQuietInstall {
+    param([string]$InstallerPath)
+    Write-Log "Running quiet Docker Desktop install (may need UAC / reboot): $InstallerPath"
+    $argList = @("install", "--quiet", "--accept-license")
+    $start = @{
+        FilePath     = $InstallerPath
+        ArgumentList = $argList
+        Wait         = $true
+        PassThru     = $true
+        ErrorAction  = "Stop"
+    }
+    if (-not (Test-IsAdmin)) {
+        $start["Verb"] = "RunAs"
+    }
+    $p = Start-Process @start
+    Write-Log "Docker installer exit code: $($p.ExitCode)"
+    # 0 = ok; 3010 = success, reboot required (MSI)
+    return ($p.ExitCode -eq 0 -or $p.ExitCode -eq 3010)
+}
 
 function Ensure-DockerDesktop {
-    Write-Log "Checking Docker Desktop..."
-    if (Get-DockerDesktopExe) {
-        Write-Log "Docker Desktop found"
+    param([string]$PayloadRoot = "")
+    Write-Log "Checking Docker Desktop (Setup owns this step)..."
+    Fix-DockerPath
+    if (Test-DockerDesktopComplete) {
+        Write-Log "Docker Desktop is already installed"
         Set-DockerTrayOnlySettings
         return $true
     }
 
-    Write-Log "Docker Desktop not found; attempting quiet download/install..."
-    $installer = Join-Path $env:TEMP "DockerDesktopInstaller-DragonAIAgent.exe"
-    $url = "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe"
-    try {
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        Write-Log "Downloading Docker Desktop installer..."
-        Invoke-WebRequest -Uri $url -OutFile $installer -UseBasicParsing -ErrorAction Stop
-        Write-Log "Running quiet install (may still need UAC / reboot)..."
-        $args = "install --quiet --accept-license"
-        $p = Start-Process -FilePath $installer -ArgumentList $args -Wait -PassThru -ErrorAction Stop
-        Write-Log "Docker installer exit code: $($p.ExitCode)"
-        Set-DockerTrayOnlySettings
-        if (Get-DockerDesktopExe) { return $true }
-    } catch {
-        Write-Log "Quiet install failed: $($_.Exception.Message)" "WARN"
+    if ((Get-DockerDesktopExe) -and -not (Test-DockerCliPresent)) {
+        Write-Log "Docker Desktop.exe is present but the CLI is missing (half-installed); Setup will repair via quiet install." "WARN"
+    } elseif (-not (Get-DockerDesktopExe)) {
+        Write-Log "Docker Desktop is not installed; Setup will install it from the package or a Setup-owned download."
     }
 
-    Write-Log "Opening Docker Desktop download page for manual install..." "WARN"
     try {
-        Start-Process "https://www.docker.com/products/docker-desktop/"
-    } catch {}
-    Write-Host ""
-    Write-Host "ACTION REQUIRED: Install Docker Desktop, then re-run Dragon AI Agent Setup."
-    Write-Host "After install, Docker will be configured to stay in the system tray (no dashboard popup)."
-    Write-Host ""
+        $installer = Resolve-DockerInstaller -PayloadRoot $PayloadRoot
+        $ok = Invoke-DockerDesktopQuietInstall -InstallerPath $installer
+        Fix-DockerPath
+        Set-DockerTrayOnlySettings
+        if (Get-DockerDesktopExe) {
+            if (-not (Test-DockerCliPresent)) {
+                Write-Log "Docker Desktop.exe landed but CLI is not on PATH yet; PATH will be patched for this session." "WARN"
+            }
+            return $true
+        }
+        if (-not $ok) {
+            Write-Log "Quiet Docker install did not produce Docker Desktop.exe (exit indicated failure)." "ERROR"
+        }
+    } catch {
+        Write-Log "Setup-owned Docker install failed: $($_.Exception.Message)" "ERROR"
+    }
+
+    Write-Log "Docker Desktop is still missing. Package files will still be copied. Re-run Dragon AI Agent Setup after a reboot if Windows asked for one. Do not install Docker from docker.com first." "WARN"
     return $false
 }
 
 function Fix-DockerPath {
     $binDirs = @(
         (Join-Path $env:ProgramFiles "Docker\Docker\resources\bin"),
+        (Join-Path $env:LOCALAPPDATA "Programs\DockerDesktop\resources\bin"),
         (Join-Path $env:LOCALAPPDATA "Docker\resources\bin")
     )
     foreach ($d in $binDirs) {
@@ -400,6 +501,10 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\Test-VoiceChat.py",
         "docs\airmaze\VOICE.md",
         "docs\airmaze\DOCKER_LAUNCH.md",
+        "docs\airmaze\DOCKER_INSTALL.md",
+        "scripts\airmaze\Test-DockerInstall.py",
+        "vendor\docker\README.md",
+        "installer\stage-docker-desktop.py",
         "docs\airmaze\WINDOWS_LAUNCH_PARSE.md",
         "scripts\airmaze\Test-WindowsLaunchParse.py",
         "scripts\airmaze\DragonAI-SecureStore.ps1",
@@ -658,23 +763,31 @@ try {
 Ensure-Dir $InstallRoot
 Ensure-WSL2 | Out-Null
 
-$dockerOk = Ensure-DockerDesktop
+$dockerOk = Ensure-DockerDesktop -PayloadRoot $root
 if ($dockerOk) {
     Set-DockerTrayOnlySettings
+    Fix-DockerPath
     Start-DockerHeadless | Out-Null
 } else {
-    Write-Log "Docker not ready; package files will still be copied. Re-run after installing Docker." "WARN"
+    Write-Log "Docker not ready after Setup-owned install; package files will still be copied. Re-run Setup after a reboot if Windows asked for one." "WARN"
 }
 
 Install-PackageFiles -Root $root
 
+Fix-DockerPath
 if ($dockerOk -and (Test-DockerEngine)) {
     Start-EmbeddedGateway | Out-Null
 } elseif ($dockerOk) {
-    Write-Log "Skipping compose up until Docker engine is running. Re-run installer or: scripts\airmaze\start-embedded.ps1" "WARN"
+    Write-Log "Skipping compose up until Docker engine is running (often after a first-install reboot). Open Dragon AI Agent or re-run Setup." "WARN"
+} else {
+    Write-Log "Skipping compose up because Docker Desktop is not installed yet. Re-run Dragon AI Agent Setup." "WARN"
 }
 
 Invoke-BotGroupSetup -Root $root
+
+# First-run models live in-app (Apply-GatewayModels + desktop Models UI).
+# Do not launch WinForms Onboard-Wizard.ps1.
+
 Install-Shortcuts
 Start-AgentDesktop | Out-Null
 
@@ -687,4 +800,5 @@ Write-Host "  Desktop Screen: http://127.0.0.1:8650  (Remote token dragon-local)
 Write-Host "  Gateway API:    127.0.0.1:8642  dashboard: http://127.0.0.1:9119"
 Write-Host "  Docker UI:    tray-only (dashboard suppressed on startup)"
 Write-Host "  Bot groups:   in-app Teams Marketplace"
+Write-Host "  First-run:    in-app Models UI (Dragon AI Agent launcher)"
 Write-Host ""

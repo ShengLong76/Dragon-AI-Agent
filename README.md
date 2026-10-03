@@ -12,14 +12,14 @@ Compatible with the open-source agent desktop stack (separate desktop client). T
 | Step | Behavior |
 |------|----------|
 | WSL2 | Best-effort check / enable (`wsl --install` if missing). **Reboot may be required.** |
-| Docker Desktop | Detect; quiet install when possible; else open download page. Configured to **start minimized to the system tray** (no dashboard window on launch). |
+| Docker Desktop | **Setup owns this.** Prefer `payload/vendor/docker` installer; else Setup downloads the official installer and quiet-installs (`install --quiet --accept-license`). Half-installed (exe without CLI) is repaired the same way. No docker.com download-page fallback. Configured to **start minimized to the system tray** (no dashboard window on launch). |
 | Embedded gateway | `docker compose` pull + `up -d` for the packaged embedded gateway image (see `THIRD_PARTY_NOTICES.md`). |
 | Ports | `127.0.0.1:8650` (Desktop Remote / Bot Screen), `127.0.0.1:8642` (OpenAI API), `127.0.0.1:9119` (browser dashboard). Local credentials: see `docs/airmaze/EMBEDDED_GATEWAY.md`. |
 | **Bot groups / Teams** | In-app **Teams Marketplace** popup (sidebar + first-run) browses GitHub catalog packs (Real Estate Lead Gen, Marketing Team, Trading Team): brief, 4-column seat cards, author, required connectors. **Install** / **Launch** files bots under that name, not Unassigned. **Export** scrubs secrets. Import stays. Personal Assistant is already installed and is not a Teams row. |
 | **Onboarding** | First-run **in-app Models UI** (chat + image LLM defaults via `Apply-GatewayModels`). Connector steps (email / CRM / telephony) stay in `docs/airmaze/SETUP_GUIDE.md`. The WinForms **Dragon AI Agent Setup** wizard is deprecated (no Desktop / Start Menu shortcut). Real Estate bots stay `needs_setup` until required connectors succeed. |
 | Agent desktop | Copies standalone `Hermes.exe` into a **private** `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked` tree and sets `HERMES_DESKTOP_USER_DATA_DIR=%LOCALAPPDATA%\DragonAIAgent\electron-userdata`. Branding/window rename apply only there (refused outside `DragonAIAgent`). Standalone Hermes, including `%APPDATA%\Hermes\connections.json` primary=`local`, is not mutated. Overlay: empty state **DRAGON AI AGENT**, sidebar **Dragon AI**, **Give Dragon AI a task**, **Syne**, **Personal Assistant** only. Dashboard login: `dragon` / `dragon-local`. |
 
-Be honest about limits: full silent WSL/Docker provision often needs a reboot and/or one-time UI clicks. This package does **not** embed the agent desktop client itself.
+Be honest about limits: full silent WSL/Docker provision often needs a reboot and/or one-time UAC clicks. Docker is still installed by **Dragon AI Agent Setup**, not as a separate product the user fetches first. This package does **not** embed the agent desktop client itself.
 
 ---
 
@@ -146,9 +146,11 @@ bot-groups/
   catalog.json
   personal-assistant/
   real-estate-cold-call-lead-refresher/
+vendor/docker/          (zip slot for Docker Desktop Installer.exe; exe gitignored)
 scripts/airmaze/
   install.ps1
   start-embedded.ps1
+  Test-DockerInstall.py
   Start-DragonAI.vbs
   Find-HermesDesktop.ps1
   private_desktop.py
@@ -181,6 +183,7 @@ templates/profiles/personal-assistant/
 installer/
   DragonAIAgentSetup.ps1
   build-exe.go
+  stage-docker-desktop.py
 branding/   (release: dragon-ai-agent-logo.png / .svg / .ico — James’s navy coiled mark; fonts/syne — OFL wordmark face)
 design-system/dragon-ai-agent/   (UI UX Pro Max MASTER + desktop-client override)
 ```
@@ -201,6 +204,7 @@ design-system/dragon-ai-agent/   (UI UX Pro Max MASTER + desktop-client override
 10. `docs/airmaze/DESIGN.md` — UI UX Pro Max design system applied to overlay chrome (Syne, dark + crimson)
 11. `docs/airmaze/UNDERSTAND_ANYTHING.md` — MIT Understand-Anything skill (`/understand`, `/understand-dashboard`); first scan later; `.ua/` gitignored
 12. `PACKAGING.md` — how this release was built
+13. `docs/airmaze/DOCKER_INSTALL.md` — Setup-owned Docker Desktop (clean PC, no separate Docker install)
 
 ---
 

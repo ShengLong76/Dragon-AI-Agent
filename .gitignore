@@ -1,6 +1,10 @@
 __pycache__/
 *.pyc
 
+# Official Docker Desktop installer (~500MB). Stage into the Windows zip only.
+vendor/docker/*.exe
+installer/vendor/docker/*.exe
+
 # Understand-Anything knowledge graph (do not commit generated graphs)
 .ua/
 .understand-anything/

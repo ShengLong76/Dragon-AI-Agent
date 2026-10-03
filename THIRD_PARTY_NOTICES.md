@@ -86,6 +86,17 @@ Marketing Team **SEO Specialist** ships Hermes instructions for the official SEO
 | DataForSEO MCP | https://github.com/dataforseo/mcp-server-typescript |
 | Package | `dataforseo-mcp-server` |
 
+## Docker Desktop (Windows engine)
+
+Dragon AI Agent Setup may quiet-install **Docker Desktop** from a packaged `vendor/docker/Docker Desktop Installer.exe` or the official download URL. Docker Desktop remains Docker, Inc. software. This repo does not vendor the installer binary in git.
+
+| Item | Value |
+|------|--------|
+| Product | Docker Desktop for Windows |
+| Installer | https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe |
+| Terms | https://www.docker.com/legal/docker-subscription-service-agreement/ |
+| Design | `docs/airmaze/DOCKER_INSTALL.md` |
+
 ## Financial Services (Anthropic reference kit) on Market Researcher
 
 Trading Team **Market Researcher** ships Hermes instructions adapted from Anthropic’s public financial-services kit. The Claude Cowork plugins, Managed Agent cookbooks, and vendor MCP connectors are **not** vendored.
