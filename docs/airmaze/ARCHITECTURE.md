@@ -22,8 +22,9 @@ Dragon AI Agent needs the pane anyway: watch the bot, take over for login/2FA/CA
 │  │ agent desktop client       │◄──────────────────►│ Embedded   │ │
 │  │ (Windows client)     │  Desktop serve     │ gateway    │ │
 │  │                      │   :8650 (token/WS) │ + serve    │ │
+│  │                      │  UI  :8660 (web)   │ + dashboard│ │
 │  │                      │  API :8642 (LLM)   │ sidecar    │ │
-│  │  Bot Screen pane     │  dash :9119 (web)  │ (Linux)    │ │
+│  │  Bot Screen pane     │  dash :9119 (opt)  │ (Linux)    │ │
 │  │  (noVNC via /api/ws) │                    │ TigerVNC   │ │
 │  └──────────────────────┘                    │ + Xfce     │ │
 │                                              │ + Chromium │ │
@@ -39,7 +40,7 @@ Dragon AI Agent needs the pane anyway: watch the bot, take over for login/2FA/CA
    - Gateway with packages baked in: `nousresearch/hermes-agent:*-desktop` (e.g. `:latest-desktop`, `:v*-desktop`)
    - Or slim gateway + sandbox desktop: terminal backend `docker` with `nousresearch/hermes-sandbox:desktop`
 3. Publish only loopback-friendly host ports (see `EMBEDDED_GATEWAY.md` / `docker-compose.embedded.yml`).
-4. Point the agent desktop client’s **Remote** gateway at `http://127.0.0.1:8650` (Desktop `hermes serve` + loopback proxy), **not** `:8642`. The Screen pane uses `/api/ws` + `/api/display/ws` on that serve process. `:8642` is the OpenAI-compatible API only.
+4. Point Bot Screen **Remote** at `http://127.0.0.1:8650` (Desktop `hermes serve` + loopback proxy), **not** `:8642`. The Screen pane uses `/api/ws` + `/api/display/ws` on that serve process. The product window loads `http://127.0.0.1:8660/` (`hermes dashboard`). GET `/` on `:8650` is the headless `web UI disabled` page and must not be the window URL. `:8642` is the OpenAI-compatible API only.
 
 **Why first:** lowest friction, official images already ship `-desktop` tags and `hermes-sandbox:desktop`, matches upstream “where the screen runs” model, keeps Dragon AI Agent changes in config + docs until UltraDragon can clone.
 

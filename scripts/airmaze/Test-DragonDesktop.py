@@ -77,15 +77,17 @@ def test_package_has_desktop_source() -> None:
     js = read(ROOT / "desktop" / "ui" / "app.js")
     if "<title>Dragon AI Agent</title>" not in ui:
         fail("desktop UI title must be Dragon AI Agent")
-    if 'id="panel-models"' not in ui:
-        fail("desktop UI must include the in-app Models screen")
     if "Gateway ready" in ui or "Gateway ready" in js or "Starting gateway" in ui:
         fail("installed UI must not show the leftover Gateway ready status")
-    if 'data-dragon-ai-shell="ultradragon"' not in ui:
-        fail("desktop UI must be the UltraDragon shell, not the blue-header e65bfdf page")
+    if "Opening the desktop chat screen" not in ui:
+        fail("desktop host loader must wait for the real desktop web UI")
     go = read(ROOT / "desktop" / "main.go")
     if "DragonAIAgent.exe" not in go and "Dragon AI Agent" not in go:
         fail("desktop host must be Dragon AI Agent")
+    if "isHeadlessPage" not in go or "web UI disabled" not in go:
+        fail("desktop host must refuse the headless hermes serve page")
+    if "first-run-models" not in go:
+        fail("desktop host must inject the Air Maze first-run Models step")
     if not DESKTOP_README.is_file():
         fail("missing desktop/README.md")
     if not VENDOR_README.is_file():

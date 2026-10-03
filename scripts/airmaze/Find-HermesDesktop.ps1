@@ -384,6 +384,9 @@ function Start-DragonAIDesktopClient {
         throw "Refuse launch of a Hermes install: $ExePath"
     }
     Set-DragonAIDesktopUserDataEnv -InstallRoot $InstallRoot | Out-Null
+    if ([string]::IsNullOrWhiteSpace($env:DRAGON_AI_UI_URL)) {
+        $env:DRAGON_AI_UI_URL = "http://127.0.0.1:8660/"
+    }
     $wd = Split-Path -Parent $ExePath
     Exclude-DragonAIHermesBots | Out-Null
     try {

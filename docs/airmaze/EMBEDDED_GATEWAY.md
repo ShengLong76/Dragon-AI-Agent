@@ -49,9 +49,10 @@ nousresearch/hermes-sandbox:desktop
 
 | Host port | Container | Purpose | Desktop Remote? |
 |-----------|-----------|---------|-----------------|
-| `8650` | `8650` → loopback `hermes serve` `:8651` | **Desktop-compatible** JSON-RPC/WS (`/api/health`, `/api/ws?token=`, `/api/display/ws`) | **Yes — this is the Bot Screen URL** |
+| `8650` | `8650` → loopback `hermes serve` `:8651` | **Desktop-compatible** JSON-RPC/WS (`/api/health`, `/api/ws?token=`, `/api/display/ws`). GET `/` is headless (`web UI disabled`) | **Yes — this is the Bot Screen URL, not the product window** |
+| `8660` | `8660` → loopback `hermes dashboard` `:8652` | Browser web UI the product window loads | **No** — chat UI, not token/WS |
 | `8642` | `8642` | OpenAI-compatible API (`gateway run`: `/health`, `/v1/*`, Bearer `API_SERVER_KEY`) | **No** — no `/api/ws` |
-| `9119` | `9119` | Web dashboard (password / cookie). Has some `/api/*` but is **gated**; Desktop token-mode WS is refused on a non-loopback bind ([upstream #106685](https://github.com/NousResearch/hermes-agent/issues/106685)) | **No** |
+| `9119` | `9119` | Optional password-gated dashboard (not auto-opened) | **No** |
 
 Bot Screen **does not** open a separate VNC TCP port. The Desktop pane calls `display.observe` on authenticated `/api/ws`, then splices RFB over `/api/display/ws`. Binding published ports to `127.0.0.1` keeps the API off the LAN.
 

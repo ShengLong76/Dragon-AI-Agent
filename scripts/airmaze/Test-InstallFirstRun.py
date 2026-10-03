@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Guardrails for the five install/first-run bugs James hit on e65bfdf.
+"""Guardrails for the install/first-run bugs James hit on UltraDragon.
 
 Fails the build if:
   (a) a non-current tray/window icon ships in the installer package
   (b) a team-selection prompt returns to install / first-run
   (c) Launch can complete with no result / no feedback
-  (d) the packaged window is the blue-header "Gateway ready" shell
+  (d) the window would accept the headless hermes serve page
+      ("web UI disabled") instead of the desktop web UI
   (e) "Gateway ready" reappears in the installed UI
+  (f) first-run no longer lands on the Air Maze Models / LLM provider step
 
 No secrets. Safe on Linux CI.
 """
@@ -38,6 +40,14 @@ LAUNCHER = SCRIPTS / "start-embedded.ps1"
 HOST = DESKTOP / "main.go"
 HOST_WIN = DESKTOP / "host_windows.go"
 TEAMS_JS = ROOT / "branding" / "fonts" / "syne" / "teams-picker.js"
+FIRST_RUN_JS = ROOT / "branding" / "fonts" / "syne" / "first-run-models.js"
+DESKTOP_UI = SCRIPTS / "desktop_ui.py"
+COMPOSE = ROOT / "docker-compose.embedded.yml"
+SERVE_UI = SCRIPTS / "start-desktop-ui.sh"
+HEADLESS_BODY = (
+    "Headless backend (hermes serve): web UI disabled - "
+    "use `hermes dashboard` for the browser UI."
+)
 
 FORBIDDEN_STATUS = (
     "Gateway ready",
@@ -175,56 +185,99 @@ def test_launch_always_reports() -> None:
     print("OK  Launch always returns a result")
 
 
-def test_ultradragon_ui_not_blue_header_shell() -> None:
+def test_desktop_web_ui_not_headless() -> None:
     html = read(UI / "index.html")
     css = read(UI / "app.css")
     js = read(UI / "app.js")
+    host = read(HOST)
+    launcher = read(LAUNCHER)
+    compose = read(COMPOSE)
     for bad in FORBIDDEN_STATUS:
-        if bad in html or bad in js or bad in css:
+        if bad in html or bad in js or bad in css or bad in host:
             fail(f"installed UI still contains leftover status {bad!r}")
-    if 'class="lockup"' in html and "lockup" in css:
-        lockup = css.split(".lockup {")[1].split("}")[0] if ".lockup {" in css else ""
-        if "background: var(--dragon-marketplace-blue)" in lockup or "background: #2563eb" in lockup:
-            fail("product lockup must not be the blue header bar from the e65bfdf shell")
-    if 'data-dragon-ai-shell="ultradragon"' not in html:
-        fail("desktop UI must stamp the UltraDragon shell")
-    if 'data-dragon-ai-hide-sidebar' not in html:
-        fail("UltraDragon UI must keep hide-sidebar to the left of the logo")
-    if "Teams Marketplace" not in html:
-        fail("UltraDragon UI must keep Teams Marketplace under the logo")
-    if "Sessions" not in html or "Bots" not in html:
-        fail("UltraDragon UI must keep Sessions and Bots below the logo / Marketplace")
-    if "1.125" not in css and "15.75px" not in css:
-        fail("Sessions/Bots labels must be 1.125x neighboring sidebar text")
-    if 'id="panel-models"' not in html or "data-airmaze-models" not in html:
-        fail("first-run must land on the Models / LLM provider screen")
-    if "data-slot=\"composer\"" not in html or "composer-wave" not in html:
-        fail("composer must be the dark pill with plus / field / mic / waveform")
-    if "GPT" in html and "Grok pills" not in html:
-        if "Voice/GPT/Grok" in html:
-            fail("composer must not ship Voice/GPT/Grok pills")
-    if "Embedded Linux" in html:
-        fail("installed UI must not show an Embedded Linux connection header")
-    if "data-open-scheduled-jobs" not in html:
-        fail("Scheduled Jobs must keep the right sidebar visible")
-    if "dblclick" not in js:
-        fail("double-click a bot must open the right-panel Bot Screen")
-    if "Grok Voice" not in html:
-        fail("Settings must list Grok Voice")
+    if "blue header" in html.lower() and 'class="lockup"' in html:
+        fail("product window must not ship the e65bfdf blue-header shell")
+    if HEADLESS_BODY.replace("`", "") not in host and "web UI disabled" not in host:
+        fail("desktop host must detect the headless web UI disabled body")
+    if "isHeadlessPage" not in host:
+        fail("desktop host must refuse a headless hermes serve page")
+    if "8660" not in host or "desktopUIURL" not in host:
+        fail("desktop host must default the window upstream to the dashboard web UI (:8660)")
+    if "first-run-models" not in host:
+        fail("desktop host must inject the Air Maze first-run Models step onto the web UI")
+    if "/api/launch" not in host:
+        fail("desktop host must expose /api/launch")
+    if "refusing headless" not in host:
+        fail("Launch must fail when the window URL is the headless serve page")
+    if "127.0.0.1:8660:8660" not in compose:
+        fail("compose must publish the dashboard web UI on 127.0.0.1:8660")
+    if "hermes-airmaze-desktop-ui" not in compose or "start-desktop-ui.sh" not in compose:
+        fail("compose must run hermes dashboard as hermes-airmaze-desktop-ui")
+    if "dashboard --host" not in read(SERVE_UI) or "--no-open" not in read(SERVE_UI):
+        fail("start-desktop-ui.sh must run hermes dashboard --no-open")
+    if "web UI disabled" not in launcher or "Test-DesktopWebUIReady" not in launcher:
+        fail("launcher must refuse a headless web UI disabled body at the window URL")
+    if "8660" not in launcher:
+        fail("launcher must wait for the dashboard web UI on 8660")
+    if not FIRST_RUN_JS.is_file():
+        fail("missing branding/fonts/syne/first-run-models.js")
+    first_run = read(FIRST_RUN_JS)
+    if "Default chat LLM" not in first_run or "Default image LLM" not in first_run:
+        fail("first-run Models step must offer chat + image LLM pickers")
+    if "data-airmaze-models" not in first_run:
+        fail("first-run Models step must stamp data-airmaze-models")
+    if "Continue" not in first_run or "Skip this step" not in first_run:
+        fail("first-run Models step must have Continue and Skip this step")
+    if "xAI Grok login" not in first_run:
+        fail("first-run Models step must reuse the existing xAI login (no new API key)")
+    if "Teams Marketplace" not in first_run or "Personal Assistant" not in first_run:
+        fail("first-run copy must say Personal Assistant is installed and teams come later")
+    if "Select-BotGroup" in first_run or "Choose a Team" in first_run:
+        fail("first-run Models step must not include a teams picker")
+    branding = read(SCRIPTS / "desktop_branding.py")
+    if "inject_first_run_models_script" not in branding:
+        fail("desktop branding must inject first-run-models.js onto the real web UI")
+    sys.path.insert(0, str(SCRIPTS))
+    import desktop_ui as dui  # noqa: E402
+
+    if not dui.is_headless_page(HEADLESS_BODY):
+        fail("desktop_ui.is_headless_page missed the live UltraDragon body")
+    if dui.is_desktop_web_ui(HEADLESS_BODY):
+        fail("desktop_ui accepted the headless serve page as the chat UI")
+    proc = subprocess.run([sys.executable, str(DESKTOP_UI), "--self-test"], cwd=str(ROOT))
+    if proc.returncode != 0:
+        fail("desktop_ui.py --self-test failed (headless page must be refused)")
     exe = PACKAGED_EXE.read_bytes()
     for bad in FORBIDDEN_STATUS:
         if bad.encode() in exe:
             fail(f"packaged DragonAIAgent.exe still embeds {bad!r} (rebuild the exe)")
-    if b'data-dragon-ai-shell="ultradragon"' not in exe:
-        fail("packaged exe still embeds the old blue-header UI; rebuild DragonAIAgent.exe")
-    print("OK  packaged UI matches the UltraDragon shell (no Gateway ready)")
+    if b"web UI disabled" not in exe or b"refusing headless" not in exe:
+        fail("packaged exe must refuse the headless web UI disabled page; rebuild DragonAIAgent.exe")
+    if b"first-run-models" not in exe:
+        fail("packaged exe must inject first-run Models onto the desktop web UI; rebuild")
+    print("OK  window loads the desktop web UI (headless serve page refused)")
+
+
+def test_first_run_models_on_chat_screen() -> None:
+    host = read(HOST)
+    if "handleModels" not in host and "/dragon-ai-api/models" not in host:
+        fail("desktop host must expose the Air Maze Models API used by first-run")
+    if "gateway_models.py" not in host:
+        fail("first-run Continue must write principal + image_gen through gateway_models.py")
+    if "injectOverlay" not in host:
+        fail("desktop host must inject overlay + first-run onto the loaded dashboard HTML")
+    js = read(UI / "app.js")
+    if "web UI disabled" not in js and "headless" not in js:
+        fail("loader must fail if /dragon-ai-api/desktop-ui reports the headless page")
+    print("OK  first-run Models step is tied to the loaded desktop web UI")
 
 
 def main() -> int:
     test_current_tray_icon_only()
     test_no_install_team_prompt()
     test_launch_always_reports()
-    test_ultradragon_ui_not_blue_header_shell()
+    test_desktop_web_ui_not_headless()
+    test_first_run_models_on_chat_screen()
     print("SMOKE OK: install first-run guardrails hold.")
     return 0
 

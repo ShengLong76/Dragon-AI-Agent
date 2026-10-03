@@ -27,6 +27,18 @@ def main() -> int:
         return 1
     WINRES_ICO.parent.mkdir(parents=True, exist_ok=True)
     WINRES_ICO.write_bytes(BRAND_ICO.read_bytes())
+    brand_dest = DESKTOP / "ui" / "branding"
+    brand_dest.mkdir(parents=True, exist_ok=True)
+    for src in (
+        ROOT / "branding" / "fonts" / "syne" / "first-run-models.js",
+        ROOT / "branding" / "fonts" / "syne" / "sidebar-header.js",
+        ROOT / "branding" / "fonts" / "syne" / "teams-picker.js",
+        ROOT / "branding" / "fonts" / "syne" / "dragon-ui.css",
+        ROOT / "branding" / "voice" / "dragon-voice-selector.js",
+        ROOT / "branding" / "voice" / "dragon-voice-settings.js",
+    ):
+        if src.is_file():
+            (brand_dest / src.name).write_bytes(src.read_bytes())
     go = shutil.which("go")
     if not go:
         print("go is required to rebuild DragonAIAgent.exe", file=sys.stderr)

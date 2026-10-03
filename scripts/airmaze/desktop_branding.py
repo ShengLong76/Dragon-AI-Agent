@@ -34,6 +34,7 @@ BRAND_DIR_NAME = "dragon-ai-branding"
 HTML_MARK = 'data-dragon-ai-branding="ui-face"'
 SIDEBAR_SCRIPT_MARK = 'data-dragon-ai-branding="sidebar-header"'
 TEAMS_SCRIPT_MARK = 'data-dragon-ai-branding="teams-picker"'
+FIRST_RUN_SCRIPT_MARK = 'data-dragon-ai-branding="first-run-models"'
 VOICE_SCRIPT_MARK = 'data-dragon-ai-branding="voice-provider"'
 VOICE_SETTINGS_SCRIPT_MARK = 'data-dragon-ai-branding="voice-settings"'
 OLD_HTML_MARKS = ('data-dragon-ai-branding="outfit"',)
@@ -42,6 +43,7 @@ CSS_APPEND_MARK = "/* dragon-ai-ui-face */"
 LOCKUP_WRAP_MARK = "dragon-ai-lockup-wrap:1"
 SIDEBAR_SCRIPT_NAME = "sidebar-header.js"
 TEAMS_SCRIPT_NAME = "teams-picker.js"
+FIRST_RUN_SCRIPT_NAME = "first-run-models.js"
 PACK_FILE_SUFFIXES = {".woff2", ".css", ".txt", ".md", ".js"}
 LOGO_NAMES = ("dragon-ai-agent-logo.svg", "dragon-ai-agent-logo.png")
 PNG_ICON_NAMES = ("icon.png", "apple-touch-icon.png")
@@ -423,6 +425,14 @@ def inject_teams_picker_script(html: str) -> tuple[str, bool]:
     return upsert_marked_script(html, TEAMS_SCRIPT_MARK, teams_picker_script())
 
 
+def first_run_models_script() -> str:
+    return wrap_marked_script(FIRST_RUN_SCRIPT_MARK, load_pack_script(FIRST_RUN_SCRIPT_NAME))
+
+
+def inject_first_run_models_script(html: str) -> tuple[str, bool]:
+    return upsert_marked_script(html, FIRST_RUN_SCRIPT_MARK, first_run_models_script())
+
+
 def voice_selector_js_path() -> Path:
     return branding_dir() / "voice" / "dragon-voice-selector.js"
 
@@ -461,10 +471,11 @@ def inject_html_branding(html: str) -> tuple[str, bool]:
     out, changed = inject_font_link(html)
     out2, changed2 = inject_sidebar_header_script(out)
     out3, changed3 = inject_teams_picker_script(out2)
-    out4, changed4 = inject_voice_provider_script(out3)
-    out5, changed5 = inject_voice_settings_script(out4)
-    out6, stripped = strip_crimson_lockup_border(out5)
-    return out6, changed or changed2 or changed3 or changed4 or changed5 or bool(stripped)
+    out4, changed4 = inject_first_run_models_script(out3)
+    out5, changed5 = inject_voice_provider_script(out4)
+    out6, changed6 = inject_voice_settings_script(out5)
+    out7, stripped = strip_crimson_lockup_border(out6)
+    return out7, changed or changed2 or changed3 or changed4 or changed5 or changed6 or bool(stripped)
 
 
 def append_font_css(css_text: str, sheet: str) -> tuple[str, bool]:

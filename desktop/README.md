@@ -7,7 +7,7 @@ This folder is the first-party Windows app. The product window is **Dragon AI Ag
 ```text
 desktop/
   main.go                 Windows host (WebView2, Edge --app fallback)
-  ui/                     UltraDragon shell (sidebar lockup, Models first-run, chat, Teams)
+  ui/                     Thin loader + branding inject. The window loads hermes dashboard (:8660).
   winres/icon.ico         Current branding ICO (resource id 1)
   win-unpacked/
     DragonAIAgent.exe     Cross-compiled product exe with that ICO embedded

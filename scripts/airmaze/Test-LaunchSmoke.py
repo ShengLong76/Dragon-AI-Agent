@@ -99,8 +99,11 @@ REQUIRED_COMPOSE = (
     'HERMES_DASHBOARD_BASIC_AUTH_USERNAME: "dragon"',
     "HERMES_DASHBOARD_SESSION_TOKEN",
     "127.0.0.1:8650:8650",
+    "127.0.0.1:8660:8660",
     "hermes-airmaze-desktop",
+    "hermes-airmaze-desktop-ui",
     "start-desktop-serve.sh",
+    "start-desktop-ui.sh",
     "start-gateway.sh",
     "patch_grok_voice_mode.py",
 )
@@ -232,6 +235,10 @@ def check_launcher() -> None:
         fail("launch plan still advertises first-run Onboard-Wizard")
     if "first-run uses in-app Models UI" not in text:
         fail("launch plan must say first-run uses in-app Models UI")
+    if "web UI disabled" not in text:
+        fail("launcher must refuse a headless web UI disabled page")
+    if "8660" not in text or "Test-DesktopWebUIReady" not in text:
+        fail("launcher must wait for the dashboard web UI on 8660")
     if "New-LaunchStatusForm | Out-Null" in text:
         fail("normal launch must not auto-open the Waiting for gateway Setup/Close status window")
     if "do not show Waiting for gateway Setup/Close status window" not in text:
