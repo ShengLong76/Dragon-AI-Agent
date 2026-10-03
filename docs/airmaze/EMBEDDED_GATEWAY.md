@@ -223,7 +223,7 @@ If the Screen pane says packages missing, you are on a slim tag — switch compo
 
 - [ ] `docker version` shows Server (Linux engine)
 - [ ] `docker pull nousresearch/hermes-agent:latest-desktop` succeeds
-- [ ] **Open Dragon AI Agent** (Desktop / Start Menu / double-click `Start-DragonAI.vbs`): **no PowerShell console** (shortcut target is `wscript.exe`, not Hide-ConsoleWindow after a flash). Desktop client window only — **no** WinForms “Waiting for gateway…” Setup/Close status window (Hermes desktop is the loading UX). Docker engine stopped → launcher starts **Docker Desktop in the tray** (no Containers dashboard) and waits; MessageBox only if it stays down. Dashboard `:9119` must **not** auto-open. A healthy `docker compose up` must not exit 1 from CLI stderr. Log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`.
+- [ ] **Open Dragon AI Agent** (Desktop / Start Menu / double-click `Start-DragonAI.vbs`): **no PowerShell console** (shortcut target is `wscript.exe`, not Hide-ConsoleWindow after a flash). Desktop client window only — **no** WinForms “Waiting for gateway…” Setup/Close status window (Hermes desktop is the loading UX). Docker engine stopped → launcher starts the engine **invisibly** (no dashboard, no onboarding, no tray icon) and waits; MessageBox only if it stays down. Dashboard `:9119` must **not** auto-open. A healthy `docker compose up` must not exit 1 from CLI stderr. Log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`.
 - [ ] From Windows: `http://127.0.0.1:8642/health` does not connection-close (Bearer `dragon-local-key` if asked). `http://127.0.0.1:9119/` serves the dashboard login (user `dragon`).
 - [ ] Desktop serve: `http://127.0.0.1:8650/api/health` returns 200 with header `X-Hermes-Session-Token: dragon-local`. `GET /api/ws` without Upgrade may 404 — that is normal; the client uses a WebSocket upgrade + `?token=`.
 - [ ] Offline wiring check (no secrets): `python3 scripts/airmaze/Test-LaunchSmoke.py` (includes `Test-DesktopServeAdapter.py` and `start-gateway.sh --self-test`) or `powershell -File scripts\airmaze\start-embedded.ps1 -Smoke`
@@ -239,7 +239,7 @@ Invoke-WebRequest http://127.0.0.1:8642/health -UseBasicParsing
 # If asked for a Bearer token, use API_SERVER_KEY dragon-local-key (16+ chars). Desktop token stays dragon-local.
 ```
 
-  Then open Start Menu **Dragon AI Agent** (not `%LOCALAPPDATA%\DragonAIAgent\Dragon AI Agent Client.lnk`). Confirm the `.lnk` target is `wscript.exe` + `Start-DragonAI.vbs`. Client window opens. Compose/health failures still fail closed (dialog, no silent Hermes.exe). Docker engine down starts Docker Desktop in the tray.
+  Then open Start Menu **Dragon AI Agent** (not `%LOCALAPPDATA%\DragonAIAgent\Dragon AI Agent Client.lnk`). Confirm the `.lnk` target is `wscript.exe` + `Start-DragonAI.vbs`. Client window opens. Compose/health failures still fail closed (dialog, no silent Hermes.exe). Docker engine down starts the engine invisibly (no tray).
 - [ ] After a normal Dragon AI Agent start, `%LOCALAPPDATA%\DragonAIAgent\electron-userdata\connections.json` has Remote `embedded-linux` → `http://127.0.0.1:8650` as primary (token value is the placeholder, not a production secret). Standalone `%APPDATA%\Hermes\connections.json` primary stays local.
 - [ ] Screen pane on the **Embedded Linux** Remote offers Start / live preview (not “No bot screen on this host” — that message is **This device** on Windows)
 - [ ] `hermes computer-use screen status` (in container) → installed / running
@@ -258,4 +258,4 @@ Invoke-WebRequest http://127.0.0.1:8642/health -UseBasicParsing
 
 ## Docker Desktop UI (Dragon AI Agent installer)
 
-The Dragon AI Agent Windows installer **owns Docker Desktop** on a clean PC (packaged `vendor/docker` installer or a Setup-owned download + quiet install — not a docker.com-first step). It then configures Docker Desktop to **start minimized to the system tray** and sets `openUIOnStartupDisabled` (and related keys) in `%APPDATA%\Docker\settings.json` / `settings-store.json` so the dashboard window does not pop on first run. The engine still starts; open the dashboard from the tray when needed. Design: `DOCKER_INSTALL.md`.
+The Dragon AI Agent Windows installer **owns Docker Desktop** on a clean PC (packaged `vendor/docker` installer or a Setup-owned download + quiet install -- not a docker.com-first step). Quiet install uses `--always-run-service`. It then configures Docker Desktop for an **invisible / headless** engine (`openUIOnStartupDisabled`, `displayedOnboarding`, `disableTrayIcon`) in `%APPDATA%\Docker\settings.json` / `settings-store.json`. No dashboard, no onboarding, no tray icon, no docker.com page, and no message telling the user to install Docker. Design: `DOCKER_INSTALL.md`.

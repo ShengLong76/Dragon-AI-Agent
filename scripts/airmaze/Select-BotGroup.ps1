@@ -1,7 +1,7 @@
 #requires -Version 5.1
 <#
 .SYNOPSIS
-  Dragon AI Agent Teams popup — lists groups from this GitHub repo and launches checked teams.
+  Dragon AI Agent Teams popup - lists groups from this GitHub repo and launches checked teams.
 
 .DESCRIPTION
   Front end of https://github.com/ShengLong76/airmaze-agent bot-groups/.
@@ -148,7 +148,7 @@ function Show-TeamsPopup {
     $singularOn = [bool]$settings.allowSingularBotImportExport
 
     $form = New-Object System.Windows.Forms.Form
-    $form.Text = "Dragon AI Agent — Teams Marketplace"
+    $form.Text = "Dragon AI Agent - Teams Marketplace"
     $form.Size = New-Object System.Drawing.Size(720, 560)
     $form.MinimumSize = New-Object System.Drawing.Size(640, 480)
     $form.StartPosition = "CenterScreen"
@@ -197,8 +197,8 @@ function Show-TeamsPopup {
         $bits = @()
         if ($g.seats) { $bits += ("{0} seats" -f $g.seats) }
         if ($g.author) { $bits += [string]$g.author }
-        $suffix = if ($bits.Count) { " ({0})" -f ($bits -join " · ") } else { "" }
-        [void]$list.Items.Add(("{0} — {1}{2}" -f $label, $blurb, $suffix))
+        $suffix = if ($bits.Count) { " ({0})" -f ($bits -join " / ") } else { "" }
+        [void]$list.Items.Add(("{0} - {1}{2}" -f $label, $blurb, $suffix))
     }
     $form.Controls.Add($list)
     $script:TeamsList = $list
@@ -208,9 +208,9 @@ function Show-TeamsPopup {
     if ($src -eq "github") {
         $status.Text = "Listed from github.com/ShengLong76/airmaze-agent (bot-groups/)"
     } elseif ($src -eq "cache") {
-        $status.Text = "GitHub unreachable — using cached catalog"
+        $status.Text = "GitHub unreachable - using cached catalog"
     } else {
-        $status.Text = "GitHub unreachable — using bundled catalog"
+        $status.Text = "GitHub unreachable - using bundled catalog"
     }
     $status.ForeColor = $script:BrandMuted
     $status.Location = New-Object System.Drawing.Point(24, 350)
@@ -344,7 +344,7 @@ if (Initialize-BotGroupWinForms) {
     $listed = Get-ListedGroups
     Write-Host ""
     Write-Host "========================================"
-    Write-Host " Dragon AI Agent — Teams Marketplace"
+    Write-Host " Dragon AI Agent - Teams Marketplace"
     Write-Host "========================================"
     $entries = @($listed.groups | Where-Object { $_.id -ne "personal-assistant" })
     $i = 1
@@ -353,7 +353,7 @@ if (Initialize-BotGroupWinForms) {
         Write-Host ("      {0}" -f $e.departmentJob)
         $i++
     }
-    Write-Host "  [Enter] cancel — Personal Assistant is already installed"
+    Write-Host "  [Enter] cancel - Personal Assistant is already installed"
     Write-Host ""
     $ans = Read-Host "Selection"
     if ([string]::IsNullOrWhiteSpace($ans)) {

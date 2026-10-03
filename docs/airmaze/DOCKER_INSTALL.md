@@ -2,7 +2,7 @@
 
 Short design. A clean Windows PC gets Docker Desktop through **Dragon AI Agent Setup**, not as a separate install the user does first.
 
-Launch still does **not** download or install Docker (`docs/airmaze/DOCKER_LAUNCH.md`). That path only starts an already-installed engine in the tray.
+Launch still does **not** download or install Docker (`docs/airmaze/DOCKER_LAUNCH.md`). That path only starts an already-installed engine **headless** (no dashboard, no onboarding, **no tray** icon).
 
 ## Why the old path failed
 
@@ -25,14 +25,14 @@ Per-user Docker (`%LOCALAPPDATA%\Programs\DockerDesktop`) was also invisible to 
    - `%payload%\installer\vendor\docker\…`
    - `%LOCALAPPDATA%\DragonAIAgent\vendor\docker\…` (Setup-owned cache)
    - Official `https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe` written into that cache
-3. Runs **quiet install**: `install --quiet --accept-license` as separate arguments. Elevates with `RunAs` when Setup is not already admin. Exit `0` or `3010` (reboot required) counts as installer success.
-4. Patches tray-only settings (`openUIOnStartupDisabled`, `startMinimized`, `minimizeToTray`). No Docker dashboard URL. No `:9119`.
-5. Prepends Docker `resources\bin` (including `Programs\DockerDesktop`) to **this session’s** PATH, then starts `com.docker.service` / `Docker Desktop.exe` Hidden/Minimized and waits ~3 minutes for `docker info`.
+3. Runs **quiet install**: `install --quiet --accept-license --always-run-service` as separate arguments (Hidden window). Elevates with `RunAs` when Setup is not already admin. Exit `0` or `3010` (reboot required) counts as installer success.
+4. Patches **headless** settings (`openUIOnStartupDisabled`, `displayedOnboarding`, `disableTrayIcon`). No Docker dashboard URL. No onboarding. **No tray** icon. No `:9119`.
+5. Prepends Docker `resources\bin` (including `Programs\DockerDesktop`) to **this session's** PATH, then starts `com.docker.service` / `com.docker.backend.exe` Hidden (last-resort Hidden `Docker Desktop.exe`, then hide/stop the Electron UI) and waits ~3 minutes for `docker info`.
 6. If the engine is up, compose pull + `up -d`. If Windows still needs a reboot, package files and the **Dragon AI Agent** Start Menu shortcut are still written; compose waits until the next Setup run or product launch.
 
-Half-installed (exe present, CLI missing) takes the same quiet-install path. Already-complete Docker is a no-op besides tray settings.
+Half-installed (exe present, CLI missing) takes the same quiet-install path. Already-complete Docker is a no-op besides headless settings.
 
-**Not done here:** opening docker.com, installing Docker from the product shortcut, stamping standalone Hermes, launching WinForms Setup, or creating Bot Groups / Dashboard / Profiles Start Menu tiles. First-run model choice stays the **in-app** Models screen.
+**Not done here:** opening docker.com, telling the user to install Docker, installing Docker from the product shortcut, stamping standalone Hermes, launching WinForms Setup, or creating Bot Groups / Dashboard / Profiles Start Menu tiles. First-run model choice stays the **in-app** Models screen. There must be no sign of Docker to the user during Setup.
 
 ## Package slot
 

@@ -12,7 +12,7 @@ Compatible with the open-source agent desktop stack (separate desktop client). T
 | Step | Behavior |
 |------|----------|
 | WSL2 | Best-effort check / enable (`wsl --install` if missing). **Reboot may be required.** |
-| Docker Desktop | **Setup owns this.** Prefer `payload/vendor/docker` installer; else Setup downloads the official installer and quiet-installs (`install --quiet --accept-license`). Half-installed (exe without CLI) is repaired the same way. No docker.com download-page fallback. Configured to **start minimized to the system tray** (no dashboard window on launch). |
+| Docker Desktop | **Setup owns this.** Prefer `payload/vendor/docker` installer; else Setup downloads the official installer and quiet-installs (`install --quiet --accept-license --always-run-service`). Half-installed (exe without CLI) is repaired the same way. No docker.com page, no "install Docker" prompt. Engine start is **invisible** (no dashboard, no onboarding, no tray icon). |
 | Embedded gateway | `docker compose` pull + `up -d` for the packaged embedded gateway image (see `THIRD_PARTY_NOTICES.md`). |
 | Ports | `127.0.0.1:8650` (Desktop Remote / Bot Screen), `127.0.0.1:8642` (OpenAI API), `127.0.0.1:9119` (browser dashboard). Local credentials: see `docs/airmaze/EMBEDDED_GATEWAY.md`. |
 | **Bot groups / Teams** | In-app **Teams Marketplace** popup (sidebar + first-run) browses GitHub catalog packs (Real Estate Lead Gen, Marketing Team, Trading Team): brief, 4-column seat cards, author, required connectors. **Install** / **Launch** files bots under that name, not Unassigned. **Export** scrubs secrets. Import stays. Personal Assistant is already installed and is not a Teams row. |
@@ -41,7 +41,7 @@ Gateway data: `%USERPROFILE%\.hermes-airmaze-embedded` (internal)
 
 Desktop / Start Menu shortcuts: **Dragon AI Agent** only (the product launcher). There are no **Bot Groups**, **Dashboard**, **Profiles**, or **Setup** shortcuts. Leftover `.lnk` files from older installs are deleted on install and on the next launch.
 
-Opening **Dragon AI Agent** uses a windowless host (`Start-DragonAI.vbs` / `wscript.exe`) — no PowerShell console. The VBS sets `HERMES_DESKTOP_USER_DATA_DIR` and `start-embedded.ps1` launches the **private** desktop client. If Docker is not running it starts **Docker Desktop in the system tray** (no Containers dashboard), then starts the gateway **and** the Desktop-compatible Linux `hermes serve` (published at `http://127.0.0.1:8650`), writes the Remote connection into Dragon `electron-userdata`, and opens the **private desktop client** (not the :9119 dashboard). Standalone Hermes primary stays local. Already-running Docker is a no-op. Failures after a bounded wait are a MessageBox. **This device** Screen is Linux-only by upstream design — use the Embedded Linux Remote. Optional dashboard: `start-embedded.ps1 -OpenDashboard`. Debug: run `start-embedded.ps1` in a console. Launch log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`. Branding: [`docs/airmaze/BRANDING.md`](docs/airmaze/BRANDING.md). Design: [`docs/airmaze/DESIGN.md`](docs/airmaze/DESIGN.md). Docker launch: [`docs/airmaze/DOCKER_LAUNCH.md`](docs/airmaze/DOCKER_LAUNCH.md).
+Opening **Dragon AI Agent** uses a windowless host (`Start-DragonAI.vbs` / `wscript.exe`) — no PowerShell console. The VBS sets `HERMES_DESKTOP_USER_DATA_DIR` and `start-embedded.ps1` launches the **private** desktop client. If Docker is not running it starts the **background engine invisibly** (no dashboard, no onboarding, no tray icon), then starts the gateway **and** the Desktop-compatible Linux `hermes serve` (published at `http://127.0.0.1:8650`), writes the Remote connection into Dragon `electron-userdata`, and opens the **private desktop client** (not the :9119 dashboard). Standalone Hermes primary stays local. Already-running Docker is a no-op. Failures after a bounded wait are a MessageBox. **This device** Screen is Linux-only by upstream design — use the Embedded Linux Remote. Optional dashboard: `start-embedded.ps1 -OpenDashboard`. Debug: run `start-embedded.ps1` in a console. Launch log: `%LOCALAPPDATA%\DragonAIAgent\launch.log`. Branding: [`docs/airmaze/BRANDING.md`](docs/airmaze/BRANDING.md). Design: [`docs/airmaze/DESIGN.md`](docs/airmaze/DESIGN.md). Docker launch: [`docs/airmaze/DOCKER_LAUNCH.md`](docs/airmaze/DOCKER_LAUNCH.md).
 
 ```powershell
 # Same path the shortcut uses (no secrets)
@@ -106,14 +106,14 @@ Voice chat: Settings → Voice → Voice conversation mode lists **Chained**, **
 
 ---
 
-## Docker Desktop: tray only (no dashboard popup)
+## Docker Desktop: invisible engine (no dashboard, no tray)
 
-The installer patches Docker Desktop settings (when present) so the app opens **without** showing the dashboard window:
+The installer patches Docker Desktop settings (when present) so the engine starts **without** a dashboard, onboarding, or tray icon:
 
 - `%APPDATA%\Docker\settings.json` and/or `settings-store.json`
-- Keys such as `openUIOnStartupDisabled: true` (and related open-at-login / tray preferences)
+- Keys such as `openUIOnStartupDisabled: true`, `displayedOnboarding: true`, `disableTrayIcon: true`
 
-It starts the Docker engine in a headless-friendly way (service / `Docker Desktop.exe` without forcing the UI). You can still open the dashboard later from the tray icon if needed.
+It prefers `com.docker.service` + `com.docker.backend.exe` (Hidden / CreateNoWindow). `Docker Desktop.exe` is a last resort and is hidden/stopped after the engine is up. Setup never opens docker.com.
 
 ---
 

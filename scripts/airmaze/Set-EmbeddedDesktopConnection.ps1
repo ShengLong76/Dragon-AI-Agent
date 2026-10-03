@@ -6,7 +6,7 @@
 .DESCRIPTION
   Upserts Dragon AI connections.json (HERMES_DESKTOP_USER_DATA_DIR /
   %LOCALAPPDATA%\DragonAIAgent\electron-userdata\connections.json) with Remote
-  "Embedded Linux" → http://127.0.0.1:8650 and the compose placeholder session
+  "Embedded Linux" -> http://127.0.0.1:8650 and the compose placeholder session
   token (dragon-local). Rewrites a prior Remote that targeted the OpenAI API
   on :8642.
 
@@ -80,7 +80,7 @@ if ($Smoke) {
         if ($doc.primary -ne "embedded-linux") { throw "Smoke: primary was $($doc.primary)" }
         $hit = @($doc.connections) | Where-Object { $_.id -eq "embedded-linux" } | Select-Object -First 1
         if (-not $hit -or [string]$hit.url -notlike "*8650*") { throw "Smoke: missing 8650 remote" }
-        Write-Host "SMOKE OK: connections.json helper wrote Embedded Linux → 8650"
+        Write-Host "SMOKE OK: connections.json helper wrote Embedded Linux -> 8650"
         exit 0
     } finally {
         Remove-Item -LiteralPath $tmp -ErrorAction SilentlyContinue
@@ -181,4 +181,4 @@ if (-not $NoPrimary) {
 }
 
 ($doc | ConvertTo-Json -Depth 8) | Set-Content -LiteralPath $dest -Encoding UTF8
-Write-Host "Wrote Embedded Linux Remote → $Url ($dest)"
+Write-Host "Wrote Embedded Linux Remote -> $Url ($dest)"

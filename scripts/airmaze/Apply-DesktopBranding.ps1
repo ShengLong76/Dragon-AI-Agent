@@ -304,7 +304,7 @@ function Install-DragonAIDesktopFontPack {
         }
     }
     if ($copiedCss -lt 1) {
-        throw "Apply-DesktopBranding: dragon-ui.css / inject did not land in unpacked dist/dragon-ai-branding (no renderer target). Python is optional — this PowerShell copy must succeed."
+        throw "Apply-DesktopBranding: dragon-ui.css / inject did not land in unpacked dist/dragon-ai-branding (no renderer target). Python is optional - this PowerShell copy must succeed."
     }
     return @{ fontFamily = "Syne"; copied = $true; htmlPatched = $htmlPatched; targets = $targets; cssCopied = $copiedCss }
 }

@@ -5,8 +5,9 @@
 
 .DESCRIPTION
   Provisions WSL2 and Docker Desktop (Setup-owned: packaged installer, then
-  Setup-owned download, quiet install, half-install repair; tray-minimized, no
-  dashboard popup), then the embedded gateway, bot group dropdown, and desktop.
+  Setup-owned download, quiet install, half-install repair; fully invisible:
+  no dashboard, no onboarding, no tray icon, no docker.com page), then the
+  embedded gateway, bot group dropdown, and desktop.
 
 .NOTES
   Log: %LOCALAPPDATA%\DragonAIAgent\install.log
@@ -35,10 +36,12 @@ $DockerSettingsDir = Join-Path $env:APPDATA "Docker"
 $StartMenuDir = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Dragon AI Agent"
 
 function Write-Log {
-    param([string]$Message, [string]$Level = "INFO")
+    param([string]$Message, [string]$Level = "INFO", [switch]$FileOnly)
     $ts = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $line = "[$ts] [$Level] $Message"
-    Write-Host $line
+    if (-not $FileOnly) {
+        Write-Host $line
+    }
     try {
         if (-not (Test-Path -LiteralPath $InstallRoot)) {
             New-Item -ItemType Directory -Force -Path $InstallRoot | Out-Null
@@ -82,28 +85,48 @@ function Ensure-Dir([string]$Path) {
     }
 }
 
-# --- Docker Desktop: tray-only / no dashboard on startup --------------------
+# --- Docker Desktop: invisible engine (no window / tray / onboarding) ------
 
-function Set-DockerTrayOnlySettings {
-    Write-Log "Configuring Docker Desktop for tray-only startup (no dashboard window)..."
+function Set-DockerHeadlessSettings {
+    Write-Log "Configuring Docker Desktop for invisible engine start (no dashboard, no onboarding, no tray)." -FileOnly
     Ensure-Dir $DockerSettingsDir
 
-    $patch = @{
+    # PowerShell hashtables are case-insensitive. camelCase only in this $patch.
+    # settings-store.json gets a separate PascalCase table below.
+    $legacy = @{
         openUIOnStartupDisabled = $true
         openAtLogin             = $true
         autoStart               = $true
         startMinimized          = $true
         minimizeToTray          = $true
         displayedOnboarding     = $true
+        displayedTutorial       = $true
         analyticsEnabled        = $false
+        disableTips             = $true
+        licenseTermsVersion     = 2
+        disableTrayIcon         = $true
+        enableDockerAI          = $false
+    }
+    $store = @{
+        OpenUIOnStartupDisabled = $true
+        AutoStart               = $true
+        DisplayedOnboarding     = $true
+        DisplayedTutorial       = $true
+        AnalyticsEnabled        = $false
+        DisableTips             = $true
+        LicenseTermsVersion     = 2
+        DisableTrayIcon         = $true
+        EnableDockerAI          = $false
     }
 
-    $files = @(
-        (Join-Path $DockerSettingsDir "settings.json"),
-        (Join-Path $DockerSettingsDir "settings-store.json")
+    $targets = @(
+        @{ File = (Join-Path $DockerSettingsDir "settings.json"); Patch = $legacy },
+        @{ File = (Join-Path $DockerSettingsDir "settings-store.json"); Patch = $store }
     )
 
-    foreach ($file in $files) {
+    foreach ($target in $targets) {
+        $file = $target.File
+        $patch = $target.Patch
         try {
             $obj = $null
             if (Test-Path -LiteralPath $file) {
@@ -120,11 +143,15 @@ function Set-DockerTrayOnlySettings {
             }
             $json = $obj | ConvertTo-Json -Depth 20
             Set-Content -LiteralPath $file -Value $json -Encoding UTF8
-            Write-Log "Patched Docker settings: $file"
+            Write-Log "Patched Docker settings: $file" -FileOnly
         } catch {
-            Write-Log "Could not patch $file : $($_.Exception.Message)" "WARN"
+            Write-Log "Could not patch $file : $($_.Exception.Message)" "WARN" -FileOnly
         }
     }
+}
+
+function Set-DockerTrayOnlySettings {
+    Set-DockerHeadlessSettings
 }
 
 function Get-DockerDesktopExe {
@@ -151,10 +178,97 @@ function Test-DockerEngine {
     }
 }
 
+function Get-DockerBackendExe {
+    $dirs = @()
+    $desktop = Get-DockerDesktopExe
+    if ($desktop) {
+        $dirs += (Join-Path (Split-Path -Parent $desktop) "resources")
+    }
+    $dirs += @(
+        (Join-Path $env:ProgramFiles "Docker\Docker\resources"),
+        (Join-Path ${env:ProgramFiles(x86)} "Docker\Docker\resources"),
+        (Join-Path $env:LOCALAPPDATA "Programs\DockerDesktop\resources"),
+        (Join-Path $env:LOCALAPPDATA "Docker\resources")
+    )
+    foreach ($d in $dirs) {
+        if (-not $d) { continue }
+        $p = Join-Path $d "com.docker.backend.exe"
+        if (Test-Path -LiteralPath $p) { return $p }
+    }
+    return $null
+}
+
+function Start-HiddenNativeProcess {
+    param([string]$FilePath, [string]$Arguments = "")
+    if (-not $FilePath -or -not (Test-Path -LiteralPath $FilePath)) { return }
+    try {
+        $si = New-Object System.Diagnostics.ProcessStartInfo
+        $si.FileName = $FilePath
+        if (-not [string]::IsNullOrWhiteSpace($Arguments)) { $si.Arguments = $Arguments }
+        $si.UseShellExecute = $false
+        $si.CreateNoWindow = $true
+        $si.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
+        [void][System.Diagnostics.Process]::Start($si)
+        return
+    } catch {}
+    try {
+        Start-Process -FilePath $FilePath -WindowStyle Hidden -ErrorAction Stop
+    } catch {
+        Start-Process -FilePath $FilePath -ErrorAction SilentlyContinue
+    }
+}
+
+function Hide-DockerDesktopUi {
+    <#
+      Hide Docker Desktop windows. After the engine is up, stop Docker Desktop.exe
+      so the whale tray icon is not shown. com.docker.service / backend stay.
+    #>
+    try {
+        if (-not ("DragonAIDockerUi" -as [type])) {
+            Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class DragonAIDockerUi {
+    [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+}
+"@
+        }
+    } catch {}
+    $uiNames = @("Docker Desktop", "DockerDesktop")
+    foreach ($p in Get-Process -ErrorAction SilentlyContinue) {
+        if ($uiNames -notcontains $p.ProcessName) { continue }
+        try {
+            if ($p.MainWindowHandle -ne [IntPtr]::Zero) {
+                [DragonAIDockerUi]::ShowWindow($p.MainWindowHandle, 0) | Out-Null
+            }
+        } catch {}
+    }
+}
+
+function Stop-DockerDesktopTrayIfEngineUp {
+    if (-not (Test-DockerEngine)) { return }
+    $svc = Get-Service -Name "com.docker.service" -ErrorAction SilentlyContinue
+    if (-not $svc -or $svc.Status -ne "Running") { return }
+    foreach ($p in Get-Process -Name "Docker Desktop","DockerDesktop" -ErrorAction SilentlyContinue) {
+        try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch {}
+    }
+    Start-Sleep -Milliseconds 400
+    if (-not (Test-DockerEngine)) {
+        Write-Log "Engine dropped after hiding Docker Desktop UI; backend will be restarted if needed." "WARN" -FileOnly
+    }
+}
+
 function Start-DockerHeadless {
-    Write-Log "Starting Docker engine (headless / tray-friendly)..."
+    Write-Log "Starting background engine (invisible; no dashboard, no tray, no onboarding)." -FileOnly
     Fix-DockerPath
-    Set-DockerTrayOnlySettings
+    Set-DockerHeadlessSettings
+    $env:DOCKER_DESKTOP_DISABLE_LOGIN = "1"
+
+    if (Test-DockerEngine) {
+        Hide-DockerDesktopUi
+        Stop-DockerDesktopTrayIfEngineUp
+        return $true
+    }
 
     $svc = Get-Service -Name "com.docker.service" -ErrorAction SilentlyContinue
     if ($svc) {
@@ -162,42 +276,48 @@ function Start-DockerHeadless {
             try {
                 if (Test-IsAdmin) {
                     Start-Service -Name "com.docker.service" -ErrorAction Stop
-                    Write-Log "Started com.docker.service"
+                    Write-Log "Started com.docker.service" -FileOnly
                 } else {
-                    Write-Log "com.docker.service present but not running; admin rights needed to start service" "WARN"
-                    Start-Process -FilePath "net" -ArgumentList "start","com.docker.service" -Verb RunAs -Wait -ErrorAction SilentlyContinue
+                    Write-Log "com.docker.service present but not running; elevating service start" "WARN" -FileOnly
+                    Start-Process -FilePath "net" -ArgumentList "start","com.docker.service" -Verb RunAs -WindowStyle Hidden -Wait -ErrorAction SilentlyContinue
                 }
             } catch {
-                Write-Log "Service start failed: $($_.Exception.Message)" "WARN"
+                Write-Log "Service start failed: $($_.Exception.Message)" "WARN" -FileOnly
             }
         } else {
-            Write-Log "com.docker.service already running"
+            Write-Log "com.docker.service already running" -FileOnly
         }
+    }
+
+    $backend = Get-DockerBackendExe
+    if ($backend -and -not (Test-DockerEngine)) {
+        Write-Log "Starting com.docker.backend.exe hidden: $backend" -FileOnly
+        Start-HiddenNativeProcess -FilePath $backend
     }
 
     if (-not (Test-DockerEngine)) {
         $exe = Get-DockerDesktopExe
         if ($exe) {
-            Write-Log "Launching Docker Desktop (tray / no UI force): $exe"
-            try {
-                Start-Process -FilePath $exe -WindowStyle Minimized -ErrorAction Stop
-            } catch {
-                Start-Process -FilePath $exe -ErrorAction SilentlyContinue
-            }
+            Write-Log "Starting Docker Desktop.exe hidden (last resort, UI will be hidden): $exe" -FileOnly
+            Start-HiddenNativeProcess -FilePath $exe
         } else {
-            Write-Log "Docker Desktop.exe not found on disk yet" "WARN"
+            Write-Log "Docker Desktop.exe not found on disk yet" "WARN" -FileOnly
         }
     }
 
     $deadline = (Get-Date).AddMinutes(3)
     while ((Get-Date) -lt $deadline) {
+        Hide-DockerDesktopUi
         if (Test-DockerEngine) {
-            Write-Log "Docker engine is ready"
+            Hide-DockerDesktopUi
+            Stop-DockerDesktopTrayIfEngineUp
+            Write-Log "Docker engine is ready" -FileOnly
             return $true
         }
         Start-Sleep -Seconds 5
     }
-    Write-Log "Docker engine not ready within timeout" "WARN"
+    Hide-DockerDesktopUi
+    Write-Log "Docker engine not ready within timeout" "WARN" -FileOnly
     return $false
 }
 
@@ -288,7 +408,7 @@ function Save-DockerInstallerFromUrl {
     $destDir = Split-Path $Dest -Parent
     Ensure-Dir $destDir
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-    Write-Log "Downloading Docker Desktop installer (Setup-owned, not a separate manual install)..."
+    Write-Log "Downloading Docker Desktop installer (Setup-owned, not a separate manual install)..." -FileOnly
     Invoke-WebRequest -Uri $url -OutFile $Dest -UseBasicParsing -ErrorAction Stop
     if (-not (Test-Path -LiteralPath $Dest)) { throw "Download produced no file: $Dest" }
     return $Dest
@@ -298,73 +418,74 @@ function Resolve-DockerInstaller {
     param([string]$PayloadRoot)
     $bundled = Find-BundledDockerInstaller -PayloadRoot $PayloadRoot
     if ($bundled) {
-        Write-Log "Using packaged Docker Desktop installer: $bundled"
+        Write-Log "Using packaged Docker Desktop installer: $bundled" -FileOnly
         return $bundled
     }
     $cache = Get-DockerInstallerCachePath
     if (Test-Path -LiteralPath $cache) {
-        Write-Log "Using cached Docker Desktop installer: $cache"
+        Write-Log "Using cached Docker Desktop installer: $cache" -FileOnly
         return $cache
     }
-    Write-Log "Package has no vendor/docker installer; Setup will download it."
+    Write-Log "Package has no vendor/docker installer; Setup will download it." -FileOnly
     return (Save-DockerInstallerFromUrl -Dest $cache)
 }
 
 function Invoke-DockerDesktopQuietInstall {
     param([string]$InstallerPath)
-    Write-Log "Running quiet Docker Desktop install (may need UAC / reboot): $InstallerPath"
-    $argList = @("install", "--quiet", "--accept-license")
+    Write-Log "Running quiet Docker Desktop install (may need UAC / reboot): $InstallerPath" -FileOnly
+    $argList = @("install", "--quiet", "--accept-license", "--always-run-service")
     $start = @{
         FilePath     = $InstallerPath
         ArgumentList = $argList
         Wait         = $true
         PassThru     = $true
+        WindowStyle  = "Hidden"
         ErrorAction  = "Stop"
     }
     if (-not (Test-IsAdmin)) {
         $start["Verb"] = "RunAs"
     }
     $p = Start-Process @start
-    Write-Log "Docker installer exit code: $($p.ExitCode)"
+    Write-Log "Docker installer exit code: $($p.ExitCode)" -FileOnly
     # 0 = ok; 3010 = success, reboot required (MSI)
     return ($p.ExitCode -eq 0 -or $p.ExitCode -eq 3010)
 }
 
 function Ensure-DockerDesktop {
     param([string]$PayloadRoot = "")
-    Write-Log "Checking Docker Desktop (Setup owns this step)..."
+    Write-Log "Checking Docker Desktop (Setup owns this step)..." -FileOnly
     Fix-DockerPath
     if (Test-DockerDesktopComplete) {
-        Write-Log "Docker Desktop is already installed"
-        Set-DockerTrayOnlySettings
+        Write-Log "Docker Desktop is already installed" -FileOnly
+        Set-DockerHeadlessSettings
         return $true
     }
 
     if ((Get-DockerDesktopExe) -and -not (Test-DockerCliPresent)) {
-        Write-Log "Docker Desktop.exe is present but the CLI is missing (half-installed); Setup will repair via quiet install." "WARN"
+        Write-Log "Docker Desktop.exe is present but the CLI is missing (half-installed); Setup will repair via quiet install." "WARN" -FileOnly
     } elseif (-not (Get-DockerDesktopExe)) {
-        Write-Log "Docker Desktop is not installed; Setup will install it from the package or a Setup-owned download."
+        Write-Log "Docker Desktop is not installed; Setup will install it from the package or a Setup-owned download." -FileOnly
     }
 
     try {
         $installer = Resolve-DockerInstaller -PayloadRoot $PayloadRoot
         $ok = Invoke-DockerDesktopQuietInstall -InstallerPath $installer
         Fix-DockerPath
-        Set-DockerTrayOnlySettings
+        Set-DockerHeadlessSettings
         if (Get-DockerDesktopExe) {
             if (-not (Test-DockerCliPresent)) {
-                Write-Log "Docker Desktop.exe landed but CLI is not on PATH yet; PATH will be patched for this session." "WARN"
+                Write-Log "Docker Desktop.exe landed but CLI is not on PATH yet; PATH will be patched for this session." "WARN" -FileOnly
             }
             return $true
         }
         if (-not $ok) {
-            Write-Log "Quiet Docker install did not produce Docker Desktop.exe (exit indicated failure)." "ERROR"
+            Write-Log "Quiet Docker install did not produce Docker Desktop.exe (exit indicated failure)." "ERROR" -FileOnly
         }
     } catch {
-        Write-Log "Setup-owned Docker install failed: $($_.Exception.Message)" "ERROR"
+        Write-Log "Setup-owned Docker install failed: $($_.Exception.Message)" "ERROR" -FileOnly
     }
 
-    Write-Log "Docker Desktop is still missing. Package files will still be copied. Re-run Dragon AI Agent Setup after a reboot if Windows asked for one. Do not install Docker from docker.com first." "WARN"
+    Write-Log "Background engine is not installed yet. Package files will still be copied. Re-run Dragon AI Agent Setup after a reboot if Windows asked for one." "WARN" -FileOnly
     return $false
 }
 
@@ -377,7 +498,7 @@ function Fix-DockerPath {
     foreach ($d in $binDirs) {
         if ((Test-Path -LiteralPath $d) -and ($env:PATH -notlike "*$d*")) {
             $env:PATH = "$d;$env:PATH"
-            Write-Log "Prepended Docker bin to PATH: $d"
+            Write-Log "Prepended Docker bin to PATH: $d" -FileOnly
         }
     }
 }
@@ -605,7 +726,7 @@ function Install-Shortcuts {
         $sc1.TargetPath = $targetWscript
         $sc1.Arguments = $startArgs
         $sc1.WorkingDirectory = $InstallRoot
-        $sc1.Description = "Dragon AI Agent — start the gateway and open the app"
+        $sc1.Description = "Dragon AI Agent - start the gateway and open the app"
         $sc1.WindowStyle = 1
         if ($iconLocation -and (Test-Path $iconLocation)) { $sc1.IconLocation = "$iconLocation,0" }
         $sc1.Save()
@@ -616,7 +737,7 @@ function Install-Shortcuts {
         $sc2.TargetPath = $targetWscript
         $sc2.Arguments = $startArgs
         $sc2.WorkingDirectory = $InstallRoot
-        $sc2.Description = "Dragon AI Agent — start the gateway and open the app"
+        $sc2.Description = "Dragon AI Agent - start the gateway and open the app"
         $sc2.WindowStyle = 1
         if ($iconLocation -and (Test-Path $iconLocation)) { $sc2.IconLocation = "$iconLocation,0" }
         $sc2.Save()
@@ -763,13 +884,14 @@ try {
 Ensure-Dir $InstallRoot
 Ensure-WSL2 | Out-Null
 
+Write-Host "Preparing runtime..."
 $dockerOk = Ensure-DockerDesktop -PayloadRoot $root
 if ($dockerOk) {
-    Set-DockerTrayOnlySettings
+    Set-DockerHeadlessSettings
     Fix-DockerPath
     Start-DockerHeadless | Out-Null
 } else {
-    Write-Log "Docker not ready after Setup-owned install; package files will still be copied. Re-run Setup after a reboot if Windows asked for one." "WARN"
+    Write-Log "Background engine not ready after Setup-owned install; package files will still be copied. Re-run Setup after a reboot if Windows asked for one." "WARN" -FileOnly
 }
 
 Install-PackageFiles -Root $root
@@ -778,9 +900,9 @@ Fix-DockerPath
 if ($dockerOk -and (Test-DockerEngine)) {
     Start-EmbeddedGateway | Out-Null
 } elseif ($dockerOk) {
-    Write-Log "Skipping compose up until Docker engine is running (often after a first-install reboot). Open Dragon AI Agent or re-run Setup." "WARN"
+    Write-Log "Skipping compose up until the background engine is running (often after a first-install reboot). Open Dragon AI Agent or re-run Setup." "WARN" -FileOnly
 } else {
-    Write-Log "Skipping compose up because Docker Desktop is not installed yet. Re-run Dragon AI Agent Setup." "WARN"
+    Write-Log "Skipping compose up because the background engine is not installed yet. Re-run Dragon AI Agent Setup." "WARN" -FileOnly
 }
 
 Invoke-BotGroupSetup -Root $root
@@ -798,7 +920,6 @@ Write-Host "  Install root: $InstallRoot"
 Write-Host "  Log:          $LogPath"
 Write-Host "  Desktop Screen: http://127.0.0.1:8650  (Remote token dragon-local)"
 Write-Host "  Gateway API:    127.0.0.1:8642  dashboard: http://127.0.0.1:9119"
-Write-Host "  Docker UI:    tray-only (dashboard suppressed on startup)"
 Write-Host "  Bot groups:   in-app Teams Marketplace"
 Write-Host "  First-run:    in-app Models UI (Dragon AI Agent launcher)"
 Write-Host ""
