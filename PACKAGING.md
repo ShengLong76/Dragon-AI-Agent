@@ -55,16 +55,16 @@ Stage the official installer into the zip (gitignores the exe; ~500MB):
 python3 installer/stage-docker-desktop.py
 ```
 
-Setup order when Docker is absent: packaged `vendor/docker/Docker Desktop Installer.exe` → Setup-owned cache/download → quiet `install --quiet --accept-license` (separate PowerShell arguments; `RunAs` if not admin; exit `0` or `3010` is success) → tray-only settings → session `PATH` + engine start → compose if `docker info` works. Half-installed (exe without CLI) takes the same quiet-install path. Setup does **not** open the Docker download page. Product launch still only starts an already-installed engine (`docs/airmaze/DOCKER_LAUNCH.md`). Design: `docs/airmaze/DOCKER_INSTALL.md`.
+Setup order when Docker is absent: packaged `vendor/docker/Docker Desktop Installer.exe` → Setup-owned cache/download → quiet `install --quiet --accept-license --always-run-service` (separate PowerShell arguments; Hidden; `RunAs` if not admin; exit `0` or `3010` is success) → headless settings (no dashboard / onboarding / tray) → session `PATH` + invisible engine start → compose if `docker info` works. Half-installed (exe without CLI) takes the same quiet-install path. Setup does **not** open the Docker download page and does **not** tell the user to install Docker. Product launch still only starts an already-installed engine (`docs/airmaze/DOCKER_LAUNCH.md`). Design: `docs/airmaze/DOCKER_INSTALL.md`.
 
-## Docker Desktop: tray-only (no dashboard)
+## Docker Desktop: invisible / headless (no dashboard, no tray)
 
 Installer patches:
 
-- `%APPDATA%\Docker\settings.json`
-- `%APPDATA%\Docker\settings-store.json`
+- `%APPDATA%\Docker\settings.json` (camelCase `$patch` only)
+- `%APPDATA%\Docker\settings-store.json` (separate PascalCase table)
 
-Setting keys include `openUIOnStartupDisabled` = true, plus `startMinimized` / `minimizeToTray` / `openAtLogin`. The PowerShell `$patch` hashtable may contain the camelCase key only (hashtables are case-insensitive). Docker is started via `com.docker.service` when possible, then `Docker Desktop.exe` minimized — **not** a force-open dashboard flag.
+Setting keys include `openUIOnStartupDisabled` = true, `displayedOnboarding` = true, `disableTrayIcon` = true. The PowerShell `$patch` hashtable may contain the camelCase key only (hashtables are case-insensitive). Docker is started via `com.docker.service` and `com.docker.backend.exe` Hidden when possible; `Docker Desktop.exe` Hidden is last resort and is then hidden/stopped so there is **no tray** icon.
 
 ## Bot groups
 
@@ -76,7 +76,7 @@ Setting keys include `openUIOnStartupDisabled` = true, plus `startMinimized` / `
 
 ## Launch UI
 
-The **Dragon AI Agent** shortcut targets `wscript.exe` + `scripts/airmaze/Start-DragonAI.vbs` (no console flash). The VBS sets `HERMES_DESKTOP_USER_DATA_DIR` to `%LOCALAPPDATA%\DragonAIAgent\electron-userdata` and `start-embedded.ps1` copies/provisions a private client at `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked`. That host starts Docker Desktop in the **tray** when `docker info` fails (already running is a no-op), starts the gateway **and** Desktop serve proxy, wires Remote `connections.json` in Dragon userdata (standalone Hermes primary stays local), launches the **private** desktop client (Hermes default loading — no Waiting for gateway / Setup / Close status window), and waits for host HTTP on `127.0.0.1:8642` and `127.0.0.1:8650/api/health`. It does **not** open `:9119` or the Docker dashboard. Branding is refused outside `DragonAIAgent`. Missing Docker after a wait, or a missing client, is a MessageBox. `start-embedded.ps1` remains for debug. See `docs/airmaze/PRIVATE_DESKTOP.md`, `docs/airmaze/BRANDING.md` and `docs/airmaze/DOCKER_LAUNCH.md`. Verify with `python3 scripts/airmaze/Test-LaunchSmoke.py` (no secrets).
+The **Dragon AI Agent** shortcut targets `wscript.exe` + `scripts/airmaze/Start-DragonAI.vbs` (no console flash). The VBS sets `HERMES_DESKTOP_USER_DATA_DIR` to `%LOCALAPPDATA%\DragonAIAgent\electron-userdata` and `start-embedded.ps1` copies/provisions a private client at `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked`. That host starts the Docker engine **invisibly** when `docker info` fails (already running is a no-op; no tray icon), starts the gateway **and** Desktop serve proxy, wires Remote `connections.json` in Dragon userdata (standalone Hermes primary stays local), launches the **private** desktop client (Hermes default loading — no Waiting for gateway / Setup / Close status window), and waits for host HTTP on `127.0.0.1:8642` and `127.0.0.1:8650/api/health`. It does **not** open `:9119` or the Docker dashboard. Branding is refused outside `DragonAIAgent`. Missing Docker after a wait, or a missing client, is a MessageBox. `start-embedded.ps1` remains for debug. See `docs/airmaze/PRIVATE_DESKTOP.md`, `docs/airmaze/BRANDING.md` and `docs/airmaze/DOCKER_LAUNCH.md`. Verify with `python3 scripts/airmaze/Test-LaunchSmoke.py` (no secrets).
 
 Gateway compose wraps the official image entrypoint with `scripts/airmaze/start-gateway.sh` so a dirty root-owned `/opt/data/logs/agent.log` (or a fresh `compose up`) does not leave `hermes-airmaze-gw` unhealthy. The wrapper heals `logs/` + `backups/` then exec's the image dispatcher (`/init` stays in the chain). Offline: `sh scripts/airmaze/start-gateway.sh --self-test`. UltraDragon dirty-log steps: `docs/airmaze/EMBEDDED_GATEWAY.md`.
 

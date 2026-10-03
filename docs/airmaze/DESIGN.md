@@ -61,7 +61,7 @@ Full token table and skill-vs-override notes: `design-system/dragon-ai-agent/` (
 - Sidebar bot names (Personal Assistant) and middle session/agent names (Dragon AI Tester) share the **16px** body size. Hermes `0.8125rem` name chips are remapped so the two lists match.
 - Imported / deployed bot groups file into a named BOTS section labeled with the pack display name. They are not left under UNASSIGNED.
 - First-run setup has a **Models** step (after Welcome) for default chat LLM + default image LLM. Product defaults are Grok (xAI) + Grok Imagine. Design: `docs/airmaze/FIRST_RUN_MODELS.md`.
-- Opening Dragon AI Agent starts Docker Desktop in the **tray** when the engine is down (no Containers dashboard). Design: `docs/airmaze/DOCKER_LAUNCH.md`.
+- Opening Dragon AI Agent starts the Docker engine **invisibly** when it is down (no dashboard, no onboarding, no tray icon). Design: `docs/airmaze/DOCKER_LAUNCH.md`.
 - Dragon AI Agent Setup **owns Docker Desktop** on a clean PC (packaged installer or Setup-owned download; no docker.com-first step). Design: `docs/airmaze/DOCKER_INSTALL.md`.
 - Product shortcut parse: tray `$patch` has one `openUIOnStartupDisabled` key; Hermes data dir is `$embeddedHome` / `-HermesHome` (never `$HOME`). Design: `docs/airmaze/WINDOWS_LAUNCH_PARSE.md`.
 - **Teams Marketplace** opens a roomy centered popup (backdrop, per-team Install, Launch / Import / Export / Details → Install). Seats stay 4-column cards under each pack, with a left-side icon, a brief line, and hover/focus detail. Marketing SEO Specialist copy is seoagent.com. Design: `docs/airmaze/TEAMS_POPUP.md`, `docs/airmaze/TEAMS_SEAT_DESCRIPTIONS.md`.
