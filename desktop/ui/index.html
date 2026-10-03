@@ -5,59 +5,115 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dragon AI Agent</title>
   <link rel="stylesheet" href="./app.css">
-  <link rel="icon" type="image/svg+xml" href="./dragon-ai-agent-logo.svg">
+  <link rel="icon" type="image/png" href="./dragon-ai-agent-logo.png">
 </head>
-<body>
-  <a class="skip" href="#main">Skip to chat</a>
-  <header class="lockup" data-dragon-ai-header>
-    <img src="./dragon-ai-agent-logo.svg" alt="" width="56" height="56" class="mark">
-    <div>
-      <h1>Dragon AI Agent</h1>
-      <p class="status" id="status">Starting gateway...</p>
+<body data-dragon-ai-shell="ultradragon">
+  <a class="skip" href="#prompt">Skip to composer</a>
+  <div class="app" data-dragon-ai-app>
+    <aside class="rail" data-sidebar="sidebar" data-dragon-ai-sidebar data-slot="sidebar">
+      <div class="rail-top" data-dragon-ai-sidebar-row data-dragon-ai-sidebar-chrome>
+        <button type="button" class="hide-sidebar" data-dragon-ai-hide-sidebar="true" data-sidebar="trigger" data-slot="sidebar-trigger" aria-label="Hide sidebar">
+          <span aria-hidden="true">‹</span>
+        </button>
+        <div class="lockup" data-dragon-ai-sidebar-brand="true" data-dragon-ai-lockup-after-hide="true" role="img" aria-label="Dragon AI Agent">
+          <img src="./dragon-ai-agent-logo.png" alt="" width="56" height="56" class="mark" data-dragon-ai-sidebar-logo="true">
+          <span class="wordmark">Dragon AI</span>
+        </div>
+      </div>
+      <button type="button" class="teams-open" data-dragon-ai-teams-open="true" aria-haspopup="dialog" aria-expanded="false">Teams Marketplace</button>
+      <nav class="rail-tabs" aria-label="Sessions and Bots">
+        <button type="button" class="rail-tab is-on" data-rail="sessions" aria-pressed="true">Sessions</button>
+        <button type="button" class="rail-tab" data-rail="bots" aria-pressed="false">Bots</button>
+      </nav>
+      <div id="rail-sessions" class="rail-list" data-rail-panel="sessions">
+        <button type="button" class="session is-on" data-session="main">Dragon AI</button>
+        <button type="button" class="session" data-session="jobs" data-open-scheduled-jobs>Scheduled Jobs</button>
+      </div>
+      <div id="rail-bots" class="rail-list" data-rail-panel="bots" hidden>
+        <section class="group" data-group="personal-assistant">
+          <h3>Personal Assistant</h3>
+          <button type="button" class="bot is-pinned" data-bot="personal-assistant" data-pinned="true">
+            <span class="pin" aria-hidden="true"></span>
+            Personal Assistant
+          </button>
+        </section>
+      </div>
+    </aside>
+    <div class="stage">
+      <section id="panel-models" class="panel is-on" data-airmaze-models>
+        <h1>Models</h1>
+        <p class="lede">Choose the default chat and image LLMs. Dragon AI Agent uses the xAI Grok login already on this PC. This screen does not ask for a new API key.</p>
+        <form id="models-form" class="card">
+          <label>Default chat LLM
+            <select id="chat-model">
+              <option value="grok-4.6" selected>Grok (xAI) grok-4.6</option>
+              <option value="grok-4.5">Grok (xAI) grok-4.5</option>
+              <option value="grok-4.3">Grok (xAI) grok-4.3</option>
+            </select>
+          </label>
+          <label>Default image LLM
+            <select id="image-model">
+              <option value="grok-imagine-image" selected>Grok Imagine</option>
+              <option value="grok-imagine-image-quality">Grok Imagine Quality</option>
+              <option value="grok-imagine-image-2.0">Grok Imagine 2.0</option>
+            </select>
+          </label>
+          <p id="models-note" class="note" role="status"></p>
+          <button type="submit" class="primary">Continue</button>
+        </form>
+      </section>
+      <section id="panel-chat" class="panel" hidden data-chat-surface>
+        <div id="voice-capsule" class="voice-capsule" hidden data-dragon-voice-capsule>
+          <span class="bars" aria-hidden="true"></span>
+          <button type="button" id="voice-gear" data-dragon-voice-gear>Voice settings</button>
+          <button type="button" id="voice-end" data-dragon-voice-end aria-label="Close voice">×</button>
+        </div>
+        <div id="thread" class="thread" aria-live="polite"></div>
+        <form id="composer" class="composer" data-slot="composer" data-dragon-ai-composer-chrome>
+          <button type="button" class="icon-btn" id="composer-plus" aria-label="Add">+</button>
+          <label class="sr" for="prompt">Give Dragon AI a task</label>
+          <textarea id="prompt" name="prompt" rows="1" placeholder="Give Dragon AI a task"></textarea>
+          <button type="button" class="icon-btn" id="composer-mic" aria-label="Microphone" data-dragon-voice-mic></button>
+          <button type="button" class="icon-btn wave" id="composer-wave" aria-label="Voice waveform" data-dragon-voice-trigger></button>
+        </form>
+      </section>
+      <section id="panel-settings" class="panel" hidden>
+        <h2>Voice conversation mode</h2>
+        <p class="lede">Duplex voice is chosen here, not as chat pills. GPT-Live Voice and Persona stay hidden unless GPT-Live is selected.</p>
+        <form id="voice-form" class="card">
+          <label>Voice engine
+            <select id="voice-engine">
+              <option value="chained">Chained</option>
+              <option value="grok-live" selected>Grok Voice</option>
+              <option value="gpt-live" hidden>GPT-Live</option>
+            </select>
+          </label>
+          <p id="voice-note" class="note" role="status"></p>
+          <button type="submit" class="primary">Save voice engine</button>
+        </form>
+      </section>
     </div>
-    <nav class="tabs" aria-label="Dragon AI Agent">
-      <button type="button" class="tab is-on" data-tab="chat" aria-pressed="true">Chat</button>
-      <button type="button" class="tab" data-tab="models" aria-pressed="false">Models</button>
-      <button type="button" class="tab" data-tab="teams" aria-pressed="false">Teams Marketplace</button>
-    </nav>
-  </header>
-  <main id="main">
-    <section id="panel-chat" class="panel is-on" data-chat-surface>
-      <div id="thread" class="thread" aria-live="polite"></div>
-      <form id="composer" class="composer">
-        <label class="sr" for="prompt">Give Dragon AI a task</label>
-        <textarea id="prompt" name="prompt" rows="1" placeholder="Give Dragon AI a task"></textarea>
-        <button type="submit" class="primary">Send</button>
-      </form>
-    </section>
-    <section id="panel-models" class="panel" hidden>
-      <h2>Models</h2>
-      <p class="lede">First-run chat and image defaults. Change these here; they are written to the local gateway. This screen does not ask for a new API key.</p>
-      <form id="models-form" class="card">
-        <label>Default chat LLM
-          <select id="chat-model">
-            <option value="grok-4.6" selected>Grok (xAI) grok-4.6</option>
-            <option value="grok-4.5">Grok (xAI) grok-4.5</option>
-            <option value="grok-4.3">Grok (xAI) grok-4.3</option>
-          </select>
-        </label>
-        <label>Default image LLM
-          <select id="image-model">
-            <option value="grok-imagine-image" selected>Grok Imagine</option>
-            <option value="grok-imagine-image-quality">Grok Imagine Quality</option>
-            <option value="grok-imagine-image-2.0">Grok Imagine 2.0</option>
-          </select>
-        </label>
-        <p id="models-note" class="note"></p>
-        <button type="submit" class="primary">Save models</button>
-      </form>
-    </section>
-    <section id="panel-teams" class="panel" hidden>
+    <aside id="right-rail" class="right" hidden data-right-rail>
+      <header>
+        <h2 id="right-title">Bot Screen</h2>
+        <button type="button" id="right-close" aria-label="Close panel">×</button>
+      </header>
+      <iframe id="bot-screen" title="Bot Screen" src="about:blank"></iframe>
+    </aside>
+  </div>
+  <div id="teams-backdrop" class="backdrop" hidden data-dragon-ai-teams-backdrop></div>
+  <div id="teams-panel" class="teams-panel" role="dialog" aria-modal="true" aria-label="Teams Marketplace" hidden data-dragon-ai-teams-panel>
+    <header>
       <h2>Teams Marketplace</h2>
-      <p class="lede">Install a department pack. Personal Assistant is already on this machine.</p>
-      <div id="teams" class="teams"></div>
-    </section>
-  </main>
+      <p>Install a department pack. Personal Assistant is already installed. Teams are not part of setup.</p>
+    </header>
+    <div id="teams" class="teams" data-dragon-ai-teams-list></div>
+    <p id="teams-status" class="note" data-dragon-ai-teams-status role="status"></p>
+    <div class="teams-actions" data-dragon-ai-teams-actions>
+      <button type="button" class="primary" id="teams-launch" data-dragon-ai-teams-launch>Launch</button>
+      <button type="button" id="teams-close" data-dragon-ai-teams-close>Close</button>
+    </div>
+  </div>
   <script src="./app.js"></script>
 </body>
 </html>

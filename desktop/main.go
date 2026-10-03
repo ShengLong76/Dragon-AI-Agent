@@ -100,6 +100,38 @@ func startUIServer(ui fs.FS) (addr string, stop func(), err error) {
 		suffix := strings.TrimPrefix(r.URL.Path, "/api/voice")
 		proxy(w, r, voiceSvc+"/api/voice"+suffix, "", true)
 	})
+	mux.HandleFunc("/api/launch", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost && r.Method != http.MethodGet {
+			writeJSON(w, http.StatusMethodNotAllowed, launchResult(false, "launch", "", "Launch only accepts GET or POST"))
+			return
+		}
+		writeJSON(w, http.StatusOK, launchResult(true, "launch", "Dragon AI Agent window is running.", ""))
+	})
+	mux.HandleFunc("/api/models", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			writeJSON(w, http.StatusMethodNotAllowed, map[string]any{"ok": false, "error": "POST required"})
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "invalid models payload"})
+			return
+		}
+		_ = os.MkdirAll(userDataDir(), 0o755)
+		raw, _ := json.MarshalIndent(body, "", "  ")
+		if err := os.WriteFile(modelsPath(), raw, 0o644); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "saved": modelsPath()})
+	})
+	mux.HandleFunc("/bot-screen/", func(w http.ResponseWriter, r *http.Request) {
+		suffix := strings.TrimPrefix(r.URL.Path, "/bot-screen")
+		if suffix == "" || suffix == "/" {
+			suffix = "/api/health"
+		}
+		proxy(w, r, desktopSvc+suffix, sessionTok, true)
+	})
 	mux.Handle("/", http.FileServer(http.FS(ui)))
 
 	ln, err := net.Listen("tcp", uiPortPref)
@@ -165,8 +197,30 @@ func proxy(w http.ResponseWriter, r *http.Request, dest, auth string, copyQuery 
 	_, _ = io.Copy(w, res.Body)
 }
 
+func writeJSON(w http.ResponseWriter, status int, payload any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(payload)
+}
+
+func modelsPath() string {
+	return filepath.Join(userDataDir(), "models.json")
+}
+
+func launchResult(ok bool, action, message, errMsg string) map[string]any {
+	return map[string]any{
+		"ok":      ok,
+		"action":  action,
+		"message": message,
+		"error":   errMsg,
+		"ui":      "http://" + uiPortPref + "/",
+		"exe":     "desktop/win-unpacked/DragonAIAgent.exe",
+	}
+}
+
 func main() {
 	selfTest := flag.Bool("self-test", false, "print paths JSON and exit")
+	launchCheck := flag.Bool("launch-check", false, "start the UI server, print a launch result, and exit")
 	flag.Parse()
 	if *selfTest {
 		enc := json.NewEncoder(os.Stdout)
@@ -183,10 +237,18 @@ func main() {
 	}
 	addr, stop, err := startUIServer(ui)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Dragon AI Agent: UI server failed: %v\n", err)
+		if *launchCheck {
+			_ = json.NewEncoder(os.Stdout).Encode(launchResult(false, "launch", "", "UI server failed: "+err.Error()))
+		} else {
+			fmt.Fprintf(os.Stderr, "Dragon AI Agent: UI server failed: %v\n", err)
+		}
 		os.Exit(1)
 	}
 	defer stop()
+	if *launchCheck {
+		_ = json.NewEncoder(os.Stdout).Encode(launchResult(true, "launch-check", "UI server accepted launch.", ""))
+		return
+	}
 	if err := openDesktop(addr); err != nil {
 		fmt.Fprintf(os.Stderr, "Dragon AI Agent: %v\n", err)
 		os.Exit(1)

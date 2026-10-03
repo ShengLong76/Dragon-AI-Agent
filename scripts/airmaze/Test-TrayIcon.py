@@ -23,6 +23,8 @@ ROOT = Path(__file__).resolve().parents[2]
 BRANDING = ROOT / "branding"
 SCRIPTS = ROOT / "scripts" / "airmaze"
 WINRES_ICO = ROOT / "installer" / "winres" / "icon.ico"
+DESKTOP_WINRES_ICO = ROOT / "desktop" / "winres" / "icon.ico"
+PACKAGED_EXE = ROOT / "desktop" / "win-unpacked" / "DragonAIAgent.exe"
 BRAND_ICO = BRANDING / "dragon-ai-agent-logo.ico"
 SIDEBAR_PNG = BRANDING / "dragon-ai-agent-logo.png"
 NOTE = ROOT / "docs" / "airmaze" / "TRAY_ICON.md"
@@ -172,6 +174,8 @@ def test_shipped_icos_contain_max() -> None:
                 fail(f"{label} {size} looks cropped or empty on one axis")
     if WINRES_ICO.read_bytes() != BRAND_ICO.read_bytes():
         fail("taskbar winres ICO and shortcut branding ICO must be the same enlarged sidebar mark")
+    if not DESKTOP_WINRES_ICO.is_file() or DESKTOP_WINRES_ICO.read_bytes() != BRAND_ICO.read_bytes():
+        fail("desktop/winres/icon.ico must be the current branding ICO (embedded in DragonAIAgent.exe)")
     print("OK  shipped ICO frames contain-max the slot")
 
 

@@ -11,13 +11,17 @@
 | Tool | Version / note |
 |------|----------------|
 | Go | `go1.24.4 linux/amd64` (cross-compile `GOOS=windows GOARCH=amd64`) |
-| go-winres | Embed Windows icon/version resources into the exe (`.syso` beside `build-exe.go`) |
+| go-winres | Embed Windows icon/version resources into Setup.exe and `DragonAIAgent.exe` (`desktop/rsrc_windows_amd64.syso`) |
 | Zip | Python 3 `zipfile` |
 | Logo | `branding/dragon-ai-agent-logo.png` (+ `.ico` generated with Pillow) |
 
 ## Build commands
 
 ```bash
+python3 desktop/build-windows.py
+# embeds branding/dragon-ai-agent-logo.png as PE resource id 1, writes
+# desktop/win-unpacked/DragonAIAgent.exe
+
 cd /workspace/airmaze-agent-dist/repo/installer
 # Optional: regenerate icon resources
 # go-winres simply --icon winres/icon.ico --product-name "Dragon AI Agent" ...

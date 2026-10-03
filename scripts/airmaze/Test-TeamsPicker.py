@@ -319,6 +319,8 @@ def test_overlay_and_launch_wired() -> None:
         fail("Install must apply that team's pack through the existing marketplace install path")
     if "data-dragon-ai-teams-launch" not in picker_js or "Launch" not in picker_js:
         fail("Teams popup must have a Launch button for the checked teams")
+    if "Launch needs a team" not in picker_js and "empty-result" not in picker_js:
+        fail("Teams Launch must give visible feedback when it cannot run")
     if "data-dragon-ai-teams-export" not in picker_js or "/api/teams/export" not in picker_js:
         fail("Teams popup must expose Export against the helper")
     if "data-dragon-ai-teams-import" not in picker_js:

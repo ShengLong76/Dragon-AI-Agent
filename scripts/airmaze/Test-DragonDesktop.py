@@ -74,10 +74,15 @@ def test_package_has_desktop_source() -> None:
     if not (ROOT / "desktop" / "ui" / "index.html").is_file():
         fail("desktop/ui/index.html missing")
     ui = read(ROOT / "desktop" / "ui" / "index.html")
+    js = read(ROOT / "desktop" / "ui" / "app.js")
     if "<title>Dragon AI Agent</title>" not in ui:
         fail("desktop UI title must be Dragon AI Agent")
     if 'id="panel-models"' not in ui:
         fail("desktop UI must include the in-app Models screen")
+    if "Gateway ready" in ui or "Gateway ready" in js or "Starting gateway" in ui:
+        fail("installed UI must not show the leftover Gateway ready status")
+    if 'data-dragon-ai-shell="ultradragon"' not in ui:
+        fail("desktop UI must be the UltraDragon shell, not the blue-header e65bfdf page")
     go = read(ROOT / "desktop" / "main.go")
     if "DragonAIAgent.exe" not in go and "Dragon AI Agent" not in go:
         fail("desktop host must be Dragon AI Agent")
@@ -202,6 +207,16 @@ def test_self_test_cli() -> None:
     print("OK  private_desktop paths CLI")
 
 
+def test_install_first_run_guardrails() -> None:
+    guard = SCRIPTS / "Test-InstallFirstRun.py"
+    if not guard.is_file():
+        fail("missing Test-InstallFirstRun.py guardrails")
+    proc = subprocess.run([sys.executable, str(guard)], cwd=str(ROOT))
+    if proc.returncode != 0:
+        fail("Test-InstallFirstRun.py failed")
+    print("OK  install first-run guardrails")
+
+
 def main() -> int:
     test_package_has_desktop_source()
     test_copy_from_package_not_hermes()
@@ -209,6 +224,7 @@ def main() -> int:
     test_installers_copy_package()
     test_docs()
     test_self_test_cli()
+    test_install_first_run_guardrails()
     print("SMOKE OK: Dragon AI Agent desktop is packaged; install does not find Hermes.exe.")
     return 0
 

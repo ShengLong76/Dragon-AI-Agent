@@ -60,7 +60,7 @@ Copy is **Dragon AI Agent** (not Hermes). Auth line: this step does not ask for 
 - **Skip this step** / **Skip wizard** writes the product defaults **only if** `image_gen.provider` or `principal.model` is missing.
 - Review lists the chosen labels (never secrets).
 
-Teams picker stays orthogonal. Personal Assistant stays the only preinstall.
+Teams picker stays orthogonal and is **not** shown during Setup. Personal Assistant stays the only preinstall. Teams are added later through in-app Teams Marketplace.
 
 ## When it lands on disk
 

@@ -5,6 +5,7 @@ All notable changes to Dragon AI Agent (packaging/distribution) are documented h
 ## [Unreleased]
 
 ### Fixed
+- **Fresh install showed the e65bfdf blue-header shell, a stale window icon, a teams picker, and a dead Launch.** `DragonAIAgent.exe` never embedded `desktop/winres/icon.ico`, so the taskbar/window mark was not the current sidebar ICO. Setup still ran interactive `Select-BotGroup.ps1`. The Go host shipped a blue header, geometric SVG, leftover **Gateway ready** status, and a black pane instead of the UltraDragon rail (hide-sidebar + 56px PNG + Teams Marketplace + Sessions/Bots + Models first-run + composer pill). Launch started the exe with `Start-Process` and ignored an immediate exit. Setup now applies Personal Assistant non-interactively, lands on the in-app Models screen, embeds the current ICO (resource id 1), rebuilds the UltraDragon UI, and Launch writes `launch-result.json` / `/api/launch` with a dialog if the window cannot open. Check: `python3 scripts/airmaze/Test-InstallFirstRun.py`.
 - **Windows PowerShell 5.1 cannot parse Setup on a clean PC.** `installer/DragonAIAgentSetup.ps1` (UTF-8, no BOM) used an em dash in the shortcut description (`Dragon AI Agent — start...`). Windows PowerShell 5.1 decodes that as ANSI, the string ends early, and `start` is an unexpected token. Installer and the PowerShell scripts Setup runs now use ASCII punctuation only. Do not require a BOM. Check: `python3 scripts/airmaze/Test-WindowsLaunchParse.py`.
 
 ### Changed

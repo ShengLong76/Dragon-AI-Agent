@@ -325,9 +325,12 @@
     }
     function finishApply() { hide(); reloadRoster(); }
     function selectedIds() {
-      return $all('input[type="checkbox"]:checked', panel).map(function (box) {
+      var checked = $all('input[type="checkbox"]:checked', panel).map(function (box) {
         return box.getAttribute("data-dragon-ai-team-id") || box.value;
       }).filter(Boolean);
+      if (checked.length) return checked;
+      if (detailId) return [detailId];
+      return [];
     }
     function connectorText(team) {
       return (team.requiredConnectors || []).map(function (c) {
@@ -486,16 +489,29 @@
     }
     function launch() {
       var ids = selectedIds();
-      if (!ids.length) { setStatus("Check one or more teams to launch."); return; }
+      if (!ids.length) {
+        setStatus("Launch needs a team. Use Install on a pack, or open Details, then Launch.");
+        return { ok: false, error: "no-selection", message: "Launch needs a team." };
+      }
       setStatus("Launching " + ids.length + " team" + (ids.length === 1 ? "" : "s") + "…");
       fetch(API + "/api/teams/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: ids })
       }).then(function (r) { return r.json(); }).then(function (data) {
-        if (data.error) { setStatus(data.message || data.error); return; }
+        if (!data) {
+          setStatus("Launch returned no result.");
+          return { ok: false, error: "empty-result" };
+        }
+        if (data.error) { setStatus(data.message || data.error); return { ok: false, error: data.error }; }
+        setStatus("Launched " + ids.join(", ") + ".");
         finishApply();
-      }).catch(function () { setStatus("Launch failed. Is the Teams Marketplace helper running?"); });
+        return { ok: true, ids: ids };
+      }).catch(function () {
+        setStatus("Launch failed. Is the Teams Marketplace helper running?");
+        return { ok: false, error: "helper-down" };
+      });
+      return { ok: true, pending: true, ids: ids };
     }
     function exportSelected() {
       var ids = selectedIds();

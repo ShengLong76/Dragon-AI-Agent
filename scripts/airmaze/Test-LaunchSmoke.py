@@ -431,6 +431,11 @@ def main() -> int:
         proc = subprocess.run([sys.executable, str(parse_test)], cwd=str(ROOT))
         if proc.returncode != 0:
             fail("Test-WindowsLaunchParse.py failed")
+    first_run = ROOT / "scripts" / "airmaze" / "Test-InstallFirstRun.py"
+    if first_run.is_file():
+        proc = subprocess.run([sys.executable, str(first_run)], cwd=str(ROOT))
+        if proc.returncode != 0:
+            fail("Test-InstallFirstRun.py failed")
     dragon_desk = ROOT / "scripts" / "airmaze" / "Test-DragonDesktop.py"
     if dragon_desk.is_file():
         proc = subprocess.run([sys.executable, str(dragon_desk)], cwd=str(ROOT))

@@ -9,7 +9,7 @@ Short contract after James rejected the Hermes.exe hunt. Packaging only. Hermes 
 | **Dragon AI Agent** | `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked\DragonAIAgent.exe` | `HERMES_DESKTOP_USER_DATA_DIR=%LOCALAPPDATA%\DragonAIAgent\electron-userdata` |
 | **Standalone Hermes** | untouched | `%APPDATA%\Hermes` |
 
-Install/start copy `DragonAIAgent.exe` from the **Dragon package** (`payload/desktop/win-unpacked` or `vendor/desktop`). They do not search for, copy, require, or mention a Hermes install. They never write back into a Hermes tree.
+Install/start copy `DragonAIAgent.exe` from the **Dragon package** (`payload/desktop/win-unpacked` or `vendor/desktop`). They do not search for, copy, require, or mention a Hermes install. They never write back into a Hermes tree. The window is the UltraDragon shell (dark rail, current PNG lockup, Teams Marketplace, Sessions/Bots, first-run Models). It is not the blue header + **Gateway ready** page. Setup does not prompt for teams.
 
 ## Rules
 
