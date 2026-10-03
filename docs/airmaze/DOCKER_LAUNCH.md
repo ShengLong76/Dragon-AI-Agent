@@ -31,7 +31,7 @@ PowerShell hashtables are **case-insensitive**. The tray `$patch` may list camel
 
 ## Out of scope
 
-- Installing Docker from the product shortcut
+- Installing Docker from the product shortcut (that is Setup: `docs/airmaze/DOCKER_INSTALL.md`)
 - Opening the Docker dashboard or Dragon `:9119` dashboard
 - Live UltraDragon smoke in CI
 - Merging PR #10

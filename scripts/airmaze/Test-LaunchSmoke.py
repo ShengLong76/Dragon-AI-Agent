@@ -115,6 +115,14 @@ REQUIRED_INSTALLER = (
     "desktop\\win-unpacked",
     "start-gateway.sh",
     "patch_grok_voice_mode.py",
+    "Find-BundledDockerInstaller",
+    "vendor\\docker",
+    "install",
+    "--quiet",
+    "--accept-license",
+    "half-installed",
+    "3010",
+    "Programs\\DockerDesktop",
 )
 
 REQUIRED_VBS = (
@@ -235,6 +243,12 @@ def check_shortcuts() -> None:
             fail(f"{path.name} missing windowless Start-DragonAI.vbs host")
         if "openUIOnStartupDisabled" not in text or "Set-DockerTrayOnlySettings" not in text:
             fail(f"{path.name} must keep tray-only Docker settings")
+        if "Find-BundledDockerInstaller" not in text or "vendor\\docker" not in text:
+            fail(f"{path.name} must prefer a packaged Docker Desktop installer")
+        if "https://www.docker.com/products/docker-desktop/" in text:
+            fail(f"{path.name} must not open docker.com as the Docker install path")
+        if "ACTION REQUIRED: Install Docker Desktop" in text:
+            fail(f"{path.name} must not tell the user to install Docker first")
         if "first-run onboarding wizard" in text:
             fail(f"{path.name} still creates a WinForms Dragon AI Agent Setup shortcut")
         if "CreateShortcut($sc4Path)" in text or "CreateShortcut($sc5Path)" in text:
@@ -407,6 +421,11 @@ def main() -> int:
         proc = subprocess.run([sys.executable, str(heal_test)], cwd=str(ROOT))
         if proc.returncode != 0:
             fail("Test-GatewayVolumeHeal.py failed")
+    docker_install_test = ROOT / "scripts" / "airmaze" / "Test-DockerInstall.py"
+    if docker_install_test.is_file():
+        proc = subprocess.run([sys.executable, str(docker_install_test)], cwd=str(ROOT))
+        if proc.returncode != 0:
+            fail("Test-DockerInstall.py failed")
     run_host_smoke()
     print("SMOKE OK: opening Dragon AI Agent is wired to branded UI or a blocking error.")
     return 0

@@ -10,7 +10,7 @@ Template only. No API keys or tokens belong in this file or in compose checked i
 
 | Requirement | Notes |
 |-------------|--------|
-| Docker Desktop | Linux engine (WSL2 backend). Confirm whale icon → Settings → General → “Use the WSL 2 based engine”. |
+| Docker Desktop | Installed by Dragon AI Agent Setup (packaged installer or Setup-owned download). Linux engine (WSL2 backend). Confirm whale icon → Settings → General → “Use the WSL 2 based engine”. |
 | Image pull | First run needs registry access to Docker Hub (`nousresearch/hermes-agent`, optionally `hermes-sandbox`). |
 | RAM | ≥ 8 GB free recommended for comfortable headed-browser takeover; 4 GB can run desktop alone. |
 | agent desktop client | Windows client; Remote gateway → localhost. |
@@ -258,4 +258,4 @@ Invoke-WebRequest http://127.0.0.1:8642/health -UseBasicParsing
 
 ## Docker Desktop UI (Dragon AI Agent installer)
 
-The Dragon AI Agent Windows installer configures Docker Desktop to **start minimized to the system tray** and sets `openUIOnStartupDisabled` (and related keys) in `%APPDATA%\Docker\settings.json` / `settings-store.json` so the dashboard window does not pop on first run. The engine still starts; open the dashboard from the tray when needed.
+The Dragon AI Agent Windows installer **owns Docker Desktop** on a clean PC (packaged `vendor/docker` installer or a Setup-owned download + quiet install — not a docker.com-first step). It then configures Docker Desktop to **start minimized to the system tray** and sets `openUIOnStartupDisabled` (and related keys) in `%APPDATA%\Docker\settings.json` / `settings-store.json` so the dashboard window does not pop on first run. The engine still starts; open the dashboard from the tray when needed. Design: `DOCKER_INSTALL.md`.

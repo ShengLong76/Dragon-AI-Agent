@@ -38,11 +38,24 @@ Dragon-AI-Agent-v0.1.0-windows/
     install.ps1
     docker-compose.embedded.yml
     README.md
+    vendor/docker/Docker Desktop Installer.exe   (staged; see below)
     bot-groups/...
     scripts/airmaze/...
     templates/profiles/personal-assistant/...
     branding/...
 ```
+
+## Docker Desktop installer (package slot)
+
+A clean Windows PC should get Docker from **Dragon AI Agent Setup**, not from docker.com first.
+
+Stage the official installer into the zip (gitignores the exe; ~500MB):
+
+```bash
+python3 installer/stage-docker-desktop.py
+```
+
+Setup order when Docker is absent: packaged `vendor/docker/Docker Desktop Installer.exe` → Setup-owned cache/download → quiet `install --quiet --accept-license` (separate PowerShell arguments; `RunAs` if not admin; exit `0` or `3010` is success) → tray-only settings → session `PATH` + engine start → compose if `docker info` works. Half-installed (exe without CLI) takes the same quiet-install path. Setup does **not** open the Docker download page. Product launch still only starts an already-installed engine (`docs/airmaze/DOCKER_LAUNCH.md`). Design: `docs/airmaze/DOCKER_INSTALL.md`.
 
 ## Docker Desktop: tray-only (no dashboard)
 
@@ -69,6 +82,6 @@ Gateway compose wraps the official image entrypoint with `scripts/airmaze/start-
 
 ## Limitations
 
-- Quiet Docker/WSL install may still need reboot or UAC/UI clicks.
+- Quiet Docker/WSL install may still need reboot or UAC/UI clicks. Setup still owns the Docker installer; a reboot is a continuation, not a hand-off to docker.com.
 - Agent desktop client is not bundled. Install/start copy standalone `win-unpacked` into `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked` and overlay chrome only there (see `docs/airmaze/PRIVATE_DESKTOP.md` and `docs/airmaze/BRANDING.md`). Dashboard `:9119` is optional (`start-embedded.ps1 -OpenDashboard`), not a Start Menu shortcut.
 - Dashboard basic auth defaults remain the compose local-only values (see `THIRD_PARTY_NOTICES.md` / `EMBEDDED_GATEWAY.md`).
