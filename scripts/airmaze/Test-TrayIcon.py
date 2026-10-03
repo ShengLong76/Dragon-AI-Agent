@@ -367,13 +367,14 @@ def test_overlay_and_docker_untouched() -> None:
     for token in (
         "openUIOnStartupDisabled",
         "Start-DockerIfNeeded",
-        "Starting Docker Desktop (system tray)",
+        "Set-DockerHeadlessSettings",
+        "Hide-DockerDesktopUi",
     ):
         if token not in launcher:
-            fail(f"tray-icon work must not drop Docker tray-only launch ({token})")
+            fail(f"tray-icon work must not drop invisible Docker engine start ({token})")
     if "9119" in (BRANDING / "tray_icon.py").read_text(encoding="utf-8"):
         fail("tray_icon.py must not open the Dragon dashboard")
-    print("OK  overlay copy + Docker tray-only unchanged")
+    print("OK  overlay copy + invisible Docker engine start unchanged")
 
 
 def test_self() -> None:

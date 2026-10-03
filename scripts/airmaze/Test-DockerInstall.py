@@ -44,6 +44,10 @@ REQUIRED_INSTALLER = (
     "Programs\\DockerDesktop",
     "Fix-DockerPath",
     "Set-DockerTrayOnlySettings",
+    "Set-DockerHeadlessSettings",
+    "Hide-DockerDesktopUi",
+    "disableTrayIcon",
+    "--always-run-service",
     "openUIOnStartupDisabled",
     "Start-DockerHeadless",
     "Remove-DeprecatedProductShortcuts",
@@ -69,6 +73,10 @@ FORBIDDEN_INSTALLER = (
     "Opening Docker Desktop download page for manual install",
     "ACTION REQUIRED: Install Docker Desktop, then re-run",
     "Re-run after installing Docker.",
+    "Docker UI:",
+    "tray-only (dashboard suppressed",
+    "Install Docker Desktop, then",
+    "install Docker from docker.com first",
 )
 
 
@@ -98,12 +106,15 @@ def test_design() -> None:
         "vendor/docker",
         "half-installed",
         "install --quiet --accept-license",
+        "always-run-service",
         "3010",
         "docker.com",
         "Start Menu",
         "in-app",
         "Hermes",
         "DOCKER_LAUNCH",
+        "no tray",
+        "headless",
     ):
         if needle not in text:
             fail(f"DOCKER_INSTALL.md must document {needle!r}")

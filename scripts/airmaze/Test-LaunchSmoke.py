@@ -37,6 +37,9 @@ REQUIRED_LAUNCHER = (
     "StartDocker",
     "Start-DockerIfNeeded",
     "Set-DockerTrayOnlySettings",
+    "Set-DockerHeadlessSettings",
+    "Hide-DockerDesktopUi",
+    "disableTrayIcon",
     "openUIOnStartupDisabled",
     "DebugConsole",
     "Invoke-NativeDocker",
@@ -173,7 +176,7 @@ def check_docker_launch_design() -> None:
         if not path.is_file():
             fail(f"missing {path}")
     text = design.read_text(encoding="utf-8")
-    for needle in ("Start-DockerIfNeeded", "openUIOnStartupDisabled", "tray", "docker info"):
+    for needle in ("Start-DockerIfNeeded", "openUIOnStartupDisabled", "headless", "no tray", "docker info"):
         if needle not in text:
             fail(f"DOCKER_LAUNCH.md must document {needle!r}")
     if "case-insensitive" not in text and "WINDOWS_LAUNCH_PARSE" not in text:
@@ -196,16 +199,22 @@ def check_launcher() -> None:
         fail("launcher must reuse Start-DockerIfNeeded (do not invent a second starter)")
     if "if (-not (Start-DockerIfNeeded))" not in text:
         fail("normal launch must call Start-DockerIfNeeded when docker info fails")
-    if "Set-DockerTrayOnlySettings" not in text or "openUIOnStartupDisabled" not in text:
-        fail("launch-time Docker start must patch tray-only settings (no dashboard window)")
-    if "WindowStyle Hidden" not in text and "WindowStyle Minimized" not in text:
-        fail("Docker Desktop.exe must start Hidden/Minimized (tray-only)")
+    if "Set-DockerHeadlessSettings" not in text or "openUIOnStartupDisabled" not in text:
+        fail("launch-time Docker start must patch headless settings (no dashboard window)")
+    if "Hide-DockerDesktopUi" not in text or "disableTrayIcon" not in text:
+        fail("launch-time Docker start must hide the dashboard and tray icon")
+    if "WindowStyle Hidden" not in text and "CreateNoWindow" not in text:
+        fail("Docker engine processes must start Hidden / CreateNoWindow")
     if "does not auto-start Docker unless you pass -StartDocker" in text:
         fail("default launch must auto-start Docker; -StartDocker is no longer required")
     if "no auto-start unless -StartDocker" in text:
-        fail("launch plan must say Docker starts in the tray when the engine is down")
-    if "Starting Docker Desktop (system tray)" not in text:
-        fail("Start-DockerIfNeeded must tell James Docker is starting in the tray")
+        fail("launch plan must say the background engine starts when docker info fails")
+    if "Starting Docker Desktop (system tray)" in text:
+        fail("Start-DockerIfNeeded must not announce a Docker tray start to the user")
+    if "Starting background engine" not in text:
+        fail("Start-DockerIfNeeded must start the engine invisibly")
+    if "www.docker.com/products/docker-desktop" in text:
+        fail("launcher must not open docker.com")
     if "Start-Process `$script:DashboardUrl" in text:
         fail("splash/status form still auto-opens the :9119 dashboard")
     if "Show-DragonDialog" not in text:
@@ -241,8 +250,16 @@ def check_shortcuts() -> None:
             fail(f"{path.name} still points Dragon AI Agent.lnk at powershell.exe")
         if "Start-DragonAI.vbs" not in text:
             fail(f"{path.name} missing windowless Start-DragonAI.vbs host")
-        if "openUIOnStartupDisabled" not in text or "Set-DockerTrayOnlySettings" not in text:
-            fail(f"{path.name} must keep tray-only Docker settings")
+        if "openUIOnStartupDisabled" not in text or "Set-DockerHeadlessSettings" not in text:
+            fail(f"{path.name} must keep headless Docker settings")
+        if "Hide-DockerDesktopUi" not in text or "disableTrayIcon" not in text:
+            fail(f"{path.name} must hide Docker dashboard / tray / onboarding")
+        if "--always-run-service" not in text:
+            fail(f"{path.name} quiet install must pass --always-run-service")
+        if "Docker UI:" in text or "tray-only (dashboard suppressed" in text:
+            fail(f"{path.name} must not print a Docker UI / tray status line")
+        if "Install Docker Desktop" in text or "install Docker from docker.com" in text:
+            fail(f"{path.name} must not tell the user to install Docker")
         if "Find-BundledDockerInstaller" not in text or "vendor\\docker" not in text:
             fail(f"{path.name} must prefer a packaged Docker Desktop installer")
         if "https://www.docker.com/products/docker-desktop/" in text:

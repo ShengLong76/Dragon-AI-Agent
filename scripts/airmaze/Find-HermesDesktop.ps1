@@ -411,7 +411,7 @@ public class DragonAIWinTitle {
         $procs = @()
         $procs += @(Get-Process -Name "Hermes" -ErrorAction SilentlyContinue)
         $procs += @(Get-Process -Name "hermes-agent" -ErrorAction SilentlyContinue)
-        # Window rename only for the private Dragon path — never standalone Hermes.
+        # Window rename only for the private Dragon path - never standalone Hermes.
         $procs = @($procs | Where-Object {
             $_.Path -and (Test-DragonAIPrivateDesktopPath -Path ([string]$_.Path))
         })
