@@ -5,6 +5,7 @@ All notable changes to Dragon AI Agent (packaging/distribution) are documented h
 ## [Unreleased]
 
 ### Fixed
+- **Fresh install opened headless `:8650` (`web UI disabled`) instead of the desktop chat UI.** Live UltraDragon: `DragonAIAgent.exe` loaded `http://127.0.0.1:8650/` and that URL returned HTTP 200 with `Headless backend (hermes serve): web UI disabled`. `hermes-airmaze-gw` published 8642/8650/9119; `hermes-airmaze-desktop` and the serve proxy published no host ports. `:8650` is the Bot Screen API. The package now runs `hermes dashboard` as `hermes-airmaze-desktop-ui` and publishes `127.0.0.1:8660`. The window loads that HTML (via the host inject proxy on `:8655`), refuses the headless body, injects the Dragon overlay, and first-run is the Air Maze Models / LLM provider step on that page (Continue writes `gateway_models.py`). Personal Assistant only; no teams picker. Tray ICO stays the current logo; Launch still writes a result. Check: `python3 scripts/airmaze/Test-InstallFirstRun.py` / `python3 scripts/airmaze/desktop_ui.py --self-test`.
 - **Windows PowerShell 5.1 cannot parse Setup on a clean PC.** `installer/DragonAIAgentSetup.ps1` (UTF-8, no BOM) used an em dash in the shortcut description (`Dragon AI Agent — start...`). Windows PowerShell 5.1 decodes that as ANSI, the string ends early, and `start` is an unexpected token. Installer and the PowerShell scripts Setup runs now use ASCII punctuation only. Do not require a BOM. Check: `python3 scripts/airmaze/Test-WindowsLaunchParse.py`.
 
 ### Changed

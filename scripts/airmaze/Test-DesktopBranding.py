@@ -512,6 +512,8 @@ const protocol = 'hermes://copilot-key/start';
             fail("index.html must inject the sidebar header lockup (Dragon AI)")
         if 'data-dragon-ai-branding="teams-picker"' not in html or "Teams" not in html:
             fail("index.html must inject the in-app Teams picker")
+        if 'data-dragon-ai-branding="first-run-models"' not in html:
+            fail("index.html must inject the Air Maze first-run Models step")
         if 'data-dragon-ai-branding="voice-provider"' not in html:
             fail("index.html must inject the Grok Voice waveform overlay")
         if 'data-dragon-ai-branding="voice-settings"' not in html or "Grok Voice" not in html:
@@ -586,6 +588,8 @@ const protocol = 'hermes://copilot-key/start';
             fail("index.html inject must pin the lockup with border:0")
         if not (pack_dir / "sidebar-header.js").is_file() or not (pack_dir / "teams-picker.js").is_file():
             fail("prebuilt inject scripts must be copied into dragon-ai-branding")
+        if not (pack_dir / "first-run-models.js").is_file():
+            fail("first-run-models.js must be copied into dragon-ai-branding")
         if "18cqi" in css_txt:
             fail("injected CSS must not shrink the sidebar logo with column width")
         if "dragon-ai-logo-175:1" not in css_txt or "--dragon-sidebar-logo-size: 56px" not in css_txt:
@@ -655,7 +659,9 @@ def test_packaging_not_regressed() -> None:
     compose = read(COMPOSE)
     for token in (
         "127.0.0.1:8650:8650",
+        "127.0.0.1:8660:8660",
         "hermes-airmaze-desktop",
+        "hermes-airmaze-desktop-ui",
         "nousresearch/hermes-agent",
         "HERMES_DASHBOARD_SESSION_TOKEN",
         "dragon-local",
@@ -681,6 +687,8 @@ def test_packaging_not_regressed() -> None:
             fail("Apply-DesktopBranding.ps1 must upsert sidebar inject even when index.html is already branded")
     if "sidebar-header.js" not in apply_ps or "teams-picker.js" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must ship/copy prebuilt inject scripts without Python")
+    if "first-run-models.js" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must inject the Air Maze first-run Models step")
     if "data-dragon-ai-sidebar-fixed" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must verify the body fixed-overlay fallback landed")
     if "findInFlowColumn" not in apply_ps or "data-dragon-ai-sidebar-chrome" not in apply_ps:

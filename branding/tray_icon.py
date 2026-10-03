@@ -24,6 +24,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 BADGE_SOURCE = ROOT / "installer" / "winres" / "icon-source.png"
 WINRES_ICO = ROOT / "installer" / "winres" / "icon.ico"
+DESKTOP_WINRES_ICO = ROOT / "desktop" / "winres" / "icon.ico"
 NAVY_PNG = HERE / "dragon-ai-agent-logo.png"
 BRAND_ICO = HERE / "dragon-ai-agent-logo.ico"
 SIDEBAR_MARK = NAVY_PNG
@@ -146,9 +147,11 @@ def rebuild() -> dict[str, str]:
     dragon = load_sidebar_mark()
     write_ico(dragon, WINRES_ICO)
     write_ico(dragon, BRAND_ICO)
+    write_ico(dragon, DESKTOP_WINRES_ICO)
     return {
         "taskbar": str(WINRES_ICO.relative_to(ROOT)),
         "shortcuts": str(BRAND_ICO.relative_to(ROOT)),
+        "desktop": str(DESKTOP_WINRES_ICO.relative_to(ROOT)),
         "source": "sidebar-mark",
         "fit": "contain-max",
     }

@@ -48,8 +48,12 @@ $ApiHost = "127.0.0.1"
 $ApiPort = 8642
 $DashPort = 9119
 # Desktop Remote token/WS - NOT the OpenAI API on 8642 (that surface has no /api/ws).
+# GET / on :8650 is headless hermes serve ("web UI disabled"). The window must
+# load the dashboard web UI on :8660 instead.
 $DesktopServeUrl = "http://127.0.0.1:8650"
 $DesktopServePort = 8650
+$DesktopWebUIUrl = "http://127.0.0.1:8660/"
+$DesktopWebUIPort = 8660
 $DesktopSessionToken = "dragon-local"
 
 if ([string]::IsNullOrWhiteSpace($InstallRoot)) {
@@ -69,7 +73,12 @@ if (-not [string]::IsNullOrWhiteSpace($env:API_SERVER_KEY) -and $env:API_SERVER_
     $script:ApiKey = $env:API_SERVER_KEY
 }
 $script:DesktopServeUrl = $DesktopServeUrl
+$script:DesktopWebUIUrl = $DesktopWebUIUrl
+$script:DesktopWebUIPort = $DesktopWebUIPort
 $script:DesktopSessionToken = $DesktopSessionToken
+if ([string]::IsNullOrWhiteSpace($env:DRAGON_AI_UI_URL)) {
+    $env:DRAGON_AI_UI_URL = $script:DesktopWebUIUrl
+}
 
 $finder = Join-Path $PSScriptRoot "Find-HermesDesktop.ps1"
 if (-not (Test-Path -LiteralPath $finder)) {
@@ -754,6 +763,26 @@ function Test-DesktopServeReady {
     return (Test-HttpReachable -Url "$($script:DesktopServeUrl)/api/status" -TimeoutSec $TimeoutSec -Headers $headers)
 }
 
+function Test-DesktopWebUIReady {
+    param([int]$TimeoutSec = 3)
+    $url = $script:DesktopWebUIUrl
+    try {
+        $resp = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec $TimeoutSec -ErrorAction Stop
+        $body = [string]$resp.Content
+        if ($body -match 'web UI disabled' -or $body -match 'Headless backend \(hermes serve\)') {
+            Write-LaunchLog "Desktop web UI at $url returned the headless hermes serve page (web UI disabled)" "WARN"
+            return $false
+        }
+        if ($body -match '<html' -or $body -match '<!DOCTYPE') {
+            return $true
+        }
+        Write-LaunchLog "Desktop web UI at $url is reachable but is not an HTML page" "WARN"
+        return $false
+    } catch {
+        return $false
+    }
+}
+
 function Sync-EmbeddedGatewayProfiles {
     <#
       Remote Desktop serve lists bots from the Linux HERMES_HOME volume,
@@ -811,9 +840,9 @@ function Set-EmbeddedDesktopRemoteConnection {
 }
 
 function Wait-GatewayReady {
-    param([int]$TimeoutSec = 90, [switch]$RequireDesktopServe)
+    param([int]$TimeoutSec = 90, [switch]$RequireDesktopServe, [switch]$RequireDesktopWebUI)
     $deadline = (Get-Date).AddSeconds($TimeoutSec)
-    $last = @{ Ok = $false; Dashboard = $false; Api = $false; DesktopServe = $false }
+    $last = @{ Ok = $false; Dashboard = $false; Api = $false; DesktopServe = $false; DesktopWebUI = $false }
     while ((Get-Date) -lt $deadline) {
         $apiTcp = Test-TcpOpen -TargetHost $ApiHost -Port $ApiPort
         $apiHttp = $false
@@ -829,16 +858,22 @@ function Wait-GatewayReady {
         if ($desktopTcp) {
             $desktopHttp = Test-DesktopServeReady
         }
+        $webUI = Test-DesktopWebUIReady
         $last = @{
             Ok            = ($apiTcp -and $apiHttp)
             Dashboard     = $dash
             Api           = ($apiTcp -and $apiHttp)
             DesktopServe  = ($desktopTcp -and $desktopHttp)
+            DesktopWebUI  = $webUI
         }
         # Host TCP/HTTP on 8642 is required. 9119 alone is not enough (docker-proxy
         # can listen while the dashboard process crash-loops). Bot Screen also
-        # needs the Desktop serve proxy on 8650 (/api/health + /api/ws).
-        if ($last.Ok -and ((-not $RequireDesktopServe) -or $last.DesktopServe)) {
+        # needs the Desktop serve proxy on 8650 (/api/health + /api/ws). The
+        # product window needs the dashboard web UI on 8660 (not the headless
+        # "web UI disabled" body on 8650 GET /).
+        $serveOk = ((-not $RequireDesktopServe) -or $last.DesktopServe)
+        $uiOk = ((-not $RequireDesktopWebUI) -or $last.DesktopWebUI)
+        if ($last.Ok -and $serveOk -and $uiOk) {
             return $last
         }
         Start-Sleep -Seconds 2
@@ -897,9 +932,11 @@ Re-download Dragon-AI-Agent-v0.1.0-windows.zip and run DragonAIAgentSetup.exe.
     }
     Write-LaunchLog "Launching Dragon AI Agent desktop: $exe"
     Save-DragonAIDesktopPointer -ExePath $exe -InstallRoot $InstallRoot | Out-Null
-    # Belt-and-suspenders: some Desktop builds honor these on first boot.
+    # Bot Screen / Remote stays on headless serve :8650. The window loads :8660.
     $env:HERMES_DESKTOP_REMOTE_URL = $script:DesktopServeUrl
     $env:HERMES_DESKTOP_REMOTE_TOKEN = $script:DesktopSessionToken
+    $env:DRAGON_AI_UI_URL = $script:DesktopWebUIUrl
+    Write-LaunchLog "Desktop Screen is $($script:DesktopWebUIUrl) (dashboard web UI). Gateway API is http://${ApiHost}:${ApiPort}/. Desktop serve API is $($script:DesktopServeUrl) (not the window)."
     if (Get-Command Start-DragonAIDesktopClient -ErrorAction SilentlyContinue) {
         Start-DragonAIDesktopClient -ExePath $exe -InstallRoot $InstallRoot
     } else {
@@ -1026,6 +1063,7 @@ function Get-LaunchPlan {
         dashboardUrl  = $DashboardUrl
         api           = "${ApiHost}:${ApiPort}"
         desktopServe  = "${ApiHost}:${DesktopServePort}"
+        desktopWebUI  = $script:DesktopWebUIUrl
         log           = $script:LaunchLog
         ui            = @(
             "windowless host: Start-DragonAI.vbs / wscript.exe (no console)",
@@ -1040,7 +1078,9 @@ function Get-LaunchPlan {
             "do not show Waiting for gateway Setup/Close status window (Dragon AI Agent is the loading UX)",
             "docker CLI stderr progress is not a terminating error",
             "Desktop Remote -> $($script:DesktopServeUrl) (token mode; not :8642)",
-            "wait for /api/health on the Desktop serve proxy with X-Hermes-Session-Token"
+            "wait for /api/health on the Desktop serve proxy with X-Hermes-Session-Token",
+            "window loads $($script:DesktopWebUIUrl) (hermes dashboard web UI), not :8650 GET /",
+            "fail launch if the desktop URL returns the headless web UI disabled page"
         )
     }
 }
@@ -1053,6 +1093,7 @@ function Invoke-Smoke {
     Write-Host ("  Dashboard:   {0}" -f $plan.dashboardUrl)
     Write-Host ("  API:         {0}" -f $plan.api)
     Write-Host ("  Desktop:     {0}" -f $plan.desktopServe)
+    Write-Host ("  Web UI:      {0}" -f $plan.desktopWebUI)
     Write-Host ("  Log:         {0}" -f $plan.log)
     foreach ($step in $plan.ui) {
         Write-Host ("  UI:          {0}" -f $step)
@@ -1096,7 +1137,10 @@ function Invoke-Smoke {
         "teams_picker",
         "8653",
         "voice_chat",
-        "8654"
+        "8654",
+        "8660",
+        "Test-DesktopWebUIReady",
+        "web UI disabled"
     )
     foreach ($token in $required) {
         if ($text -notlike "*$token*") {
@@ -1174,19 +1218,22 @@ try {
     }
 
     Update-LaunchStatus "Waiting for gateway API on ${ApiHost}:${ApiPort} and Desktop serve on ${ApiHost}:${DesktopServePort}..."
-    $ready = Wait-GatewayReady -TimeoutSec 120 -RequireDesktopServe
+    $ready = Wait-GatewayReady -TimeoutSec 120 -RequireDesktopServe -RequireDesktopWebUI
     if (-not $ready.Ok) {
         throw "The embedded gateway API is not reachable from Windows at http://${ApiHost}:${ApiPort}/ (container may be loopback-bound or crash-looping). See %LOCALAPPDATA%\DragonAIAgent\launch.log and docker logs hermes-airmaze-gw."
     }
     if (-not $ready.DesktopServe) {
         throw "The Desktop Bot Screen backend is not reachable at $($script:DesktopServeUrl)/api/health (expected X-Hermes-Session-Token + /api/ws). Check: docker logs hermes-airmaze-desktop && docker logs hermes-airmaze-desktop-proxy. Do not point Remote at :8642 (OpenAI API only)."
     }
+    if (-not $ready.DesktopWebUI) {
+        throw "The desktop chat screen is not reachable at $($script:DesktopWebUIUrl) (or it returned the headless web UI disabled page). Check: docker logs hermes-airmaze-desktop-ui && docker logs hermes-airmaze-desktop-ui-proxy. Do not open :8650 in the window; that is hermes serve, not the chat UI."
+    }
 
     if ($showUi) {
         if ($OpenDashboard) {
             try { Open-Dashboard } catch { Write-LaunchLog "Dashboard open skipped: $($_.Exception.Message)" "WARN" }
         }
-        $msg = "Dragon AI Agent launched.`nDesktop Screen: $($script:DesktopServeUrl)`nGateway API: http://${ApiHost}:${ApiPort}/"
+        $msg = "Dragon AI Agent launched.`nDesktop Screen: $($script:DesktopWebUIUrl)`nGateway API: http://${ApiHost}:${ApiPort}/`nDesktop serve API: $($script:DesktopServeUrl)"
         Update-LaunchStatus $msg
         if ($script:LaunchForm -and -not $script:LaunchForm.IsDisposed) {
             try {

@@ -384,6 +384,9 @@ function Start-DragonAIDesktopClient {
         throw "Refuse launch of a Hermes install: $ExePath"
     }
     Set-DragonAIDesktopUserDataEnv -InstallRoot $InstallRoot | Out-Null
+    if ([string]::IsNullOrWhiteSpace($env:DRAGON_AI_UI_URL)) {
+        $env:DRAGON_AI_UI_URL = "http://127.0.0.1:8660/"
+    }
     $wd = Split-Path -Parent $ExePath
     Exclude-DragonAIHermesBots | Out-Null
     try {
@@ -414,9 +417,58 @@ function Start-DragonAIDesktopClient {
             ) -WindowStyle Hidden -ErrorAction SilentlyContinue | Out-Null
         }
     } catch {}
-    Start-Process -FilePath $ExePath -WorkingDirectory $wd -ErrorAction Stop
+    $proc = $null
+    try {
+        $proc = Start-Process -FilePath $ExePath -WorkingDirectory $wd -PassThru -ErrorAction Stop
+    } catch {
+        $msg = "Dragon AI Agent did not start. $($_.Exception.Message)"
+        Write-LaunchResult -Ok $false -ErrorMessage $msg -InstallRoot $InstallRoot
+        throw $msg
+    }
+    Start-Sleep -Milliseconds 1200
+    if ($proc -and $proc.HasExited) {
+        $msg = "Dragon AI Agent exited immediately (code $($proc.ExitCode)). No window was shown."
+        Write-LaunchResult -Ok $false -ErrorMessage $msg -InstallRoot $InstallRoot -PidValue $proc.Id
+        throw $msg
+    }
+    Write-LaunchResult -Ok $true -Message "Dragon AI Agent process is running." -InstallRoot $InstallRoot -PidValue $(if ($proc) { $proc.Id } else { 0 })
     Set-DragonAIMainWindowTitle -Title "Dragon AI Agent" | Out-Null
     return $true
+}
+
+function Write-LaunchResult {
+    param(
+        [bool]$Ok,
+        [string]$Message = "",
+        [string]$ErrorMessage = "",
+        [string]$InstallRoot = "",
+        [int]$PidValue = 0
+    )
+    $root = Get-DragonAIInstallRoot -InstallRoot $InstallRoot
+    $obj = [ordered]@{
+        ok      = [bool]$Ok
+        action  = "start-desktop"
+        message = $Message
+        error   = $ErrorMessage
+        pid     = $PidValue
+        exe     = "desktop\win-unpacked\DragonAIAgent.exe"
+    }
+    try {
+        if (-not (Test-Path -LiteralPath $root)) {
+            New-Item -ItemType Directory -Force -Path $root | Out-Null
+        }
+        ($obj | ConvertTo-Json) | Set-Content -LiteralPath (Join-Path $root "launch-result.json") -Encoding UTF8
+    } catch {}
+    if (-not $Ok) {
+        if (Get-Command Show-DragonDialog -ErrorAction SilentlyContinue) {
+            Show-DragonDialog -Message $ErrorMessage -Kind Error
+        } else {
+            try {
+                Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue
+                [System.Windows.Forms.MessageBox]::Show($ErrorMessage, "Dragon AI Agent") | Out-Null
+            } catch {}
+        }
+    }
 }
 
 function Start-HermesDesktopClient {
