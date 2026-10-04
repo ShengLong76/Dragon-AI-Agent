@@ -27,23 +27,16 @@ GOOS=windows GOARCH=amd64 go build -o /workspace/airmaze-agent-dist/release/Drag
 
 If `go-winres` / `.syso` is skipped, the exe may keep the default Go icon; the PNG/ICO still ship beside the exe and are used for desktop shortcut `IconLocation`. Documented here intentionally.
 
-Release zip layout:
+Release is **one file**: `DragonAIAgentSetup.exe`. The payload is embedded (not a zip with a second exe beside it).
 
 ```text
-Dragon-AI-Agent-v0.1.0-windows/
-  DragonAIAgentSetup.exe
-  dragon-ai-agent-logo.png
-  dragon-ai-agent-logo.ico
-  payload/
-    install.ps1
-    docker-compose.embedded.yml
-    README.md
-    vendor/docker/Docker Desktop Installer.exe   (staged; see below)
-    desktop/win-unpacked/DragonAIAgent.exe
-    bot-groups/...
-    scripts/airmaze/...
-    templates/profiles/personal-assistant/...
-    branding/...
+DragonAIAgentSetup.exe   (self-extracting; embeds install.ps1 + desktop + scripts)
+```
+
+Build:
+
+```bash
+python3 installer/pack-payload.py /tmp/DragonAIAgentSetup.exe
 ```
 
 ## Docker Desktop installer (package slot)

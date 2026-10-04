@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 DEFAULT_CHAT_PROVIDER = "xai"
-DEFAULT_CHAT_MODEL = "grok-4.6"
+DEFAULT_CHAT_MODEL = "grok-4.7"
 DEFAULT_IMAGE_PROVIDER = "xai"
 DEFAULT_IMAGE_MODEL = "grok-imagine-image"
 CONFIG_NAME = "config.yaml"
@@ -24,22 +24,28 @@ EMBEDDED_HOME_NAME = ".hermes-airmaze-embedded"
 
 CHAT_CATALOG: list[dict[str, str]] = [
     {
+        "id": "grok-4.7",
+        "provider": "xai",
+        "model": "grok-4.7",
+        "label": "Grok (xAI) - grok-4.7",
+    },
+    {
         "id": "grok-4.6",
         "provider": "xai",
         "model": "grok-4.6",
-        "label": "Grok (xAI) — grok-4.6",
+        "label": "Grok (xAI) - grok-4.6",
     },
     {
         "id": "grok-4.5",
         "provider": "xai",
         "model": "grok-4.5",
-        "label": "Grok (xAI) — grok-4.5",
+        "label": "Grok (xAI) - grok-4.5",
     },
     {
         "id": "grok-4.3",
         "provider": "xai",
         "model": "grok-4.3",
-        "label": "Grok (xAI) — grok-4.3",
+        "label": "Grok (xAI) - grok-4.3",
     },
 ]
 

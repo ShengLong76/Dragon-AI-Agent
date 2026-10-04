@@ -6,7 +6,7 @@
 [CmdletBinding()]
 param(
     [string]$HermesHome = "",
-    [string]$Chat = "grok-4.6",
+    [string]$Chat = "grok-4.7",
     [string]$Image = "grok-imagine-image",
     [switch]$IfMissing,
     [switch]$RestartGateway

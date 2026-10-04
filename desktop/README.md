@@ -7,7 +7,7 @@ This folder is the first-party Windows app. The product window is **Dragon AI Ag
 ```text
 desktop/
   main.go                 Windows host (WebView2, Edge --app fallback)
-  ui/                     Chat / Models / Teams Marketplace
+  ui/                     Provider setup, grok-4.7 confirm, Bots + VM home
   win-unpacked/
     DragonAIAgent.exe     Cross-compiled product exe
 ```

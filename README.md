@@ -16,8 +16,8 @@ Compatible with the open-source agent desktop stack (separate desktop client). T
 | Embedded gateway | `docker compose` pull + `up -d` for the packaged embedded gateway image (see `THIRD_PARTY_NOTICES.md`). |
 | Ports | `127.0.0.1:8650` (Desktop Remote / Bot Screen), `127.0.0.1:8642` (OpenAI API), `127.0.0.1:9119` (browser dashboard). Local credentials: see `docs/airmaze/EMBEDDED_GATEWAY.md`. |
 | **Bot groups / Teams** | In-app **Teams Marketplace** popup (sidebar + first-run) browses GitHub catalog packs (Real Estate Lead Gen, Marketing Team, Trading Team): brief, 4-column seat cards, author, required connectors. **Install** / **Launch** files bots under that name, not Unassigned. **Export** scrubs secrets. Import stays. Personal Assistant is already installed and is not a Teams row. |
-| **Onboarding** | First-run **in-app Models UI** (chat + image LLM defaults via `Apply-GatewayModels`). Connector steps (email / CRM / telephony) stay in `docs/airmaze/SETUP_GUIDE.md`. The WinForms **Dragon AI Agent Setup** wizard is deprecated (no Desktop / Start Menu shortcut). Real Estate bots stay `needs_setup` until required connectors succeed. |
-| Agent desktop | Ships **DragonAIAgent.exe** in the Dragon package and copies it to `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked`. User data is `%LOCALAPPDATA%\DragonAIAgent\electron-userdata`. Install/launch do not search for, copy, require, or mention a Hermes install. Branding/window rename apply only under `DragonAIAgent`. Standalone Hermes, including `%APPDATA%\Hermes\connections.json` primary=`local`, is not mutated. First-run models stay the in-app Models screen. Dashboard login: `dragon` / `dragon-local`. |
+| **Onboarding** | First-run **provider screen** (xAI Grok recommended) then **grok-4.7** confirmation and Begin. Chat + image LLM defaults still write via `Apply-GatewayModels`. Connector steps (email / CRM / telephony) stay in `docs/airmaze/SETUP_GUIDE.md`. The WinForms **Dragon AI Agent Setup** wizard is deprecated (no Desktop / Start Menu shortcut). Real Estate bots stay `needs_setup` until required connectors succeed. |
+| Agent desktop | Ships **DragonAIAgent.exe** in the Dragon package and copies it to `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked`. User data is `%LOCALAPPDATA%\DragonAIAgent\electron-userdata`. Install/launch do not search for, copy, require, or mention a Hermes install. Branding/window rename apply only under `DragonAIAgent`. Standalone Hermes, including `%APPDATA%\Hermes\connections.json` primary=`local`, is not mutated. First-run is the in-app provider screen (xAI Grok recommended, grok-4.7 confirmation, Bots + VM home). Dashboard login: `dragon` / `dragon-local`. |
 
 Be honest about limits: full silent WSL/Docker provision often needs a reboot and/or one-time UAC clicks. Docker is still installed by **Dragon AI Agent Setup**, not as a separate product the user fetches first. The Windows desktop is **DragonAIAgent.exe**, built from `desktop/` and copied from the package.
 
@@ -25,9 +25,10 @@ Be honest about limits: full silent WSL/Docker provision often needs a reboot an
 
 ## Quick start (Windows)
 
-1. Unzip `Dragon-AI-Agent-v0.1.0-windows.zip`.
-2. Run `DragonAIAgentSetup.exe` (console; shows progress). It looks for `payload\install.ps1` beside itself.
-3. Or run manually:
+1. Run `DragonAIAgentSetup.exe` (one file; it embeds the payload). A normal install registers **Dragon AI Agent** in Windows Settings > Apps.
+2. First launch is the expanded provider screen (xAI Grok recommended), then grok-4.7 confirmation, then Begin.
+3. Home is agents on the left, chat in the middle, Bots selected, VM / Bot Screen on the right.
+4. Or run the extracted payload manually:
 
 ```powershell
 cd Dragon-AI-Agent-v0.1.0-windows\payload
@@ -98,7 +99,7 @@ Singular import/export of one bot is an optional toggle (`allowSingularBotImport
 
 ## First-run models + setup guide
 
-Open **Dragon AI Agent** (Desktop / Start Menu launcher). First-run chat + image LLM defaults are written by `Apply-GatewayModels.ps1` (`Grok` / **Grok Imagine**) when those keys are missing. Change them in the **in-app Models UI**. There is no **Dragon AI Agent Setup** Desktop / Start Menu shortcut; the WinForms `Onboard-Wizard.ps1` path is deprecated.
+Open **Dragon AI Agent** (Desktop / Start Menu launcher). First-run is the expanded provider screen (xAI Grok recommended), then grok-4.7 confirmation and Begin. Chat + image LLM defaults are written by `Apply-GatewayModels.ps1` (`Grok` / **Grok Imagine`) when those keys are missing. There is no **Dragon AI Agent Setup** Desktop / Start Menu shortcut; the WinForms `Onboard-Wizard.ps1` path is deprecated.
 
 Connector steps (email / CRM / telephony) for Real Estate packs are documented in [`docs/airmaze/SETUP_GUIDE.md`](docs/airmaze/SETUP_GUIDE.md). Secrets, when used, stay in **Windows DPAPI** under `%LOCALAPPDATA%\DragonAIAgent\onboarding\secrets\` — never in plaintext JSON. Real Estate bots remain **`needs_setup`** until email + CRM + telephony succeed.
 

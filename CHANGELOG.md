@@ -4,6 +4,11 @@ All notable changes to Dragon AI Agent (packaging/distribution) are documented h
 
 ## [Unreleased]
 
+### Changed
+- **UltraDragon-approved first-run.** The product window is no longer the living-room Chat/Models/Teams page. First launch is an expanded provider list with **xAI Grok recommended**, then **XAI Grok OAuth (SuperGrok / Premium+) connected** with default **grok-4.7**, Change, and Begin. Begin lands on agents | chat | Bots + VM. No Hermes wording in the UI. Check: `python3 scripts/airmaze/Test-FirstRunUI.py`.
+- **One-file Windows Setup.** `DragonAIAgentSetup.exe` embeds the payload. A normal install writes a Windows Settings > Apps uninstall entry. Uninstall does not remove Docker Desktop and does not reboot. Check: `python3 scripts/airmaze/Test-FirstRunUI.py`.
+- **Default chat LLM is grok-4.7.**
+
 ### Fixed
 - **Windows PowerShell 5.1 cannot parse Setup on a clean PC.** `installer/DragonAIAgentSetup.ps1` (UTF-8, no BOM) used an em dash in the shortcut description (`Dragon AI Agent — start...`). Windows PowerShell 5.1 decodes that as ANSI, the string ends early, and `start` is an unexpected token. Installer and the PowerShell scripts Setup runs now use ASCII punctuation only. Do not require a BOM. Check: `python3 scripts/airmaze/Test-WindowsLaunchParse.py`.
 

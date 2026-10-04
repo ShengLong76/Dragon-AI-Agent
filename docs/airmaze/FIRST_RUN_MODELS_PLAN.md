@@ -14,7 +14,7 @@ Small plan after `docs/airmaze/FIRST_RUN_MODELS.md`. Tests first. No Electron re
 
 ## Tests first (must fail before the engine exists)
 
-- Defaults write `principal.provider=xai`, `principal.model=grok-4.6`, `image_gen.provider=xai`, `image_gen.xai.model=grok-imagine-image`.
+- Defaults write `principal.provider=xai`, `principal.model=grok-4.7`, `image_gen.provider=xai`, `image_gen.xai.model=grok-imagine-image`.
 - Applying a quality variant writes `grok-imagine-image-quality` / `grok-imagine-image-2.0`.
 - Merge keeps an existing `bot_desktop` block.
 - `--if-missing` does not overwrite a user `principal.model`.

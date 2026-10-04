@@ -133,7 +133,7 @@ function Get-EmbeddedHermesHome {
 
 function Invoke-ApplyGatewayModels {
     param(
-        [string]$Chat = "grok-4.6",
+        [string]$Chat = "grok-4.7",
         [string]$Image = "grok-imagine-image",
         [switch]$IfMissing
     )
@@ -441,7 +441,7 @@ function Invoke-ConsoleWizard {
             Write-Host ""
             Write-Host "--- Default chat LLM and default image LLM ---"
             Write-Host "Dragon AI Agent uses the xAI Grok login already on this PC (OAuth or XAI_API_KEY). This step does not ask for a new key."
-            Write-Host "Chat:  [1] Grok (xAI) grok-4.6  [2] grok-4.5  [3] grok-4.3  [S] Skip (write defaults if missing)"
+            Write-Host "Chat:  [1] Grok (xAI) grok-4.7  [2] grok-4.6  [3] grok-4.5  [4] grok-4.3  [S] Skip (write defaults if missing)"
             $chatChoice = Read-Host "Default chat LLM"
             Write-Host "Image: [1] Grok Imagine grok-imagine-image  [2] grok-imagine-image-quality  [3] grok-imagine-image-2.0  [S] Skip"
             $imgChoice = Read-Host "Default image LLM"
@@ -450,9 +450,10 @@ function Invoke-ConsoleWizard {
                 Set-StepValue $Progress "models" "skipped"
             } else {
                 $chat = switch ($chatChoice) {
-                    "2" { "grok-4.5" }
-                    "3" { "grok-4.3" }
-                    default { "grok-4.6" }
+                    "2" { "grok-4.6" }
+                    "3" { "grok-4.5" }
+                    "4" { "grok-4.3" }
+                    default { "grok-4.7" }
                 }
                 $image = switch ($imgChoice) {
                     "2" { "grok-imagine-image-quality" }
@@ -886,6 +887,7 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
         $cbChat.Size = New-Object Drawing.Size(400, 28)
         $cbChat.BackColor = [System.Drawing.Color]::FromArgb(50, 50, 58)
         $cbChat.ForeColor = $script:BrandText
+        [void]$cbChat.Items.Add("Grok (xAI) - grok-4.7")
         [void]$cbChat.Items.Add("Grok (xAI) - grok-4.6")
         [void]$cbChat.Items.Add("Grok (xAI) - grok-4.5")
         [void]$cbChat.Items.Add("Grok (xAI) - grok-4.3")
@@ -914,9 +916,10 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
 
         $btnContinue.Add_Click({
             $chat = switch ($cbChat.SelectedIndex) {
-                1 { "grok-4.5" }
-                2 { "grok-4.3" }
-                default { "grok-4.6" }
+                1 { "grok-4.6" }
+                2 { "grok-4.5" }
+                3 { "grok-4.3" }
+                default { "grok-4.7" }
             }
             $image = switch ($cbImage.SelectedIndex) {
                 1 { "grok-imagine-image-quality" }

@@ -1011,9 +1011,9 @@ function Start-DragonAIVoiceChat {
 function Start-OnboardingIfNeeded {
     # WinForms Onboard-Wizard is deprecated as a first-run surface.
     # Model defaults are applied by Apply-GatewayModels (-IfMissing) before compose up.
-    # Operators pick models in the in-app Models UI.
+    # Operators pick xAI Grok on the in-app provider screen, then grok-4.7 confirmation.
     if ($NoWizard) { return }
-    Write-LaunchLog "First-run setup uses in-app Models UI (WinForms Onboard-Wizard shortcut retired)"
+    Write-LaunchLog "First-run setup uses in-app provider screen (WinForms Onboard-Wizard shortcut retired)"
 }
 
 function Get-LaunchPlan {
@@ -1036,7 +1036,7 @@ function Get-LaunchPlan {
             "standalone Hermes connections.json primary stays local",
             "launch Dragon AI Agent desktop only (not $DashboardUrl)",
             "start the background engine invisibly when docker info fails (already running is a no-op; no dashboard, no onboarding, no tray icon)",
-            "first-run uses in-app Models UI (WinForms Onboard-Wizard not launched)",
+            "first-run uses in-app provider screen (xAI Grok recommended, grok-4.7 confirmation)",
             "do not show Waiting for gateway Setup/Close status window (Dragon AI Agent is the loading UX)",
             "docker CLI stderr progress is not a terminating error",
             "Desktop Remote -> $($script:DesktopServeUrl) (token mode; not :8642)",

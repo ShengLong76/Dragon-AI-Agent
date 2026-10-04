@@ -26,9 +26,9 @@ SETUP_GUIDE = ROOT / "docs" / "airmaze" / "SETUP_GUIDE.md"
 README = ROOT / "README.md"
 CHANGELOG = ROOT / "CHANGELOG.md"
 
-DEFAULT_CHAT = "grok-4.6"
+DEFAULT_CHAT = "grok-4.7"
 DEFAULT_IMAGE = "grok-imagine-image"
-CHAT_CHOICES = ("grok-4.6", "grok-4.5", "grok-4.3")
+CHAT_CHOICES = ("grok-4.7", "grok-4.6", "grok-4.5", "grok-4.3")
 IMAGE_CHOICES = ("grok-imagine-image", "grok-imagine-image-quality", "grok-imagine-image-2.0")
 
 
@@ -83,7 +83,7 @@ def test_design_recorded() -> None:
         "principal.provider",
         "image_gen.provider",
         "grok-imagine-image",
-        "grok-4.6",
+        "grok-4.7",
         "Onboard-Wizard",
         "XAI_API_KEY",
         "Dragon AI Agent",

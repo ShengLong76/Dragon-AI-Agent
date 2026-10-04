@@ -12,10 +12,10 @@ Edit profile → Generate shows **“No image model available… Restart gateway
 
 | Picker | Default | Hermes keys |
 |--------|---------|-------------|
-| Default chat LLM | **Grok (xAI)** `grok-4.6` | `principal.provider: xai`, `principal.model: grok-4.6` |
+| Default chat LLM | **Grok (xAI)** `grok-4.7` | `principal.provider: xai`, `principal.model: grok-4.7` |
 | Default image LLM | **Grok Imagine** `grok-imagine-image` | `image_gen.provider: xai`, `image_gen.model` + `image_gen.xai.model` |
 
-`grok-4.6` is the head of Hermes’s current xAI static catalog (`hermes_cli/models_catalog_static.py`). Older `grok-4` / `grok-4.3` ids still work; retirement maps retired Grok chat ids to `grok-4.3`. The user can change the pickers.
+`grok-4.7` is the product default chat model. Older `grok-4.6` / `grok-4.5` / `grok-4.3` ids still work. The user can change the pickers.
 
 Image quality variants Hermes already lists (surface them):
 
@@ -28,7 +28,7 @@ Image quality variants Hermes already lists (surface them):
 ```yaml
 principal:
   provider: xai
-  model: grok-4.6
+  model: grok-4.7
 
 image_gen:
   provider: xai

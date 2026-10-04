@@ -9,55 +9,188 @@
 </head>
 <body>
   <a class="skip" href="#main">Skip to chat</a>
-  <header class="lockup" data-dragon-ai-header>
-    <img src="./dragon-ai-agent-logo.svg" alt="" width="56" height="56" class="mark">
-    <div>
-      <h1>Dragon AI Agent</h1>
-      <p class="status" id="status">Starting gateway...</p>
+
+  <section id="screen-providers" class="screen is-on" data-first-run="providers" aria-label="Provider setup">
+    <div class="setup-panel">
+      <h1>Let's get you set up with Dragon AI Agent</h1>
+      <p class="lede">Connect a model provider to start chatting. Most options take one click.</p>
+      <ul id="provider-list" class="provider-list is-expanded" aria-expanded="true">
+        <li>
+          <button type="button" class="provider recommended" data-provider="xai-grok" data-recommended="true">
+            <span class="provider-copy">
+              <span class="provider-name">xAI Grok <span class="badge">RECOMMENDED</span></span>
+              <span class="provider-desc">One subscription, 300+ frontier models - the recommended way to run Dragon AI</span>
+            </span>
+            <span class="chevron" aria-hidden="true">&#8250;</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="provider" data-provider="local">
+            <span class="provider-copy">
+              <span class="provider-name">Run models locally</span>
+              <span class="provider-desc">No account needed - download a model and run it on this machine</span>
+            </span>
+            <span class="chevron" aria-hidden="true">&#8250;</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="provider" data-provider="fireworks">
+            <span class="provider-copy">
+              <span class="provider-name">Fireworks AI</span>
+              <span class="provider-desc">Direct model API - Fireworks-hosted frontier models</span>
+            </span>
+            <span class="chevron" aria-hidden="true">&#8250;</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="provider" data-provider="openai-sub">
+            <span class="provider-copy">
+              <span class="provider-name">ChatGPT or Codex Subscription</span>
+              <span class="provider-desc">Opens a verification page in your browser - Dragon AI connects automatically</span>
+            </span>
+            <span class="chevron" aria-hidden="true">&#8250;</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="provider" data-provider="minimax">
+            <span class="provider-copy">
+              <span class="provider-name">MiniMax</span>
+              <span class="provider-desc">Opens a verification page in your browser - Dragon AI connects automatically</span>
+            </span>
+            <span class="chevron" aria-hidden="true">&#8250;</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="provider" data-provider="opencode">
+            <span class="provider-copy">
+              <span class="provider-name">OpenCode</span>
+              <span class="provider-desc">Sign in on your terminal, then come back to chat</span>
+            </span>
+            <span class="chevron" aria-hidden="true">&#8250;</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="provider" data-provider="anthropic-key">
+            <span class="provider-copy">
+              <span class="provider-name">Anthropic API key</span>
+              <span class="provider-desc">Sign in on your terminal, then come back to chat</span>
+            </span>
+            <span class="chevron" aria-hidden="true">&#8250;</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="provider" data-provider="anthropic-oauth">
+            <span class="provider-copy">
+              <span class="provider-name">Anthropic OAuth</span>
+              <span class="provider-desc">Required extra usage credits to use a subscription</span>
+            </span>
+            <span class="chevron" aria-hidden="true">&#8250;</span>
+          </button>
+        </li>
+      </ul>
+      <div class="setup-foot">
+        <button type="button" class="linkish" id="choose-later">I'll choose a provider later</button>
+        <button type="button" class="linkish" id="have-key">I have an API key</button>
+      </div>
     </div>
-    <nav class="tabs" aria-label="Dragon AI Agent">
-      <button type="button" class="tab is-on" data-tab="chat" aria-pressed="true">Chat</button>
-      <button type="button" class="tab" data-tab="models" aria-pressed="false">Models</button>
-      <button type="button" class="tab" data-tab="teams" aria-pressed="false">Teams Marketplace</button>
-    </nav>
-  </header>
-  <main id="main">
-    <section id="panel-chat" class="panel is-on" data-chat-surface>
+  </section>
+
+  <section id="screen-confirm" class="screen" hidden data-first-run="confirm" aria-label="Grok confirmation">
+    <div class="confirm-panel">
+      <p class="confirm-status" id="confirm-status">XAI Grok OAuth (SuperGrok / Premium+) connected</p>
+      <p class="confirm-label">Default model</p>
+      <p class="confirm-model" id="default-model">grok-4.7</p>
+      <label class="model-picker" id="model-picker" hidden>
+        <span class="sr">Choose default model</span>
+        <select id="chat-model" aria-label="Default model">
+          <option value="grok-4.7" selected>grok-4.7</option>
+          <option value="grok-4.6">grok-4.6</option>
+          <option value="grok-4.5">grok-4.5</option>
+          <option value="grok-4.3">grok-4.3</option>
+        </select>
+      </label>
+      <div class="confirm-actions">
+        <button type="button" class="ghost" id="change-model">Change</button>
+        <button type="button" class="ghost" id="begin">Begin</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="screen-home" class="screen home" hidden data-first-run="home" aria-label="Dragon AI Agent home">
+    <aside class="rail" data-dragon-ai-sidebar-chrome>
+      <div class="lockup-row" data-dragon-ai-sidebar-row>
+        <img src="./dragon-ai-agent-logo.svg" alt="" width="56" height="56" class="mark" data-dragon-ai-sidebar-logo aria-hidden="true">
+        <div class="wordmark" role="img" aria-label="Dragon AI Agent">Dragon AI</div>
+      </div>
+      <button type="button" class="teams-open" data-dragon-ai-teams-open id="teams-open">Teams Marketplace</button>
+      <nav class="rail-tabs" aria-label="Sessions and Bots">
+        <button type="button" class="rail-tab" data-rail="sessions" aria-pressed="false">Sessions</button>
+        <button type="button" class="rail-tab is-on" data-rail="bots" aria-pressed="true">Bots</button>
+      </nav>
+      <div id="rail-sessions" class="rail-body" hidden>
+        <p class="muted">No sessions yet.</p>
+      </div>
+      <div id="rail-bots" class="rail-body">
+        <p class="rail-heading">Agents</p>
+        <ul class="agents" id="agents">
+          <li class="agent is-on">
+            <span class="agent-mark" aria-hidden="true"></span>
+            <span>
+              <strong>Personal Assistant</strong>
+              <em>Pinned</em>
+            </span>
+          </li>
+          <li class="agent muted-row">
+            <span class="agent-mark empty" aria-hidden="true"></span>
+            <span>Unassigned</span>
+          </li>
+        </ul>
+      </div>
+    </aside>
+
+    <main id="main" data-chat-surface>
+      <header class="chat-head">
+        <h1>Dragon AI Agent</h1>
+        <p class="status" id="status">Starting gateway...</p>
+        <div class="chat-tools">
+          <button type="button" class="chip" id="voice-assist">Voice assist</button>
+        </div>
+      </header>
       <div id="thread" class="thread" aria-live="polite"></div>
-      <form id="composer" class="composer">
+      <form id="composer" class="composer" data-slot="composer">
         <label class="sr" for="prompt">Give Dragon AI a task</label>
         <textarea id="prompt" name="prompt" rows="1" placeholder="Give Dragon AI a task"></textarea>
-        <button type="submit" class="primary">Send</button>
+        <button type="button" class="wave" id="talk" aria-label="Talk with Grok">
+          <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+        </button>
+        <button type="submit" class="send" aria-label="Send">Send</button>
       </form>
+    </main>
+
+    <section id="vm-pane" class="vm-pane" aria-label="Bot Screen">
+      <iframe id="vm-frame" title="Bot Screen" src="about:blank" hidden></iframe>
+      <div id="vm-fallback" class="vm-desktop">
+        <div class="vm-chrome">
+          <span class="vm-dot"></span>
+          <span class="vm-dot"></span>
+          <span class="vm-dot"></span>
+          <span class="vm-title">Bot Screen</span>
+        </div>
+        <div class="vm-body">
+          <p>Bot Screen</p>
+          <p class="muted">The VM desktop for this agent. Gateway: 127.0.0.1:8650</p>
+        </div>
+      </div>
     </section>
-    <section id="panel-models" class="panel" hidden>
-      <h2>Models</h2>
-      <p class="lede">First-run chat and image defaults. Change these here; they are written to the local gateway. This screen does not ask for a new API key.</p>
-      <form id="models-form" class="card">
-        <label>Default chat LLM
-          <select id="chat-model">
-            <option value="grok-4.6" selected>Grok (xAI) grok-4.6</option>
-            <option value="grok-4.5">Grok (xAI) grok-4.5</option>
-            <option value="grok-4.3">Grok (xAI) grok-4.3</option>
-          </select>
-        </label>
-        <label>Default image LLM
-          <select id="image-model">
-            <option value="grok-imagine-image" selected>Grok Imagine</option>
-            <option value="grok-imagine-image-quality">Grok Imagine Quality</option>
-            <option value="grok-imagine-image-2.0">Grok Imagine 2.0</option>
-          </select>
-        </label>
-        <p id="models-note" class="note"></p>
-        <button type="submit" class="primary">Save models</button>
-      </form>
-    </section>
-    <section id="panel-teams" class="panel" hidden>
-      <h2>Teams Marketplace</h2>
-      <p class="lede">Install a department pack. Personal Assistant is already on this machine.</p>
-      <div id="teams" class="teams"></div>
-    </section>
-  </main>
+  </section>
+
+  <dialog id="teams-dialog" class="teams-dialog" aria-labelledby="teams-title">
+    <h2 id="teams-title">Teams Marketplace</h2>
+    <p class="lede">Install a department pack. Personal Assistant is already on this machine.</p>
+    <div id="teams" class="teams"></div>
+    <button type="button" class="ghost" id="teams-close">Close</button>
+  </dialog>
+
   <script src="./app.js"></script>
 </body>
 </html>

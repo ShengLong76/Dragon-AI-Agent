@@ -167,6 +167,7 @@ func proxy(w http.ResponseWriter, r *http.Request, dest, auth string, copyQuery 
 
 func main() {
 	selfTest := flag.Bool("self-test", false, "print paths JSON and exit")
+	serveOnly := flag.Bool("serve", false, "serve the Dragon AI Agent UI and block (Linux verification)")
 	flag.Parse()
 	if *selfTest {
 		enc := json.NewEncoder(os.Stdout)
@@ -187,6 +188,10 @@ func main() {
 		os.Exit(1)
 	}
 	defer stop()
+	if *serveOnly {
+		fmt.Println(addr)
+		select {}
+	}
 	if err := openDesktop(addr); err != nil {
 		fmt.Fprintf(os.Stderr, "Dragon AI Agent: %v\n", err)
 		os.Exit(1)

@@ -76,8 +76,16 @@ def test_package_has_desktop_source() -> None:
     ui = read(ROOT / "desktop" / "ui" / "index.html")
     if "<title>Dragon AI Agent</title>" not in ui:
         fail("desktop UI title must be Dragon AI Agent")
-    if 'id="panel-models"' not in ui:
-        fail("desktop UI must include the in-app Models screen")
+    if 'id="screen-providers"' not in ui:
+        fail("desktop UI must start with the expanded provider screen")
+    if "xAI Grok" not in ui or "RECOMMENDED" not in ui:
+        fail("desktop UI must recommend xAI Grok")
+    if "grok-4.7" not in ui:
+        fail("desktop UI default model must be grok-4.7")
+    if 'id="vm-pane"' not in ui or 'data-rail="bots"' not in ui:
+        fail("desktop home must include Bots + VM")
+    if "Hermes" in ui:
+        fail("desktop UI must not contain Hermes wording")
     go = read(ROOT / "desktop" / "main.go")
     if "DragonAIAgent.exe" not in go and "Dragon AI Agent" not in go:
         fail("desktop host must be Dragon AI Agent")

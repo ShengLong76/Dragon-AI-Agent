@@ -230,8 +230,8 @@ def check_launcher() -> None:
         fail("launcher still auto-opens WinForms Onboard-Wizard on first-run")
     if "first-run Onboard-Wizard if welcome is still pending" in text:
         fail("launch plan still advertises first-run Onboard-Wizard")
-    if "first-run uses in-app Models UI" not in text:
-        fail("launch plan must say first-run uses in-app Models UI")
+    if "first-run uses in-app provider screen" not in text:
+        fail("launch plan must say first-run uses in-app provider screen")
     if "New-LaunchStatusForm | Out-Null" in text:
         fail("normal launch must not auto-open the Waiting for gateway Setup/Close status window")
     if "do not show Waiting for gateway Setup/Close status window" not in text:

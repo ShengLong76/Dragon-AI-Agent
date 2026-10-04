@@ -44,7 +44,7 @@ Pick the models Dragon AI Agent should use. Product defaults (preselected):
 
 | Picker | Default | Written keys |
 |--------|---------|----------------|
-| **Default chat LLM** | Grok (xAI) `grok-4.6` | `principal.provider: xai`, `principal.model` |
+| **Default chat LLM** | Grok (xAI) `grok-4.7` | `principal.provider: xai`, `principal.model` |
 | **Default image LLM** | **Grok Imagine** `grok-imagine-image` | `image_gen.provider: xai`, `image_gen.model`, `image_gen.xai.model` |
 
 Also listed: `grok-4.5`, `grok-4.3`, and Imagine quality variants `grok-imagine-image-quality` / `grok-imagine-image-2.0`.
