@@ -10,7 +10,7 @@ import {
 } from '@/components/assistant-ui/thread/content'
 import { MessageHoverTime } from '@/components/assistant-ui/thread/message-hover-time'
 import { ReactionBadge, ReactionPicker } from '@/components/assistant-ui/thread/message-reactions'
-import { CHAT_BUBBLE_WIDTH_CLASS } from '@/components/assistant-ui/thread/chat-bubble'
+import { CHAT_BUBBLE_RADIUS_CLASS, CHAT_BUBBLE_WIDTH_CLASS } from '@/components/assistant-ui/thread/chat-bubble'
 import { BackgroundResult } from '@/components/assistant-ui/thread/system-message'
 import { threadUserOrdinal } from '@/components/assistant-ui/thread/thread-message-index'
 import { MessageTimelineTimestamp } from '@/components/assistant-ui/thread/timeline-timestamp'
@@ -75,7 +75,7 @@ export function StickyHumanMessageContainer({
 // so without the carve-out, clicking a stuck bubble drags the window instead of
 // opening the edit composer.
 export const USER_BUBBLE_BASE_CLASS =
-  `composer-human-message standalone-glass relative flex ${CHAT_BUBBLE_WIDTH_CLASS} min-w-0 flex-col gap-1.5 overflow-y-auto rounded-xl border bg-(--dt-user-bubble) px-3 py-2 text-left [-webkit-app-region:no-drag]`
+  `composer-human-message standalone-glass relative flex ${CHAT_BUBBLE_WIDTH_CLASS} min-w-0 flex-col gap-1.5 overflow-y-auto ${CHAT_BUBBLE_RADIUS_CLASS} border bg-(--dt-user-bubble) px-3 py-2 text-left [-webkit-app-region:no-drag]`
 
 export const USER_ACTION_ICON_BUTTON_CLASS =
   'grid place-items-center rounded-md bg-transparent text-(--ui-text-secondary) transition-colors hover:bg-(--ui-control-active-background) hover:text-foreground disabled:cursor-default disabled:text-(--ui-text-quaternary) disabled:opacity-70'
