@@ -48,8 +48,12 @@ $ApiHost = "127.0.0.1"
 $ApiPort = 8642
 $DashPort = 9119
 # Desktop Remote token/WS - NOT the OpenAI API on 8642 (that surface has no /api/ws).
+# GET / on :8650 is headless hermes serve ("web UI disabled"). The window must
+# load the dashboard web UI on :8660 instead.
 $DesktopServeUrl = "http://127.0.0.1:8650"
 $DesktopServePort = 8650
+$DesktopWebUIUrl = "http://127.0.0.1:8660/"
+$DesktopWebUIPort = 8660
 $DesktopSessionToken = "dragon-local"
 
 if ([string]::IsNullOrWhiteSpace($InstallRoot)) {
@@ -69,7 +73,12 @@ if (-not [string]::IsNullOrWhiteSpace($env:API_SERVER_KEY) -and $env:API_SERVER_
     $script:ApiKey = $env:API_SERVER_KEY
 }
 $script:DesktopServeUrl = $DesktopServeUrl
+$script:DesktopWebUIUrl = $DesktopWebUIUrl
+$script:DesktopWebUIPort = $DesktopWebUIPort
 $script:DesktopSessionToken = $DesktopSessionToken
+if ([string]::IsNullOrWhiteSpace($env:DRAGON_AI_UI_URL)) {
+    $env:DRAGON_AI_UI_URL = $script:DesktopWebUIUrl
+}
 
 $finder = Join-Path $PSScriptRoot "Find-HermesDesktop.ps1"
 if (-not (Test-Path -LiteralPath $finder)) {
@@ -683,7 +692,7 @@ function Start-GatewayContainer {
     if (Test-Path -LiteralPath $applyModels) {
         try {
             & $applyModels -HermesHome $data -IfMissing | Out-Null
-            Write-LaunchLog "Applied default chat/image LLMs if gateway config was missing them"
+            Write-LaunchLog "Applied default chat/image LLMs if gateway config was missing them (bots inherit)"
         } catch {
             Write-LaunchLog "Gateway model defaults skipped: $($_.Exception.Message)" "WARN"
         }
@@ -754,6 +763,26 @@ function Test-DesktopServeReady {
     return (Test-HttpReachable -Url "$($script:DesktopServeUrl)/api/status" -TimeoutSec $TimeoutSec -Headers $headers)
 }
 
+function Test-DesktopWebUIReady {
+    param([int]$TimeoutSec = 3)
+    $url = $script:DesktopWebUIUrl
+    try {
+        $resp = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec $TimeoutSec -ErrorAction Stop
+        $body = [string]$resp.Content
+        if ($body -match 'web UI disabled' -or $body -match 'Headless backend \(hermes serve\)') {
+            Write-LaunchLog "Desktop web UI at $url returned the headless hermes serve page (web UI disabled)" "WARN"
+            return $false
+        }
+        if ($body -match '<html' -or $body -match '<!DOCTYPE') {
+            return $true
+        }
+        Write-LaunchLog "Desktop web UI at $url is reachable but is not an HTML page" "WARN"
+        return $false
+    } catch {
+        return $false
+    }
+}
+
 function Sync-EmbeddedGatewayProfiles {
     <#
       Remote Desktop serve lists bots from the Linux HERMES_HOME volume,
@@ -811,9 +840,9 @@ function Set-EmbeddedDesktopRemoteConnection {
 }
 
 function Wait-GatewayReady {
-    param([int]$TimeoutSec = 90, [switch]$RequireDesktopServe)
+    param([int]$TimeoutSec = 90, [switch]$RequireDesktopServe, [switch]$RequireDesktopWebUI)
     $deadline = (Get-Date).AddSeconds($TimeoutSec)
-    $last = @{ Ok = $false; Dashboard = $false; Api = $false; DesktopServe = $false }
+    $last = @{ Ok = $false; Dashboard = $false; Api = $false; DesktopServe = $false; DesktopWebUI = $false }
     while ((Get-Date) -lt $deadline) {
         $apiTcp = Test-TcpOpen -TargetHost $ApiHost -Port $ApiPort
         $apiHttp = $false
@@ -829,16 +858,22 @@ function Wait-GatewayReady {
         if ($desktopTcp) {
             $desktopHttp = Test-DesktopServeReady
         }
+        $webUI = Test-DesktopWebUIReady
         $last = @{
             Ok            = ($apiTcp -and $apiHttp)
             Dashboard     = $dash
             Api           = ($apiTcp -and $apiHttp)
             DesktopServe  = ($desktopTcp -and $desktopHttp)
+            DesktopWebUI  = $webUI
         }
         # Host TCP/HTTP on 8642 is required. 9119 alone is not enough (docker-proxy
         # can listen while the dashboard process crash-loops). Bot Screen also
-        # needs the Desktop serve proxy on 8650 (/api/health + /api/ws).
-        if ($last.Ok -and ((-not $RequireDesktopServe) -or $last.DesktopServe)) {
+        # needs the Desktop serve proxy on 8650 (/api/health + /api/ws). The
+        # product window needs the dashboard web UI on 8660 (not the headless
+        # "web UI disabled" body on 8650 GET /).
+        $serveOk = ((-not $RequireDesktopServe) -or $last.DesktopServe)
+        $uiOk = ((-not $RequireDesktopWebUI) -or $last.DesktopWebUI)
+        if ($last.Ok -and $serveOk -and $uiOk) {
             return $last
         }
         Start-Sleep -Seconds 2
@@ -887,7 +922,7 @@ Dragon AI Agent desktop was not found in this package, so there is no app window
 Expected:
   $hint
 
-Re-download Dragon-AI-Agent-v0.1.0-windows.zip and run DragonAIAgentSetup.exe.
+Re-download DragonAIAgentSetup.exe and run that one installer.
 "@
     }
     if (Get-Command Test-DragonAIPrivateDesktopPath -ErrorAction SilentlyContinue) {
@@ -897,9 +932,11 @@ Re-download Dragon-AI-Agent-v0.1.0-windows.zip and run DragonAIAgentSetup.exe.
     }
     Write-LaunchLog "Launching Dragon AI Agent desktop: $exe"
     Save-DragonAIDesktopPointer -ExePath $exe -InstallRoot $InstallRoot | Out-Null
-    # Belt-and-suspenders: some Desktop builds honor these on first boot.
+    # Bot Screen / Remote stays on headless serve :8650. The window loads :8660.
     $env:HERMES_DESKTOP_REMOTE_URL = $script:DesktopServeUrl
     $env:HERMES_DESKTOP_REMOTE_TOKEN = $script:DesktopSessionToken
+    $env:DRAGON_AI_UI_URL = $script:DesktopWebUIUrl
+    Write-LaunchLog "Desktop Screen is $($script:DesktopWebUIUrl) (dashboard web UI). Gateway API is http://${ApiHost}:${ApiPort}/. Desktop serve API is $($script:DesktopServeUrl) (not the window)."
     if (Get-Command Start-DragonAIDesktopClient -ErrorAction SilentlyContinue) {
         Start-DragonAIDesktopClient -ExePath $exe -InstallRoot $InstallRoot
     } else {
@@ -908,18 +945,34 @@ Re-download Dragon-AI-Agent-v0.1.0-windows.zip and run DragonAIAgentSetup.exe.
     return $exe
 }
 
+function Import-DragonAISecureStore {
+    $store = Join-Path $PSScriptRoot "DragonAI-SecureStore.ps1"
+    if (-not (Test-Path -LiteralPath $store)) {
+        $store = Join-Path $InstallRoot "scripts\airmaze\DragonAI-SecureStore.ps1"
+    }
+    if (-not (Test-Path -LiteralPath $store)) { return $false }
+    . $store
+    return $true
+}
+
 function Test-OnboardingNeedsUi {
     $progressPath = Join-Path $env:LOCALAPPDATA "DragonAIAgent\onboarding\progress.json"
     if (-not (Test-Path -LiteralPath $progressPath)) { return $true }
     try {
         $p = Get-Content -LiteralPath $progressPath -Raw -Encoding UTF8 | ConvertFrom-Json
         if ($p.skipped) { return $false }
+        if ($p.inAppProviderUi) { return $false }
         $welcome = $null
+        $models = $null
         if ($p.steps) {
             if ($p.steps.PSObject.Properties.Name -contains "welcome") {
                 $welcome = [string]$p.steps.welcome
             }
+            if ($p.steps.PSObject.Properties.Name -contains "models") {
+                $models = [string]$p.steps.models
+            }
         }
+        if ($models -in @("in_app", "success", "skipped")) { return $false }
         if ([string]::IsNullOrWhiteSpace($welcome) -or $welcome -eq "pending") { return $true }
         return $false
     } catch {
@@ -985,6 +1038,36 @@ function Start-DragonAITeamsPicker {
     }
 }
 
+function Start-DragonAIInheritModels {
+    $engine = Join-Path $PSScriptRoot "gateway_models.py"
+    if (-not (Test-Path -LiteralPath $engine)) {
+        $engine = Join-Path $InstallRoot "scripts\airmaze\gateway_models.py"
+    }
+    if (-not (Test-Path -LiteralPath $engine)) { return }
+    $py = Get-Command python3 -ErrorAction SilentlyContinue
+    if (-not $py) { $py = Get-Command python -ErrorAction SilentlyContinue }
+    if (-not $py) { return }
+    $embeddedHome = if ($env:USERPROFILE) { Join-Path $env:USERPROFILE ".hermes-airmaze-embedded" } else { Join-Path $InstallRoot "hermes-home" }
+    $desktop = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "hermes\profiles" } else { "" }
+    $inheritArgs = @(
+        $engine, "serve",
+        "--home", $embeddedHome,
+        "--host", "127.0.0.1",
+        "--port", "8655"
+    )
+    if (-not [string]::IsNullOrWhiteSpace($desktop)) {
+        $inheritArgs += @("--profiles", $desktop)
+        $inheritArgs += @("--profiles", (Join-Path $embeddedHome "profiles"))
+    }
+    try {
+        & $py.Source $engine inherit --home $embeddedHome --profiles $desktop 2>$null | Out-Null
+        Start-Process -FilePath $py.Source -ArgumentList $inheritArgs -WindowStyle Hidden -ErrorAction SilentlyContinue | Out-Null
+        Write-LaunchLog "Inherit helper on http://127.0.0.1:8655/api/inherit-models (in-app Models -> all bots)"
+    } catch {
+        Write-LaunchLog "Inherit helper skipped: $($_.Exception.Message)" "WARN"
+    }
+}
+
 function Start-DragonAIVoiceChat {
     $engine = Join-Path $PSScriptRoot "voice_chat.py"
     if (-not (Test-Path -LiteralPath $engine)) {
@@ -1013,7 +1096,18 @@ function Start-OnboardingIfNeeded {
     # Model defaults are applied by Apply-GatewayModels (-IfMissing) before compose up.
     # Operators pick models in the in-app Models UI.
     if ($NoWizard) { return }
-    Write-LaunchLog "First-run setup uses in-app Models UI (WinForms Onboard-Wizard shortcut retired)"
+    Write-LaunchLog "First-run setup uses in-app first-run Models UI (WinForms Onboard-Wizard shortcut retired)"
+    if (-not (Test-OnboardingNeedsUi)) { return }
+    try {
+        if (Import-DragonAISecureStore) {
+            Set-DragonAIInAppProviderOnboarding | Out-Null
+            Write-LaunchLog "Marked welcome/models as in-app Models UI; WinForms wizard not launched"
+        } else {
+            Write-LaunchLog "DragonAI-SecureStore.ps1 missing; in-app Models mark skipped" "WARN"
+        }
+    } catch {
+        Write-LaunchLog "In-app provider onboarding mark failed: $($_.Exception.Message)" "WARN"
+    }
 }
 
 function Get-LaunchPlan {
@@ -1026,6 +1120,7 @@ function Get-LaunchPlan {
         dashboardUrl  = $DashboardUrl
         api           = "${ApiHost}:${ApiPort}"
         desktopServe  = "${ApiHost}:${DesktopServePort}"
+        desktopWebUI  = $script:DesktopWebUIUrl
         log           = $script:LaunchLog
         ui            = @(
             "windowless host: Start-DragonAI.vbs / wscript.exe (no console)",
@@ -1037,10 +1132,14 @@ function Get-LaunchPlan {
             "launch Dragon AI Agent desktop only (not $DashboardUrl)",
             "start the background engine invisibly when docker info fails (already running is a no-op; no dashboard, no onboarding, no tray icon)",
             "first-run uses in-app Models UI (WinForms Onboard-Wizard not launched)",
+            "in-app first-run Models inherit the chosen chat model onto all bots",
+            "in-app Models complete inherits the chosen chat model onto all bots",
             "do not show Waiting for gateway Setup/Close status window (Dragon AI Agent is the loading UX)",
             "docker CLI stderr progress is not a terminating error",
             "Desktop Remote -> $($script:DesktopServeUrl) (token mode; not :8642)",
-            "wait for /api/health on the Desktop serve proxy with X-Hermes-Session-Token"
+            "wait for /api/health on the Desktop serve proxy with X-Hermes-Session-Token",
+            "window loads $($script:DesktopWebUIUrl) (hermes dashboard web UI), not :8650 GET /",
+            "fail launch if the desktop URL returns the headless web UI disabled page"
         )
     }
 }
@@ -1053,6 +1152,7 @@ function Invoke-Smoke {
     Write-Host ("  Dashboard:   {0}" -f $plan.dashboardUrl)
     Write-Host ("  API:         {0}" -f $plan.api)
     Write-Host ("  Desktop:     {0}" -f $plan.desktopServe)
+    Write-Host ("  Web UI:      {0}" -f $plan.desktopWebUI)
     Write-Host ("  Log:         {0}" -f $plan.log)
     foreach ($step in $plan.ui) {
         Write-Host ("  UI:          {0}" -f $step)
@@ -1096,7 +1196,14 @@ function Invoke-Smoke {
         "teams_picker",
         "8653",
         "voice_chat",
-        "8654"
+        "8654",
+        "8660",
+        "Test-DesktopWebUIReady",
+        "web UI disabled",
+        "Set-DragonAIInAppProviderOnboarding",
+        "in-app first-run Models",
+        "Start-DragonAIInheritModels",
+        "8655"
     )
     foreach ($token in $required) {
         if ($text -notlike "*$token*") {
@@ -1145,7 +1252,7 @@ try {
 
     $compose = Join-Path $InstallRoot "docker-compose.embedded.yml"
     if (-not (Test-Path -LiteralPath $compose)) {
-        throw "Dragon AI Agent is not installed (missing $compose). Unzip the package and run DragonAIAgentSetup.exe first."
+        throw "Dragon AI Agent is not installed (missing $compose). Run DragonAIAgentSetup.exe first."
     }
 
     Update-LaunchStatus "Starting background engine..."
@@ -1161,6 +1268,7 @@ try {
     Exclude-DragonAIHermesBots
     Start-DragonAITeamsPicker
     Start-DragonAIVoiceChat
+    Start-DragonAIInheritModels
     try { Sync-EmbeddedGatewayProfiles | Out-Null } catch {
         Write-LaunchLog "Profile sync skipped: $($_.Exception.Message)" "WARN"
     }
@@ -1174,19 +1282,22 @@ try {
     }
 
     Update-LaunchStatus "Waiting for gateway API on ${ApiHost}:${ApiPort} and Desktop serve on ${ApiHost}:${DesktopServePort}..."
-    $ready = Wait-GatewayReady -TimeoutSec 120 -RequireDesktopServe
+    $ready = Wait-GatewayReady -TimeoutSec 120 -RequireDesktopServe -RequireDesktopWebUI
     if (-not $ready.Ok) {
         throw "The embedded gateway API is not reachable from Windows at http://${ApiHost}:${ApiPort}/ (container may be loopback-bound or crash-looping). See %LOCALAPPDATA%\DragonAIAgent\launch.log and docker logs hermes-airmaze-gw."
     }
     if (-not $ready.DesktopServe) {
         throw "The Desktop Bot Screen backend is not reachable at $($script:DesktopServeUrl)/api/health (expected X-Hermes-Session-Token + /api/ws). Check: docker logs hermes-airmaze-desktop && docker logs hermes-airmaze-desktop-proxy. Do not point Remote at :8642 (OpenAI API only)."
     }
+    if (-not $ready.DesktopWebUI) {
+        throw "The desktop chat screen is not reachable at $($script:DesktopWebUIUrl) (or it returned the headless web UI disabled page). Check: docker logs hermes-airmaze-desktop-ui && docker logs hermes-airmaze-desktop-ui-proxy. Do not open :8650 in the window; that is hermes serve, not the chat UI."
+    }
 
     if ($showUi) {
         if ($OpenDashboard) {
             try { Open-Dashboard } catch { Write-LaunchLog "Dashboard open skipped: $($_.Exception.Message)" "WARN" }
         }
-        $msg = "Dragon AI Agent launched.`nDesktop Screen: $($script:DesktopServeUrl)`nGateway API: http://${ApiHost}:${ApiPort}/"
+        $msg = "Dragon AI Agent launched.`nDesktop Screen: $($script:DesktopWebUIUrl)`nGateway API: http://${ApiHost}:${ApiPort}/`nDesktop serve API: $($script:DesktopServeUrl)"
         Update-LaunchStatus $msg
         if ($script:LaunchForm -and -not $script:LaunchForm.IsDisposed) {
             try {

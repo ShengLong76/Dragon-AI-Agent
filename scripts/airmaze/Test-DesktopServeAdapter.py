@@ -120,8 +120,11 @@ def test_compose_and_scripts() -> None:
     compose = read(COMPOSE)
     for token in (
         "127.0.0.1:8650:8650",
+        "127.0.0.1:8660:8660",
         "hermes-airmaze-desktop",
+        "hermes-airmaze-desktop-ui",
         "start-desktop-serve.sh",
+        "start-desktop-ui.sh",
         "start-desktop-proxy.sh",
         "start-gateway.sh",
         "desktop-loopback-proxy.py",
@@ -188,6 +191,14 @@ def test_compose_and_scripts() -> None:
         fail("serve script must cite upstream token/WS issue 106685")
     if "start-gateway.sh --heal-only" not in serve:
         fail("desktop serve must heal shared /opt/data logs before dropping to hermes")
+
+    ui_sh = read(SCRIPTS / "start-desktop-ui.sh")
+    if "dashboard --host" not in ui_sh or "--no-open" not in ui_sh:
+        fail("start-desktop-ui.sh must run hermes dashboard --no-open")
+    if "8652" not in ui_sh or "127.0.0.1" not in ui_sh:
+        fail("start-desktop-ui.sh must bind loopback 8652")
+    if "web UI disabled" not in ui_sh:
+        fail("start-desktop-ui.sh must say :8650 GET / is the headless web UI disabled page")
 
     launcher = read(LAUNCHER)
     for token in (

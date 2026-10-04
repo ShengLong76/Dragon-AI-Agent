@@ -1,135 +1,61 @@
 (function () {
-  const $ = (sel) => document.querySelector(sel);
-  const thread = $("#thread");
-  const status = $("#status");
-  const prompt = $("#prompt");
-  const teamsEl = $("#teams");
-  const modelsNote = $("#models-note");
-  let messages = [];
+  const statusEl = document.getElementById("status");
 
   function setStatus(text) {
-    status.textContent = text;
-  }
-
-  function addBubble(role, text) {
-    const div = document.createElement("div");
-    div.className = "bubble " + role;
-    div.textContent = text;
-    thread.appendChild(div);
-    thread.scrollTop = thread.scrollHeight;
-  }
-
-  document.querySelectorAll(".tab").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".tab").forEach((b) => {
-        const on = b === btn;
-        b.classList.toggle("is-on", on);
-        b.setAttribute("aria-pressed", on ? "true" : "false");
-      });
-      document.querySelectorAll(".panel").forEach((p) => {
-        const on = p.id === "panel-" + btn.dataset.tab;
-        p.classList.toggle("is-on", on);
-        p.hidden = !on;
-      });
-      if (btn.dataset.tab === "teams") loadTeams();
-    });
-  });
-
-  async function poll() {
-    try {
-      const res = await fetch("/api/status");
-      const data = await res.json();
-      if (data.gateway && data.gateway.ok) {
-        setStatus(data.desktop && data.desktop.ok ? "Gateway ready" : "Gateway up, Bot Screen starting...");
-      } else {
-        setStatus("Starting gateway...");
-      }
-    } catch (_err) {
-      setStatus("Starting Dragon AI Agent...");
+    if (statusEl) {
+      statusEl.textContent = text || "";
     }
   }
 
-  $("#composer").addEventListener("submit", async (ev) => {
-    ev.preventDefault();
-    const text = prompt.value.trim();
-    if (!text) return;
-    prompt.value = "";
-    addBubble("user", text);
-    messages.push({ role: "user", content: text });
-    addBubble("assistant", "Thinking...");
-    const pending = thread.lastChild;
+  function reportLaunch(result) {
+    const ok = !!(result && result.ok);
+    const err = (result && (result.error || result.message)) || "";
+    setStatus(ok ? (result.message || "Launch started.") : (err || "Launch produced no result."));
+    return result || { ok: false, error: "empty-launch-result" };
+  }
+
+  async function launch() {
+    setStatus("Opening the desktop chat screen...");
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: $("#chat-model").value || "grok-4.6",
-          messages: messages,
-        }),
-      });
+      const res = await fetch("/api/launch", { method: "POST" });
       const data = await res.json();
-      const reply =
-        (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) ||
-        data.error ||
-        "No reply from the local gateway yet. Wait until status says Gateway ready.";
-      pending.textContent = reply;
-      messages.push({ role: "assistant", content: reply });
+      if (!data || typeof data.ok !== "boolean") {
+        return reportLaunch({ ok: false, error: "Launch returned no result." });
+      }
+      if (data.ok) {
+        window.location.reload();
+      }
+      return reportLaunch(data);
     } catch (err) {
-      pending.textContent = "Could not reach the local gateway. " + err;
-    }
-  });
-
-  $("#models-form").addEventListener("submit", async (ev) => {
-    ev.preventDefault();
-    modelsNote.textContent = "Saved in this window. Gateway defaults also come from the in-app Models apply on launch.";
-  });
-
-  async function loadTeams() {
-    teamsEl.textContent = "Loading teams...";
-    try {
-      const res = await fetch("/api/teams/");
-      const data = await res.json();
-      const groups = data.groups || data.teams || [];
-      teamsEl.innerHTML = "";
-      if (!groups.length) {
-        teamsEl.textContent = "Teams helper is starting. Personal Assistant is already installed.";
-        return;
-      }
-      groups.forEach((g) => {
-        const id = g.id || g.botGroupId || "";
-        if (String(id).toLowerCase() === "personal-assistant") return;
-        const card = document.createElement("article");
-        card.className = "team";
-        const h = document.createElement("h3");
-        h.textContent = g.name || g.displayName || id;
-        const p = document.createElement("p");
-        p.textContent = g.summary || g.description || "";
-        const b = document.createElement("button");
-        b.className = "primary";
-        b.type = "button";
-        b.textContent = "Install";
-        b.addEventListener("click", async () => {
-          b.disabled = true;
-          try {
-            await fetch("/api/teams/marketplace/install", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ id: id }),
-            });
-            b.textContent = "Installed";
-          } catch (_err) {
-            b.textContent = "Retry";
-            b.disabled = false;
-          }
-        });
-        card.append(h, p, b);
-        teamsEl.appendChild(card);
-      });
-    } catch (_err) {
-      teamsEl.textContent = "Teams Marketplace helper is not up yet. It starts with Dragon AI Agent.";
+      return reportLaunch({ ok: false, error: "Launch failed. " + err });
     }
   }
 
-  poll();
-  setInterval(poll, 4000);
+  async function waitForDesktopWebUI() {
+    const deadline = Date.now() + 90000;
+    while (Date.now() < deadline) {
+      try {
+        const res = await fetch("/dragon-ai-api/desktop-ui", { cache: "no-store" });
+        const data = await res.json();
+        if (data && data.headless) {
+          setStatus("The desktop chat screen returned the headless web UI disabled page. Launch failed.");
+          return reportLaunch({ ok: false, error: "Launch refused the headless web UI disabled page." });
+        }
+        if (data && data.ok) {
+          window.location.reload();
+          return reportLaunch({ ok: true, message: "Desktop chat screen is ready." });
+        }
+      } catch (_err) {}
+      await new Promise(function (resolve) { setTimeout(resolve, 1500); });
+    }
+    setStatus("The desktop chat screen did not become ready.");
+    return reportLaunch({ ok: false, error: "desktop web UI is not ready" });
+  }
+
+  window.reportLaunch = reportLaunch;
+  window.launch = launch;
+
+  if (document.body && document.body.getAttribute("data-dragon-ai-loader")) {
+    waitForDesktopWebUI();
+  }
 })();

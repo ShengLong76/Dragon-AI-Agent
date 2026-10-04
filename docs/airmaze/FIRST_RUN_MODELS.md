@@ -1,6 +1,6 @@
 # First-run default chat + image LLMs
 
-Short design for a Dragon AI Agent setup step that writes Hermes gateway config so chat and profile **Generate** work without hand-editing YAML.
+Short design for a Dragon AI Agent setup step that writes Hermes gateway config so chat and profile **Generate** work without hand-editing YAML. The same chat pick becomes the default model for **all bots** (Personal Assistant and later team seats). See [`BOT_DEFAULT_MODEL.md`](BOT_DEFAULT_MODEL.md).
 
 Verified against public `NousResearch/hermes-agent` (image-generation docs, `plugins/image_gen/xai`, desktop `avatar-picker.tsx` / `avatar-image.ts`). James’s YAML fragment is the correct **xAI** shape; Hermes also uses a sibling `image_gen.model` key for FAL. We write both.
 
@@ -12,10 +12,10 @@ Edit profile → Generate shows **“No image model available… Restart gateway
 
 | Picker | Default | Hermes keys |
 |--------|---------|-------------|
-| Default chat LLM | **Grok (xAI)** `grok-4.6` | `principal.provider: xai`, `principal.model: grok-4.6` |
+| Default chat LLM | **Grok (xAI)** `grok-4.7` | `principal.provider: xai`, `principal.model: grok-4.7`, Hermes `model.provider` / `model.default` |
 | Default image LLM | **Grok Imagine** `grok-imagine-image` | `image_gen.provider: xai`, `image_gen.model` + `image_gen.xai.model` |
 
-`grok-4.6` is the head of Hermes’s current xAI static catalog (`hermes_cli/models_catalog_static.py`). Older `grok-4` / `grok-4.3` ids still work; retirement maps retired Grok chat ids to `grok-4.3`. The user can change the pickers.
+`grok-4.7` is the UltraDragon confirmation default (James’s connected screen). Older `grok-4.6` / `grok-4` / `grok-4.3` ids still work. The pickers also list popular Hermes cloud providers (**OpenAI** `openai-api` / `gpt-4o`, **Anthropic** `anthropic` / `claude-sonnet-4-6`, **Google Gemini** `gemini` / `gemini-2.5-pro`, **OpenRouter** `openrouter`) and an explicit **Self-hosted / custom endpoint** (`provider: custom`, base URL + model id). Grok / Grok Imagine stay the suggested defaults (index 0).
 
 Image quality variants Hermes already lists (surface them):
 
@@ -28,7 +28,7 @@ Image quality variants Hermes already lists (surface them):
 ```yaml
 principal:
   provider: xai
-  model: grok-4.6
+  model: grok-4.7
 
 image_gen:
   provider: xai
@@ -39,28 +39,49 @@ image_gen:
 
 - **Do not** invent `plugins.image_gen` unless that block already exists (legacy slot). Current Hermes docs and the xAI plugin read **top-level** `image_gen`.
 - Merge into an existing `config.yaml`. Do not wipe `bot_desktop`, `browser`, tools, or other keys.
-- Do not write API keys. Auth stays Hermes xAI OAuth or `XAI_API_KEY` already on the machine / in the embedded home `.env`.
+- Do not write API keys into `config.yaml`. Cloud picks reuse env keys already on the machine (`XAI_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` / `GEMINI_API_KEY`, `OPENROUTER_API_KEY`). Self-hosted stores an optional key via DPAPI (`chat_api_key`) and writes only `principal.base_url` / `model.base_url`.
+- Chat writes both Dragon `principal` and Hermes `model` (`provider` + `default`) so the gateway and the desktop agree.
 
 ## UI path
 
-First-run uses the **in-app Models UI** plus launcher `Apply-GatewayModels.ps1 -IfMissing`. Do **not** ship a Desktop / Start Menu **Dragon AI Agent Setup** shortcut. The launch wait window (and its Setup button) is not shown. The WinForms `Onboard-Wizard.ps1` Models step remains in-tree as a deprecated fallback (no product `.lnk`, not auto-launched).
+First-run uses the **in-app Models UI on the real desktop chat screen**, plus launcher `Apply-GatewayModels.ps1 -IfMissing`.
 
-Step order:
+`DragonAIAgent.exe` opens `http://127.0.0.1:8655/` (the host inject proxy). That proxy loads `DRAGON_AI_UI_URL` (default `http://127.0.0.1:8660/`), which is `hermes dashboard` published by `hermes-airmaze-desktop-ui`. It **refuses** `http://127.0.0.1:8650/` when GET `/` is the headless body `web UI disabled`. Fresh-install order:
 
-`welcome` → **`models`** → `email` → `crm` → `telephony` → `property_data` → `dialer` → `review`
+1. The native in-app provider-setup dialog (“Let’s get you setup with Dragon AI Agent”). `provider-setup.js` expands every option (**Other providers** included), recommends **xAI Grok** (not Nous Portal), rewrites leftover Hermes copy (`Hermes connects automatically` → Dragon AI), and hides the `[Errno -2] Name or service not known` / `setup.status` banner.
+2. After Grok connects, the confirmation screen: **XAI GROK OAUTH (SUPERGROK / PREMIUM+) CONNECTED**, **DEFAULT MODEL** `grok-4.7`, Change, and **[ BEGIN ]**. Do not return to the provider list. No Nous rows, no Hermes copy.
+
+3. After **Begin**, the product workspace opens on the **Bots** tab. The right pane is the bot VM screen, not a Hermes file tree. Sessions / Bots stay below the Dragon logo and Teams Marketplace. Hide leftover Hermes toasts (`couldn't finish the reply`, `run hermes setup`), the right-edge HERMES file browser, and an **Embedded Linux** connection header.
+
+The custom `first-run-models.js` Models overlay does not cover those screens. This sequence is the product spec for every install.
+
+Install and launch mark `welcome=success` and `models=in_app` (`Set-DragonAIInAppProviderOnboarding`) so WinForms `Onboard-Wizard.ps1` is not auto-launched.
+
+Do **not** ship a Desktop / Start Menu **Dragon AI Agent Setup** shortcut. The launch wait window (and its Setup button) is not shown. The WinForms Models step remains in-tree as a deprecated fallback (no product `.lnk`, not auto-launched). A native recreation of the chat shell is not the product window.
+
+Copy overlay (`desktop_branding.json` + `provider-setup.js`): user-visible **Hermes** → **Dragon AI**. Do not rewrite `hermes model` / `hermes auth` / `Hermes.exe` / tokens. The dialog starts expanded so every provider row is visible. **xAI Grok** is the recommended choice. Do not recommend Nous Portal.
+
+**Handoff to gateway + bots:** launch still runs `Apply-GatewayModels.ps1 -IfMissing` before `docker compose up`. That writes Grok / Grok Imagine only when `principal` / `image_gen` are missing, and stamps bots that have no model. When the in-app picker completes, `provider-setup.js` POSTs `http://127.0.0.1:8655/api/inherit-models`. The helper reads the newest Hermes config that has a chat model, syncs it onto the embedded gateway, and stamps **all deployed bots** (`# dragon-ai-inherited-model`). A per-bot `model` without that marker is left alone. Later team seats inherit on deploy.
+
+**Edge case:** Start Menu **Dragon AI Agent Setup** / the launch splash **Setup** button still opens `Onboard-Wizard.ps1` for email / CRM / telephony (and a Models step if `models` is still pending). That path keeps the cloud + self-hosted catalog, Grok defaults, Continue `.Text` guard, and short `Welcome: OK / Models: pending` status (or `Models: in-app` after the in-app mark).
+
+Step order (wizard, when opened):
+
+`welcome` → **`models`** (skipped when `in_app`) → `email` → `crm` → `telephony` → `property_data` → `dialer` → `review`
 
 WinForms + console fallback both get two ComboBoxes / numbered lists:
 
 1. Default chat LLM
 2. Default image LLM
 
-Copy is **Dragon AI Agent** (not Hermes). Auth line: this step does not ask for a new key; it uses the xAI Grok login Dragon AI Agent already has (OAuth or `XAI_API_KEY`).
+Copy is **Dragon AI Agent** (not Hermes). Auth line: suggested default is Grok; cloud providers reuse keys already on this PC; self-hosted asks for base URL + model id (API key optional).
 
-- **Continue** writes the selected pair (overwrite those keys).
+- **Continue** writes the selected pair (overwrite those keys) and stamps inherited bots. Do not assign `.Text` on `$msgLabel` from a `GetNewClosure()` handler (that object is often `$null` and WinForms shows *The property 'Text' cannot be found on this object*).
+- Status under the header is **Welcome + Models only** (`Welcome: OK / Models: pending`), not every step smashed into one PENDING string.
 - **Skip this step** / **Skip wizard** writes the product defaults **only if** `image_gen.provider` or `principal.model` is missing.
 - Review lists the chosen labels (never secrets).
 
-Teams picker stays orthogonal. Personal Assistant stays the only preinstall.
+Teams picker stays orthogonal and is **not** shown during Setup. Personal Assistant stays the only preinstall. Teams are added later through in-app Teams Marketplace.
 
 ## When it lands on disk
 
@@ -72,7 +93,7 @@ Launcher writes defaults **before** `docker compose up` when those keys are miss
 
 ## Out of scope
 
-- New OAuth / API-key screens
+- New OAuth flows (self-hosted may collect an optional API key the same way other local connectors do — DPAPI, not YAML)
 - Replacing Teams-picker work
 - Rebuilding `Hermes.exe` / `app.asar`
 - Live UltraDragon smoke in CI (James re-smokes Generate after gateway restart)

@@ -34,6 +34,7 @@ $LogPath = Join-Path $InstallRoot "install.log"
 $DataDir = Join-Path $env:USERPROFILE ".hermes-airmaze-embedded"
 $DockerSettingsDir = Join-Path $env:APPDATA "Docker"
 $StartMenuDir = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Dragon AI Agent"
+$UninstallRegPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\DragonAIAgent"
 
 function Write-Log {
     param([string]$Message, [string]$Level = "INFO", [switch]$FileOnly)
@@ -595,6 +596,7 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\apply-default-bot-group.ps1",
         "scripts\airmaze\apply-default-profile.ps1",
         "scripts\airmaze\install.ps1",
+        "scripts\airmaze\uninstall.ps1",
         "scripts\airmaze\bot_groups.py",
         "scripts\airmaze\Test-BotGroups.py",
         "scripts\airmaze\Select-BotGroup.ps1",
@@ -609,6 +611,7 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\private_desktop.py",
         "scripts\airmaze\Test-PrivateDesktop.py",
         "scripts\airmaze\Test-DragonDesktop.py",
+        "scripts\airmaze\Test-InstallFirstRun.py",
         "vendor\desktop\README.md",
         "desktop\README.md",
         "scripts\airmaze\Apply-DesktopBranding.ps1",
@@ -629,7 +632,10 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\gateway_models.py",
         "scripts\airmaze\Apply-GatewayModels.ps1",
         "scripts\airmaze\Test-GatewayModels.py",
+        "scripts\airmaze\Test-OnboardWizard.py",
+        "scripts\airmaze\Test-BotDefaultModel.py",
         "docs\airmaze\FIRST_RUN_MODELS.md",
+        "docs\airmaze\BOT_DEFAULT_MODEL.md",
         "scripts\airmaze\voice_chat.py",
         "scripts\airmaze\Apply-VoiceChat.ps1",
         "scripts\airmaze\patch_grok_voice_mode.py",
@@ -645,7 +651,9 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\DragonAI-SecureStore.ps1",
         "scripts\airmaze\Start-DragonAI.vbs",
         "scripts\airmaze\desktop-loopback-proxy.py",
+        "scripts\airmaze\desktop_ui.py",
         "scripts\airmaze\start-desktop-serve.sh",
+        "scripts\airmaze\start-desktop-ui.sh",
         "scripts\airmaze\start-desktop-proxy.sh",
         "scripts\airmaze\start-gateway.sh",
         "scripts\airmaze\embedded_desktop_connection.py",
@@ -682,6 +690,15 @@ function Install-PackageFiles([string]$Root) {
     if (-not $thisScript) { $thisScript = $PSCommandPath }
     if ($thisScript -and (Test-Path $thisScript)) {
         Copy-Item -LiteralPath $thisScript -Destination (Join-Path $InstallRoot "install.ps1") -Force
+    }
+
+    $uninstallSrc = Join-Path $Root "uninstall.ps1"
+    if (-not (Test-Path -LiteralPath $uninstallSrc)) {
+        $uninstallSrc = Join-Path $Root "scripts\airmaze\uninstall.ps1"
+    }
+    if (Test-Path -LiteralPath $uninstallSrc) {
+        Copy-Item -LiteralPath $uninstallSrc -Destination (Join-Path $InstallRoot "uninstall.ps1") -Force
+        Write-Log "Copied uninstall.ps1"
     }
 
     Ensure-Dir $DataDir
@@ -762,6 +779,59 @@ function Install-Shortcuts {
     }
 }
 
+function Register-DragonAIAppsEntry {
+    <#
+      Per-user Settings > Apps / Programs and Features entry.
+      Install lives under LocalAppData, so HKCU (not HKLM) is correct.
+    #>
+    Write-Log "Registering per-user Apps uninstall entry..."
+    $uninstaller = Join-Path $InstallRoot "uninstall.ps1"
+    if (-not (Test-Path -LiteralPath $uninstaller)) {
+        Write-Log "uninstall.ps1 missing at $uninstaller; Apps entry not written" "ERROR"
+        return
+    }
+    $ps = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
+    if (-not (Test-Path -LiteralPath $ps)) {
+        $ps = "powershell.exe"
+    }
+    $uninstallString = "`"$ps`" -NoProfile -ExecutionPolicy Bypass -File `"$uninstaller`""
+    $quietString = "`"$ps`" -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$uninstaller`" -Quiet"
+    $ico = Join-Path $InstallRoot "branding\dragon-ai-agent-logo.ico"
+    if (-not (Test-Path -LiteralPath $ico)) {
+        $ico = Join-Path $InstallRoot "dragon-ai-agent-logo.ico"
+    }
+    $sizeKb = 0
+    try {
+        $bytes = [long]0
+        Get-ChildItem -LiteralPath $InstallRoot -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
+            $bytes += $_.Length
+        }
+        $sizeKb = [int][Math]::Ceiling($bytes / 1KB)
+    } catch {}
+
+    try {
+        if (-not (Test-Path -LiteralPath $UninstallRegPath)) {
+            New-Item -Path $UninstallRegPath -Force | Out-Null
+        }
+        New-ItemProperty -Path $UninstallRegPath -Name "DisplayName" -Value $ProductName -PropertyType String -Force | Out-Null
+        New-ItemProperty -Path $UninstallRegPath -Name "DisplayVersion" -Value $ProductVersion -PropertyType String -Force | Out-Null
+        New-ItemProperty -Path $UninstallRegPath -Name "Publisher" -Value "Dragon's Den" -PropertyType String -Force | Out-Null
+        New-ItemProperty -Path $UninstallRegPath -Name "InstallLocation" -Value $InstallRoot -PropertyType String -Force | Out-Null
+        New-ItemProperty -Path $UninstallRegPath -Name "UninstallString" -Value $uninstallString -PropertyType String -Force | Out-Null
+        New-ItemProperty -Path $UninstallRegPath -Name "QuietUninstallString" -Value $quietString -PropertyType String -Force | Out-Null
+        New-ItemProperty -Path $UninstallRegPath -Name "NoModify" -Value 1 -PropertyType DWord -Force | Out-Null
+        New-ItemProperty -Path $UninstallRegPath -Name "NoRepair" -Value 1 -PropertyType DWord -Force | Out-Null
+        New-ItemProperty -Path $UninstallRegPath -Name "EstimatedSize" -Value $sizeKb -PropertyType DWord -Force | Out-Null
+        if (Test-Path -LiteralPath $ico) {
+            New-ItemProperty -Path $UninstallRegPath -Name "DisplayIcon" -Value $ico -PropertyType String -Force | Out-Null
+        }
+        New-ItemProperty -Path $UninstallRegPath -Name "InstallDate" -Value (Get-Date -Format "yyyyMMdd") -PropertyType String -Force | Out-Null
+        Write-Log "Registered HKCU Uninstall key: $UninstallRegPath"
+    } catch {
+        Write-Log "Apps registration failed: $($_.Exception.Message)" "WARN"
+    }
+}
+
 function Start-EmbeddedGateway {
     Write-Log "Pulling and starting embedded gateway..."
     Fix-DockerPath
@@ -801,7 +871,6 @@ function Invoke-BotGroupSetup([string]$Root) {
 
     $importPath = if ($ImportBotGroup) { $ImportBotGroup } else { $ImportProfile }
     $groupId = if ($BotGroupId) { $BotGroupId } else { $ProfileId }
-    $skipPrompt = $SkipBotGroupPrompt -or $SkipProfilePrompt
 
     if (-not [string]::IsNullOrWhiteSpace($importPath)) {
         Write-Log "Importing bot group from $importPath"
@@ -815,18 +884,8 @@ function Invoke-BotGroupSetup([string]$Root) {
         return
     }
 
-    if ($skipPrompt) {
-        Write-Log "SkipBotGroupPrompt: defaulting to personal-assistant"
-        & $select -PayloadRoot $Root -InstallRoot $InstallRoot -BotGroupId "personal-assistant" -NonInteractive
-        return
-    }
-
-    try {
-        & $select -PayloadRoot $Root -InstallRoot $InstallRoot
-    } catch {
-        Write-Log "Bot group selection failed ($($_.Exception.Message)); applying Personal Assistant" "WARN"
-        & $select -PayloadRoot $Root -InstallRoot $InstallRoot -BotGroupId "personal-assistant" -NonInteractive
-    }
+    Write-Log "First-run does not prompt for teams. Personal Assistant stays; teams are added later in Teams Marketplace."
+    & $select -PayloadRoot $Root -InstallRoot $InstallRoot -BotGroupId "personal-assistant" -NonInteractive
 }
 
 function Start-AgentDesktop {
@@ -870,7 +929,7 @@ function Start-AgentDesktop {
             if (Get-Command Test-DragonAIPrivateDesktopPath -ErrorAction SilentlyContinue) {
                 if (-not (Test-DragonAIPrivateDesktopPath -Path $exe)) { throw }
             }
-            Start-Process -FilePath $exe -WorkingDirectory (Split-Path -Parent $exe) -ErrorAction SilentlyContinue
+            throw "Dragon AI Agent launch failed: $($_.Exception.Message)"
         }
         return $true
     }
@@ -878,7 +937,7 @@ function Start-AgentDesktop {
     Write-Host ""
     Write-Host "Dragon AI Agent desktop was not found in this package."
     Write-Host "  Expected: $hint"
-    Write-Host "Re-download Dragon-AI-Agent-v0.1.0-windows.zip and run DragonAIAgentSetup.exe."
+    Write-Host "Re-download DragonAIAgentSetup.exe and run that one installer."
     Write-Host ""
     Write-Log "Packaged Dragon AI Agent desktop missing at $hint" "WARN"
     return $false
@@ -926,10 +985,26 @@ if ($dockerOk -and (Test-DockerEngine)) {
 
 Invoke-BotGroupSetup -Root $root
 
-# First-run models live in-app (Apply-GatewayModels + desktop Models UI).
-# Do not launch WinForms Onboard-Wizard.ps1.
+# First-run Models lives in the in-app UI. Do not launch WinForms Onboard-Wizard.ps1.
+try {
+    $store = Join-Path $InstallRoot "scripts\airmaze\DragonAI-SecureStore.ps1"
+    if (-not (Test-Path -LiteralPath $store)) {
+        $store = Join-Path $root "scripts\airmaze\DragonAI-SecureStore.ps1"
+    }
+    $wizGroup = if ($BotGroupId) { $BotGroupId } else { $ProfileId }
+    if (Test-Path -LiteralPath $store) {
+        . $store
+        Set-DragonAIInAppProviderOnboarding -ProfileId $wizGroup | Out-Null
+        Write-Log "Marked first-run Models as in-app UI (bot group=$wizGroup); WinForms wizard not launched"
+    } else {
+        Write-Log "DragonAI-SecureStore.ps1 not found; in-app Models mark skipped" "WARN"
+    }
+} catch {
+    Write-Log "In-app provider onboarding mark failed (install continues): $($_.Exception.Message)" "WARN"
+}
 
 Install-Shortcuts
+Register-DragonAIAppsEntry
 Start-AgentDesktop | Out-Null
 
 Write-Log "=== Install finished. Log: $LogPath ==="

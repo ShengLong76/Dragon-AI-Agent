@@ -34,14 +34,20 @@ BRAND_DIR_NAME = "dragon-ai-branding"
 HTML_MARK = 'data-dragon-ai-branding="ui-face"'
 SIDEBAR_SCRIPT_MARK = 'data-dragon-ai-branding="sidebar-header"'
 TEAMS_SCRIPT_MARK = 'data-dragon-ai-branding="teams-picker"'
+FIRST_RUN_SCRIPT_MARK = 'data-dragon-ai-branding="first-run-models"'
 VOICE_SCRIPT_MARK = 'data-dragon-ai-branding="voice-provider"'
 VOICE_SETTINGS_SCRIPT_MARK = 'data-dragon-ai-branding="voice-settings"'
+PROVIDER_SCRIPT_MARK = 'data-dragon-ai-branding="provider-setup"'
+PROVIDER_SCRIPT_NAME = "provider-setup.js"
+WORKSPACE_SCRIPT_MARK = 'data-dragon-ai-branding="bot-workspace"'
+WORKSPACE_SCRIPT_NAME = "bot-workspace.js"
 OLD_HTML_MARKS = ('data-dragon-ai-branding="outfit"',)
 STYLESHEET_NAME = "dragon-ui.css"
 CSS_APPEND_MARK = "/* dragon-ai-ui-face */"
 LOCKUP_WRAP_MARK = "dragon-ai-lockup-wrap:1"
 SIDEBAR_SCRIPT_NAME = "sidebar-header.js"
 TEAMS_SCRIPT_NAME = "teams-picker.js"
+FIRST_RUN_SCRIPT_NAME = "first-run-models.js"
 PACK_FILE_SUFFIXES = {".woff2", ".css", ".txt", ".md", ".js"}
 LOGO_NAMES = ("dragon-ai-agent-logo.svg", "dragon-ai-agent-logo.png")
 PNG_ICON_NAMES = ("icon.png", "apple-touch-icon.png")
@@ -64,7 +70,11 @@ TEXT_EXTENSIONS = {
     ".tsx",
     ".jsx",
 }
-SKIP_DIR_NAMES = {"node_modules", ".git", "prebuilds", "__pycache__"}
+SKIP_DIR_NAMES = {"node_modules", ".git", "prebuilds", "__pycache__", BRAND_DIR_NAME}
+BRAND_SCRIPT_RE = re.compile(
+    r'(<script\s+data-dragon-ai-branding="[^"]+">.*?</script>)',
+    re.IGNORECASE | re.DOTALL,
+)
 SKIP_NAME_PREFIXES = ("LICENSE", "NOTICE", "THIRD_PARTY", "COPYING")
 MAX_FILE_BYTES = 40 * 1024 * 1024
 STAMP_NAME = ".dragon-ai-ui-branding.json"
@@ -177,6 +187,22 @@ def apply_text(text: str, replacements: list[dict[str, str]]) -> tuple[str, int]
     return out, hits
 
 
+def apply_text_preserving_brand_scripts(text: str, replacements: list[dict[str, str]]) -> tuple[str, int]:
+    """Do not rewrite overlay injects that mention Hermes so they can still match live copy."""
+    if "data-dragon-ai-branding=" not in text:
+        return apply_text(text, replacements)
+    hits = 0
+    out: list[str] = []
+    for part in BRAND_SCRIPT_RE.split(text):
+        if part.lower().startswith("<script") and "data-dragon-ai-branding=" in part.lower():
+            out.append(part)
+            continue
+        rewritten, n = apply_text(part, replacements)
+        hits += n
+        out.append(rewritten)
+    return "".join(out), hits
+
+
 def apply_source_only(path: Path, table: dict[str, Any], text: str) -> tuple[str, int]:
     hits = 0
     out = text
@@ -211,10 +237,15 @@ def strip_crimson_lockup_border(text: str) -> tuple[str, int]:
 
 
 def overlay_file(path: Path, table: dict[str, Any], replacements: list[dict[str, str]]) -> int:
+    if BRAND_DIR_NAME in path.parts:
+        return 0
     text = read_text_file(path)
     if text is None:
         return 0
-    out, hits = apply_text(text, replacements)
+    if path.suffix.lower() in {".html", ".htm"}:
+        out, hits = apply_text_preserving_brand_scripts(text, replacements)
+    else:
+        out, hits = apply_text(text, replacements)
     out, extra = apply_source_only(path, table, out)
     hits += extra
     out, stripped = strip_crimson_lockup_border(out)
@@ -423,6 +454,14 @@ def inject_teams_picker_script(html: str) -> tuple[str, bool]:
     return upsert_marked_script(html, TEAMS_SCRIPT_MARK, teams_picker_script())
 
 
+def first_run_models_script() -> str:
+    return wrap_marked_script(FIRST_RUN_SCRIPT_MARK, load_pack_script(FIRST_RUN_SCRIPT_NAME))
+
+
+def inject_first_run_models_script(html: str) -> tuple[str, bool]:
+    return upsert_marked_script(html, FIRST_RUN_SCRIPT_MARK, first_run_models_script())
+
+
 def voice_selector_js_path() -> Path:
     return branding_dir() / "voice" / "dragon-voice-selector.js"
 
@@ -445,7 +484,7 @@ def voice_settings_js_path() -> Path:
 
 
 def voice_settings_script() -> str:
-    """Settings → Voice conversation mode: Chained | Gpt-live | Grok Voice."""
+    """Settings -> Voice conversation mode: Chained | Gpt-live | Grok Voice."""
     path = voice_settings_js_path()
     body = path.read_text(encoding="utf-8").strip()
     if VOICE_SETTINGS_SCRIPT_MARK in body:
@@ -457,14 +496,33 @@ def inject_voice_settings_script(html: str) -> tuple[str, bool]:
     return upsert_marked_script(html, VOICE_SETTINGS_SCRIPT_MARK, voice_settings_script())
 
 
+def provider_setup_script() -> str:
+    return wrap_marked_script(PROVIDER_SCRIPT_MARK, load_pack_script(PROVIDER_SCRIPT_NAME))
+
+
+def inject_provider_setup_script(html: str) -> tuple[str, bool]:
+    return upsert_marked_script(html, PROVIDER_SCRIPT_MARK, provider_setup_script())
+
+
+def bot_workspace_script() -> str:
+    return wrap_marked_script(WORKSPACE_SCRIPT_MARK, load_pack_script(WORKSPACE_SCRIPT_NAME))
+
+
+def inject_bot_workspace_script(html: str) -> tuple[str, bool]:
+    return upsert_marked_script(html, WORKSPACE_SCRIPT_MARK, bot_workspace_script())
+
+
 def inject_html_branding(html: str) -> tuple[str, bool]:
     out, changed = inject_font_link(html)
     out2, changed2 = inject_sidebar_header_script(out)
     out3, changed3 = inject_teams_picker_script(out2)
-    out4, changed4 = inject_voice_provider_script(out3)
-    out5, changed5 = inject_voice_settings_script(out4)
-    out6, stripped = strip_crimson_lockup_border(out5)
-    return out6, changed or changed2 or changed3 or changed4 or changed5 or bool(stripped)
+    out4, changed4 = inject_first_run_models_script(out3)
+    out5, changed5 = inject_voice_provider_script(out4)
+    out6, changed6 = inject_voice_settings_script(out5)
+    out7, changed7 = inject_provider_setup_script(out6)
+    out8, changed8 = inject_bot_workspace_script(out7)
+    out9, stripped = strip_crimson_lockup_border(out8)
+    return out9, changed or changed2 or changed3 or changed4 or changed5 or changed6 or changed7 or changed8 or bool(stripped)
 
 
 def append_font_css(css_text: str, sheet: str) -> tuple[str, bool]:
@@ -892,6 +950,9 @@ def self_test() -> int:
     if "--dragon-bubble-user: #2563eb" not in css or "--dragon-bubble-assistant: #17345a" not in css:
         print("FAIL: overlay CSS must use blue-shade user/assistant bubble fills", file=sys.stderr)
         return 1
+    if "dragon-ai-provider-setup:1" not in css or "[data-dragon-ai-provider-setup]" not in css:
+        print("FAIL: overlay CSS must stamp the taller in-app provider dialog", file=sys.stderr)
+        return 1
     if "rgba(196,30,58" in css.replace(" ", "") or "rgba(196, 30, 58" in css:
         print("FAIL: overlay CSS must not paint a crimson lockup border", file=sys.stderr)
         return 1
@@ -1063,6 +1124,30 @@ def self_test() -> int:
         return 1
     if "dockWidget" not in once or "findChatColumn" not in once:
         print("FAIL: overlay must dock the Grok capsule at the top of the chat column", file=sys.stderr)
+        return 1
+    if once.count(PROVIDER_SCRIPT_MARK) != 1 or "Other providers" not in once:
+        print("FAIL: provider-setup script must inject and expand Other providers", file=sys.stderr)
+        return 1
+    if "data-dragon-ai-provider-setup" not in once or "hermes model" not in once:
+        print("FAIL: provider-setup must mark the dialog and keep the hermes model CLI", file=sys.stderr)
+        return 1
+    if "data-dragon-ai-recommended" not in once or "xAI Grok" not in once:
+        print("FAIL: provider-setup must recommend xAI Grok", file=sys.stderr)
+        return 1
+    if "Errno" not in once or "setup.status" not in once:
+        print("FAIL: provider-setup must hide the setup.status resolution banner", file=sys.stderr)
+        return 1
+    if "nativeProviderSetupVisible" not in once:
+        print("FAIL: first-run-models must yield to the native provider-setup first screen", file=sys.stderr)
+        return 1
+    if "data-dragon-ai-provider-connected" not in once or "DEFAULT MODEL" not in once:
+        print("FAIL: provider-setup must keep the connected DEFAULT MODEL / BEGIN screen", file=sys.stderr)
+        return 1
+    if once.count(WORKSPACE_SCRIPT_MARK) != 1 or "bot VM screen" not in once:
+        print("FAIL: bot-workspace script must inject the after-Begin Bots / VM screen default", file=sys.stderr)
+        return 1
+    if "hidden-file-tree" not in once or "Embedded Linux" not in once:
+        print("FAIL: bot-workspace must hide the Hermes file tree and Embedded Linux header", file=sys.stderr)
         return 1
     if "input_audio_buffer.append" not in once or "grok-voice-latest" not in once:
         print("FAIL: overlay must send official STS append events to grok-voice-latest", file=sys.stderr)

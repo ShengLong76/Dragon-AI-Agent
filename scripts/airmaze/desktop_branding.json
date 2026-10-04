@@ -1,5 +1,5 @@
 {
-  "version": 12,
+  "version": 13,
   "product": "Dragon AI Agent",
   "note": "User-visible product chrome only. Do not rename process names, Docker tags, tokens, ports, protocols, or license attribution.",
   "designSystem": {
@@ -122,6 +122,36 @@
       "from": "Let's get you setup with Hermes Agent",
       "to": "Let's get you setup with Dragon AI Agent",
       "surface": "settings-onboarding"
+    },
+    {
+      "from": "Let's get you setup with Hermes",
+      "to": "Let's get you setup with Dragon AI",
+      "surface": "provider-setup"
+    },
+    {
+      "from": "Hermes is not connected to any AI provider yet",
+      "to": "Dragon AI is not connected to any AI provider yet",
+      "surface": "provider-setup"
+    },
+    {
+      "from": "the recommended way to run Hermes",
+      "to": "one subscription for 300+ frontier models",
+      "surface": "provider-setup"
+    },
+    {
+      "from": "the recommended way to run hermes",
+      "to": "one subscription for 300+ frontier models",
+      "surface": "provider-setup"
+    },
+    {
+      "from": "Hermes connects automatically",
+      "to": "Dragon AI connects automatically",
+      "surface": "provider-setup"
+    },
+    {
+      "from": "hermes connects automatically",
+      "to": "Dragon AI connects automatically",
+      "surface": "provider-setup"
     },
     {
       "from": "Setting up Hermes Agent",

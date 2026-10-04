@@ -10,6 +10,7 @@ Internal protocol, image, and path names stay Hermes/AirMaze where changing them
 | Surface | What James sees |
 |---------|-----------------|
 | Desktop / Start Menu shortcuts | **Dragon AI Agent** only → `wscript.exe` + `Start-DragonAI.vbs` (no console). No Bot Groups / Dashboard / Profiles / Setup `.lnk` (leftovers deleted on install and launch) |
+| Settings > Apps | Per-user **Dragon AI Agent** (`HKCU\...\Uninstall\DragonAIAgent`). Uninstall removes the app, both shortcuts, and that key |
 | Shortcut descriptions | “start the gateway and open the app” |
 | Installer exe | `DragonAIAgentSetup.exe` — ProductName / FileDescription **Dragon AI Agent** (`installer/winres/winres.json`) |
 | Onboarding wizard | Window title **Dragon AI Agent Setup**; welcome copy; dragon + title on a **blue** `#2563EB` header band (buttons stay crimson) |
@@ -25,6 +26,7 @@ Internal protocol, image, and path names stay Hermes/AirMaze where changing them
 | Composer placeholder | Overlay: **Give Dragon AI a task** (was `Give Hermes a task`) |
 | Voice chat provider | Settings → Voice → Voice conversation mode: **Chained**, **Gpt-live**, **Grok Voice**. Same `voice.voice_chat_mode` key as gpt-live. Composer GPT/Grok pills are removed. Right-side **waveform** opens a narrower/taller Grok-Bot capsule **docked at the top of the chat pane** (avatar \| bars \| **gear** \| chat \| mic \| red X). Gear is Voice settings (official xAI voice, speed, language, interrupt). GPT (Hermes `gpt-live`) stays. Helper `127.0.0.1:8654`. See `docs/airmaze/VOICE.md` |
 | Settings / About / setup product copy | Overlay: **Dragon AI Agent** wherever the renderer said **Hermes Agent** (and About / appName chrome) |
+| First-run Models / provider connect | Overlay: leftover **Hermes** copy → **Dragon AI** (`provider-setup.js` + table). First screen starts expanded; **xAI Grok** is recommended (not Nous Portal). After connect: DEFAULT MODEL `grok-4.7` + Begin. After Begin: Bots tab + bot VM screen (`bot-workspace.js`); no Hermes file tree. CLI `hermes model` stays. Install/launch do not auto-open WinForms Setup for this screen |
 | In-window UI font | Overlay: **Syne** (SIL OFL 1.1, weight **700** on the wordmark) replacing upstream **Collapse** / Collapse-Bold, then composer and settings chrome |
 | Dashboard login | Username `dragon` / password `dragon-local` (loopback only). Page chrome/title inside the image is still upstream until a branded build or image exists. |
 | Bot group catalog / Real Estate labels | Dragon AI Agent (not AirMaze/Hermes as the product) |

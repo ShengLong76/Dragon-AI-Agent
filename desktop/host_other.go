@@ -17,9 +17,11 @@ func openDesktop(url string) error {
 	}
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
-	_ = enc.Encode(map[string]string{
-		"note": "DragonAIAgent.exe is the Windows desktop. Cross-compile with GOOS=windows.",
-		"url":  url,
+	_ = enc.Encode(map[string]any{
+		"ok":     true,
+		"action": "launch-check",
+		"note":   "DragonAIAgent.exe is the Windows desktop. Cross-compile with GOOS=windows.",
+		"url":    url,
 	})
 	return nil
 }

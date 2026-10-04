@@ -330,6 +330,10 @@ def test_table() -> dict:
         "Give Hermes a task": "Give Dragon AI a task",
         "Hermes Agent": "Dragon AI Agent",
         "About Hermes Desktop": "About Dragon AI Agent",
+        "Hermes is not connected to any AI provider yet": "Dragon AI is not connected to any AI provider yet",
+        "the recommended way to run Hermes": "one subscription for 300+ frontier models",
+        "Hermes connects automatically": "Dragon AI connects automatically",
+        "Let's get you setup with Hermes Agent": "Let's get you setup with Dragon AI Agent",
     }
     for src, dst in expected.items():
         if by_from.get(src) != dst:
@@ -410,7 +414,11 @@ export const copy = {
   product: 'Hermes Agent',
   appName: 'Hermes',
   settings: 'Loading Hermes settings',
-  ready: 'Hermes Desktop is ready'
+  ready: 'Hermes Desktop is ready',
+  provider: 'Hermes is not connected to any AI provider yet. Run `hermes model` to pick one.',
+  recommend: 'the recommended way to run Hermes',
+  auto: 'Hermes connects automatically',
+  setup: "Let's get you setup with Hermes Agent"
 };
 function defaultBotLabel(bot) {
   if ((bot.name || '').trim().toLowerCase() === 'default' && !bot.title) {
@@ -465,6 +473,26 @@ const protocol = 'hermes://copilot-key/start';
             fail("renderer missing Dragon product name")
         if "About Dragon AI Agent" not in branded:
             fail("settings about still unbranded")
+        if "Hermes is not connected to any AI provider yet" in branded:
+            fail("in-app provider copy still says Hermes is not connected")
+        if "Dragon AI is not connected to any AI provider yet" not in branded:
+            fail("in-app provider copy must say Dragon AI is not connected")
+        if "the recommended way to run Hermes" in branded:
+            fail("in-app provider copy still recommends Hermes")
+        if "the recommended way to run Dragon AI" in branded:
+            fail("in-app provider copy must not recommend Nous Portal / Dragon AI there")
+        if "one subscription for 300+ frontier models" not in branded:
+            fail("in-app provider copy must drop the Nous recommended clause")
+        if "Hermes connects automatically" in branded:
+            fail("in-app provider copy still says Hermes connects automatically")
+        if "Dragon AI connects automatically" not in branded:
+            fail("in-app provider copy must say Dragon AI connects automatically")
+        if "Let's get you setup with Hermes" in branded:
+            fail("in-app setup title still says Hermes")
+        if "Let's get you setup with Dragon AI Agent" not in branded:
+            fail("in-app setup title must say Dragon AI Agent")
+        if "hermes model" not in branded:
+            fail("overlay must keep the hermes model CLI in provider copy")
         if "return 'Hermes'" in branded or 'return "Hermes"' in branded:
             fail("sidebar still presents Hermes as a user-facing bot")
         if "Personal Assistant" not in branded:
@@ -512,10 +540,28 @@ const protocol = 'hermes://copilot-key/start';
             fail("index.html must inject the sidebar header lockup (Dragon AI)")
         if 'data-dragon-ai-branding="teams-picker"' not in html or "Teams" not in html:
             fail("index.html must inject the in-app Teams picker")
+        if 'data-dragon-ai-branding="first-run-models"' not in html:
+            fail("index.html must inject the Air Maze first-run Models step")
         if 'data-dragon-ai-branding="voice-provider"' not in html:
             fail("index.html must inject the Grok Voice waveform overlay")
         if 'data-dragon-ai-branding="voice-settings"' not in html or "Grok Voice" not in html:
             fail("index.html must inject Settings Voice conversation Grok Voice")
+        if 'data-dragon-ai-branding="provider-setup"' not in html:
+            fail("index.html must inject the in-app Models / provider-setup overlay")
+        if "Other providers" not in html or "data-dragon-ai-provider-setup" not in html:
+            fail("provider-setup inject must expand Other providers and mark the dialog")
+        if "data-dragon-ai-recommended" not in html or "xAI Grok" not in html:
+            fail("provider-setup inject must recommend xAI Grok")
+        if "Errno" not in html or "setup.status" not in html:
+            fail("provider-setup inject must hide the setup.status / Errno -2 banner")
+        if "nativeProviderSetupVisible" not in html:
+            fail("first-run-models inject must yield to the native provider-setup first screen")
+        if 'data-dragon-ai-branding="bot-workspace"' not in html:
+            fail("index.html must inject the after-Begin Bots / VM screen workspace")
+        if "hidden-file-tree" not in html or "Embedded Linux" not in html:
+            fail("bot-workspace inject must hide the Hermes file tree and Embedded Linux header")
+        if "hermes model" not in html or "Dragon AI" not in html:
+            fail("provider-setup inject must rewrite Hermes copy and keep the hermes model CLI")
         if "GPT" not in html or "Grok" not in html:
             fail("voice selector must list both GPT and Grok")
         if "Talk with Grok" not in html or "xai-client-secret." not in html:
@@ -586,6 +632,16 @@ const protocol = 'hermes://copilot-key/start';
             fail("index.html inject must pin the lockup with border:0")
         if not (pack_dir / "sidebar-header.js").is_file() or not (pack_dir / "teams-picker.js").is_file():
             fail("prebuilt inject scripts must be copied into dragon-ai-branding")
+        if not (pack_dir / "first-run-models.js").is_file():
+            fail("first-run-models.js must be copied into dragon-ai-branding")
+        if not (pack_dir / "provider-setup.js").is_file():
+            fail("provider-setup.js must be copied into dragon-ai-branding")
+        if not (pack_dir / "bot-workspace.js").is_file():
+            fail("bot-workspace.js must be copied into dragon-ai-branding")
+        if "dragon-ai-provider-setup:1" not in css_txt:
+            fail("copied dragon-ui.css must stamp the taller in-app provider dialog")
+        if "dragon-ai-bot-workspace:1" not in css_txt:
+            fail("copied dragon-ui.css must stamp the after-Begin Bots / VM screen workspace")
         if "18cqi" in css_txt:
             fail("injected CSS must not shrink the sidebar logo with column width")
         if "dragon-ai-logo-175:1" not in css_txt or "--dragon-sidebar-logo-size: 56px" not in css_txt:
@@ -655,7 +711,9 @@ def test_packaging_not_regressed() -> None:
     compose = read(COMPOSE)
     for token in (
         "127.0.0.1:8650:8650",
+        "127.0.0.1:8660:8660",
         "hermes-airmaze-desktop",
+        "hermes-airmaze-desktop-ui",
         "nousresearch/hermes-agent",
         "HERMES_DASHBOARD_SESSION_TOKEN",
         "dragon-local",
@@ -681,6 +739,12 @@ def test_packaging_not_regressed() -> None:
             fail("Apply-DesktopBranding.ps1 must upsert sidebar inject even when index.html is already branded")
     if "sidebar-header.js" not in apply_ps or "teams-picker.js" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must ship/copy prebuilt inject scripts without Python")
+    if "first-run-models.js" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must inject the Air Maze first-run Models step")
+    if "provider-setup.js" not in apply_ps or "Other providers" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must inject provider-setup.js and expand Other providers")
+    if "dragon-ai-branding\\" not in apply_ps.replace("/", "\\") and "dragon-ai-branding" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must skip rewriting the branding pack")
     if "data-dragon-ai-sidebar-fixed" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must verify the body fixed-overlay fallback landed")
     if "findInFlowColumn" not in apply_ps or "data-dragon-ai-sidebar-chrome" not in apply_ps:
@@ -762,6 +826,10 @@ def test_packaging_not_regressed() -> None:
         fail("sidebar lockup must reserve padding/gap so nothing overlays the logo")
     if "dragon-ai-composer-chrome:1" not in css:
         fail("dragon-ui.css must stamp composer chrome (no persistent red island)")
+    if "dragon-ai-provider-setup:1" not in css or "[data-dragon-ai-provider-setup]" not in css:
+        fail("dragon-ui.css must stamp and size the in-app provider dialog")
+    if "dragon-ai-bot-workspace:1" not in css:
+        fail("dragon-ui.css must stamp the after-Begin Bots / VM screen workspace")
     voice_js = ROOT / "branding" / "voice" / "dragon-voice-selector.js"
     assert_composer_chrome(css, read(voice_js) if voice_js.is_file() else "")
     table = json.loads(read(TABLE))
@@ -774,6 +842,30 @@ def test_packaging_not_regressed() -> None:
         fail("packaged dragon-ui.css must not include a crimson lockup border")
     sidebar_js = read(pack / "sidebar-header.js")
     teams_js = read(pack / "teams-picker.js")
+    provider_js = read(pack / "provider-setup.js")
+    if "Other providers" not in provider_js or "data-dragon-ai-other-providers" not in provider_js:
+        fail("provider-setup.js must open Other providers by default")
+    if "data-dragon-ai-recommended" not in provider_js or "xAI Grok" not in provider_js:
+        fail("provider-setup.js must recommend xAI Grok, not Nous Portal")
+    if "Errno" not in provider_js or "setup.status" not in provider_js:
+        fail("provider-setup.js must hide the setup.status / Errno -2 banner")
+    if "Hermes connects automatically" not in provider_js:
+        fail("provider-setup.js must rewrite Hermes connects automatically")
+    if "data-dragon-ai-provider-connected" not in provider_js or "DEFAULT MODEL" not in provider_js:
+        fail("provider-setup.js must keep the connected DEFAULT MODEL / BEGIN confirmation")
+    if "BEGIN" not in provider_js or "hidden-provider-list" not in provider_js:
+        fail("provider-setup.js must not return to the provider list after a successful connect")
+    if "Dragon AI" not in provider_js or "hermes model" not in provider_js:
+        fail("provider-setup.js must rewrite Hermes copy and keep the hermes model CLI")
+    if "/api/inherit-models" not in provider_js or "8655" not in provider_js:
+        fail("provider-setup.js must POST inherit-models when the in-app provider step completes")
+    workspace_js = read(pack / "bot-workspace.js")
+    if "openBotsTab" not in workspace_js or "hidden-file-tree" not in workspace_js:
+        fail("bot-workspace.js must default to the Bots tab and hide the Hermes file tree")
+    if "bot VM screen" not in workspace_js or "Embedded Linux" not in workspace_js:
+        fail("bot-workspace.js must open the bot VM screen and hide Embedded Linux")
+    if "couldn't finish the reply" not in workspace_js and "couldn'?t finish" not in workspace_js:
+        fail("bot-workspace.js must hide the Hermes couldn't-finish-the-reply toast")
     assert_sidebar_host_fallback(sidebar_js, teams_js, css)
     host_note = ROOT / "docs" / "airmaze" / "SIDEBAR_HOST.md"
     host_txt = read(host_note)
@@ -810,6 +902,10 @@ def test_packaging_not_regressed() -> None:
         fail("Apply-DesktopBranding.ps1 must verify composer chrome landed")
     if "chat-bubbles" not in apply_ps or "dragon-chat-bg" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must verify Grok-Bot chat bubbles landed")
+    if "provider-setup:1" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must verify the in-app provider dialog CSS stamp landed")
+    if "bot-workspace" not in apply_ps or "bot-workspace:1" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must inject bot-workspace.js and verify its CSS stamp")
     if "18cqi" in css or "clamp(20px, 18cqi, 32px)" in css:
         fail("sidebar logo must stay a fixed 56px (do not clamp/shrink)")
     if "--dragon-sidebar-control-height: 32px" not in css:
