@@ -2,9 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useI18n } from '@/i18n'
 import { sanitizeTextForSpeech } from '@/lib/speech-text'
+import { GrokVoiceSession } from '@/lib/voice-grok'
 import { type LiveHistoryMessage, type LiveTranscriptFragment, VoiceLiveSession } from '@/lib/voice-live'
 import { isVoiceStopCommand } from '@/lib/voice-stop-word'
 import { notify, notifyError } from '@/store/notifications'
+import { selectedVoiceChatMode } from '@/store/voice-live'
 
 import { useComposerScope } from '../scope'
 
@@ -122,7 +124,7 @@ export function useVoiceLiveConversation({
   // Mirrors delegationRef for the reply-drive effect: a new delegation must
   // restart the feed loop, and a ref write alone does not re-render.
   const [activeDelegation, setActiveDelegation] = useState<null | string>(null)
-  const sessionRef = useRef<null | VoiceLiveSession>(null)
+  const sessionRef = useRef<null | GrokVoiceSession | VoiceLiveSession>(null)
   // The scope's session owner (a Bot's own connection + profile) picks the
   // GPT-Live backend and voice; a ref keeps the long-lived start closures
   // reading the current value.
@@ -246,7 +248,9 @@ export function useVoiceLiveConversation({
       return
     }
 
-    const session = new VoiceLiveSession(
+    const Engine = selectedVoiceChatMode() === 'grok-voice' ? GrokVoiceSession : VoiceLiveSession
+
+    const session = new Engine(
       {
         // The voice model answers a bare "stop" itself (it just goes quiet) and
         // never delegates it, so the spoken stop phrase is judged on the user
@@ -323,6 +327,7 @@ export function useVoiceLiveConversation({
           void Promise.resolve(latest.current.onSubmit(prompt, voiceContext)).catch(error => {
             notifyError(error, voiceCopy.liveDelegationFailed)
             session.speak(delegationId, 'Sorry, I could not reach Dragon AI for that request.')
+            session.complete(delegationId)
             setDelegation(null)
             refreshStatus()
           })
@@ -433,6 +438,7 @@ export function useVoiceLiveConversation({
         }
 
         latest.current.consumePendingResponse()
+        session.complete(delegationId)
         setDelegation(null)
         refreshStatus()
 
@@ -450,6 +456,7 @@ export function useVoiceLiveConversation({
           session.think(delegationId, 'Dragon AI finished that request without a spoken result.')
         }
 
+        session.complete(delegationId)
         setDelegation(null)
         refreshStatus()
       }

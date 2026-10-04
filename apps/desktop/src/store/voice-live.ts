@@ -1,6 +1,6 @@
 import { atom } from 'nanostores'
 
-import { fetchVoiceLiveStatus, type VoiceLiveStatus } from '@/lib/voice-live'
+import { fetchVoiceLiveStatus, type VoiceChatMode, type VoiceLiveStatus } from '@/lib/voice-live'
 import { activeGatewayProfileKey, requestGatewayForProfile } from '@/store/gateway'
 
 /**
@@ -32,8 +32,13 @@ export async function refreshVoiceLiveStatus(): Promise<null | VoiceLiveStatus> 
 }
 
 /** Selected mode. `chained` until the backend answers, or when the backend predates the mode. */
-export function selectedVoiceChatMode(status: null | VoiceLiveStatus = $voiceLiveStatus.get()): 'chained' | 'gpt-live' {
-  return status?.mode === 'gpt-live' ? 'gpt-live' : 'chained'
+export function selectedVoiceChatMode(status: null | VoiceLiveStatus = $voiceLiveStatus.get()): VoiceChatMode {
+  return status?.mode === 'gpt-live' || status?.mode === 'grok-voice' ? status.mode : 'chained'
+}
+
+/** True for the full-duplex engines (GPT-Live, Grok Voice) that own mic and speaker. */
+export function isFullDuplexMode(mode: VoiceChatMode): boolean {
+  return mode !== 'chained'
 }
 
 /**
@@ -46,7 +51,7 @@ export function selectedVoiceChatMode(status: null | VoiceLiveStatus = $voiceLiv
  * the shared-primary route an unscoped write lands in the LAUNCH profile's
  * config.yaml, not the viewed one (#125969 class).
  */
-export async function setVoiceChatMode(mode: 'chained' | 'gpt-live'): Promise<null | VoiceLiveStatus> {
+export async function setVoiceChatMode(mode: VoiceChatMode): Promise<null | VoiceLiveStatus> {
   await requestGatewayForProfile(activeGatewayProfileKey(), 'config.set', { key: 'voice.voice_chat_mode', value: mode })
 
   return refreshVoiceLiveStatus()

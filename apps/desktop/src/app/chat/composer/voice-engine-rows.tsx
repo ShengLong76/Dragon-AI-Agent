@@ -31,14 +31,15 @@ export function VoiceEngineRows({ disabled }: { disabled: boolean }) {
     return null
   }
 
-  const liveAvailable = status.available
+  const liveAvailable = status.gptLiveAvailable
+  const grokAvailable = status.grokAvailable
 
   return (
     <>
       <DropdownMenuLabel>{c.voiceEngine}</DropdownMenuLabel>
       <DropdownMenuRadioGroup
         onValueChange={value => {
-          if (value !== 'chained' && value !== 'gpt-live') {
+          if (value !== 'chained' && value !== 'gpt-live' && value !== 'grok-voice') {
             return
           }
 
@@ -60,6 +61,14 @@ export function VoiceEngineRows({ disabled }: { disabled: boolean }) {
             )}
           </span>
         </DropdownMenuRadioItem>
+        <DropdownMenuRadioItem className={dropdownMenuRow} disabled={disabled || !grokAvailable} value="grok-voice">
+          <span className="flex min-w-0 flex-col">
+            <span>Grok Voice</span>
+            {grokAvailable ? null : (
+              <span className="text-muted-foreground truncate text-xs">{status.grokReason ?? 'Connect SuperGrok'}</span>
+            )}
+          </span>
+        </DropdownMenuRadioItem>
       </DropdownMenuRadioGroup>
     </>
   )
@@ -74,7 +83,11 @@ export function useVoiceEngineName(): null | string {
     return null
   }
 
-  return selectedVoiceChatMode(status) === 'gpt-live'
-    ? t.composer.voiceEngineLiveShort
-    : t.composer.voiceEngineChainedShort
+  const mode = selectedVoiceChatMode(status)
+
+  return mode === 'grok-voice'
+    ? 'Grok Voice'
+    : mode === 'gpt-live'
+      ? t.composer.voiceEngineLiveShort
+      : t.composer.voiceEngineChainedShort
 }

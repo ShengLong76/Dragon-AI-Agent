@@ -31,6 +31,7 @@ from typing import Any, Dict, Optional
 logger = logging.getLogger(__name__)
 
 GPT_LIVE_MODE = "gpt-live"
+GROK_VOICE_MODE = "grok-voice"
 CHAINED_MODE = "chained"
 DEFAULT_LIVE_MODEL = "gpt-live-1"
 DEFAULT_LIVE_VOICE = "marin"
@@ -46,7 +47,7 @@ GPT_LIVE_VOICES = (
 # the vendor guide asks for role + style + a labelled delegation policy, nothing more. The
 # backend (Hermes) carries the real instructions, tools and memory.
 LIVE_PERSONA = (
-    "You are Hermes, a calm and friendly voice assistant. Speak naturally at an unhurried pace. "
+    "You are Dragon AI, a calm and friendly voice assistant. Speak naturally at an unhurried pace. "
     "Be clear and direct, not overly cheerful. If the user is frustrated, acknowledge it briefly "
     "and focus on the next helpful step.\n\n"
     "Backchannel policy: Use moderate backchannels. Acknowledge naturally without competing with "
@@ -54,7 +55,7 @@ LIVE_PERSONA = (
     "Interruption policy: Stop speaking when the user interrupts. Listen to what they say.\n\n"
     "Delegation policy:\n"
     "Backend tools:\n"
-    "- Hermes agent: a full AI agent with tools — it can run commands, read and edit files, "
+    "- Dragon AI agent: a full AI agent with tools — it can run commands, read and edit files, "
     "browse the web, search, remember things across sessions, schedule tasks, and reason "
     "carefully about anything. It is the one who actually does work and knows facts.\n\n"
     "Delegate to the backend when:\n"
@@ -105,9 +106,11 @@ def _live_section(voice: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
 
 
 def voice_chat_mode(voice: Optional[Dict[str, Any]] = None) -> str:
-    """``chained`` (default) or ``gpt-live``. Accepts the underscore spelling too."""
+    """``chained`` (default), ``gpt-live`` or ``grok-voice``. Accepts the underscore spelling too."""
     raw = (voice if voice is not None else _voice_section()).get("voice_chat_mode")
     mode = str(raw or CHAINED_MODE).strip().lower().replace("_", "-")
+    if mode in {GROK_VOICE_MODE, "grok", "grokvoice"}:
+        return GROK_VOICE_MODE
     return GPT_LIVE_MODE if mode in {GPT_LIVE_MODE, "gptlive", "live"} else CHAINED_MODE
 
 
@@ -131,16 +134,26 @@ def live_instructions(live: Optional[Dict[str, Any]] = None) -> str:
 def resolve_gpt_live_status() -> Dict[str, Any]:
     """Non-secret readiness verdict for the client: which mode is selected and whether GPT-Live
     can start (a key resolves). Never returns the key."""
+    from tools.voice_grok import resolve_grok_voice_status
     voice = _voice_section()
     mode = voice_chat_mode(voice)
+    grok = resolve_grok_voice_status(voice)
     live = _live_section(voice)
     api_key, _base = _resolve_credentials(live)
+    grok_fields = {
+        "grok_available": grok["available"],
+        "grok_reason": grok["reason"],
+        "gpt_live_available": bool(api_key),
+    }
+    if mode == GROK_VOICE_MODE:
+        return {**grok, **grok_fields, "mode": mode}
     return {
         "mode": mode,
         "available": bool(api_key),
         "reason": None if api_key else "no OpenAI API key (set OPENAI_API_KEY or voice.gpt_live.api_key)",
         "model": str(live.get("model") or DEFAULT_LIVE_MODEL),
         "voice": str(live.get("voice") or DEFAULT_LIVE_VOICE),
+        **grok_fields,
     }
 
 

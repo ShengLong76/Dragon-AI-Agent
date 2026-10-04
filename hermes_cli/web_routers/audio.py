@@ -172,6 +172,23 @@ async def get_client_voice_config(profile: Optional[str] = None):
     return {"ok": True, **result}
 
 
+@router.post("/api/audio/voice-live/grok-session")
+async def create_grok_voice_session(profile: Optional[str] = None):
+    """Mint a short-lived xAI client secret for the renderer's Grok Voice WebSocket.
+
+    The xAI key or SuperGrok grant stays on this host; the renderer gets only the ephemeral
+    secret, the socket URL and the session config it sends as ``session.update``.
+    """
+    from tools.voice_grok import create_grok_voice_session as _create
+    try:
+        result = await _run_config_scoped(profile, _create)
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    return {"ok": True, **result}
+
+
 @router.get("/api/audio/voice-live/status")
 async def get_voice_live_status(profile: Optional[str] = None):
     """Which voice chat mode the profile selected (``chained`` | ``gpt-live``) and whether GPT-Live

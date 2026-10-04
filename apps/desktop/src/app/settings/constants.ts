@@ -254,7 +254,8 @@ export const ENUM_OPTIONS: Record<string, string[]> = {
   'stt.provider': ['local', 'groq', 'openai', 'mistral', 'xai', 'elevenlabs'],
   // How the desktop voice conversation is wired — tools/voice_live.py owns the
   // gpt-live branch (one full-duplex voice model delegating to Hermes).
-  'voice.voice_chat_mode': ['chained', 'gpt-live'],
+  'voice.voice_chat_mode': ['chained', 'gpt-live', 'grok-voice'],
+  'voice.grok_voice.voice': ['eve', 'ara', 'rex', 'sal', 'leo'],
   'voice.gpt_live.voice': [
     'marin',
     'cedar',
@@ -384,6 +385,7 @@ export const ENUM_OPTIONS: Record<string, string[]> = {
 export const FREE_INPUT_KEYS = new Set([
   'tts.edge.voice',
   'voice.gpt_live.voice',
+  'voice.grok_voice.voice',
   'tts.openai.model',
   'tts.openai.voice',
   'tts.elevenlabs.voice_id',
@@ -472,6 +474,10 @@ export const FIELD_LABELS: Record<string, string> = defineFieldCopy({
     gptLive: {
       voice: 'GPT-Live Voice',
       instructions: 'GPT-Live Persona'
+    },
+    grokVoice: {
+      voice: 'Grok Voice',
+      instructions: 'Grok Voice Persona'
     }
   },
   stt: {
@@ -649,11 +655,15 @@ export const FIELD_DESCRIPTIONS: Record<string, string> = defineFieldCopy({
   voice: {
     autoTts: 'Automatically speak assistant responses.',
     voiceChatMode:
-      'chained: speech-to-text → Dragon AI → text-to-speech with the providers below. gpt-live: one full-duplex OpenAI voice model (gpt-live-1) listens and talks, and hands every real request to Dragon AI — any model you have selected answers with the full toolset. Needs an OpenAI API key; the voice layer bills $0.05 per minute.',
+      'chained: speech-to-text → Dragon AI → text-to-speech with the providers below. gpt-live: one full-duplex OpenAI voice model (gpt-live-1) listens and talks, and hands every real request to Dragon AI — any model you have selected answers with the full toolset. Needs an OpenAI API key; the voice layer bills $0.05 per minute. grok-voice: the xAI full-duplex Grok voice model listens and talks, and hands real requests to Dragon AI. Uses your SuperGrok sign-in or XAI_API_KEY.',
     gptLive: {
       voice: 'Voice for GPT-Live mode. Custom voice IDs are accepted.',
       instructions:
         'Extra sentences for the live voice persona (tone, pace, language). Dragon AI keeps its own system prompt.'
+    },
+    grokVoice: {
+      voice: 'Voice for Grok Voice mode: eve, ara, rex, sal, leo, or a custom xAI voice ID.',
+      instructions: 'Extra sentences for the Grok voice persona (tone, pace, language).'
     }
   },
   tts: {
@@ -765,6 +775,8 @@ export const SECTIONS: DesktopConfigSection[] = [
       'voice.voice_chat_mode',
       'voice.gpt_live.voice',
       'voice.gpt_live.instructions',
+      'voice.grok_voice.voice',
+      'voice.grok_voice.instructions',
       'tts.provider',
       'stt.enabled',
       'stt.echo_transcripts',

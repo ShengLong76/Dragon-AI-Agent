@@ -1228,6 +1228,14 @@ DEFAULT_CONFIG = {
             "instructions": "",
             # optional "api_key" / "base_url" keys override the OpenAI audio credentials for this mode only
         },
+        #   grok-voice — xAI's full-duplex Grok voice model; delegates through the ask_dragon
+        #                function. Uses SuperGrok sign-in or XAI_API_KEY.
+        "grok_voice": {
+            "model": "grok-voice-latest",
+            "voice": "eve",  # eve | ara | rex | sal | leo | custom voice id
+            "instructions": "",
+            # optional "api_key" / "base_url" keys override the xAI credentials for this mode only
+        },
         "record_key": "ctrl+b",
         "submit_mode": "direct",  # TUI: direct submits immediately; draft = editable transcript
         "max_recording_seconds": 120,

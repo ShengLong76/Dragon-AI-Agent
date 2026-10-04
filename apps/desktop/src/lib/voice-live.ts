@@ -19,7 +19,7 @@ import { hermesApi } from '@/hermes'
  * https://developers.openai.com/api/docs/guides/live-delegation
  */
 
-export type VoiceChatMode = 'chained' | 'gpt-live'
+export type VoiceChatMode = 'chained' | 'gpt-live' | 'grok-voice'
 
 export interface VoiceLiveStatus {
   mode: VoiceChatMode
@@ -27,6 +27,10 @@ export interface VoiceLiveStatus {
   reason: null | string
   model: string
   voice: string
+  /** Per-engine readiness, independent of which mode is selected. */
+  gptLiveAvailable: boolean
+  grokAvailable: boolean
+  grokReason: null | string
 }
 
 export interface LiveHistoryMessage {
@@ -80,7 +84,12 @@ const CONTEXT_MAX_FRAGMENTS = 80
 
 export async function fetchVoiceLiveStatus(): Promise<null | VoiceLiveStatus> {
   try {
-    const response = await hermesApi<{ ok: boolean } & VoiceLiveStatus>({
+    const response = await hermesApi<
+      { ok: boolean; gpt_live_available?: boolean; grok_available?: boolean; grok_reason?: null | string } & Omit<
+        VoiceLiveStatus,
+        'gptLiveAvailable' | 'grokAvailable' | 'grokReason'
+      >
+    >({
       ...profileScoped(),
       path: '/api/audio/voice-live/status'
     })
@@ -91,7 +100,10 @@ export async function fetchVoiceLiveStatus(): Promise<null | VoiceLiveStatus> {
 
     return {
       available: Boolean(response.available),
-      mode: response.mode === 'gpt-live' ? 'gpt-live' : 'chained',
+      gptLiveAvailable: Boolean(response.gpt_live_available ?? (response.mode !== 'grok-voice' && response.available)),
+      grokAvailable: Boolean(response.grok_available),
+      grokReason: response.grok_reason ?? null,
+      mode: response.mode === 'gpt-live' || response.mode === 'grok-voice' ? response.mode : 'chained',
       model: response.model,
       reason: response.reason ?? null,
       voice: response.voice
@@ -472,6 +484,9 @@ export class VoiceLiveSession {
       })
     }
   }
+
+  /** GPT-Live streams commentary as it arrives; nothing is held for the turn's end. */
+  complete(_delegationId: null | string): void {}
 
   /** Steer the live persona mid-conversation (session-wide). */
   instruct(content: string): void {
