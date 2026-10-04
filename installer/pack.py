@@ -273,7 +273,8 @@ def main() -> int:
         names = assert_self_zip(setup_exe)
         if out_exe.exists():
             out_exe.unlink()
-        shutil.copy2(setup_exe, out_exe)
+        # Artifact stores often reject chmod/copystat; copy bytes only.
+        shutil.copyfile(setup_exe, out_exe)
 
     assert_pe(out_exe)
     names = assert_self_zip(out_exe)
