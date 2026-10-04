@@ -23,6 +23,7 @@ import { FreeTierSignInDialog } from '@/components/free-tier/sign-in-dialog'
 import { GatewayConnectingOverlay } from '@/components/gateway-connecting-overlay'
 import { NotificationStack } from '@/components/notifications'
 import { DesktopOnboardingOverlay } from '@/components/onboarding'
+import { TeamsMarketplaceDialog } from '@/dragon/teams/marketplace-dialog'
 import { OnboardingChatGate } from '@/components/onboarding-chat/gate'
 import { $newSessionTabAction, registerPaneCloser } from '@/components/pane-shell/tree/store'
 import {
@@ -1377,6 +1378,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
           requestGateway={requestGateway}
         />
       )}
+      {!isAuxiliaryWindow() && <TeamsMarketplaceDialog />}
       {!isAuxiliaryWindow() && (
         <SharedMetricsConsentDialog
           enabled={gatewayState === 'open'}
