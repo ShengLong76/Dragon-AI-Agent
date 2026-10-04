@@ -198,6 +198,41 @@ describe('ChatSidebar navigation activity', () => {
     act(() => dispose())
     expect(screen.getByRole('button', { name: 'Kanban' })).toBeTruthy()
   })
+
+  it('places Kanban under Messaging and opens the board route', () => {
+    const onNavigate = vi.fn()
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <SidebarProvider>
+          <ChatSidebar
+            currentView="chat"
+            onArchiveSession={noop}
+            onBranchSession={noop}
+            onDeleteSession={noop}
+            onLoadMoreSessions={noop}
+            onManageCronJob={noop}
+            onNavigate={onNavigate}
+            onNewSessionInWorkspace={noop}
+            onNewSessionSplit={noop}
+            onResumeSession={noop}
+            onRetrySessions={noopAsync}
+            onTriggerCronJob={noopAsync}
+          />
+        </SidebarProvider>
+      </MemoryRouter>
+    )
+
+    const newSession = screen.getByText('New session', { selector: '[data-tour="sidebar-nav-new-session"]' })
+    const capabilities = screen.getByText('Capabilities', { selector: '[data-tour="sidebar-nav-capabilities"]' })
+    const messaging = screen.getByText('Messaging', { selector: '[data-tour="sidebar-nav-messaging"]' })
+    const kanban = screen.getByText('Kanban', { selector: '[data-tour="sidebar-nav-kanban-nav"]' })
+    expect(newSession.compareDocumentPosition(capabilities) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(capabilities.compareDocumentPosition(messaging) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(messaging.compareDocumentPosition(kanban) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Kanban' }))
+    expect(onNavigate).toHaveBeenCalledWith(expect.objectContaining({ route: '/kanban' }))
+  })
 })
 
 // #67600: a cold-start read that failed used to render as an empty account.

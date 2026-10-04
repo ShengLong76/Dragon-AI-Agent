@@ -55,6 +55,18 @@ afterEach(() => {
   setRuntimeI18nLocale('en')
 })
 
+it('ships the Kanban board on and registers a live /kanban sidebar row', () => {
+  expect(plugin.defaultEnabled).toBe(true)
+  plugin.register(createPluginContext('kanban', dispose => disposers.push(dispose)))
+  const nav = registry.getArea(SIDEBAR_NAV_AREA).find(c => c.id === 'kanban:nav')
+  const route = registry.getArea(ROUTES_AREA).find(c => c.id === 'kanban:page')
+
+  expect((nav?.data as SidebarNavContribution | undefined)?.path).toBe('/kanban')
+  expect((nav?.data as SidebarNavContribution | undefined)?.label).toBe('Kanban')
+  expect((route?.data as { path?: string } | undefined)?.path).toBe('/kanban')
+  expect(route?.render).toBeTypeOf('function')
+})
+
 it('relabels Kanban after delayed config load and locale switches without replacing the board or bindings', async () => {
   setRuntimeI18nLocale('en')
   plugin.register(createPluginContext('kanban', dispose => disposers.push(dispose)))

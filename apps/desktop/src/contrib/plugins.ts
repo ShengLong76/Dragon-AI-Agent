@@ -3,8 +3,8 @@
  *
  *  - BUNDLED: every `src/plugins/<name>/plugin.{js,ts,tsx}` default-exporting
  *    a `HermesPlugin` registers automatically (vite glob — drop a folder in).
- *    `hermes-bots` (Bot Mode) ships in-tree and is ON by default; other
- *    reference/demo plugins live in the companion `hermes-example-plugins`
+ *    `hermes-bots` (Bot Mode) and `kanban` ship in-tree and are ON by default;
+ *    other reference/demo plugins live in the companion `hermes-example-plugins`
  *    repo. `.js` entries are SDK-consumer plugins adopted from standalone
  *    repos — they keep the plain-ESM plugin.js form so the file stays
  *    loadable by older desktops' runtime door too.

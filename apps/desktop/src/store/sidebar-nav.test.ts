@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { registry } from '@/contrib/registry'
 
-import { applySidebarNavPrefs, SIDEBAR_NAV_PREFS_AREA } from './sidebar-nav'
+import { applySidebarNavPrefs, placeSidebarPluginNav, SIDEBAR_NAV_PREFS_AREA } from './sidebar-nav'
 
 const rows = [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }, { id: 'e' }, { id: 'capabilities' }]
 
@@ -11,6 +11,25 @@ const prefs = (id: string, data: { hide?: string[]; order?: string[] }, order?: 
   data,
   id,
   order
+})
+
+describe('placeSidebarPluginNav', () => {
+  it('puts the Kanban board row under Messaging and leaves other plugin rows after the built-ins', () => {
+    const builtIn = [{ id: 'new-session' }, { id: 'capabilities' }, { id: 'messaging' }, { id: 'artifacts' }]
+    const contributed = [
+      { id: 'reports-nav', route: '/reports' },
+      { id: 'kanban:nav', route: '/kanban' }
+    ]
+
+    expect(placeSidebarPluginNav(builtIn, contributed).map(row => row.id)).toEqual([
+      'new-session',
+      'capabilities',
+      'messaging',
+      'kanban:nav',
+      'artifacts',
+      'reports-nav'
+    ])
+  })
 })
 
 describe('applySidebarNavPrefs', () => {

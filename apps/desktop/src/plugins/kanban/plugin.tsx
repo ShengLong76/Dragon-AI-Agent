@@ -5,8 +5,8 @@
  * through `ctx.rest` (namespace-scoped to `/api/plugins/kanban`). No new
  * backend, no core edits.
  *
- * Ships OFF by default (`defaultEnabled: false`): it inventories in
- * Capabilities ▸ Plugins and registers nothing until the user flips the switch.
+ * Ships ON by default: the left-sidebar Kanban row (under Messaging) opens
+ * the board. Capabilities ▸ Plugins can still turn it off.
  */
 
 import './kanban.css'
@@ -82,7 +82,7 @@ const plugin: HermesPlugin = {
   id: 'kanban',
   name: 'Kanban',
   description: 'Multi-agent task board — board page, sidebar entry, and a live in-flight count in the status bar.',
-  defaultEnabled: false,
+  defaultEnabled: true,
   register(ctx) {
     ctx.i18n.register(KANBAN_LOCALES)
     ctx.onDispose(bindApi(ctx.rest, ctx.storage, ctx.socket, { os: ctx.os, t: ctx.i18n.t }))
@@ -125,7 +125,7 @@ const plugin: HermesPlugin = {
           id: 'nav',
           area: SIDEBAR_NAV_AREA,
           order: 50,
-          data: { codicon: 'project', label: ctx.i18n.t('nav'), path: '/kanban' } satisfies SidebarNavContribution
+          data: { codicon: 'checklist', label: ctx.i18n.t('nav'), path: '/kanban' } satisfies SidebarNavContribution
         },
         {
           id: 'open',
