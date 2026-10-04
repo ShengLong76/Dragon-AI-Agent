@@ -108,6 +108,10 @@ def test_home_layout() -> None:
         fail("home must not show an Embedded Linux header")
     if "selectRail(\"bots\")" not in js:
         fail("Begin must default the rail to Bots")
+    if 'frame.src = "/vm/"' not in js:
+        fail("VM pane must load Bot Screen only after the desktop service is up")
+    if "fallback.hidden = false" not in js:
+        fail("VM pane must keep the Bot Screen fallback when the desktop service is down")
     if "border-radius: 28px" not in css:
         fail("composer must be one dark rounded pill")
     block = css.split(".composer {", 1)

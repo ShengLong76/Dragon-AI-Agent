@@ -100,6 +100,13 @@ func startUIServer(ui fs.FS) (addr string, stop func(), err error) {
 		suffix := strings.TrimPrefix(r.URL.Path, "/api/voice")
 		proxy(w, r, voiceSvc+"/api/voice"+suffix, "", true)
 	})
+	mux.HandleFunc("/vm/", func(w http.ResponseWriter, r *http.Request) {
+		suffix := strings.TrimPrefix(r.URL.Path, "/vm")
+		if suffix == "" {
+			suffix = "/"
+		}
+		proxy(w, r, desktopSvc+suffix, sessionTok, true)
+	})
 	mux.Handle("/", http.FileServer(http.FS(ui)))
 
 	ln, err := net.Listen("tcp", uiPortPref)

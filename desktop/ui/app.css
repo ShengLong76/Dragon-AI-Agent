@@ -352,7 +352,8 @@ textarea:focus-visible, .wave:focus-visible, .send:focus-visible,
   display: flex;
   flex-direction: column;
   background:
-    linear-gradient(180deg, #14161c 0%, #0b0d12 100%);
+    radial-gradient(ellipse at 20% 10%, #1a2433 0%, transparent 42%),
+    linear-gradient(180deg, #10141c 0%, #0b0d12 100%);
 }
 .vm-chrome {
   display: flex;

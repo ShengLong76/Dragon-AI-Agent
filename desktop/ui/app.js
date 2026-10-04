@@ -75,30 +75,25 @@
     poll();
   }
 
-  function mountVm() {
+  async function mountVm() {
     const frame = $("#vm-frame");
     const fallback = $("#vm-fallback");
+    if (fallback) fallback.hidden = false;
     if (!frame) return;
-    const url = "http://127.0.0.1:8650/";
-    frame.src = url;
-    const timer = setTimeout(() => {
-      if (fallback) fallback.hidden = false;
-      frame.hidden = true;
-    }, 1500);
-    frame.addEventListener("load", () => {
-      try {
-        const href = frame.contentWindow && frame.contentWindow.location.href;
-        if (href && href !== "about:blank") {
-          clearTimeout(timer);
-          frame.hidden = false;
-          if (fallback) fallback.hidden = true;
-        }
-      } catch (_err) {
-        clearTimeout(timer);
+    frame.hidden = true;
+    frame.removeAttribute("src");
+    try {
+      const res = await fetch("/api/status");
+      const data = await res.json();
+      if (data && data.desktop && data.desktop.ok) {
+        frame.src = "/vm/";
         frame.hidden = false;
         if (fallback) fallback.hidden = true;
       }
-    }, { once: true });
+    } catch (_err) {
+      frame.hidden = true;
+      if (fallback) fallback.hidden = false;
+    }
   }
 
   document.querySelectorAll("[data-provider]").forEach((btn) => {
