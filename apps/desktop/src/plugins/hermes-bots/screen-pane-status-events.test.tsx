@@ -13,11 +13,13 @@ import type { DisplayStatus } from './screen-connection'
 import type * as ScreenConnection from './screen-connection'
 import type { RosterRow } from './types'
 
-vi.mock('@hermes/plugin-sdk', async () => {
+vi.mock('@hermes/plugin-sdk', async importOriginal => {
+  const sdk = await importOriginal<typeof import('@hermes/plugin-sdk')>()
   const { useStore } = await import('@nanostores/react')
   const { onGatewayEvent } = await import('../../contrib/events')
 
   return {
+    ...sdk,
     Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
       <button {...props}>{children}</button>
     ),
@@ -26,7 +28,7 @@ vi.mock('@hermes/plugin-sdk', async () => {
     Tip: ({ children }: { children: ReactNode }) => <>{children}</>,
     EmptyState: () => null,
     useValue: useStore,
-    host: { onEvent: onGatewayEvent }
+    host: { ...sdk.host, onEvent: onGatewayEvent }
   }
 })
 vi.mock('./routing', () => {

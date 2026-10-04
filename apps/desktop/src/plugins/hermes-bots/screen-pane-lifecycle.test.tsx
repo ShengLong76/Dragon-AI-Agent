@@ -19,11 +19,13 @@ const sockets = vi.hoisted(
 const rfbs = vi.hoisted(() => [] as Array<{ emit: (type: string, detail?: unknown) => void; viewOnly?: boolean }>)
 const retention = vi.hoisted(() => ({ held: 0 }))
 
-vi.mock('@hermes/plugin-sdk', async () => {
+vi.mock('@hermes/plugin-sdk', async importOriginal => {
+  const sdk = await importOriginal<typeof import('@hermes/plugin-sdk')>()
   const { useStore } = await import('@nanostores/react')
   const { onGatewayEvent } = await import('../../contrib/events')
 
   return {
+    ...sdk,
     Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
       <button {...props}>{children}</button>
     ),
@@ -33,6 +35,7 @@ vi.mock('@hermes/plugin-sdk', async () => {
     EmptyState: () => null,
     useValue: useStore,
     host: {
+      ...sdk.host,
       onEvent: onGatewayEvent,
       retainProfile: async () => {
         retention.held += 1
