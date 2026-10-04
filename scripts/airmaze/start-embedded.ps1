@@ -887,7 +887,7 @@ Dragon AI Agent desktop was not found in this package, so there is no app window
 Expected:
   $hint
 
-Re-download Dragon-AI-Agent-v0.1.0-windows.zip and run DragonAIAgentSetup.exe.
+Re-download DragonAIAgentSetup.exe and run that one installer.
 "@
     }
     if (Get-Command Test-DragonAIPrivateDesktopPath -ErrorAction SilentlyContinue) {
@@ -1145,7 +1145,7 @@ try {
 
     $compose = Join-Path $InstallRoot "docker-compose.embedded.yml"
     if (-not (Test-Path -LiteralPath $compose)) {
-        throw "Dragon AI Agent is not installed (missing $compose). Unzip the package and run DragonAIAgentSetup.exe first."
+        throw "Dragon AI Agent is not installed (missing $compose). Run DragonAIAgentSetup.exe first."
     }
 
     Update-LaunchStatus "Starting background engine..."

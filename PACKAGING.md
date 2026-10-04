@@ -3,8 +3,9 @@
 **Product version:** 0.1.0  
 **Product name:** Dragon AI Agent  
 **Installer exe:** `DragonAIAgentSetup.exe`  
+**Handoff:** one installer exe (not a zip, not a folder with a loose `DragonAIAgent.exe`)  
 **Built on:** Cos box (Linux amd64)  
-**Date:** 2026-09-28 (America/New_York)
+**Date:** 2026-10-04 (America/New_York)
 
 ## Toolchain
 
@@ -12,39 +13,51 @@
 |------|----------------|
 | Go | `go1.24.4 linux/amd64` (cross-compile `GOOS=windows GOARCH=amd64`) |
 | go-winres | Embed Windows icon/version resources into the exe (`.syso` beside `build-exe.go`) |
-| Zip | Python 3 `zipfile` |
+| Zip | Python 3 `zipfile` (payload is appended to the PE; the file is still one `.exe`) |
 | Logo | `branding/dragon-ai-agent-logo.png` (+ `.ico` generated with Pillow) |
 
 ## Build commands
 
+The handoff James runs is **one installer exe**. Do not also leave `DragonAIAgent.exe` next to it.
+
 ```bash
-cd /workspace/airmaze-agent-dist/repo/installer
+python3 installer/pack.py --out dist/DragonAIAgentSetup.exe
+```
+
+`pack.py` cross-compiles `desktop/` to `desktop/win-unpacked/DragonAIAgent.exe`, stages the payload (compose, scripts, branding, bot-groups, packaged desktop), zips that tree, builds `installer/` as `DragonAIAgentSetup.exe`, and appends the zip to that PE. Setup extracts the payload at run time and runs `install.ps1`. The installed app still contains `desktop/win-unpacked/DragonAIAgent.exe` under `%LOCALAPPDATA%\\DragonAIAgent`; that second exe is not part of the download.
+
+Optional low-level steps (same as the packer):
+
+```bash
+cd desktop
+GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-H windowsgui -s -w" -o win-unpacked/DragonAIAgent.exe .
+cd ../installer
 # Optional: regenerate icon resources
 # go-winres simply --icon winres/icon.ico --product-name "Dragon AI Agent" ...
-GOOS=windows GOARCH=amd64 go build -o /workspace/airmaze-agent-dist/release/DragonAIAgentSetup.exe .
+GOOS=windows GOARCH=amd64 go build -o DragonAIAgentSetup.exe .
 # Console subsystem (default) — omit -H windowsgui so users see installer logs.
+# Then append the payload zip (pack.py does this). A bare go build still looks
+# for a sibling payload\\ folder from the older zip layout.
 ```
 
-If `go-winres` / `.syso` is skipped, the exe may keep the default Go icon; the PNG/ICO still ship beside the exe and are used for desktop shortcut `IconLocation`. Documented here intentionally.
+If `go-winres` / `.syso` is skipped, the exe may keep the default Go icon; the PNG/ICO still ship inside the payload and are used for desktop shortcut `IconLocation`. Documented here intentionally.
 
-Release zip layout:
+Embedded payload (inside `DragonAIAgentSetup.exe`; not a second download file):
 
 ```text
-Dragon-AI-Agent-v0.1.0-windows/
-  DragonAIAgentSetup.exe
-  dragon-ai-agent-logo.png
-  dragon-ai-agent-logo.ico
-  payload/
-    install.ps1
-    docker-compose.embedded.yml
-    README.md
-    vendor/docker/Docker Desktop Installer.exe   (staged; see below)
-    desktop/win-unpacked/DragonAIAgent.exe
-    bot-groups/...
-    scripts/airmaze/...
-    templates/profiles/personal-assistant/...
-    branding/...
+install.ps1
+uninstall.ps1
+docker-compose.embedded.yml
+README.md
+vendor/docker/Docker Desktop Installer.exe   (optional; see below)
+desktop/win-unpacked/DragonAIAgent.exe
+bot-groups/...
+scripts/airmaze/...
+templates/profiles/personal-assistant/...
+branding/...
 ```
+
+Older Cos builds also wrote a Windows zip (`Dragon-AI-Agent-v0.1.0-windows.zip`) with Setup beside a loose payload desktop exe. That zip is not the handoff. `vendor/docker` remains the package slot for a staged Docker Desktop installer inside the payload.
 
 ## Docker Desktop installer (package slot)
 
@@ -73,7 +86,9 @@ Setting keys include `openUIOnStartupDisabled` = true, `displayedOnboarding` = t
 
 ## Outputs
 
-`/workspace/airmaze-agent-dist/release/Dragon-AI-Agent-v0.1.0-windows.zip` and unpacked folder beside it. Also `dragon-ai-agent-logo.png` at release root for GitHub assets. Source tree zip: `airmaze-agent-source.zip`.
+`dist/DragonAIAgentSetup.exe` — one installer exe. Check: `python3 scripts/airmaze/Test-Packaging.py`. Do not ship a zip or a sibling `DragonAIAgent.exe`. Also `dragon-ai-agent-logo.png` at release root for GitHub assets if needed. Source tree zip: `airmaze-agent-source.zip` (developers only, not the product handoff).
+
+Setup writes a per-user **Settings > Apps** entry at `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\DragonAIAgent` (not HKLM; the app lives under `%LOCALAPPDATA%\DragonAIAgent`). Uninstall from Apps runs `uninstall.ps1`, which removes the app folder, the desktop shortcut, the Start Menu shortcut/folder, and that registry key. Check: `python3 scripts/airmaze/Test-Uninstall.py`.
 
 ## Launch UI
 

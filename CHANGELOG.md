@@ -4,6 +4,10 @@ All notable changes to Dragon AI Agent (packaging/distribution) are documented h
 
 ## [Unreleased]
 
+### Changed
+- **Settings > Apps lists Dragon AI Agent and can uninstall it.** Setup writes a per-user `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\DragonAIAgent` entry (LocalAppData install, not HKLM). Uninstall from Apps runs `uninstall.ps1`, which removes `%LOCALAPPDATA%\DragonAIAgent`, the desktop shortcut, the Start Menu shortcut/folder, and that registry key. Docker Desktop is left installed. Check: `python3 scripts/airmaze/Test-Uninstall.py`.
+- **Windows handoff is one installer exe.** `python3 installer/pack.py` builds `DragonAIAgentSetup.exe` with the payload (including `desktop/win-unpacked/DragonAIAgent.exe`) appended inside that PE. James receives that file only — not a zip and not a loose desktop exe beside Setup. The installed app still unpacks its binaries under `%LOCALAPPDATA%\\DragonAIAgent`. Check: `python3 scripts/airmaze/Test-Packaging.py`.
+
 ### Fixed
 - **Windows PowerShell 5.1 cannot parse Setup on a clean PC.** `installer/DragonAIAgentSetup.ps1` (UTF-8, no BOM) used an em dash in the shortcut description (`Dragon AI Agent — start...`). Windows PowerShell 5.1 decodes that as ANSI, the string ends early, and `start` is an unexpected token. Installer and the PowerShell scripts Setup runs now use ASCII punctuation only. Do not require a BOM. Check: `python3 scripts/airmaze/Test-WindowsLaunchParse.py`.
 
