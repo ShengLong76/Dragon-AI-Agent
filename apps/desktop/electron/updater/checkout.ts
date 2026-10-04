@@ -62,8 +62,8 @@ export interface CheckoutStrategyDeps {
  */
 export function buildManualUpdateCommand(currentBranch: string | null | undefined): string {
   return currentBranch && currentBranch !== 'HEAD' && currentBranch !== 'main'
-    ? `hermes update --branch ${currentBranch}`
-    : 'hermes update'
+    ? `dragon update --branch ${currentBranch}`
+    : 'dragon update'
 }
 
 /**
@@ -141,7 +141,7 @@ export function createCheckoutStrategy(deps: CheckoutStrategyDeps): UpdaterStrat
     const targetLabel: string = status.channel ?? branch
 
     const manualCommand: string = status.channel
-      ? `hermes update --channel ${status.channel}`
+      ? `dragon update --channel ${status.channel}`
       : buildManualUpdateCommand(branch)
 
     const updater: string | null = deps.resolveUpdaterBinary()
@@ -217,7 +217,7 @@ export function createCheckoutStrategy(deps: CheckoutStrategyDeps): UpdaterStrat
     deps.emitUpdateProgress({
       stage: 'restart',
       message:
-        'Updating Hermes — this window will close and the updater will open. Don’t reopen Hermes yourself; it restarts automatically when the update finishes.',
+        'Updating Dragon AI — this window will close and the updater will open. Don’t reopen Dragon AI yourself; it restarts automatically when the update finishes.',
       percent: 100
     })
     deps.repairMacUpdaterHelper(updater)
@@ -487,7 +487,7 @@ export function createCheckoutStrategy(deps: CheckoutStrategyDeps): UpdaterStrat
     deps.emitUpdateProgress({
       stage: 'restart',
       message:
-        'Updating Hermes — this window will close. Don’t reopen Hermes yourself; it restarts automatically when the update finishes.',
+        'Updating Dragon AI — this window will close. Don’t reopen Dragon AI yourself; it restarts automatically when the update finishes.',
       percent: 100
     })
 

@@ -13,7 +13,7 @@ import { atom, host } from '@hermes/plugin-sdk'
 
 import { $botMeta, $lastRoster, botRosterKey } from './data'
 import { groupMemberReferencesConnection, markOrphanedGroupMemberDescriptor } from './hygiene'
-import { displayName } from './labels'
+import { DEFAULT_BOT_NAME, displayName } from './labels'
 import { botRosterMeta } from './routing'
 import { getPluginCtx } from './shared'
 import type {
@@ -1481,7 +1481,7 @@ export function groupSpeakerLabel(name?: null | string, group?: null | string) {
     // Exact key only: the bare `profile` key is a single-source record and
     // names whichever machine wrote it, never this connection's bot.
     const title = String(meta?.[trimmed]?.title || '').trim()
-    const label = title || (profile.toLowerCase() === 'default' ? 'Hermes' : profile)
+    const label = title || (profile.toLowerCase() === 'default' ? DEFAULT_BOT_NAME : profile)
 
     // Another connection still exposes this name: keep them tellable apart.
     return rows.some(bot => bot.name === profile) ? `${label} · ${connection}` : label
@@ -1514,7 +1514,7 @@ export function groupSpeakerLabel(name?: null | string, group?: null | string) {
     return renamed
   }
 
-  return isDefault ? 'Hermes' : trimmed
+  return isDefault ? DEFAULT_BOT_NAME : trimmed
 }
 
 /** Trim a room log + its watermarks to the retained window, keeping

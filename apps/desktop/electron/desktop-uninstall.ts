@@ -174,7 +174,7 @@ function allowedUninstallModes(kind: InstallKind): string[] {
 function nativeRemovalInstructions(kind, platform, appPath = null) {
   if (kind === 'nix') {
     return (
-      'This Hermes desktop app was installed by Nix. Uninstall it the same way you installed it: ' +
+      'This Dragon AI desktop app was installed by Nix. Uninstall it the same way you installed it: ' +
       'remove hermes-agent from your flake or profile, then rebuild.'
     )
   }
@@ -195,7 +195,7 @@ function nativeRemovalInstructions(kind, platform, appPath = null) {
     return `Delete the app directory at ${appPath}.`
   }
 
-  return 'Delete the Hermes AppImage (or app directory) from wherever you saved it.'
+  return 'Delete the Dragon AI AppImage (or app directory) from wherever you saved it.'
 }
 
 /**

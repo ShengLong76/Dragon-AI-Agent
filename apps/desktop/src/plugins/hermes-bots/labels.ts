@@ -11,6 +11,9 @@
 import { aliasIdentityFor } from './routing'
 import type { BotMeta, RosterRow } from './types'
 
+export const DEFAULT_BOT_NAME = 'Chief of Staff'
+export const DEFAULT_BOT_ROLE = 'Router'
+
 export function displayName(bot: Partial<RosterRow>, meta?: BotMeta | null): string {
   // A configured alias route claiming this row overrides source-derived
   // identity: the friendly alias name must survive hosted-session
@@ -66,10 +69,10 @@ export function displayName(bot: Partial<RosterRow>, meta?: BotMeta | null): str
   }
 
   // The primary profile is literally named "default" — as a bot identity
-  // that reads like nobody bothered. Present it as Hermes (the agent it is)
-  // unless the user gives it a real title.
+  // that reads like nobody bothered. Present it as the Chief of Staff (the
+  // router every other bot hangs off) unless the user gives it a real title.
   if ((bot.name || '').trim().toLowerCase() === 'default' && !bot.title) {
-    return 'Hermes'
+    return DEFAULT_BOT_NAME
   }
 
   const raw = (bot.title || bot.name || '').replace(/[-_]+/g, ' ').trim()
