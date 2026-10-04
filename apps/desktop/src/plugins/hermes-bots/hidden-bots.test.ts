@@ -208,6 +208,19 @@ describe('hiding the selected bot re-homes the selection', () => {
   })
 })
 
+describe('pin state follows an explicit flag, not just the default bot', () => {
+  it('starts the local default pinned and honors an explicit unpin', async () => {
+    const { hiddenBots } = await loadModules()
+    const localDefault = { name: 'default' } as RosterRow
+    const specialist = { name: 'closer' } as RosterRow
+
+    expect(hiddenBots.isBotPinned(localDefault, {})).toBe(true)
+    expect(hiddenBots.isBotPinned(specialist, {})).toBe(false)
+    expect(hiddenBots.isBotPinned(localDefault, { default: { pinned: false } })).toBe(false)
+    expect(hiddenBots.isBotPinned(specialist, { closer: { pinned: true } })).toBe(true)
+  })
+})
+
 describe('a hidden bot stays quiet without going deaf', () => {
   it('accumulates unread but never toasts, even with toasts on', async () => {
     const { botState, data, rosterActions } = await loadModules()

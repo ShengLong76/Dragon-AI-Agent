@@ -316,7 +316,11 @@ Tab close buttons fade the label with a content mask, not a painted gradient.
 The tab reads its surface token directly so glass tint is painted only once.
 
 Sticky user messages clip covered scrolling content, including the gap above
-them. Their wrappers stay unpainted; only the rounded user bubble owns a fill.
+them. Their wrappers stay unpainted. Both voices own a rounded fill from the
+existing palette: the user bubble on the right uses `--dt-user-bubble` (the
+lighter graphite), the agent bubble on the left uses `--dt-assistant-bubble`
+(muted — darker, close to the chat background). HUD mode keeps both fills
+transparent.
 Clipping follows the pinned prompt and its live height without changing layout,
 so glass and message-bubble transparency do not reveal scrolling text.
 

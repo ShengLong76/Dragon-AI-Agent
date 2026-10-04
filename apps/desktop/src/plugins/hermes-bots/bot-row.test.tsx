@@ -20,16 +20,18 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BotRow } from './bot-row'
+import { $botMeta } from './data'
 import { $groupChats } from './group-chat'
 import { translateBotsIn } from './i18n-test-helper'
 import type { RosterRow } from './types'
 
-const { ensureAgent, ensureBotMetadata, notifyError, openRosterBot, requestProfile, warmAgent, warmProfile } =
+const { ensureAgent, ensureBotMetadata, notifyError, openRosterBot, request, requestProfile, warmAgent, warmProfile } =
   vi.hoisted(() => ({
     ensureAgent: vi.fn(),
     ensureBotMetadata: vi.fn(),
     notifyError: vi.fn(),
     openRosterBot: vi.fn(),
+    request: vi.fn(),
     requestProfile: vi.fn(),
     warmAgent: vi.fn(),
     warmProfile: vi.fn()
@@ -40,7 +42,7 @@ vi.mock('@hermes/plugin-sdk', async importOriginal => {
 
   return {
     ...sdk,
-    host: { ...sdk.host, ensureAgent, notifyError, requestProfile, warmAgent, warmProfile },
+    host: { ...sdk.host, ensureAgent, notifyError, request, requestProfile, warmAgent, warmProfile },
     // The plugin bundle normally lands via `ctx.i18n.register` at load, so
     // without this every localized label in the row renders empty.
     usePluginI18n: () => translateBotsIn('en')
@@ -67,11 +69,19 @@ function renderRow(bot: RosterRow) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  $botMeta.set({})
   ensureBotMetadata.mockResolvedValue({ pinned: true })
   openRosterBot.mockResolvedValue(true)
   // A save reads the bot's server namespace (profiles.list) before writing it.
+  request.mockImplementation(async (method: string) =>
+    method === 'profiles.list'
+      ? { profiles: [{ name: 'backend-worker' }, { name: 'alpha' }] }
+      : { applied: { ui_meta: true } }
+  )
   requestProfile.mockImplementation(async (_route: unknown, method: string) =>
-    method === 'profiles.list' ? { profiles: [{ name: 'backend-worker' }] } : {}
+    method === 'profiles.list'
+      ? { profiles: [{ name: 'backend-worker' }, { name: 'alpha' }] }
+      : { applied: { ui_meta: true } }
   )
 })
 
@@ -185,10 +195,8 @@ describe('context-menu mutations hydrate the alias first', () => {
     } as RosterRow
 
     fireEvent.contextMenu(renderRow(bot))
-    // The label reads from LOCAL meta (unpinned here); the toggle reads from
-    // the hydrated backend row, which says pinned. That divergence is the
-    // point — an alias whose state lives elsewhere must not be flipped
-    // against a locally-assumed value.
+    // The menu label is the source of intent: "Pin to top" writes true even
+    // when a hydrate says the backend row is already pinned.
     fireEvent.click(await screen.findByText('Pin to top'))
     await vi.waitFor(() =>
       expect(requestProfile.mock.calls.some(([, method]) => method === 'profiles.configure')).toBe(true)
@@ -199,7 +207,21 @@ describe('context-menu mutations hydrate the alias first', () => {
     const [route, , params] = requestProfile.mock.calls.find(([, method]) => method === 'profiles.configure')!
 
     expect(route.profile).toBe('worker')
-    expect(params).toMatchObject({ name: 'backend-worker', ui_meta: { 'hermes-bots': { pinned: false } } })
+    expect(params).toMatchObject({ name: 'backend-worker', ui_meta: { 'hermes-bots': { pinned: true } } })
+  })
+
+  it('unpins from the menu label, not a hydrate that omitted the flag', async () => {
+    $botMeta.set({ alpha: { pinned: true } })
+    ensureBotMetadata.mockResolvedValue({})
+    const bot = { name: 'alpha' } as RosterRow
+
+    fireEvent.contextMenu(renderRow(bot))
+    fireEvent.click(await screen.findByText('Unpin'))
+    await vi.waitFor(() => expect(request.mock.calls.some(([method]) => method === 'profiles.configure')).toBe(true))
+
+    const [, params] = request.mock.calls.find(([method]) => method === 'profiles.configure')!
+
+    expect(params).toMatchObject({ name: 'alpha', ui_meta: { 'hermes-bots': { pinned: false } } })
   })
 })
 

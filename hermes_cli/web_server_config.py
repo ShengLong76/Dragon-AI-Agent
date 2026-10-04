@@ -710,6 +710,11 @@ def _apply_main_assignment_sync(cfg: dict, provider: str, model: str, base_url: 
     new_provider = provider.strip().lower()
     gateway_tools = _apply_nous_gateway_defaults(cfg) if new_provider == "nous" else []
     save_config(cfg)
+    try:
+        from tools.image_generation_defaults import maybe_default_image_gen_from_llm
+        maybe_default_image_gen_from_llm()
+    except Exception:
+        _log.debug("image_gen default from LLM provider skipped", exc_info=True)
     if new_provider in {"custom", "local"} and base_url:
         _register_custom_endpoint(base_url, api_key, model)
     # The serve process's boot record may still say "nothing configured"; the chat gates on it.

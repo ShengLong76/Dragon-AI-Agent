@@ -1,13 +1,14 @@
 /**
  * What a bot's chat shows before it has said anything.
  *
- * Core's splash is Hermes' own wordmark and belongs to a fresh draft; a bot
- * chat is neither. It gets the same lettering with the bot's name in it, over
- * the same face the roster row and tab carry, so an empty conversation still
- * says whose it is.
+ * Core's splash is the product wordmark and belongs to a fresh draft; a bot
+ * chat is neither. The name uses the same UI face as the right-panel title
+ * (`text-lg font-semibold tracking-tight` in `bot-panel.tsx`), over the same
+ * face the roster row and tab carry, so an empty conversation still says
+ * whose it is without switching typefaces.
  */
 
-import { host, useValue, Wordmark } from '@hermes/plugin-sdk'
+import { host, useValue } from '@hermes/plugin-sdk'
 
 import { avatarColor, botAppearance, BotFace } from './avatar'
 import { isBackfilledFacePng } from './avatar-image'
@@ -102,7 +103,12 @@ export function BotChatEmpty({ sessionId }: { sessionId: string }) {
           />
         </div>
 
-        <Wordmark className="mb-1" text={name} width="calc(80% - 1rem)" />
+        <div
+          className="mb-1 text-lg font-semibold tracking-tight text-foreground"
+          data-slot="bot_chat_empty_name"
+        >
+          {name}
+        </div>
 
         <p className="m-0 text-center leading-normal tracking-tight">{b.bot.chatEmpty}</p>
       </div>

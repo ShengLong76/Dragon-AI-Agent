@@ -473,6 +473,10 @@
        at full transparency the outline is what still marks your turn. */
     --dt-user-bubble: color-mix(in srgb, var(--ui-chat-bubble-background) var(--user-bubble-keep, 100%), transparent);
     --dt-user-bubble-border: var(--ui-stroke-tertiary);
+    /* Agent fill is the existing muted surface — darker than the user bubble,
+       close to the chat background, not a new hex. HUD overrides this to
+       transparent the same way it clears the user bubble. */
+    --dt-assistant-bubble: var(--dt-muted);
 
     --dt-font-sans:
       'Segoe WPC', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif,
@@ -1654,7 +1658,7 @@ body.guest-pointer-lock :is(webview, iframe) {
 }
 
 [data-slot='aui_assistant-message-content'] {
-  padding-left: var(--message-text-indent);
+  padding: 0.5rem 0.75rem;
   font-size: var(--conversation-text-font-size);
   line-height: 1.5;
 }
@@ -3324,7 +3328,8 @@ button[data-slot='aui_msg-reactions'] svg {
      - the BORDER does too; an opaque hairline outlines the card even when
        the fill is right.
    Fill and border both ride the same variable, so they cannot desync. */
-[data-hud-shell] .composer-human-message {
+[data-hud-shell] .composer-human-message,
+[data-hud-shell] .composer-assistant-message {
   background: var(--hud-bubble-fill) !important;
   border-color: var(--hud-bubble-stroke) !important;
   backdrop-filter: none !important;

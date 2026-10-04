@@ -18,6 +18,7 @@ import { useSessionView } from '@/app/chat/session-view'
 import { SETTINGS_ROUTE } from '@/app/routes'
 import { dispatchedTo } from '@/components/assistant-ui/thread/agent-delivery'
 import { ChangedFilesCard } from '@/components/assistant-ui/thread/changed-files-card'
+import { CHAT_BUBBLE_WIDTH_CLASS } from '@/components/assistant-ui/thread/chat-bubble'
 import {
   contentHasVisibleText,
   messageContentText,
@@ -289,7 +290,7 @@ const AssistantMessageBody: FC<AssistantMessageProps & { collapsedNotice?: null 
   return (
     <MessagePrimitive.Root
       className={cn(
-        'group flex w-full min-w-0 max-w-full flex-col gap-0 self-start overflow-hidden',
+        'group flex w-full min-w-0 max-w-full flex-col items-start gap-0 self-start overflow-hidden',
         collapsedNotice && 'pb-(--conversation-turn-gap)'
       )}
       data-approval-activity-only={approval && activityOnly ? '' : undefined}
@@ -304,7 +305,10 @@ const AssistantMessageBody: FC<AssistantMessageProps & { collapsedNotice?: null 
       {collapsedNotice ?? (
         <>
           <div
-            className="wrap-anywhere min-w-0 max-w-full overflow-hidden text-pretty text-[length:var(--conversation-text-font-size)] leading-(--dt-line-height) text-foreground"
+            className={cn(
+              'composer-assistant-message wrap-anywhere min-w-0 overflow-hidden rounded-xl border border-(--ui-stroke-tertiary) bg-(--dt-assistant-bubble) text-pretty text-[length:var(--conversation-text-font-size)] leading-(--dt-line-height) text-foreground',
+              CHAT_BUBBLE_WIDTH_CLASS
+            )}
             data-slot="aui_assistant-message-content"
           >
             {/* Todos render in the composer status stack now, not inline. */}

@@ -349,6 +349,31 @@ describe('CapabilitiesView toolset management', { timeout: 60_000 }, () => {
     await waitFor(() => expect(navigateSpy).toHaveBeenCalledWith('/settings?tab=config:model&aux=vision'))
   })
 
+  it('selects the image_gen toolset from a ?toolset= deep link', async () => {
+    getToolsets.mockResolvedValue([
+      toolset(),
+      toolset({
+        name: 'image_gen',
+        label: 'Image Generation',
+        description: 'image_generate',
+        tools: ['image_generate']
+      })
+    ])
+    getToolsetConfig.mockResolvedValue({ has_category: true, active_provider: null, providers: [] })
+
+    await act(async () => {
+      render(
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter initialEntries={['/capabilities?tab=toolsets&toolset=image_gen']}>
+            <CapabilitiesView />
+          </MemoryRouter>
+        </QueryClientProvider>
+      )
+    })
+
+    await waitFor(() => expect(getToolsetConfig.mock.calls.some(([name]) => name === 'image_gen')).toBe(true))
+  })
+
   it('fixedConnection pins every read to the target connection', async () => {
     // Bot Mode's remote-target door: a bot on another registered gateway gets
     // the live surface pointed at ITS backend — the reads must carry the

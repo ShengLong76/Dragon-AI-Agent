@@ -1,6 +1,7 @@
 import { compactNumber } from '@hermes/shared'
 import { useStore } from '@nanostores/react'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useLocation } from 'react-router'
 
 import { CountSkeleton } from '@/components/ui/skeleton'
 import { type ProfileScope, setToolsetEnabled } from '@/hermes'
@@ -47,7 +48,15 @@ export function ToolsetsTab({ profile, query, toolsets }: ToolsetsTabProps) {
   const toolsetsSortDesc = useStore($toolsetsSortDesc)
   const toolCalls = useToolCalls(profile)
   const [bulkBusy, setBulkBusy] = useState(false)
-  const [selectedToolset, setSelectedToolset] = useState<string | null>(null)
+  const { search } = useLocation()
+  const linkedToolset = useMemo(() => new URLSearchParams(search).get('toolset'), [search])
+  const [selectedToolset, setSelectedToolset] = useState<string | null>(linkedToolset)
+
+  useEffect(() => {
+    if (linkedToolset) {
+      setSelectedToolset(linkedToolset)
+    }
+  }, [linkedToolset])
 
   // Optimistic write-through against the scoped Tools key: toggles repaint
   // instantly; the next background refetch reconciles.

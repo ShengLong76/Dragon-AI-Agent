@@ -77,7 +77,9 @@ def state_dir() -> Path:
 
 
 def is_supported_host() -> bool:
-    return sys.platform.startswith("linux")
+    """True when this process can exec Xvnc locally. A Docker Linux guest is a
+    placement decision (see ``placement.resolve``), not a host-Xvnc claim."""
+    return placement._host_can_run_xvnc()
 
 
 def missing_binaries() -> list[str]:

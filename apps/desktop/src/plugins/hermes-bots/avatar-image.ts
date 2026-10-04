@@ -70,6 +70,9 @@ export function pickImageFromDevice(): Promise<null | string> {
   })
 }
 
+/** Capabilities → Tools → Image Generation, where the image model is chosen. */
+export const IMAGE_GEN_SETTINGS_PATH = '/capabilities?tab=toolsets&toolset=image_gen'
+
 /** Cached probe: does the gateway have an image backend? A `false` answer
  *  is re-checked on every dialog open — the gateway may have been restarted
  *  (picking up image.generate) or a backend enabled since the last probe.

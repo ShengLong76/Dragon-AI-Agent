@@ -2,21 +2,28 @@
 
 ``bot_desktop.placement``:
   ``auto``      (default) follow the terminal backend when it is a sandbox that can host a stream
-                (docker / ssh / singularity); the gateway host when ``terminal.backend`` is local. A
+                (docker / ssh / singularity); the gateway host when ``terminal.backend`` is local AND
+                this host can run Xvnc. On a non-Linux gateway with Docker available, ``auto`` +
+                ``local`` resolves to a Linux guest (``terminal:docker``) instead of reporting
+                "unsupported" — the Computer tab is a per-bot Linux VM, not the host display. A
                 sandbox backend that CANNOT host one (modal, daytona, vercel) resolves to ``refused``:
                 the user chose a sandbox for the agent's actions, so quietly running the screen, cua-driver
                 and the browser on the host beside it would hand the agent a desktop outside that sandbox.
   ``terminal``  always the terminal backend; error when it cannot host one.
   ``gateway``   always the gateway host (the pre-#108914 behaviour for sandboxed users, now an explicit
-                opt-in because it is the boundary-crossing shape).
+                opt-in because it is the boundary-crossing shape). Never falls through to a guest.
 
-``resolve()`` is pure config + backend-class reasoning: it never starts a sandbox. ``terminal_environment()``
-does acquire the profile's terminal environment (creating the container if needed) because a screen cannot
-exist before the sandbox does.
+``resolve()`` is pure config + backend-class + host-capability reasoning: it never starts a sandbox.
+``terminal_environment()`` does acquire the environment (creating the container if needed) because a
+screen cannot exist before the sandbox does. A Linux-guest fallback uses a dedicated task id so it
+does not replace the profile's local terminal.
 """
 from __future__ import annotations
 
 import logging
+import sys
+import threading
+import time
 from dataclasses import dataclass
 from typing import Any, Optional
 
@@ -26,6 +33,10 @@ GATEWAY = "gateway"
 TERMINAL = "terminal"
 REFUSED = "refused"
 _STREAM_BACKENDS = ("docker", "ssh", "singularity")
+# Dedicated ``_active_environments`` key so a Windows/macOS Computer tab can
+# bring up ``nousresearch/hermes-sandbox:desktop`` without flipping the
+# profile's configured ``terminal.backend``.
+LINUX_GUEST_TASK_ID = "bot-desktop-guest"
 
 
 @dataclass(frozen=True)
@@ -47,11 +58,36 @@ def _terminal_backend() -> str:
     return str(_get_env_config().get("env_type") or "local")
 
 
+def _host_can_run_xvnc() -> bool:
+    """True when this process can exec Xvnc locally. Tests monkeypatch this; do not fake ``sys.platform``."""
+    return sys.platform.startswith("linux")
+
+
+def _docker_cli() -> Optional[str]:
+    from tools.environments.docker import find_docker
+    return find_docker()
+
+
+def _uses_linux_guest(where: Optional[Placement] = None) -> bool:
+    """True when resolve() picked a Docker Linux guest while the profile's terminal stays local."""
+    chosen = where or resolve()
+    return chosen.where == TERMINAL and chosen.backend == "docker" and _terminal_backend() == "local"
+
+
 def resolve() -> Placement:
-    # Backend first (env only): a local terminal IS the gateway host whatever the setting says, and that is
-    # the common case — it must not cost a config load (this runs on every browser / cua-driver spawn).
+    # Backend first (env only): a local terminal IS the gateway host when this host can run Xvnc,
+    # and that is the common Linux case — it must not cost a config load (this runs on every
+    # browser / cua-driver spawn). On a host that cannot run Xvnc, ``auto`` (not an explicit
+    # ``gateway``) falls through to a Docker Linux guest when the CLI is present.
     backend = _terminal_backend()
     if backend == "local":
+        if _host_can_run_xvnc():
+            return Placement(GATEWAY, backend, "terminal.backend is local, so the terminal IS the gateway host")
+        if _setting() != GATEWAY and _docker_cli():
+            return Placement(
+                TERMINAL, "docker",
+                "this host cannot run Xvnc; the screen runs in a Linux guest via Docker",
+            )
         return Placement(GATEWAY, backend, "terminal.backend is local, so the terminal IS the gateway host")
     setting = _setting()
     if setting == GATEWAY:
@@ -64,9 +100,51 @@ def resolve() -> Placement:
     return Placement(REFUSED, backend, reason)
 
 
+def _linux_guest_environment(*, create: bool) -> Optional[Any]:
+    """A Docker ``hermes-sandbox:desktop`` guest for Computer tab on a non-Linux host.
+
+    Registered under ``LINUX_GUEST_TASK_ID`` so it never replaces the profile's local
+    terminal environment. ``create=False`` is a cache/status probe and must not pull
+    or start a container.
+    """
+    from hermes_cli.config_defaults import DEFAULT_SANDBOX_IMAGE
+    from tools import terminal_tool as tt
+    from tools.terminal_tool_lifecycle import _create_configured_env
+
+    task_id = LINUX_GUEST_TASK_ID
+    with tt._env_lock:
+        env = tt._active_environments.get(task_id)
+    if env is not None or not create:
+        return env
+    with tt._creation_locks_lock:
+        task_lock = tt._creation_locks.setdefault(task_id, threading.Lock())
+    with task_lock:
+        with tt._env_lock:
+            env = tt._active_environments.get(task_id)
+        if env is not None:
+            return env
+        config = dict(tt._get_env_config())
+        env = _create_configured_env(
+            config, "docker",
+            image=DEFAULT_SANDBOX_IMAGE,
+            cwd=str(config.get("cwd") or "/root"),
+            timeout=int(config.get("timeout") or 180),
+            task_id=task_id,
+            host_cwd=config.get("host_cwd"),
+        )
+        with tt._env_lock:
+            tt._active_environments[task_id] = env
+            tt._last_activity[task_id] = time.time()
+        logger.info("Linux guest environment ready for bot desktop (%s)", task_id)
+        return env
+
+
 def terminal_environment(*, create: bool = True) -> Optional[Any]:
     """This profile's terminal environment object (the one ``terminal`` runs commands in). ``create=False``
-    only returns an already-running one."""
+    only returns an already-running one. A Linux-guest fallback creates a dedicated Docker
+    environment instead of warming the configured local backend."""
+    if _uses_linux_guest():
+        return _linux_guest_environment(create=create)
     from tools import terminal_tool as tt
     task_id = tt._resolve_container_task_id(None)
     with tt._env_lock:
