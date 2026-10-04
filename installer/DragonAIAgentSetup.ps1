@@ -611,6 +611,7 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\private_desktop.py",
         "scripts\airmaze\Test-PrivateDesktop.py",
         "scripts\airmaze\Test-DragonDesktop.py",
+        "scripts\airmaze\Test-InstallFirstRun.py",
         "vendor\desktop\README.md",
         "desktop\README.md",
         "scripts\airmaze\Apply-DesktopBranding.ps1",
@@ -647,7 +648,9 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\DragonAI-SecureStore.ps1",
         "scripts\airmaze\Start-DragonAI.vbs",
         "scripts\airmaze\desktop-loopback-proxy.py",
+        "scripts\airmaze\desktop_ui.py",
         "scripts\airmaze\start-desktop-serve.sh",
+        "scripts\airmaze\start-desktop-ui.sh",
         "scripts\airmaze\start-desktop-proxy.sh",
         "scripts\airmaze\start-gateway.sh",
         "scripts\airmaze\embedded_desktop_connection.py",
@@ -865,7 +868,6 @@ function Invoke-BotGroupSetup([string]$Root) {
 
     $importPath = if ($ImportBotGroup) { $ImportBotGroup } else { $ImportProfile }
     $groupId = if ($BotGroupId) { $BotGroupId } else { $ProfileId }
-    $skipPrompt = $SkipBotGroupPrompt -or $SkipProfilePrompt
 
     if (-not [string]::IsNullOrWhiteSpace($importPath)) {
         Write-Log "Importing bot group from $importPath"
@@ -879,18 +881,8 @@ function Invoke-BotGroupSetup([string]$Root) {
         return
     }
 
-    if ($skipPrompt) {
-        Write-Log "SkipBotGroupPrompt: defaulting to personal-assistant"
-        & $select -PayloadRoot $Root -InstallRoot $InstallRoot -BotGroupId "personal-assistant" -NonInteractive
-        return
-    }
-
-    try {
-        & $select -PayloadRoot $Root -InstallRoot $InstallRoot
-    } catch {
-        Write-Log "Bot group selection failed ($($_.Exception.Message)); applying Personal Assistant" "WARN"
-        & $select -PayloadRoot $Root -InstallRoot $InstallRoot -BotGroupId "personal-assistant" -NonInteractive
-    }
+    Write-Log "First-run does not prompt for teams. Personal Assistant stays; teams are added later in Teams Marketplace."
+    & $select -PayloadRoot $Root -InstallRoot $InstallRoot -BotGroupId "personal-assistant" -NonInteractive
 }
 
 function Start-AgentDesktop {
@@ -934,7 +926,7 @@ function Start-AgentDesktop {
             if (Get-Command Test-DragonAIPrivateDesktopPath -ErrorAction SilentlyContinue) {
                 if (-not (Test-DragonAIPrivateDesktopPath -Path $exe)) { throw }
             }
-            Start-Process -FilePath $exe -WorkingDirectory (Split-Path -Parent $exe) -ErrorAction SilentlyContinue
+            throw "Dragon AI Agent launch failed: $($_.Exception.Message)"
         }
         return $true
     }

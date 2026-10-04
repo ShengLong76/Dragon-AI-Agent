@@ -43,7 +43,11 @@ image_gen:
 
 ## UI path
 
-First-run uses the **in-app Models UI** plus launcher `Apply-GatewayModels.ps1 -IfMissing`. Do **not** ship a Desktop / Start Menu **Dragon AI Agent Setup** shortcut. The launch wait window (and its Setup button) is not shown. The WinForms `Onboard-Wizard.ps1` Models step remains in-tree as a deprecated fallback (no product `.lnk`, not auto-launched).
+First-run uses the **in-app Models UI on the real desktop chat screen**, plus launcher `Apply-GatewayModels.ps1 -IfMissing`.
+
+`DragonAIAgent.exe` opens `http://127.0.0.1:8655/` (the host inject proxy). That proxy loads `DRAGON_AI_UI_URL` (default `http://127.0.0.1:8660/`), which is `hermes dashboard` published by `hermes-airmaze-desktop-ui`. It **refuses** `http://127.0.0.1:8650/` when GET `/` is the headless body `web UI disabled`. The first-run script `branding/fonts/syne/first-run-models.js` is injected into that dashboard HTML. The user picks Default chat LLM and Default image LLM, then Continue (or Skip this step). Continue POSTs `/dragon-ai-api/models`, which writes `principal` + `image_gen` through `gateway_models.py`.
+
+Do **not** ship a Desktop / Start Menu **Dragon AI Agent Setup** shortcut. The launch wait window (and its Setup button) is not shown. The WinForms `Onboard-Wizard.ps1` Models step remains in-tree as a deprecated fallback (no product `.lnk`, not auto-launched). A native recreation of the chat shell is not the product window.
 
 Step order:
 
@@ -60,7 +64,7 @@ Copy is **Dragon AI Agent** (not Hermes). Auth line: this step does not ask for 
 - **Skip this step** / **Skip wizard** writes the product defaults **only if** `image_gen.provider` or `principal.model` is missing.
 - Review lists the chosen labels (never secrets).
 
-Teams picker stays orthogonal. Personal Assistant stays the only preinstall.
+Teams picker stays orthogonal and is **not** shown during Setup. Personal Assistant stays the only preinstall. Teams are added later through in-app Teams Marketplace.
 
 ## When it lands on disk
 

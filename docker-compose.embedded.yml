@@ -10,8 +10,10 @@
 #
 # Surfaces (all published on 127.0.0.1 only):
 #   :8642  OpenAI-compatible API (`gateway run`) — NOT the Desktop Remote URL
-#   :9119  Web dashboard (password-gated) — browser login, not Desktop token/WS
-#   :8650  Desktop-compatible `hermes serve` (loopback + TCP proxy) — Open Screen
+#   :9119  Web dashboard (password-gated) — optional browser login, not the product window
+#   :8650  Desktop-compatible `hermes serve` (loopback + TCP proxy) — Bot Screen API only
+#   :8660  `hermes dashboard` web UI (loopback + TCP proxy) — the window DragonAIAgent.exe opens
+# GET / on :8650 is headless ("web UI disabled"). Do not load that URL in the window.
 
 name: airmaze-embedded
 
@@ -28,8 +30,9 @@ services:
     ports:
       - "127.0.0.1:8642:8642"
       - "127.0.0.1:9119:9119"
-      # Shared by the desktop-serve sidecar (network_mode: service:hermes-gateway).
+      # Shared by sidecars (network_mode: service:hermes-gateway).
       - "127.0.0.1:8650:8650"
+      - "127.0.0.1:8660:8660"
     volumes:
       - ${HERMES_EMBEDDED_DATA:-${USERPROFILE}/.hermes-airmaze-embedded}:/opt/data
       - ./scripts/airmaze/start-gateway.sh:/opt/dragon/start-gateway.sh:ro
@@ -109,6 +112,56 @@ services:
       hermes-desktop-serve:
         condition: service_started
     entrypoint: ["/bin/sh", "/opt/dragon/start-desktop-proxy.sh"]
+    volumes:
+      - ./scripts/airmaze/desktop-loopback-proxy.py:/opt/dragon/desktop-loopback-proxy.py:ro
+      - ./scripts/airmaze/start-desktop-proxy.sh:/opt/dragon/start-desktop-proxy.sh:ro
+
+  # Browser web UI (hermes dashboard). This is what the product window loads.
+  # Loopback bind + TCP proxy, same reason as serve: avoid the password gate.
+  hermes-desktop-ui:
+    image: nousresearch/hermes-agent:latest-desktop
+    container_name: hermes-airmaze-desktop-ui
+    restart: unless-stopped
+    network_mode: service:hermes-gateway
+    depends_on:
+      hermes-gateway:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/opt/dragon/start-desktop-ui.sh"]
+    volumes:
+      - ${HERMES_EMBEDDED_DATA:-${USERPROFILE}/.hermes-airmaze-embedded}:/opt/data
+      - ./scripts/airmaze/start-desktop-ui.sh:/opt/dragon/start-desktop-ui.sh:ro
+      - ./scripts/airmaze/start-gateway.sh:/opt/dragon/start-gateway.sh:ro
+    environment:
+      HOME: /opt/data
+      HERMES_HOME: /opt/data
+      API_SERVER_ENABLED: "false"
+      HERMES_DASHBOARD_SESSION_TOKEN: "dragon-local"
+      DESKTOP_UI_HOST: "127.0.0.1"
+      DESKTOP_UI_PORT: "8652"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python3 -c \"import urllib.request; b=urllib.request.urlopen('http://127.0.0.1:8652/', timeout=3).read(); assert b'web UI disabled' not in b\"",
+        ]
+      interval: 20s
+      timeout: 5s
+      retries: 8
+      start_period: 50s
+
+  # 0.0.0.0:8660 → 127.0.0.1:8652 so Docker can publish the loopback dashboard.
+  hermes-desktop-ui-proxy:
+    image: nousresearch/hermes-agent:latest-desktop
+    container_name: hermes-airmaze-desktop-ui-proxy
+    restart: unless-stopped
+    network_mode: service:hermes-gateway
+    depends_on:
+      hermes-desktop-ui:
+        condition: service_started
+    entrypoint: ["/bin/sh", "/opt/dragon/start-desktop-proxy.sh"]
+    environment:
+      DESKTOP_PROXY_LISTEN: "0.0.0.0:8660"
+      DESKTOP_PROXY_UPSTREAM: "127.0.0.1:8652"
     volumes:
       - ./scripts/airmaze/desktop-loopback-proxy.py:/opt/dragon/desktop-loopback-proxy.py:ro
       - ./scripts/airmaze/start-desktop-proxy.sh:/opt/dragon/start-desktop-proxy.sh:ro

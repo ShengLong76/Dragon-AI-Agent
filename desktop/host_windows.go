@@ -8,9 +8,18 @@ import (
 	"os/exec"
 	"path/filepath"
 	"syscall"
+	"unsafe"
 
 	"github.com/jchv/go-webview2"
 )
+
+func showLaunchError(msg string) {
+	user32 := syscall.NewLazyDLL("user32.dll")
+	messageBoxW := user32.NewProc("MessageBoxW")
+	title, _ := syscall.UTF16PtrFromString(productName)
+	text, _ := syscall.UTF16PtrFromString(msg)
+	_, _, _ = messageBoxW.Call(0, uintptr(unsafe.Pointer(text)), uintptr(unsafe.Pointer(title)), 0x10)
+}
 
 func openDesktop(url string) error {
 	w := webview2.NewWithOptions(webview2.WebViewOptions{
@@ -33,7 +42,11 @@ func openDesktop(url string) error {
 		w.Run()
 		return nil
 	}
-	return openEdgeApp(url)
+	if err := openEdgeApp(url); err != nil {
+		showLaunchError("Dragon AI Agent could not open a window. " + err.Error())
+		return err
+	}
+	return nil
 }
 
 func openEdgeApp(url string) error {

@@ -2,5 +2,5 @@ package main
 
 import "embed"
 
-//go:embed ui/*
+//go:embed all:ui
 var uiFS embed.FS

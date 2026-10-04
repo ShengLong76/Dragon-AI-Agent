@@ -169,8 +169,10 @@ function Install-DragonAIDesktopFontPack {
     $link = '<link rel="stylesheet" href="./dragon-ai-branding/dragon-ui.css" data-dragon-ai-branding="ui-face" />'
     $sidebarMark = 'data-dragon-ai-branding="sidebar-header"'
     $teamsMark = 'data-dragon-ai-branding="teams-picker"'
+    $firstRunMark = 'data-dragon-ai-branding="first-run-models"'
     $sidebarSnippet = "<script $sidebarMark>`n" + (Get-DragonAIPackScript -Name "sidebar-header.js") + "`n</script>"
     $teamsSnippet = "<script $teamsMark>`n" + (Get-DragonAIPackScript -Name "teams-picker.js") + "`n</script>"
+    $firstRunSnippet = "<script $firstRunMark>`n" + (Get-DragonAIPackScript -Name "first-run-models.js") + "`n</script>"
     if ($sidebarSnippet -notmatch 'data-dragon-ai-sidebar-fixed' -or $sidebarSnippet -notmatch 'findDragonSidebarHost' -or $sidebarSnippet -notmatch 'findColumnHost') {
         throw "Apply-DesktopBranding: sidebar-header.js is missing the body fixed-overlay fallback host"
     }
@@ -188,6 +190,9 @@ function Install-DragonAIDesktopFontPack {
     }
     if ($teamsSnippet -notmatch 'findBotsTab' -or $teamsSnippet -notmatch 'data-dragon-ai-sidebar-clearance') {
         throw "Apply-DesktopBranding: teams-picker.js must reserve clearance so the overlay does not cover BOTS"
+    }
+    if ($firstRunSnippet -notmatch 'Default chat LLM' -or $firstRunSnippet -notmatch 'data-airmaze-models') {
+        throw "Apply-DesktopBranding: first-run-models.js must offer the Air Maze Models / LLM provider step"
     }
     $utf8 = New-Object System.Text.UTF8Encoding $false
     foreach ($root in $Roots) {
@@ -291,6 +296,9 @@ function Install-DragonAIDesktopFontPack {
                 $teams = Update-DragonAIMarkedSnippet -Html $text -Mark $teamsMark -Snippet $teamsSnippet
                 $text = $teams.text
                 if ($teams.changed) { $changed = $true }
+                $firstRun = Update-DragonAIMarkedSnippet -Html $text -Mark $firstRunMark -Snippet $firstRunSnippet
+                $text = $firstRun.text
+                if ($firstRun.changed) { $changed = $true }
                 $stripped = Remove-DragonAICrimsonLockupBorder -Text $text
                 if ($stripped -ne $text) {
                     $text = $stripped

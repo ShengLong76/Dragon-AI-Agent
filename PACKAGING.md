@@ -12,7 +12,7 @@
 | Tool | Version / note |
 |------|----------------|
 | Go | `go1.24.4 linux/amd64` (cross-compile `GOOS=windows GOARCH=amd64`) |
-| go-winres | Embed Windows icon/version resources into the exe (`.syso` beside `build-exe.go`) |
+| go-winres | Embed Windows icon/version resources into Setup.exe and `DragonAIAgent.exe` (`desktop/rsrc_windows_amd64.syso`) |
 | Zip | Python 3 `zipfile` (payload is appended to the PE; the file is still one `.exe`) |
 | Logo | `branding/dragon-ai-agent-logo.png` (+ `.ico` generated with Pillow) |
 
@@ -24,14 +24,14 @@ The handoff James runs is **one installer exe**. Do not also leave `DragonAIAgen
 python3 installer/pack.py --out dist/DragonAIAgentSetup.exe
 ```
 
-`pack.py` cross-compiles `desktop/` to `desktop/win-unpacked/DragonAIAgent.exe`, stages the payload (compose, scripts, branding, bot-groups, packaged desktop), zips that tree, builds `installer/` as `DragonAIAgentSetup.exe`, and appends the zip to that PE. Setup extracts the payload at run time and runs `install.ps1`. The installed app still contains `desktop/win-unpacked/DragonAIAgent.exe` under `%LOCALAPPDATA%\\DragonAIAgent`; that second exe is not part of the download.
+`pack.py` builds `desktop/` via `desktop/build-windows.py` (PE icon resource id 1, window loads `hermes dashboard` on `:8660` through host `:8655`, refuses headless `:8650`), stages the payload (compose, scripts, branding, bot-groups, packaged desktop), zips that tree, builds `installer/` as `DragonAIAgentSetup.exe`, and appends the zip to that PE. Setup extracts the payload at run time and runs `install.ps1`. The installed app still contains `desktop/win-unpacked/DragonAIAgent.exe` under `%LOCALAPPDATA%\\DragonAIAgent`; that second exe is not part of the download.
 
 Optional low-level steps (same as the packer):
 
 ```bash
-cd desktop
-GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-H windowsgui -s -w" -o win-unpacked/DragonAIAgent.exe .
-cd ../installer
+python3 desktop/build-windows.py
+# embeds branding/dragon-ai-agent-logo.png as PE resource id 1
+cd installer
 # Optional: regenerate icon resources
 # go-winres simply --icon winres/icon.ico --product-name "Dragon AI Agent" ...
 GOOS=windows GOARCH=amd64 go build -o DragonAIAgentSetup.exe .
@@ -92,7 +92,7 @@ Setup writes a per-user **Settings > Apps** entry at `HKCU\Software\Microsoft\Wi
 
 ## Launch UI
 
-The **Dragon AI Agent** shortcut targets `wscript.exe` + `scripts/airmaze/Start-DragonAI.vbs` (no console flash). The VBS sets user data to `%LOCALAPPDATA%\DragonAIAgent\electron-userdata` and `start-embedded.ps1` launches packaged `DragonAIAgent.exe` at `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked`. Setup copies that exe from the Dragon package. It does not search for a Hermes install. That host starts the Docker engine **invisibly** when `docker info` fails (already running is a no-op; no tray icon), starts the gateway **and** Desktop serve proxy, wires Remote `connections.json` in Dragon userdata (standalone Hermes primary stays local), launches **Dragon AI Agent**, and waits for host HTTP on `127.0.0.1:8642` and `127.0.0.1:8650/api/health`. It does **not** open `:9119` or the Docker dashboard. Branding is refused outside `DragonAIAgent`. Missing Docker after a wait, or a missing package desktop, is a MessageBox. `start-embedded.ps1` remains for debug. See `docs/airmaze/PRIVATE_DESKTOP.md`, `docs/airmaze/BRANDING.md` and `docs/airmaze/DOCKER_LAUNCH.md`. Verify with `python3 scripts/airmaze/Test-DragonDesktop.py` and `python3 scripts/airmaze/Test-LaunchSmoke.py` (no secrets).
+The **Dragon AI Agent** shortcut targets `wscript.exe` + `scripts/airmaze/Start-DragonAI.vbs` (no console flash). The VBS sets user data to `%LOCALAPPDATA%\DragonAIAgent\electron-userdata` and `start-embedded.ps1` launches packaged `DragonAIAgent.exe` at `%LOCALAPPDATA%\DragonAIAgent\desktop\win-unpacked`. Setup copies that exe from the Dragon package. It does not search for a Hermes install. That host starts the Docker engine **invisibly** when `docker info` fails (already running is a no-op; no tray icon), starts the gateway **and** Desktop serve proxy **and** `hermes dashboard` web UI (`:8660`), wires Remote `connections.json` in Dragon userdata (standalone Hermes primary stays local), launches **Dragon AI Agent** at `http://127.0.0.1:8655/` (injects overlay into the dashboard HTML; refuses the headless `:8650` "web UI disabled" page), and waits for host HTTP on `127.0.0.1:8642`, `127.0.0.1:8650/api/health`, and the dashboard UI. It does **not** open `:9119` or the Docker dashboard. Branding is refused outside `DragonAIAgent`. Missing Docker after a wait, or a missing package desktop, is a MessageBox. `start-embedded.ps1` remains for debug. See `docs/airmaze/PRIVATE_DESKTOP.md`, `docs/airmaze/BRANDING.md` and `docs/airmaze/DOCKER_LAUNCH.md`. Verify with `python3 scripts/airmaze/Test-DragonDesktop.py` and `python3 scripts/airmaze/Test-LaunchSmoke.py` (no secrets).
 
 ```bash
 cd desktop

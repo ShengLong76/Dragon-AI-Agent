@@ -1,0 +1,1394 @@
+/* Dragon AI Agent wordmark + chrome — Syne (SIL OFL 1.1).
+   Upstream .wordmark loads Collapse-Bold (high-contrast display).
+   These faces replace that slot.
+
+   Tokens: design-system/dragon-ai-agent/pages/desktop-client.md
+   (AI-Native UI, dark surfaces, crimson accent). Syne only. */
+
+@font-face {
+  font-family: "Syne";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 800;
+  src: url("./syne-latin-wght-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Syne";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url("./syne-latin-400-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Syne";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url("./syne-latin-600-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Syne";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url("./syne-latin-700-normal.woff2") format("woff2");
+}
+
+/* Same files under the upstream wordmark family name, so leftover Collapse
+   references still render Syne instead of Collapse-Bold. */
+@font-face {
+  font-family: "Collapse";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("./syne-latin-wght-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Collapse";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url("./syne-latin-700-normal.woff2") format("woff2");
+}
+
+:root {
+  --dragon-ui-font: "Syne", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Syne", ui-sans-serif, system-ui, sans-serif;
+  --font-family-sans: "Syne", ui-sans-serif, system-ui, sans-serif;
+
+  --color-primary: #c41e3a;
+  --color-on-primary: #ffffff;
+  --color-secondary: #c4a574;
+  --color-on-secondary: #1c1c20;
+  --color-accent: #c41e3a;
+  --color-on-accent: #ffffff;
+  --color-background: #1c1c20;
+  --color-foreground: #f0f0f5;
+  --color-card: #282830;
+  --color-card-foreground: #f0f0f5;
+  --color-muted: #32323a;
+  --color-muted-foreground: #c4c4ce;
+  --color-border: #50505a;
+  --color-destructive: #dc4646;
+  --color-on-destructive: #ffffff;
+  --color-ring: #c41e3a;
+  --color-ok: #3cb45a;
+  --color-pending: #c8a028;
+
+  /* Grok Bot / Cursor in-app chat type: 16px body, 1.55 leading.
+     Hermes ships 13px (0.8125rem) body + conversation and 54% tertiary. */
+  --dragon-ui-font-size-body: 16px;
+  --dragon-ui-font-size-ui: 14px;
+  --dragon-ui-font-size-caption: 13px;
+  --dragon-ui-line-height-body: 1.55;
+  --dragon-ui-line-height-ui: 1.4;
+  --dragon-sidebar-logo-size: 56px;
+  --dragon-lockup-wordmark-size: 28px;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+
+  /* Grok-Bot conversational transcript: black pane, blue-shade bubbles.
+     Chrome / logo stay Syne + crimson. Marketplace blue is the user fill. */
+  --dragon-chat-bg: #000000;
+  --dragon-bubble-user: #2563eb;
+  --dragon-bubble-user-fg: #ffffff;
+  --dragon-bubble-user-border: #3b82f6;
+  --dragon-bubble-assistant: #17345a;
+  --dragon-bubble-assistant-fg: #f0f0f5;
+  --dragon-bubble-assistant-border: #1e4b8c;
+  --dragon-bubble-radius: 18px;
+}
+
+/* Beat Hermes html 1rem / body 0.8125rem and 54%-mix greys. Overlay
+   loads last (index.html link + appended renderer CSS). No asar rebuild. */
+:root,
+:root.dark,
+html {
+  --dt-base-size: 16px;
+  --dt-line-height: 1.55;
+  --conversation-text-base-size: 16px;
+  --conversation-tool-base-size: 13px;
+  --conversation-caption-base-size: 14px;
+  --conversation-base-line-height: 1.55;
+  --conversation-caption-base-line-height: 1.45;
+  --chat-text-scale: 1;
+  --ui-text-primary: #f0f0f5;
+  --ui-text-secondary: #d6d6de;
+  --ui-text-tertiary: #c4c4ce;
+  --ui-text-quaternary: #b4b4be;
+  --conversation-scaffold-text: #c8c8d2;
+  --conversation-scaffold-meta: #b8b8c2;
+  --dt-foreground: #f0f0f5;
+  --dt-card-foreground: #f0f0f5;
+  --dt-muted-foreground: #c4c4ce;
+  --dt-popover-foreground: #f0f0f5;
+  --dt-secondary-foreground: #d6d6de;
+  --sidebar-foreground: #f0f0f5;
+  --sidebar-accent-foreground: #f0f0f5;
+}
+
+html,
+body,
+#root {
+  font-family: var(--dragon-ui-font);
+  font-size: var(--dragon-ui-font-size-body);
+  line-height: var(--dragon-ui-line-height-body);
+  color: var(--color-foreground);
+}
+
+/* Empty-state wordmark — beat the upstream Collapse display face. */
+.wordmark,
+.wordmark span,
+.wordmark *,
+.fit-text.wordmark,
+[data-slot="aui_intro"] .wordmark,
+[data-slot="aui_intro"] .wordmark span {
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif !important;
+  font-weight: 700 !important;
+  font-synthesis: none;
+  letter-spacing: 0.04em;
+  color: var(--color-foreground);
+  text-shadow: 0 1px 2px #1c1c20, 0 0 16px #1c1c20;
+}
+
+/* Empty-state mark: large navy dragon behind the Syne wordmark, no plate.
+   Size against the intro pane (not the full window, which includes the sidebar).
+   overflow:visible so a parent clip cannot crop the mark back into a box. */
+[data-slot="aui_intro"] {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+}
+
+[data-slot="aui_intro"]::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 0;
+  width: min(22rem, 70%);
+  height: min(22rem, 70%);
+  /* PNG artwork sits left of the file center (opaque bbox ~117..786 on 1024).
+     Shift the box so the dragon, not the PNG midpoint, lands on the wordmark. */
+  transform: translate(calc(-50% + 5.9%), -18%);
+  background: url("./dragon-ai-agent-logo.png") center / contain no-repeat;
+  background-color: transparent;
+  pointer-events: none;
+}
+
+[data-slot="aui_intro"] > *,
+[data-slot="aui_intro"] .wordmark,
+[data-slot="aui_intro"] .fit-text.wordmark,
+.wordmark {
+  position: relative;
+  z-index: 1;
+}
+
+[data-slot="aui_intro"] p:not(.wordmark) {
+  font-family: var(--dragon-ui-font);
+  color: var(--color-muted-foreground);
+}
+
+/* Default Hermes agent is not a user-facing sidebar bot. Keep Personal Assistant. */
+[data-roster-key="default"],
+[data-roster-key$="::default"],
+[aria-label^="Hermes ·"] {
+  display: none !important;
+}
+
+/* dragon-ai-lockup-wrap:1
+   dragon-ai-sidebar-chrome-order:1
+   dragon-ai-marketplace-label:1
+   dragon-ai-logo-clearance:1
+   dragon-ai-logo-175:1
+   dragon-ai-chat-bubbles:1
+   Expected DOM order: lockup → Teams Marketplace → Sessions/Bots
+   Sidebar header lockup above SESSIONS / BOTS.
+   Logo is a fixed 56px transparent SVG (1.75× the prior 32px mark; no
+   plate / no red border). The Syne 700 wordmark is 28px (1.75× 16px).
+   Lockup sits to the right of hide-sidebar (titlebar Hide sidebar /
+   [data-sidebar=trigger]). The Marketplace control sits under the logo
+   area with the full label visible (no mid-word clip).
+   Hermes sidebar-wrapper is the full app shell — never a column host.
+   Prefer in-flow [data-dragon-ai-sidebar-chrome] on the Sessions-zone
+   column. Fallback is a body overlay [data-dragon-ai-sidebar-fixed]
+   pinned into [data-dragon-ai-sidebar-clearance] as the first child of
+   that column (must not cover BOTS; default top: 0 at the reserved rail
+   top, never 96px below the tabs, never 48px on the tab). Clearance/chrome
+   min-height 96px for the stacked lockup. Overlay host is at least 16rem
+   so Teams Marketplace is not clipped to "Teams Marke". Do not set
+   container-type on the fixed row (it collapses to ~24px). Overlay wrap
+   uses @media (max-width: 1100px). */
+[data-slot="sidebar-inner"],
+[data-slot="sidebar-header"] {
+  container-type: inline-size;
+  min-width: 0;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+[data-dragon-ai-sidebar-chrome] {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  min-height: 96px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 auto;
+  order: -1;
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+  background: transparent;
+  border: 0;
+}
+
+[data-dragon-ai-sidebar-chrome]:not(:has([data-dragon-ai-sidebar-brand])) {
+  min-height: 40px;
+}
+
+[data-dragon-ai-sidebar-fixed] {
+  position: fixed;
+  z-index: 40;
+  top: 0;
+  left: 0;
+  width: 16rem;
+  max-width: 16rem;
+  min-width: 16rem;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  pointer-events: none;
+  background: transparent;
+  border: 0;
+}
+
+[data-dragon-ai-sidebar-clearance] {
+  display: block;
+  width: 100%;
+  min-height: 96px;
+  pointer-events: none;
+  background: transparent;
+  border: 0;
+  flex: 0 0 auto;
+  order: -1;
+}
+
+[data-dragon-ai-sidebar-fixed] [data-dragon-ai-sidebar-row] {
+  width: 16rem;
+  max-width: 16rem;
+  min-width: 16rem;
+  pointer-events: auto;
+}
+
+[data-dragon-ai-sidebar-fixed] [data-dragon-ai-teams-root] {
+  pointer-events: auto;
+}
+
+[data-dragon-ai-sidebar-row] {
+  --dragon-sidebar-control-height: 32px;
+  --dragon-sidebar-logo-size: 56px;
+  --dragon-lockup-wordmark-size: 28px;
+  --dragon-logo-clearance: 12px;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: var(--dragon-logo-clearance);
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 8px 12px;
+  overflow: visible !important;
+  background: transparent;
+  background-color: transparent;
+  border: 0;
+}
+
+[data-dragon-ai-sidebar-brand],
+[data-dragon-ai-sidebar-brand][style] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 2;
+  isolation: isolate;
+  min-width: var(--dragon-sidebar-logo-size, 56px);
+  min-height: var(--dragon-sidebar-logo-size, 56px);
+  padding: 0 0 8px;
+  margin: 0 0 4px;
+  color: var(--color-foreground);
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+[data-dragon-ai-sidebar-brand][data-dragon-ai-lockup-after-hide="true"] {
+  padding: 0;
+  margin: 0 0 0 8px;
+}
+
+[data-dragon-ai-hide-sidebar] + [data-dragon-ai-sidebar-brand] {
+  margin-left: 8px;
+}
+
+[data-dragon-ai-sidebar-brand] img,
+[data-dragon-ai-sidebar-logo] {
+  display: block;
+  height: 56px;
+  width: 56px;
+  max-width: 56px;
+  max-height: 56px;
+  object-fit: contain;
+  flex: 0 0 56px;
+  position: relative;
+  z-index: 2;
+  padding: 0;
+  margin: 0;
+  border: 0 !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  filter: none;
+}
+
+[data-dragon-ai-sidebar-brand] span {
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: var(--dragon-lockup-wordmark-size, 28px);
+  letter-spacing: 0.02em;
+  color: var(--color-foreground);
+  line-height: 1.2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* In-app Teams Marketplace (sidebar button under the logo + dialog).
+   Full label on one line when the rail is 16rem; wrap at the word on a
+   narrow rail. Never ellipsis / mid-word clip ("Teams Marke"). */
+[data-dragon-ai-teams-root] {
+  padding: 0;
+  margin-left: 0;
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: visible;
+  background: transparent;
+}
+
+[data-dragon-ai-teams-open] {
+  --dragon-marketplace-blue: #2563eb;
+  --dragon-marketplace-blue-hover: #3b82f6;
+  --dragon-marketplace-blue-active: #1d4ed8;
+  --dragon-marketplace-on-blue: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: auto;
+  min-height: 32px;
+  width: 100%;
+  flex-shrink: 0;
+  max-width: 100%;
+  min-width: 0;
+  padding: 6px 12px;
+  border: 1px solid var(--dragon-marketplace-blue);
+  border-radius: 6px;
+  background: var(--dragon-marketplace-blue);
+  color: var(--dragon-marketplace-on-blue);
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: var(--dragon-ui-font-size-ui);
+  line-height: var(--dragon-ui-line-height-ui);
+  white-space: nowrap;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+  cursor: pointer;
+}
+
+/* dragon-ai-marketplace-blue:1
+   James: filled blue Teams Marketplace control only. Crimson stays
+   on focus/selected chrome elsewhere. */
+[data-dragon-ai-teams-open]:hover {
+  background: var(--dragon-marketplace-blue-hover);
+  border-color: var(--dragon-marketplace-blue-hover);
+  color: var(--dragon-marketplace-on-blue);
+}
+
+[data-dragon-ai-teams-open]:active {
+  background: var(--dragon-marketplace-blue-active);
+  border-color: var(--dragon-marketplace-blue-active);
+  color: var(--dragon-marketplace-on-blue);
+}
+
+/* Icon-rail / collapsed column: hide lockup so the BOTS tab stays clickable. */
+@container (max-width: 4.5rem) {
+  [data-dragon-ai-sidebar-row] {
+    display: none;
+  }
+}
+
+@container (max-width: 14rem) {
+  [data-dragon-ai-teams-root] {
+    margin-left: 0;
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+
+  [data-dragon-ai-teams-open] {
+    width: 100%;
+    justify-content: center;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 1100px) {
+  [data-dragon-ai-sidebar-fixed] [data-dragon-ai-teams-root] {
+    margin-left: 0;
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+
+  [data-dragon-ai-sidebar-fixed] [data-dragon-ai-teams-open] {
+    width: 100%;
+    justify-content: center;
+    white-space: normal;
+  }
+}
+
+[data-dragon-ai-teams-open]:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+[data-dragon-ai-teams-panel] button:focus-visible,
+[data-dragon-ai-teams-panel] input:focus-visible,
+[data-dragon-ai-teams-panel] [data-dragon-ai-team-seats] li:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+[data-dragon-ai-teams-backdrop] {
+  position: fixed;
+  inset: 0;
+  z-index: 79;
+  background: #000000b3;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+body:has([data-dragon-ai-teams-panel][data-dragon-ai-teams-visible]) [data-dragon-ai-teams-backdrop],
+[data-dragon-ai-teams-backdrop]:not([hidden]) {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+[data-dragon-ai-teams-backdrop][hidden],
+[data-dragon-ai-teams-panel][hidden],
+[data-dragon-ai-teams-detail][hidden],
+[data-dragon-ai-teams-browse][hidden] {
+  display: none !important;
+}
+
+[data-dragon-ai-teams-panel] {
+  --dragon-card-shadow:
+    0 1px 0 #ffffff1f,
+    0 2px 4px #00000080,
+    0 8px 18px #000000a6,
+    0 20px 44px #000000cc;
+  --dragon-card-shadow-hover:
+    0 1px 0 #ffffff2e,
+    0 4px 10px #00000099,
+    0 14px 28px #000000d4,
+    0 28px 56px #000000e0;
+  position: fixed;
+  z-index: 80;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  width: min(72rem, calc(100vw - 48px));
+  max-height: min(48rem, calc(100vh - 48px));
+  overflow: auto;
+  padding: 20px 22px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: #000;
+  color: var(--color-foreground);
+  font-size: var(--dragon-ui-font-size-body);
+  line-height: var(--dragon-ui-line-height-body);
+  box-shadow: 0 24px 64px #000000e6, 0 2px 0 #ffffff14;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate(-50%, -50%) translateY(-10px) scale(0.98);
+  transform-origin: center center;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+}
+
+[data-dragon-ai-teams-panel][data-dragon-ai-teams-visible] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) translateY(0) scale(1);
+}
+
+[data-dragon-ai-teams-panel] h2 {
+  margin: 0 0 6px;
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: var(--dragon-ui-font-size-body);
+  line-height: var(--dragon-ui-line-height-body);
+  color: var(--color-foreground);
+}
+
+[data-dragon-ai-teams-panel] header p,
+[data-dragon-ai-teams-status] {
+  color: var(--color-muted-foreground);
+  font-size: var(--dragon-ui-font-size-ui);
+  line-height: var(--dragon-ui-line-height-ui);
+}
+
+[data-dragon-ai-teams-list] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+[data-dragon-ai-teams-list] article,
+[data-dragon-ai-team-row] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #ffffff14;
+  border-radius: 12px;
+  background: #0e0e12;
+  color: var(--color-foreground);
+  box-shadow: var(--dragon-card-shadow);
+}
+
+[data-dragon-ai-team-row] > [data-dragon-ai-team-seats] {
+  grid-column: 1 / -1;
+}
+
+[data-dragon-ai-team-row] > [data-dragon-ai-team-heading] {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+
+[data-dragon-ai-team-row] [data-dragon-ai-team-apply] {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  min-width: 5.5rem;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: var(--dragon-ui-font-size-ui);
+  line-height: var(--dragon-ui-line-height-ui);
+  cursor: pointer;
+}
+
+[data-dragon-ai-team-row] [data-dragon-ai-team-apply]:hover {
+  filter: brightness(1.08);
+}
+
+[data-dragon-ai-team-row] [data-dragon-ai-team-apply]:active {
+  filter: brightness(0.94);
+}
+
+[data-dragon-ai-team-apply] {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #32323c 0%, #282830 100%);
+  color: var(--color-foreground);
+  box-shadow: var(--dragon-card-shadow);
+  font-size: var(--dragon-ui-font-size-body);
+  line-height: var(--dragon-ui-line-height-body);
+  cursor: pointer;
+}
+
+[data-dragon-ai-team-row] strong,
+[data-dragon-ai-team-apply] strong {
+  display: block;
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+}
+
+[data-dragon-ai-team-row] span span,
+[data-dragon-ai-team-row] small,
+[data-dragon-ai-team-apply] span,
+[data-dragon-ai-team-seats] span {
+  display: block;
+  color: var(--color-muted-foreground);
+  font-size: var(--dragon-ui-font-size-ui);
+  line-height: var(--dragon-ui-line-height-ui);
+  height: auto;
+  overflow-wrap: anywhere;
+}
+
+[data-dragon-ai-team-seats] {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+[data-dragon-ai-team-seats] li {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #ffffff26;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #32323c 0%, #282830 100%);
+  box-shadow:
+    inset 0 1px 0 #ffffff2e,
+    0 1px 0 #ffffff1f,
+    0 8px 18px #000000cc,
+    0 22px 48px #000000e6;
+  transition: box-shadow 0.18s ease, transform 0.18s ease, background 0.18s ease;
+}
+
+[data-dragon-ai-seat-icon] {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  display: block;
+  object-fit: contain;
+  background: transparent;
+}
+
+[data-dragon-ai-seat-copy] {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+[data-dragon-ai-team-seats] li strong {
+  display: block;
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: var(--dragon-ui-font-size-body);
+  line-height: var(--dragon-ui-line-height-ui);
+  color: var(--color-foreground);
+}
+
+[data-dragon-ai-team-seats] li[data-dragon-ai-seat-detail] {
+  cursor: help;
+}
+
+[data-dragon-ai-team-seats] li:hover,
+[data-dragon-ai-team-seats] li:focus,
+[data-dragon-ai-team-seats] li:focus-visible,
+[data-dragon-ai-team-seats] li:focus-within {
+  background: linear-gradient(180deg, #3a3a44 0%, #303038 100%);
+  box-shadow: var(--dragon-card-shadow-hover);
+  transform: translateY(-2px);
+}
+
+[data-dragon-ai-seat-tooltip] {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 90;
+  width: max(100%, min(22rem, 70vw));
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: #0a0a0a;
+  color: var(--color-foreground);
+  font-size: var(--dragon-ui-font-size-ui);
+  line-height: var(--dragon-ui-line-height-ui);
+  white-space: pre-wrap;
+  box-shadow: var(--dragon-card-shadow-hover);
+}
+
+[data-dragon-ai-team-seats] li:hover [data-dragon-ai-seat-tooltip],
+[data-dragon-ai-team-seats] li:focus [data-dragon-ai-seat-tooltip],
+[data-dragon-ai-team-seats] li:focus-within [data-dragon-ai-seat-tooltip] {
+  display: block;
+}
+
+[data-dragon-ai-teams-panel] [data-dragon-ai-team-apply]:focus-visible,
+[data-dragon-ai-teams-panel] [data-dragon-ai-team-seats] li:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+[data-dragon-ai-teams-panel] label {
+  display: block;
+  margin: 8px 0;
+  color: var(--color-muted-foreground);
+  font-size: var(--dragon-ui-font-size-ui);
+  line-height: var(--dragon-ui-line-height-ui);
+}
+
+[data-dragon-ai-teams-close] {
+  margin-top: 8px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: var(--dragon-ui-font-size-ui);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+[data-dragon-ai-teams-detail] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 14px 0 10px;
+  min-height: 12rem;
+  overflow: auto;
+}
+
+[data-dragon-ai-teams-detail-title] {
+  margin: 0;
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: var(--dragon-ui-font-size-body);
+}
+
+[data-dragon-ai-teams-install] {
+  align-self: flex-start;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+[data-dragon-ai-teams-back],
+[data-dragon-ai-teams-open-detail] {
+  align-self: flex-start;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-card);
+  color: var(--color-foreground);
+  font-weight: 700;
+  font-size: var(--dragon-ui-font-size-ui);
+  cursor: pointer;
+}
+
+[data-dragon-ai-teams-actions] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+[data-dragon-ai-teams-actions] button,
+[data-dragon-ai-teams-import-label] {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-card);
+  color: var(--color-foreground);
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: var(--dragon-ui-font-size-ui);
+  cursor: pointer;
+}
+
+[data-dragon-ai-teams-launch] {
+  border: 0;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+[data-dragon-ai-teams-import-label] {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-foreground);
+}
+
+[data-dragon-ai-teams-import-label] input {
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+}
+
+[data-dragon-ai-teams-actions] [data-dragon-ai-teams-close] {
+  margin-top: 0;
+  margin-left: auto;
+}
+
+/* Center-column RPC / load-error banners stay inside the chat pane.
+   Long "Load failed: rpc error..." copy ellipsizes instead of painting
+   over the composer when the right rail widens. role=alert keeps the
+   full sentence for assistive tech. */
+[data-slot="aui_thread"],
+[data-slot="thread"],
+[data-slot="aui_viewport"],
+[data-slot="main"] {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+[role="alert"] {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* Sidebar chrome (group labels, chrome copy) stays 14px. Name chips below. */
+[data-slot="sidebar"],
+[data-slot="sidebar-inner"],
+[data-slot="sidebar-header"] {
+  font-size: var(--dragon-ui-font-size-ui);
+  line-height: var(--dragon-ui-line-height-ui);
+  color: var(--color-foreground);
+}
+
+/* Sidebar bot names and middle session/agent names must match (Grok 16px).
+   Hermes paints chips as text-[0.8125rem] (13px) and menu-button at 14px;
+   Personal Assistant then looks smaller than Dragon AI Tester. */
+[data-slot="bots-roster"] [data-roster-key],
+[data-slot="bots-roster"] [data-roster-key] span,
+[data-roster-key] span,
+[data-sidebar="menu-button"],
+[data-sidebar="menu-button"] span,
+[data-slot="sidebar-menu-button"],
+[data-slot="sidebar-menu-button"] span,
+[role="dialog"] span[class*="truncate"],
+[role="dialog"] span.font-medium,
+[role="listbox"] span,
+[role="option"],
+[role="option"] span,
+span[class*="text-[0.8125rem]"].font-medium,
+span[class*="text-[0.8125rem]"][class*="truncate"] {
+  font-size: var(--dragon-ui-font-size-body) !important;
+  line-height: var(--dragon-ui-line-height-body);
+}
+
+[data-sidebar="group-label"] {
+  font-size: var(--dragon-ui-font-size-caption);
+  line-height: var(--dragon-ui-line-height-ui);
+  color: var(--color-muted-foreground);
+}
+
+[data-slot="aui_thread-content"],
+[data-slot="aui_assistant-message-content"],
+[data-slot="aui_user-message-root"],
+[data-slot="aui_system-message-root"],
+[data-slot="composer-rich-input"] {
+  --conversation-text-font-size: var(--dragon-ui-font-size-body);
+  --conversation-line-height: var(--dragon-ui-line-height-body);
+  font-size: var(--dragon-ui-font-size-body);
+  line-height: var(--dragon-ui-line-height-body);
+  color: var(--color-foreground);
+}
+
+/* dragon-ai-chat-bubbles:1
+   James: Grok-Bot conversational bubbles on a black transcript pane.
+   User fill is Marketplace blue (#2563EB); assistant is a darker navy-blue.
+   Do not paint html/body (sidebar chrome stays #1C1C20). Do not retint
+   crimson focus/selected, Teams Marketplace, or logo clearance.
+   HUD overlay keeps its own transparent bubbles. */
+[data-chat-surface],
+[data-slot="aui_thread"],
+[data-slot="thread"],
+[data-slot="aui_thread-viewport"],
+[data-slot="aui_viewport"] {
+  --ui-chat-surface-background: var(--dragon-chat-bg);
+  --dt-user-bubble: var(--dragon-bubble-user);
+  --dt-user-bubble-border: var(--dragon-bubble-user-border);
+  --ui-chat-bubble-background: var(--dragon-bubble-user);
+  --user-bubble-keep: 100%;
+  --conversation-turn-gap: 12px;
+  background-color: var(--dragon-chat-bg);
+  color: var(--color-foreground);
+}
+
+[data-slot="aui_thread-content"] {
+  background-color: transparent;
+}
+
+[data-slot="aui_user-message-root"] .composer-human-message {
+  box-sizing: border-box;
+  width: fit-content;
+  max-width: min(36rem, 86%);
+  min-width: 0;
+  margin-inline-start: auto;
+  padding: 10px 14px;
+  border: 1px solid var(--dragon-bubble-user-border);
+  border-radius: var(--dragon-bubble-radius);
+  background-color: var(--dragon-bubble-user);
+  color: var(--dragon-bubble-user-fg);
+  overflow-wrap: anywhere;
+}
+
+[data-slot="aui_assistant-message-root"] {
+  align-items: flex-start;
+}
+
+[data-slot="aui_assistant-message-content"] {
+  box-sizing: border-box;
+  width: fit-content;
+  max-width: min(44rem, 92%);
+  min-width: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--dragon-bubble-assistant-border);
+  border-radius: var(--dragon-bubble-radius);
+  background-color: var(--dragon-bubble-assistant);
+  color: var(--dragon-bubble-assistant-fg);
+  overflow-wrap: anywhere;
+}
+
+[data-slot="aui_assistant-message-content"] a {
+  color: #93c5fd;
+}
+
+[data-hud-shell] [data-slot="aui_user-message-root"] .composer-human-message,
+[data-hud-shell] [data-slot="aui_assistant-message-content"] {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+textarea,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+[contenteditable="true"],
+[role="textbox"] {
+  font-family: var(--dragon-ui-font);
+  font-size: var(--dragon-ui-font-size-body);
+  line-height: var(--dragon-ui-line-height-body);
+  color: var(--color-foreground);
+}
+
+textarea::placeholder,
+input::placeholder {
+  color: var(--color-muted-foreground);
+  opacity: 1;
+}
+
+/* dragon-ai-composer-chrome:1
+   Grok-Bot composer pill: no persistent crimson outline, no GPT/Grok
+   pills. Right-side waveform opens the floating voice capsule.
+   Focus-visible stays on the textbox and controls (2px #C41E3A).
+   dragon-ai-voice-capsule-top:1 — capsule docks at the TOP of the
+   chat column (fixed), not above the composer. Narrower + taller
+   Grok Bot pill: avatar | purple bars | gear | chat | mic | red X. */
+[data-slot="aui_composer"],
+[data-slot="composer"],
+[data-dragon-ai-composer-chrome],
+[data-dragon-voice-provider],
+[data-dragon-ai-composer-action] {
+  --tw-ring-color: transparent;
+  --tw-ring-shadow: 0 0 #0000;
+  --color-ring: transparent;
+  outline: none;
+  box-shadow: none;
+}
+
+[data-slot="aui_composer"],
+[data-slot="composer"],
+[data-slot="aui_composer"][data-dragon-ai-composer-chrome],
+[data-slot="composer"][data-dragon-ai-composer-chrome] {
+  border: 1px solid #2a2a2e;
+  border-radius: 28px;
+  background: #141416;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+[data-dragon-voice-native-hidden] {
+  display: none !important;
+}
+
+textarea:focus-visible,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus-visible,
+[contenteditable="true"]:focus-visible,
+[role="textbox"]:focus-visible,
+[data-dragon-voice-trigger]:focus-visible,
+[data-dragon-voice-gear]:focus-visible,
+[data-dragon-voice-chat]:focus-visible,
+[data-dragon-voice-mic]:focus-visible,
+[data-dragon-voice-end]:focus-visible,
+[data-dragon-voice-pref]:focus-visible {
+  --color-ring: #c41e3a;
+  outline: 2px solid #c41e3a;
+  outline-offset: 2px;
+}
+
+[data-dragon-ai-composer-action] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  outline: none;
+  box-shadow: none;
+}
+
+[data-dragon-voice-trigger] {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #c4c4ce;
+  cursor: pointer;
+}
+
+[data-dragon-voice-trigger]:hover,
+[data-dragon-voice-trigger][aria-pressed="true"] {
+  color: #f0f0f5;
+  background: #1f1f24;
+}
+
+[data-dragon-voice-pane] {
+  position: relative;
+  scroll-padding-top: 88px;
+}
+
+[data-dragon-voice-native-session] {
+  display: none !important;
+}
+
+[data-dragon-voice-widget] {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  max-width: min(292px, calc(100% - 48px));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+[data-dragon-voice-widget][data-dragon-voice-dock="top"] {
+  bottom: auto;
+}
+
+[data-dragon-voice-widget][hidden] {
+  display: none;
+}
+
+[data-dragon-voice-capsule] {
+  pointer-events: auto;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: max-content;
+  min-width: 268px;
+  min-height: 72px;
+  height: 72px;
+  padding: 8px 10px 8px 8px;
+  border: 1px solid #2a2a30;
+  border-radius: 999px;
+  background: #0c0c0e;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+}
+
+[data-dragon-voice-avatar] {
+  display: flex;
+  flex: 0 0 48px;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #16161a;
+}
+
+[data-dragon-voice-avatar] img {
+  display: block;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+[data-dragon-voice-wave] {
+  display: flex;
+  flex: 0 0 80px;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 80px;
+  height: 44px;
+}
+
+[data-dragon-voice-wave] i {
+  display: block;
+  width: 3.5px;
+  height: var(--bar-h, 48%);
+  border-radius: 99px;
+  background: #8b7cff;
+  transform-origin: center;
+}
+
+[data-dragon-voice-widget] [data-dragon-voice-wave] i {
+  animation: dragon-voice-bar 1.05s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * -0.07s);
+}
+
+[data-dragon-voice-widget][data-state="hidden"] [data-dragon-voice-wave] i {
+  animation: none;
+}
+
+[data-dragon-voice-capsule] button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #c4c4ce;
+  cursor: pointer;
+}
+
+[data-dragon-voice-capsule] button:hover {
+  color: #f0f0f5;
+  background: #1f1f24;
+}
+
+[data-dragon-voice-gear][aria-expanded="true"] {
+  color: #f0f0f5;
+  background: #1f1f24;
+}
+
+[data-dragon-voice-mic][data-muted="true"] {
+  color: #f59e0b;
+}
+
+[data-dragon-voice-end] {
+  background: #e11d48 !important;
+  color: #ffffff !important;
+}
+
+[data-dragon-voice-end]:hover {
+  background: #be123c !important;
+}
+
+[data-dragon-voice-settings-panel] {
+  pointer-events: auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(280px, calc(100vw - 48px));
+  padding: 14px 16px 16px;
+  border: 1px solid #2a2a30;
+  border-radius: 16px;
+  background: #121214;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  color: #f0f0f5;
+}
+
+[data-dragon-voice-settings-panel][hidden] {
+  display: none;
+}
+
+[data-dragon-voice-settings-title] {
+  margin: 0;
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+[data-dragon-voice-field],
+[data-dragon-voice-check] {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: #c4c4ce;
+}
+
+[data-dragon-voice-check] {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+[data-dragon-voice-field] select,
+[data-dragon-voice-field] input[type="range"] {
+  width: 100%;
+  min-height: 32px;
+  accent-color: #8b7cff;
+}
+
+[data-dragon-voice-field] select {
+  box-sizing: border-box;
+  padding: 6px 10px;
+  border: 1px solid #50505a;
+  border-radius: 8px;
+  background: #1c1c20;
+  color: #f0f0f5;
+}
+
+[data-dragon-voice-speed-value] {
+  font-style: normal;
+  color: #f0f0f5;
+}
+
+[data-dragon-voice-status] {
+  pointer-events: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  margin: 0;
+  color: #c4c4ce;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+@keyframes dragon-voice-bar {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* Settings → Voice → Voice conversation mode (Chained | Gpt-live | Grok Voice) */
+[data-dragon-voice-mode="host"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 140px;
+}
+
+[data-dragon-voice-mode="select"] {
+  box-sizing: border-box;
+  min-width: 140px;
+  min-height: 32px;
+  padding: 4px 28px 4px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-card);
+  color: var(--color-foreground);
+  font-family: "Syne", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+[data-dragon-voice-mode="select"]:focus-visible {
+  outline: 2px solid #c41e3a;
+  outline-offset: 2px;
+}
+
+[data-dragon-voice-mode-native] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

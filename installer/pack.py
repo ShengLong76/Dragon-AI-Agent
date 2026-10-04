@@ -148,6 +148,15 @@ def zip_payload(payload_dir: pathlib.Path, zip_path: pathlib.Path) -> None:
 
 def build_desktop(out_exe: pathlib.Path) -> None:
     out_exe.parent.mkdir(parents=True, exist_ok=True)
+    branded = ROOT / "desktop" / "build-windows.py"
+    if branded.is_file():
+        run([sys.executable, str(branded)], cwd=ROOT)
+        packaged = DESKTOP_DIR / "win-unpacked" / "DragonAIAgent.exe"
+        if packaged.resolve() != out_exe.resolve():
+            shutil.copyfile(packaged, out_exe)
+        if not out_exe.is_file():
+            fail("desktop/build-windows.py produced no exe")
+        return
     env = os.environ.copy()
     env["GOOS"] = "windows"
     env["GOARCH"] = "amd64"

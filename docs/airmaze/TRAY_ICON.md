@@ -11,7 +11,7 @@ Short design after James: PR #12 (`be015b0`) contain-maxed the **circular copper
 - No fixed CSS/pixel display size (`32px`, `48px`, …)
 - Leftover slot space (if the mark is not square) stays transparent
 
-**Source:** the transparent low-poly sidebar mark (`branding/dragon-ai-agent-logo.png` / SVG). Navy body `#314A73`, red eyes, no plate, no copper ring. That mark already reads larger and cleaner at 16–32px than the circular badge. Taskbar, tray, Setup.exe, and Desktop / Start Menu shortcuts share **one** ICO.
+**Source:** the transparent low-poly sidebar mark (`branding/dragon-ai-agent-logo.png` / SVG). Navy body `#314A73`, red eyes, no plate, no copper ring. That mark already reads larger and cleaner at 16–32px than the circular badge. Taskbar, tray, Setup.exe, Desktop / Start Menu shortcuts, and **DragonAIAgent.exe** (PE resource id 1 via `desktop/winres/icon.ico`) share **one** ICO. A file next to the exe is not enough — `python3 desktop/build-windows.py` must embed the current frames. Guardrail: `python3 scripts/airmaze/Test-InstallFirstRun.py`.
 
 Windows owns the cell (`SM_CXSMICON` / taskbar target size). Do not pick a display size.
 
