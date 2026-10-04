@@ -158,9 +158,22 @@ def _cleanup_inactive_envs(lifetime_seconds: int = 300):
         pass
 
     # Phase 1: unregister stale entries atomically under the lock; phase 2:
-    # stop them outside it (see _unregister_env for why).
+    # stop them outside it (see _unregister_env for why). A sandbox hosting a
+    # live Bot Desktop is in use even with no recent terminal() call.
+    try:
+        from tools.bot_desktop.sandbox_host import hosts_live_screen
+    except ImportError:
+        hosts_live_screen = None
     with _env_lock:
-        stale = [t for t, last in list(_last_activity.items()) if current_time - last > lifetime_seconds]
+        stale = []
+        for t, last in list(_last_activity.items()):
+            if current_time - last <= lifetime_seconds:
+                continue
+            env = _active_environments.get(t)
+            if env is not None and hosts_live_screen is not None and hosts_live_screen(t, env):
+                _last_activity[t] = current_time
+                continue
+            stale.append(t)
         envs_to_stop = [(t, _active_environments.pop(t, None)) for t in stale]
         for t in stale:
             _last_activity.pop(t, None)
