@@ -112,6 +112,7 @@ import {
   selectionLinkLabel
 } from './url-refs'
 import { VoiceActivity, VoicePlaybackActivity } from './voice-activity'
+import { VoiceWaveformWidget } from './voice-waveform-widget'
 
 export function ChatBar({
   busy,
@@ -1442,6 +1443,15 @@ export function ChatBar({
               />
             )}
             <div className="relative w-full rounded-[inherit]">
+              {voiceConversationActive && (
+                <VoiceWaveformWidget
+                  level={conversation.level}
+                  muted={conversation.muted}
+                  onEnd={endConversation}
+                  onToggleMute={conversation.toggleMute}
+                  status={conversation.status}
+                />
+              )}
               {!hudMode && !guidedChat && (
                 <StatusDrawerToggle
                   collapsed={statusDrawerCollapsed}
