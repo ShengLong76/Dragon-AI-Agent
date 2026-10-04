@@ -1,0 +1,40 @@
+/* Dragon AI Claude chrome. Unlayered on purpose: these rules must beat the
+   Tailwind utility layer the upstream primitives are written in. */
+
+@font-face {
+  font-family: 'Syne';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('../fonts/Syne-Variable.woff2') format('woff2');
+}
+
+.dragon-wordmark {
+  font-family: 'Syne', var(--font-sans, system-ui), sans-serif;
+}
+
+/* The navy mark reads on near-black only with a little lift behind it. */
+.dragon-lockup-mark {
+  filter: drop-shadow(0 0 10px color-mix(in srgb, #4f78b8 38%, transparent));
+}
+
+/* Center the titlebar's left cluster (hide-sidebar toggle) on the logo band. */
+html[data-dragon-lockup] [data-titlebar-cluster='left'] {
+  margin-top: var(--dragon-titlebar-cluster-nudge, 0px);
+}
+
+/* Sessions | Bots: their own 36px row, labels 1.125x the 13px sidebar rows. */
+.dragon-sidebar-tabs {
+  height: 36px;
+}
+
+.dragon-sidebar-tabs [data-slot='pane-tab'] {
+  font-size: calc(0.8125rem * 1.125);
+  padding-inline: 0.25rem;
+}
+
+.dragon-sidebar-tabs [data-slot='pane-tab'] .pane-tab-content span {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+}

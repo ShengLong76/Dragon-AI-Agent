@@ -86,6 +86,9 @@ import {
 
 import { startPaneDrag } from './drag-session'
 import { KeepAlivePaneSlot, useStablePaneHosts } from './keep-alive-panes'
+import { DRAGON_SIDEBAR_CHROME_HEIGHT, DRAGON_TABS_HEIGHT } from '@/dragon/sidebar-chrome'
+import { DragonSidebarLockup } from '@/dragon/sidebar-lockup'
+
 import { PaneBody } from './pane-body'
 import { usePanelTitlebar } from './panel-titlebar'
 import { tabStripVisibleForZone } from './strip-visibility'
@@ -236,7 +239,8 @@ export function TreeGroup({
   node,
   parentAxis,
   railSide = 'left',
-  topEdge = false
+  topEdge = false,
+  leftEdge = false
 }: {
   node: GroupNode
   parentAxis?: 'column' | 'row'
@@ -305,6 +309,10 @@ export function TreeGroup({
   const sidebarGroup = !node.panes.some(id => id === 'workspace' || paneChrome(paneFor(id)).placement === 'main')
   const tabsBelowControls = topEdge && (sidebarGroup || measuredBelowControls)
   const tabsInTitlebar = topEdge && !tabsBelowControls
+  // The left sidebar carries the Dragon lockup + Teams Marketplace in a
+  // reserved band ABOVE its tab strip, so Sessions | Bots never share the
+  // logo's pixels.
+  const dragonChrome = topEdge && leftEdge && sidebarGroup && !node.minimized
   const pageHeader = paneChrome(active).headerContent
 
   // What the strip's "+" makes. The pane you are LOOKING AT answers first (a
@@ -559,8 +567,15 @@ export function TreeGroup({
         <div
           className="relative flex min-w-0 shrink-0 bg-(--ui-sidebar-surface-background)"
           data-panel-header=""
-          style={topEdge ? { height: TITLEBAR_HEIGHT + (tabsBelowControls && headerVisible ? 28 : 0) } : undefined}
+          style={
+            dragonChrome
+              ? { height: headerVisible ? DRAGON_SIDEBAR_CHROME_HEIGHT : DRAGON_SIDEBAR_CHROME_HEIGHT - DRAGON_TABS_HEIGHT }
+              : topEdge
+                ? { height: TITLEBAR_HEIGHT + (tabsBelowControls && headerVisible ? 28 : 0) }
+                : undefined
+          }
         >
+          {dragonChrome && <DragonSidebarLockup />}
           {topEdge && (
             <div aria-hidden="true" className="shrink-0" style={{ width: 'var(--panel-titlebar-left, 100%)' }} />
           )}
@@ -577,7 +592,8 @@ export function TreeGroup({
           ) : headerVisible ? (
             <ZoneMenu {...zoneMenu}>
               <PaneTabStrip
-                className={cn('flex-1', tabsBelowControls && 'absolute inset-x-0 bottom-0')}
+                className={cn('flex-1', tabsBelowControls && 'absolute inset-x-0 bottom-0', dragonChrome && 'dragon-sidebar-tabs')}
+                data-dragon-tabs={dragonChrome || undefined}
                 // data-zone-tabstrip: a drop over here STACKS (drag-session reads it).
                 data-zone-tabstrip={node.id}
                 listRef={tabsRef}
@@ -818,7 +834,7 @@ export function TreeGroup({
           {isEmpty ? (
             <div className="grid h-full place-items-center">
               {/* Same decode primitive as the CONNECTING boot overlay. */}
-              <DecodeText className="text-(--ui-text-quaternary)" cursor prefix={1} text="HERMES" />
+              <DecodeText className="text-(--ui-text-quaternary)" cursor prefix={1} text="DRAGON" />
             </div>
           ) : (
             inlinePanes.map(paneId => {
@@ -884,7 +900,13 @@ export function TreeGroup({
             className="absolute inset-x-0 bottom-0 z-50 flex cursor-grab items-center justify-center outline-1 -outline-offset-2 outline-dashed backdrop-blur-[2px]"
             onPointerDown={e => startPaneDrag(activeId, e, undefined, undefined, tabText(activeId))}
             style={{
-              top: topEdge ? TITLEBAR_HEIGHT + (tabsBelowControls && headerVisible ? 28 : 0) : headerVisible ? 28 : 0,
+              top: dragonChrome
+                ? DRAGON_SIDEBAR_CHROME_HEIGHT
+                : topEdge
+                  ? TITLEBAR_HEIGHT + (tabsBelowControls && headerVisible ? 28 : 0)
+                  : headerVisible
+                    ? 28
+                    : 0,
               background:
                 'color-mix(in srgb, var(--ui-accent) 6%, color-mix(in srgb, var(--ui-bg-chrome) 55%, transparent))',
               outlineColor: 'color-mix(in srgb, var(--ui-accent) 55%, transparent)'
