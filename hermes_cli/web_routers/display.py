@@ -126,17 +126,24 @@ async def _stdio_streams(proc):
     outgoing: queue.Queue[bytes | None] = queue.Queue()
 
     def pump_out() -> None:
+        stdout = proc.stdout
+        read = stdout.read1 if hasattr(stdout, "read1") else stdout.read
         try:
-            stdout = proc.stdout
             while True:
-                data = stdout.read(_READ_CHUNK)
+                data = read(_READ_CHUNK)
                 if not data:
                     break
-                loop.call_soon_threadsafe(reader.feed_data, data)
+                try:
+                    loop.call_soon_threadsafe(reader.feed_data, data)
+                except RuntimeError:
+                    return
         except (OSError, ValueError):
             pass
         finally:
-            loop.call_soon_threadsafe(reader.feed_eof)
+            try:
+                loop.call_soon_threadsafe(reader.feed_eof)
+            except RuntimeError:
+                pass
 
     def pump_in() -> None:
         stdin = proc.stdin
