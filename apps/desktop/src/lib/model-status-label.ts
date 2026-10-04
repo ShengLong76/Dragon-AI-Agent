@@ -43,7 +43,7 @@ export const PROVIDER_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   'openai-codex': 'ChatGPT or Codex Subscription',
   'qwen-oauth': 'Qwen Code',
   xai: 'xAI',
-  'xai-oauth': 'xAI Grok'
+  'xai-oauth': 'xAI Grok OAuth (SuperGrok / Premium+)'
 }
 
 export function providerDisplayName(provider: string): string {

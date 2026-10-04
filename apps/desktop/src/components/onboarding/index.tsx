@@ -64,6 +64,7 @@ export {
 
 import { $gateway, activeGatewayConnectionId } from '@/store/gateway'
 import { captureOnboardingScope, requestOnboardingGateway } from '@/store/onboarding-scope'
+import { DRAGON_ONBOARDING_BEGIN_EVENT } from '@/dragon/brand'
 
 interface DesktopOnboardingOverlayProps {
   enabled: boolean
@@ -243,14 +244,19 @@ export function DesktopOnboardingOverlay({
 
     const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
-    if (reduce) {
+    const begin = () => {
       confirmOnboardingModel(ctx)
+      window.dispatchEvent(new CustomEvent(DRAGON_ONBOARDING_BEGIN_EVENT))
+    }
+
+    if (reduce) {
+      begin()
 
       return
     }
 
     setLeaving(true)
-    window.setTimeout(() => confirmOnboardingModel(ctx), ONBOARDING_EXIT_MS)
+    window.setTimeout(begin, ONBOARDING_EXIT_MS)
   }
 
   // The free-tier intro's three doors share one exit: consume the notice, play
@@ -396,7 +402,8 @@ export function DesktopOnboardingOverlay({
     !setupFailure &&
     !isProviderSetupErrorMessage(rawReason) &&
     rawReason !== DEFAULT_ONBOARDING_REASON &&
-    rawReason !== DEFAULT_MANUAL_ONBOARDING_REASON
+    rawReason !== DEFAULT_MANUAL_ONBOARDING_REASON &&
+    !NO_PROVIDER_REASON.test(rawReason)
       ? rawReason
       : null
 
@@ -584,14 +591,17 @@ function Header() {
   )
 }
 
-export const FEATURED_ID = 'nous'
-const SHOW_ALL_KEY = 'hermes-onboarding-show-all-v1'
+// The backend's generic "no provider yet" error restates what the picker already shows.
+const NO_PROVIDER_REASON = /not connected to (?:an|any) AI provider/i
+
+export const FEATURED_ID = 'xai-oauth'
+const SHOW_ALL_KEY = 'dragon-onboarding-show-all-v1'
 
 const readShowAll = () => {
   try {
-    return window.localStorage.getItem(SHOW_ALL_KEY) === '1'
+    return window.localStorage.getItem(SHOW_ALL_KEY) !== '0'
   } catch {
-    return false
+    return true
   }
 }
 
@@ -654,7 +664,7 @@ export function Picker({ ctx }: { ctx: OnboardingContext }) {
   const select = (p: OAuthProvider) => void startProviderOAuth(p, ctx)
   const featured = ordered.find(p => p.id === FEATURED_ID) ?? null
   const rest = featured ? ordered.filter(p => p.id !== FEATURED_ID) : ordered
-  // Collapse the secondary providers behind a disclosure whenever Nous Portal
+  // Collapse the secondary providers behind a disclosure whenever SuperGrok
   // is present to anchor the choice — otherwise show the full list. The
   // Fireworks/OpenRouter key rows always live behind the disclosure, so the
   // toggle is warranted even when there are no other OAuth providers.

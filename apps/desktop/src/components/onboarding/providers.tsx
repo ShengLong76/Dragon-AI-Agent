@@ -3,16 +3,17 @@ import { useI18n } from '@/i18n'
 import { Check, ChevronRight, Terminal } from '@/lib/icons'
 import { PROVIDER_DISPLAY_NAMES } from '@/lib/model-status-label'
 import type { OAuthProvider } from '@/types/hermes'
+import { DRAGON_GROK_PITCH } from '@/dragon/brand'
 
 // Titles live in PROVIDER_DISPLAY_NAMES (shared with the model pill); this is
 // only the featured order. Both Anthropic entries sit at the bottom: the API-key
 // path first, then the subscription OAuth path (only works with extra usage credits).
 const PROVIDER_ORDER: Record<string, number> = {
-  nous: 0,
+  'xai-oauth': 0,
   'openai-codex': 1,
   'minimax-oauth': 2,
   'qwen-oauth': 3,
-  'xai-oauth': 4,
+  nous: 4,
   anthropic: 5,
   'claude-code': 6
 }
@@ -45,7 +46,7 @@ export function FeaturedProviderRow({
       <span aria-hidden className="arc-border arc-reverse arc-nous" />
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <img alt="" className="size-5 shrink-0 rounded" src={assetPath(provider.id === 'nous' ? 'apple-touch-icon.png' : 'dragon-logo.png')} />
+          <img alt="" className="size-5 shrink-0 rounded" src={assetPath(provider.id === 'xai-oauth' ? 'grok-mark.svg' : 'dragon-logo.png')} />
           <span className="text-[length:var(--conversation-text-font-size)] font-semibold">
             {freeTier ? t.freeTier.providerRowTitle : providerTitle(provider)}
           </span>
@@ -61,7 +62,7 @@ export function FeaturedProviderRow({
           )}
         </div>
         <p className="mt-1 text-xs leading-5 text-muted-foreground">
-          {freeTier ? t.freeTier.providerRowPitch : t.onboarding.featuredPitch}
+          {freeTier ? t.freeTier.providerRowPitch : provider.id === 'xai-oauth' ? DRAGON_GROK_PITCH : t.onboarding.featuredPitch}
         </p>
       </div>
       <ChevronRight className="size-4 shrink-0 text-primary transition group-hover:translate-x-0.5" />
