@@ -236,6 +236,9 @@ function Install-DragonAIDesktopFontPack {
     if ($providerSnippet -notmatch 'xAI Grok' -or $providerSnippet -notmatch 'data-dragon-ai-recommended') {
         throw "Apply-DesktopBranding: provider-setup.js must recommend xAI Grok, not Nous Portal"
     }
+    if ($providerSnippet -notmatch 'data-dragon-ai-provider-connected' -or $providerSnippet -notmatch 'DEFAULT MODEL' -or $providerSnippet -notmatch 'BEGIN') {
+        throw "Apply-DesktopBranding: provider-setup.js must keep the connected DEFAULT MODEL / BEGIN screen"
+    }
     if ($providerSnippet -notmatch 'Errno' -or $providerSnippet -notmatch 'setup.status') {
         throw "Apply-DesktopBranding: provider-setup.js must hide the setup.status / Errno -2 banner"
     }

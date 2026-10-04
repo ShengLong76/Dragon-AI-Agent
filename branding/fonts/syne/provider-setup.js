@@ -1,18 +1,24 @@
 (function () {
   // First-run in-app provider connect. This dialog is the install first screen.
   // Starts expanded; recommends xAI Grok (not Nous Portal).
+  // After a successful connect, keep the confirmation: DEFAULT MODEL, grok-4.7,
+  // Change, and [ BEGIN ]. Do not return to the provider list.
   // Copy only - keep CLI names (`hermes model`) and binary/token strings intact.
   var MARK = "data-dragon-ai-provider-setup";
+  var CONNECTED_MARK = "data-dragon-ai-provider-connected";
   var OTHER = "data-dragon-ai-other-providers";
   var OTHER_LABEL = "Other providers";
   var RECOMMENDED = "data-dragon-ai-recommended";
   var HIDDEN_ERR = "data-dragon-ai-hidden-setup-error";
+  var HIDDEN_LIST = "data-dragon-ai-hidden-provider-list";
   var INHERIT_URL = "http://127.0.0.1:8655/api/inherit-models";
   var PROTECTED = /hermes\s+model|hermes\s+auth|hermes\s+setup|hermes\.exe|hermes-airmaze|x-hermes-session-token|hermes:\/\/|~\/\.hermes/i;
   var EXPAND_LABEL = /other providers|i'?ll choose a provider later|show (all|more)|more providers|all providers/i;
   var ERROR_TEXT = /errno\s*-?\s*2|name or service not known|setup\.status|runtime resolution still failed/i;
   var PROVIDER_ROW = /nous portal|run models locally|openrouter|openai|anthropic|gemini|grok|self-hosted|ollama|custom|fireworks|minimax|opencode|chatgpt|codex/i;
+  var LIST_ROW = /nous portal|run models locally|fireworks|chatgpt or codex|minimax|opencode|anthropic api|anthropic oauth|i'?ll choose a provider later|other providers/i;
   var sawProviderUi = false;
+  var sawConnected = false;
   var sawDisconnected = false;
   var inheritTimer = 0;
   var lastInherit = 0;
@@ -21,7 +27,15 @@
     return (el && el.textContent ? el.textContent : "").replace(/\s+/g, " ").trim();
   }
 
+  function looksLikeConnectedConfirm(text) {
+    text = text || "";
+    var oauth = /xai grok oauth|supergrok|premium\+|grok oauth/i.test(text) && /connected/i.test(text);
+    var begin = /default model/i.test(text) && /\bbegin\b/i.test(text);
+    return oauth || begin;
+  }
+
   function looksLikeProviderUi(text) {
+    if (looksLikeConnectedConfirm(text)) return false;
     return /let'?s get you setup|connect a model provider|other providers|nous portal|run models locally|i'?ll choose a provider later/i.test(text || "") || (text || "").indexOf(OTHER_LABEL) !== -1;
   }
 
@@ -224,8 +238,44 @@
     }, true);
   }
 
+  function hideProviderList(root) {
+    if (!root) return;
+    var dialogs = document.querySelectorAll('[role="dialog"], [data-state="open"], [data-radix-dialog-content], [class*="modal"], [class*="dialog"]');
+    var i;
+    for (i = 0; i < dialogs.length; i++) {
+      var dialogText = labelOf(dialogs[i]);
+      if (looksLikeProviderUi(dialogText) && !looksLikeConnectedConfirm(dialogText)) {
+        dialogs[i].setAttribute(HIDDEN_LIST, "1");
+        dialogs[i].style.display = "none";
+      }
+    }
+    var rows = root.querySelectorAll("button, a, [role='button'], li, [class*='item'], [class*='row'], [class*='card']");
+    for (i = 0; i < rows.length; i++) {
+      var text = labelOf(rows[i]);
+      if (!LIST_ROW.test(text)) continue;
+      if (/default model|\bbegin\b|change|xai grok oauth|supergrok/i.test(text)) continue;
+      if (text.length > 240) continue;
+      rows[i].setAttribute(HIDDEN_LIST, "1");
+      rows[i].style.display = "none";
+    }
+  }
+
+  function polishConnected(root) {
+    if (!root) return;
+    root.setAttribute(CONNECTED_MARK, "1");
+    walkText(root);
+    hideSetupError(root);
+    hideProviderList(root);
+    scheduleInherit();
+  }
+
   function polish(root) {
     if (!root) return;
+    if (sawConnected || looksLikeConnectedConfirm(labelOf(root))) {
+      sawConnected = true;
+      polishConnected(root);
+      return;
+    }
     root.setAttribute(MARK, "1");
     walkText(root);
     expandAll(root);
@@ -236,6 +286,18 @@
 
   function tick() {
     try {
+      var bodyText = document.body ? labelOf(document.body) : "";
+      if (looksLikeConnectedConfirm(bodyText)) {
+        sawConnected = true;
+        polishConnected(document.body);
+        return;
+      }
+      if (sawConnected) {
+        hideProviderList(document.body);
+        walkText(document.body);
+        hideSetupError(document.body);
+        return;
+      }
       var root = findProviderRoot();
       if (root) {
         sawProviderUi = true;
@@ -245,7 +307,6 @@
       }
       walkText(document.body);
       hideSetupError(document.body);
-      var bodyText = document.body ? labelOf(document.body) : "";
       if (looksDisconnected(bodyText)) sawDisconnected = true;
       else if (sawDisconnected && sawProviderUi) scheduleInherit();
     } catch (e) {}

@@ -242,6 +242,10 @@ def test_desktop_web_ui_not_headless() -> None:
         fail("provider-setup.js must hide the setup.status / Errno -2 banner")
     if "Hermes connects automatically" not in provider:
         fail("provider-setup.js must rewrite Hermes connects automatically")
+    if "data-dragon-ai-provider-connected" not in provider or "DEFAULT MODEL" not in provider:
+        fail("provider-setup.js must keep the connected DEFAULT MODEL / BEGIN screen")
+    if "BEGIN" not in provider or "hidden-provider-list" not in provider:
+        fail("after Grok connects, provider-setup.js must not return to the provider list")
     if "xAI Grok login" not in first_run:
         fail("first-run Models step must reuse the existing xAI login (no new API key)")
     if "Teams Marketplace" not in first_run or "Personal Assistant" not in first_run:

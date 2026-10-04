@@ -841,6 +841,10 @@ def test_packaging_not_regressed() -> None:
         fail("provider-setup.js must hide the setup.status / Errno -2 banner")
     if "Hermes connects automatically" not in provider_js:
         fail("provider-setup.js must rewrite Hermes connects automatically")
+    if "data-dragon-ai-provider-connected" not in provider_js or "DEFAULT MODEL" not in provider_js:
+        fail("provider-setup.js must keep the connected DEFAULT MODEL / BEGIN confirmation")
+    if "BEGIN" not in provider_js or "hidden-provider-list" not in provider_js:
+        fail("provider-setup.js must not return to the provider list after a successful connect")
     if "Dragon AI" not in provider_js or "hermes model" not in provider_js:
         fail("provider-setup.js must rewrite Hermes copy and keep the hermes model CLI")
     if "/api/inherit-models" not in provider_js or "8655" not in provider_js:

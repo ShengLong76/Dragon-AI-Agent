@@ -197,15 +197,15 @@ def test_wizard_source() -> None:
         fail("Models Continue must read combos from $script: scope (GetNewClosure drops $msgLabel)")
     if "Invoke-ApplyGatewayModels -Chat $chat -Image $image" not in models:
         fail("Models Continue must still write the selected pair through Apply-GatewayModels")
-    if "grok-4.6" not in models or "grok-imagine-image" not in models:
+    if "grok-4.7" not in models or "grok-imagine-image" not in models:
         fail("Grok / Grok Imagine defaults must stay on the Models step")
     if "SelectedIndex = 0" not in models:
         fail("Grok must remain the preselected chat/image default")
     catalog_fn = extract_function(wizard, "Get-WizardChatCatalog")
-    for needle in ("OpenAI", "Anthropic", "Google Gemini", "Self-hosted / custom endpoint", "grok-4.6"):
+    for needle in ("OpenAI", "Anthropic", "Google Gemini", "Self-hosted / custom endpoint", "grok-4.7"):
         if needle not in catalog_fn:
             fail(f"Get-WizardChatCatalog must offer {needle}")
-    if catalog_fn.find("grok-4.6") > catalog_fn.find("gpt-4o") and "gpt-4o" in catalog_fn:
+    if catalog_fn.find("grok-4.7") > catalog_fn.find("gpt-4o") and "gpt-4o" in catalog_fn:
         fail("Grok must stay first in Get-WizardChatCatalog")
     if "WizBaseUrlBox" not in models or "chat_api_key" not in models:
         fail("Self-hosted path must collect base URL / model id and store an optional key via DPAPI")

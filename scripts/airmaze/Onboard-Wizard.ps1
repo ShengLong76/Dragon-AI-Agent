@@ -194,6 +194,7 @@ function Get-EmbeddedHermesHome {
 
 function Get-WizardChatCatalog {
     @(
+        @{ id = "grok-4.7"; label = "Grok (xAI) - grok-4.7" },
         @{ id = "grok-4.6"; label = "Grok (xAI) - grok-4.6" },
         @{ id = "grok-4.5"; label = "Grok (xAI) - grok-4.5" },
         @{ id = "grok-4.3"; label = "Grok (xAI) - grok-4.3" },
@@ -215,7 +216,7 @@ function Get-WizardImageCatalog {
 
 function Invoke-ApplyGatewayModels {
     param(
-        [string]$Chat = "grok-4.6",
+        [string]$Chat = "grok-4.7",
         [string]$Image = "grok-imagine-image",
         [string]$CustomModel = "",
         [string]$BaseUrl = "",
@@ -1058,7 +1059,7 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
             $imgIdx = 0
             if ($script:WizChatBox) { $chatIdx = [int]$script:WizChatBox.SelectedIndex }
             if ($script:WizImageBox) { $imgIdx = [int]$script:WizImageBox.SelectedIndex }
-            $chat = "grok-4.6"
+            $chat = "grok-4.7"
             if ($script:WizChatCatalog -and $chatIdx -ge 0 -and $chatIdx -lt $script:WizChatCatalog.Count) {
                 $chat = [string]$script:WizChatCatalog[$chatIdx].id
             }
@@ -1415,7 +1416,7 @@ Secrets stay on this machine (Windows DPAPI). This software is not legal advice.
         $reviewChat = Get-MapValue -Map $Progress.nonSecret -Name "chat_model" -Default ""
         $reviewImage = Get-MapValue -Map $Progress.nonSecret -Name "image_model" -Default ""
         if ($reviewChat -or $reviewImage) {
-            $modelLine = "Default chat {0} (all bots inherit). Image {1}." -f $(if ($reviewChat) { $reviewChat } else { "grok-4.6" }), $(if ($reviewImage) { $reviewImage } else { "grok-imagine-image" })
+            $modelLine = "Default chat {0} (all bots inherit). Image {1}." -f $(if ($reviewChat) { $reviewChat } else { "grok-4.7" }), $(if ($reviewImage) { $reviewImage } else { "grok-imagine-image" })
             $content.Controls.Add((New-BrandLabel -Text $modelLine -Location (New-Object Drawing.Point(40, $y)) -Width 620 -Height 22 -Muted))
         }
 

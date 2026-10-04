@@ -22,7 +22,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 DEFAULT_CHAT_PROVIDER = "xai"
-DEFAULT_CHAT_MODEL = "grok-4.6"
+DEFAULT_CHAT_MODEL = "grok-4.7"
 DEFAULT_IMAGE_PROVIDER = "xai"
 DEFAULT_IMAGE_MODEL = "grok-imagine-image"
 CONFIG_NAME = "config.yaml"
@@ -37,10 +37,18 @@ DEFAULT_CUSTOM_MODEL = "local-model"
 
 CHAT_CATALOG: list[dict[str, str]] = [
     {
+        "id": "grok-4.7",
+        "provider": "xai",
+        "model": "grok-4.7",
+        "label": "Grok (xAI) - grok-4.7",
+        "kind": "cloud",
+        "auth_env": "XAI_API_KEY",
+    },
+    {
         "id": "grok-4.6",
         "provider": "xai",
         "model": "grok-4.6",
-        "label": "Grok (xAI) — grok-4.6",
+        "label": "Grok (xAI) - grok-4.6",
         "kind": "cloud",
         "auth_env": "XAI_API_KEY",
     },

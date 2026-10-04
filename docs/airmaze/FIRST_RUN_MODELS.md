@@ -12,10 +12,10 @@ Edit profile → Generate shows **“No image model available… Restart gateway
 
 | Picker | Default | Hermes keys |
 |--------|---------|-------------|
-| Default chat LLM | **Grok (xAI)** `grok-4.6` | `principal.provider: xai`, `principal.model: grok-4.6`, Hermes `model.provider` / `model.default` |
+| Default chat LLM | **Grok (xAI)** `grok-4.7` | `principal.provider: xai`, `principal.model: grok-4.7`, Hermes `model.provider` / `model.default` |
 | Default image LLM | **Grok Imagine** `grok-imagine-image` | `image_gen.provider: xai`, `image_gen.model` + `image_gen.xai.model` |
 
-`grok-4.6` is the head of Hermes’s current xAI static catalog (`hermes_cli/models_catalog_static.py`). Older `grok-4` / `grok-4.3` ids still work; retirement maps retired Grok chat ids to `grok-4.3`. The pickers also list popular Hermes cloud providers (**OpenAI** `openai-api` / `gpt-4o`, **Anthropic** `anthropic` / `claude-sonnet-4-6`, **Google Gemini** `gemini` / `gemini-2.5-pro`, **OpenRouter** `openrouter`) and an explicit **Self-hosted / custom endpoint** (`provider: custom`, base URL + model id). Grok / Grok Imagine stay the suggested defaults (index 0).
+`grok-4.7` is the UltraDragon confirmation default (James’s connected screen). Older `grok-4.6` / `grok-4` / `grok-4.3` ids still work. The pickers also list popular Hermes cloud providers (**OpenAI** `openai-api` / `gpt-4o`, **Anthropic** `anthropic` / `claude-sonnet-4-6`, **Google Gemini** `gemini` / `gemini-2.5-pro`, **OpenRouter** `openrouter`) and an explicit **Self-hosted / custom endpoint** (`provider: custom`, base URL + model id). Grok / Grok Imagine stay the suggested defaults (index 0).
 
 Image quality variants Hermes already lists (surface them):
 
@@ -28,7 +28,7 @@ Image quality variants Hermes already lists (surface them):
 ```yaml
 principal:
   provider: xai
-  model: grok-4.6
+  model: grok-4.7
 
 image_gen:
   provider: xai
@@ -46,7 +46,12 @@ image_gen:
 
 First-run uses the **in-app Models UI on the real desktop chat screen**, plus launcher `Apply-GatewayModels.ps1 -IfMissing`.
 
-`DragonAIAgent.exe` opens `http://127.0.0.1:8655/` (the host inject proxy). That proxy loads `DRAGON_AI_UI_URL` (default `http://127.0.0.1:8660/`), which is `hermes dashboard` published by `hermes-airmaze-desktop-ui`. It **refuses** `http://127.0.0.1:8650/` when GET `/` is the headless body `web UI disabled`. The first screen is the native in-app provider-setup dialog (“Let’s get you setup with Dragon AI Agent”). `provider-setup.js` expands every option, recommends **xAI Grok** (not Nous Portal), rewrites leftover Hermes copy (`Hermes connects automatically` → Dragon AI), and hides the `[Errno -2] Name or service not known` / `setup.status` banner. The custom `first-run-models.js` Models overlay does not cover that dialog.
+`DragonAIAgent.exe` opens `http://127.0.0.1:8655/` (the host inject proxy). That proxy loads `DRAGON_AI_UI_URL` (default `http://127.0.0.1:8660/`), which is `hermes dashboard` published by `hermes-airmaze-desktop-ui`. It **refuses** `http://127.0.0.1:8650/` when GET `/` is the headless body `web UI disabled`. Fresh-install order:
+
+1. The native in-app provider-setup dialog (“Let’s get you setup with Dragon AI Agent”). `provider-setup.js` expands every option, recommends **xAI Grok** (not Nous Portal), rewrites leftover Hermes copy (`Hermes connects automatically` → Dragon AI), and hides the `[Errno -2] Name or service not known` / `setup.status` banner.
+2. After Grok connects, the confirmation screen: **XAI GROK OAUTH (SUPERGROK / PREMIUM+) CONNECTED**, **DEFAULT MODEL** `grok-4.7`, Change, and **[ BEGIN ]**. Do not return to the provider list. No Nous rows, no Hermes copy.
+
+The custom `first-run-models.js` Models overlay does not cover either of those screens.
 
 Install and launch mark `welcome=success` and `models=in_app` (`Set-DragonAIInAppProviderOnboarding`) so WinForms `Onboard-Wizard.ps1` is not auto-launched.
 

@@ -18,7 +18,7 @@ Personal Assistant is applied at install. Team seats land later from Teams Marke
 | Each bot profile | Same chat provider/model on `config.yaml` (create if missing), and on existing `profile.yaml` / `bot.yaml` | After gateway write (PA already on disk). Again on deploy/import of a group (later seats). In-app complete POSTs `http://127.0.0.1:8655/api/inherit-models`. |
 | Per-bot override | A `model` / `principal.model` **without** `# dragon-ai-inherited-model` that is not the stored default | Left alone. Wizard re-run, in-app re-inherit, and re-deploy do not clobber it. |
 
-Suggested picker defaults stay **Grok (xAI) `grok-4.6`** and **Grok Imagine** `grok-imagine-image`. Whatever the operator actually selects becomes the stored default.
+Suggested picker defaults stay **Grok (xAI) `grok-4.7`** and **Grok Imagine** `grok-imagine-image`. Whatever the operator actually selects becomes the stored default.
 
 Marker on inherited files:
 
@@ -26,10 +26,10 @@ Marker on inherited files:
 # dragon-ai-inherited-model
 principal:
   provider: xai
-  model: grok-4.6
+  model: grok-4.7
 model:
   provider: xai
-  default: grok-4.6
+  default: grok-4.7
 ```
 
 Hermes profile field is `model` (see upstream `_read_config_model`). `principal` stays so this repo’s gateway shape and bots stay one stack. Image generation stays gateway `image_gen` (Generate probe). Do not write API keys.

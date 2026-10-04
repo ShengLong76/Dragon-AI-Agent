@@ -374,7 +374,7 @@ func handleModels(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"ok":         true,
 			"saved":      saved,
-			"chatModel":  "grok-4.6",
+			"chatModel":  "grok-4.7",
 			"imageModel": "grok-imagine-image",
 			"provider":   "xai",
 		})
@@ -398,7 +398,7 @@ func handleModels(w http.ResponseWriter, r *http.Request) {
 		image, _ = body["imageModel"].(string)
 	}
 	if chat == "" {
-		chat = "grok-4.6"
+		chat = "grok-4.7"
 	}
 	if image == "" {
 		image = "grok-imagine-image"

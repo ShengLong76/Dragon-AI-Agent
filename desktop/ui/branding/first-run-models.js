@@ -39,7 +39,7 @@
   function nativeProviderSetupVisible() {
     try {
       var text = document.body ? (document.body.innerText || document.body.textContent || "") : "";
-      return /let'?s get you setup|connect a model provider/i.test(text);
+      return /let'?s get you setup|connect a model provider|default model|\bbegin\b|xai grok oauth|supergrok/i.test(text);
     } catch (_err) {
       return false;
     }
@@ -73,7 +73,8 @@
       '<p class="lede">Choose the default chat and image LLMs. Dragon AI Agent uses the xAI Grok login already on this PC. This screen does not ask for a new API key. Personal Assistant is already installed. Teams are added later from Teams Marketplace.</p>' +
       "<label>Default chat LLM" +
       '<select id="dragon-ai-chat-model" name="chat">' +
-      '<option value="grok-4.6" selected>Grok (xAI) grok-4.6</option>' +
+      '<option value="grok-4.7" selected>Grok (xAI) grok-4.7</option>' +
+      '<option value="grok-4.6">Grok (xAI) grok-4.6</option>' +
       '<option value="grok-4.5">Grok (xAI) grok-4.5</option>' +
       '<option value="grok-4.3">Grok (xAI) grok-4.3</option>' +
       "</select></label>" +

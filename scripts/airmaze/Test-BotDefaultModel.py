@@ -36,7 +36,7 @@ DESIGN_DOC = DOCS / "DESIGN.md"
 BRANDING_CSS = ROOT / "branding" / "fonts" / "syne" / "dragon-ui.css"
 PROVIDER_JS = ROOT / "branding" / "fonts" / "syne" / "provider-setup.js"
 
-DEFAULT_CHAT = "grok-4.6"
+DEFAULT_CHAT = "grok-4.7"
 OVERRIDE_CHAT = "grok-4.5"
 LATER_CHAT = "grok-4.3"
 INHERITED_MARK = "# dragon-ai-inherited-model"

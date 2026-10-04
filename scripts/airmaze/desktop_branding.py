@@ -1129,6 +1129,9 @@ def self_test() -> int:
     if "nativeProviderSetupVisible" not in once:
         print("FAIL: first-run-models must yield to the native provider-setup first screen", file=sys.stderr)
         return 1
+    if "data-dragon-ai-provider-connected" not in once or "DEFAULT MODEL" not in once:
+        print("FAIL: provider-setup must keep the connected DEFAULT MODEL / BEGIN screen", file=sys.stderr)
+        return 1
     if "input_audio_buffer.append" not in once or "grok-voice-latest" not in once:
         print("FAIL: overlay must send official STS append events to grok-voice-latest", file=sys.stderr)
         return 1
