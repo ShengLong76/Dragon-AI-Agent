@@ -233,7 +233,7 @@ module.exports = {
   win: {
     executableName: windowsExecutableName,
     legalTrademarks: displayName,
-    target: ['msix'],
+    target: ['nsis'],
     // The updaters' relaunch waiter is PowerShell run outside the package. The
     // sealed payload's snapshot omits scripts/, so it ships as a resource
     // (RELAUNCH_WAITER_SCRIPT in electron/updater/relaunch-waiter.ts).
@@ -248,7 +248,7 @@ module.exports = {
     applicationId: appNamePascal,
     displayName,
     publisher: store ? mustStoreMsix(storeMsixWhenStore).publisher : OUT_OF_STORE_PUBLISHER,
-    publisherDisplayName: store ? mustStoreMsix(storeMsixWhenStore).publisherDisplayName : 'Nous Research',
+    publisherDisplayName: store ? mustStoreMsix(storeMsixWhenStore).publisherDisplayName : 'Dragon AI',
     // The native quad is the build time (scripts/msix-shared.mjs::nativeQuad),
     // baked into the manifest template, so the builder's own build-number
     // override would stamp a second, conflicting version.
@@ -276,12 +276,28 @@ module.exports = {
     capabilities: ['unvirtualizedResources'],
     showNameOnTiles: true
   },
+  // One self-contained Setup .exe: no zip, no second executable to find.
+  nsis: {
+    oneClick: false,
+    perMachine: false,
+    allowToChangeInstallationDirectory: true,
+    createDesktopShortcut: true,
+    createStartMenuShortcut: true,
+    shortcutName: displayName,
+    uninstallDisplayName: displayName,
+    installerIcon: 'assets/icon.ico',
+    uninstallerIcon: 'assets/icon.ico',
+    installerHeaderIcon: 'assets/icon.ico',
+    runAfterFinish: true,
+    deleteAppDataOnUninstall: false,
+    artifactName: `${artifactNamePascal}-Setup-\${version}-\${arch}.\${ext}`
+  },
   linux: {
     category: 'Development',
-    maintainer: 'Nous Research <support@nousresearch.com>',
+    maintainer: 'Dragon AI <support@dragon-ai.app>',
     synopsis: light
-      ? 'Remote-only desktop client for Hermes Agent.'
-      : 'Native desktop shell for Hermes Agent.',
+      ? 'Remote-only desktop client for Dragon AI Claude.'
+      : 'Dragon AI Claude desktop app.',
     target: ['AppImage']
   }
 }
