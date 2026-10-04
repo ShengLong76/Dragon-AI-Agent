@@ -1,6 +1,6 @@
 /**
- * Screen portal — the compact "this bot's computer" box that sits above a
- * bot's routines and on a gateway/profile group in the Sessions sidebar.
+ * Screen portal — the compact "this bot's computer" box on a gateway/profile
+ * group in the Sessions sidebar.
  * One click opens the live Screen pane; the subtitle says whether the screen
  * is live and who holds it, so the user knows before opening whether they
  * are about to watch, take over, install or start.

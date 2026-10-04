@@ -19,8 +19,6 @@ vi.mock('@hermes/plugin-sdk', async importOriginal => {
 
   return { ...sdk, host: { ...sdk.host, request, notify: vi.fn() } }
 })
-// The bot desktop preview is outside the scheduling dialog under test.
-vi.mock('@/plugins/hermes-bots/screen-hero', () => ({ ScreenHero: () => null }))
 let i18n: I18nContextValue
 let dispose: () => void
 
