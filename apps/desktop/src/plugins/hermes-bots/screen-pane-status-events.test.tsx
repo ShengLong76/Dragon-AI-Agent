@@ -44,6 +44,7 @@ vi.mock('./i18n', () => ({
       start: 'Start',
       agentControls: 'Bot controls',
       takeOver: 'Take over',
+      openLarger: 'Open in a larger window',
       reconnect: 'Reconnect',
       streamLost: 'Stream lost'
     }

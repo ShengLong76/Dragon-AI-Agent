@@ -13,8 +13,34 @@ import subprocess
 
 import pytest
 
-from tools.bot_desktop import placement, runtime
+from tools.bot_desktop import placement, runtime, sandbox_host
 from tools.environments import streams
+from tools.terminal_tool_lifecycle import _cleanup_inactive_envs
+
+
+def test_idle_cleanup_does_not_reap_a_live_linux_guest_screen(monkeypatch):
+    """Watching Start screen is not a terminal() call. The 300s idle reaper
+    used to kill bot-desktop-guest under a viewer still looking at it."""
+    import time
+
+    import tools.terminal_tool as tt
+
+    torn = []
+
+    class _Env:
+        _container_id = "hermes-02e09f8d"
+
+        def cleanup(self, force_remove=None):
+            torn.append(True)
+
+    env = _Env()
+    monkeypatch.setattr(tt, "_active_environments", {placement.LINUX_GUEST_TASK_ID: env})
+    monkeypatch.setattr(tt, "_last_activity", {placement.LINUX_GUEST_TASK_ID: time.time() - 10_000})
+    monkeypatch.setattr(tt, "_creation_locks", {})
+    monkeypatch.setattr(sandbox_host, "_read_marker", lambda: {"container": "hermes-02e09f8d"})
+    _cleanup_inactive_envs(300)
+    assert torn == []
+    assert placement.LINUX_GUEST_TASK_ID in tt._active_environments
 
 
 def test_linux_guest_paths_do_not_use_a_windows_host_cwd():

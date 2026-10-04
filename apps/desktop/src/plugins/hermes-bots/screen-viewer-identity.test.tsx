@@ -42,6 +42,7 @@ vi.mock('./i18n', () => ({
       handBackForce: 'Hand back (force)',
       handBackForceHint: 'Force',
       takeOver: 'Take over',
+      openLarger: 'Open in a larger window',
       reconnect: 'Reconnect',
       streamLost: 'Stream lost'
     }

@@ -298,6 +298,23 @@ rm -f {q}/env {q}/launcher.pid {q}/rfb.sock
     return proc.returncode == 0
 
 
+def hosts_live_screen(task_id: str, env: Any) -> bool:
+    """True when *env* is the sandbox currently showing a Bot Desktop screen.
+
+    The terminal idle reaper must not reap that task: watching the pane is not a
+    ``terminal`` call, so ``_last_activity`` would otherwise expire and kill the
+    guest (``bot-desktop-guest``) under a viewer who is still looking.
+    """
+    marker = _read_marker()
+    if not marker:
+        return False
+    from tools.bot_desktop.placement import LINUX_GUEST_TASK_ID
+    if task_id == LINUX_GUEST_TASK_ID:
+        return True
+    container = marker.get("container")
+    return bool(container and container == getattr(env, "_container_id", None))
+
+
 def open_rfb_stream(env: Any, profile: str) -> subprocess.Popen:
     """Popen whose stdin/stdout carry the RFB bytes of the sandbox's Xvnc."""
     rdir = _remote_dir(env, profile)

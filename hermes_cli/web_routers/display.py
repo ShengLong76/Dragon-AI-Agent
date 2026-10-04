@@ -22,6 +22,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import queue
+import threading
 from typing import Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -89,6 +91,82 @@ async def display_ws(ws: WebSocket) -> None:
     await _bridge(ws, info)
 
 
+class _StdioWriter:
+    """Write side of a subprocess pipe that the event loop must not block on.
+
+    ``asyncio.connect_write_pipe`` is not implemented on Windows' ProactorEventLoop
+    and, where it is, closing the transport immediately EOFs the child's stdin —
+    the RFB relay then SHUT_WR and Xvnc logs a clean disconnect with 0 rects.
+    """
+
+    def __init__(self, outgoing: "queue.Queue[bytes | None]"):
+        self._out = outgoing
+
+    def write(self, data: bytes) -> None:
+        self._out.put(data)
+
+    async def drain(self) -> None:
+        return None
+
+    def close(self) -> None:
+        self._out.put(None)
+
+    async def wait_closed(self) -> None:
+        return None
+
+
+async def _stdio_streams(proc):
+    """``(reader, writer)`` over ``proc.stdout`` / ``proc.stdin`` via daemon threads.
+
+    Works on every event loop, including Windows Proactor where pipe transports
+    are missing or report EOF the instant the relay connects.
+    """
+    loop = asyncio.get_running_loop()
+    reader = asyncio.StreamReader()
+    outgoing: queue.Queue[bytes | None] = queue.Queue()
+
+    def pump_out() -> None:
+        stdout = proc.stdout
+        read = stdout.read1 if hasattr(stdout, "read1") else stdout.read
+        try:
+            while True:
+                data = read(_READ_CHUNK)
+                if not data:
+                    break
+                try:
+                    loop.call_soon_threadsafe(reader.feed_data, data)
+                except RuntimeError:
+                    return
+        except (OSError, ValueError):
+            pass
+        finally:
+            try:
+                loop.call_soon_threadsafe(reader.feed_eof)
+            except RuntimeError:
+                pass
+
+    def pump_in() -> None:
+        stdin = proc.stdin
+        try:
+            while True:
+                item = outgoing.get()
+                if item is None:
+                    break
+                stdin.write(item)
+                stdin.flush()
+        except (OSError, ValueError, BrokenPipeError):
+            pass
+        finally:
+            try:
+                stdin.close()
+            except OSError:
+                pass
+
+    threading.Thread(target=pump_out, name="rfb-relay-out", daemon=True).start()
+    threading.Thread(target=pump_in, name="rfb-relay-in", daemon=True).start()
+    return reader, _StdioWriter(outgoing)
+
+
 async def _open_rfb(profile_home: Path):
     """``(reader, writer, relay)`` for THIS profile's Xvnc. Gateway-hosted screen: its unix socket. Screen inside
     the terminal backend: a ``docker exec`` / ``ssh`` relay whose stdio IS the RFB stream (``relay`` is that
@@ -99,22 +177,15 @@ async def _open_rfb(profile_home: Path):
     try:
         if _bd_runtime.sandbox_screen_running():
             relay = _bd_runtime.open_rfb_stream()
-        else:
-            sock = profile_home / "bot-desktop" / "rfb.sock"
-            if not sock.exists():
-                raise OSError("rfb.sock missing")
-            reader, writer = await asyncio.open_unix_connection(str(sock))
-            return reader, writer, None
+            reader, writer = await _stdio_streams(relay)
+            return reader, writer, relay
+        sock = profile_home / "bot-desktop" / "rfb.sock"
+        if not sock.exists():
+            raise OSError("rfb.sock missing")
+        reader, writer = await asyncio.open_unix_connection(str(sock))
+        return reader, writer, None
     finally:
         reset_hermes_home_override(token)
-    loop = asyncio.get_running_loop()
-    reader = asyncio.StreamReader()
-    await loop.connect_read_pipe(lambda: asyncio.StreamReaderProtocol(reader), relay.stdout)
-    # StreamReaderProtocol (not the bare FlowControlMixin) so ``writer.wait_closed()`` in the bridge's teardown has
-    # a close waiter to await; on the bare mixin it raises NotImplementedError.
-    w_transport, w_protocol = await loop.connect_write_pipe(lambda: asyncio.StreamReaderProtocol(asyncio.StreamReader()), relay.stdin)
-    writer = asyncio.StreamWriter(w_transport, w_protocol, None, loop)
-    return reader, writer, relay
 
 
 async def _bridge(ws: WebSocket, info: dict) -> None:

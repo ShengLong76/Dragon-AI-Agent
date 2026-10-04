@@ -31,6 +31,7 @@ import {
   viewerHash
 } from './screen-connection'
 import { ScreenInstallCard } from './screen-install'
+import { openBotScreen } from './screen-open'
 import {
   $screenState,
   beginScreenStatusRequest,
@@ -528,6 +529,16 @@ export function BotScreenPane({ bot }: { bot: RosterRow }) {
             </Button>
           </>
         )}
+        <Tip label={t.screen.openLarger}>
+          <Button
+            aria-label={t.screen.openLarger}
+            onClick={() => openBotScreen(bot)}
+            size="sm"
+            variant="ghost"
+          >
+            <Codicon name="link-external" /> {t.screen.openLarger}
+          </Button>
+        </Tip>
         <Tip label={t.screen.reconnect}>
           <Button
             aria-label={t.screen.reconnect}

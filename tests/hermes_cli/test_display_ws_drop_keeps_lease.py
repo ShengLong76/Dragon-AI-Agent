@@ -158,3 +158,44 @@ def test_no_bridge_task_or_socket_outlives_the_bridge():
     with tempfile.TemporaryDirectory() as home:
         leftover = asyncio.run(_run(home))
     assert leftover == set(), [t.get_coro() for t in leftover]
+
+
+def test_sandbox_rfb_stdio_stays_open_and_carries_bytes():
+    """Windows Proactor cannot attach asyncio pipe transports to docker-exec stdio;
+    that closed the relay the instant Xvnc accepted (0 framebuffer rects). The
+    thread pump must keep stdin open and deliver the greeting."""
+    import subprocess
+    import sys
+
+    script = (
+        "import sys\n"
+        "sys.stdout.buffer.write(b'RFB 003.008\\n')\n"
+        "sys.stdout.buffer.flush()\n"
+        "chunk = sys.stdin.buffer.read(4)\n"
+        "sys.stdout.buffer.write(chunk)\n"
+        "sys.stdout.buffer.flush()\n"
+    )
+    proc = subprocess.Popen(
+        [sys.executable, "-c", script],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    )
+
+    async def _roundtrip():
+        reader, writer = await display._stdio_streams(proc)
+        greeting = await asyncio.wait_for(reader.readexactly(12), 2)
+        writer.write(b"ping")
+        await writer.drain()
+        echoed = await asyncio.wait_for(reader.readexactly(4), 2)
+        writer.close()
+        await writer.wait_closed()
+        return greeting, echoed
+
+    try:
+        greeting, echoed = asyncio.run(_roundtrip())
+    finally:
+        proc.kill()
+        proc.wait(timeout=2)
+    assert greeting == b"RFB 003.008\n"
+    assert echoed == b"ping"
