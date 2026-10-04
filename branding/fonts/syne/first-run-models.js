@@ -36,8 +36,17 @@
     document.documentElement.style.overflow = "";
   }
 
+  function nativeProviderSetupVisible() {
+    try {
+      var text = document.body ? (document.body.innerText || document.body.textContent || "") : "";
+      return /let'?s get you setup|connect a model provider/i.test(text);
+    } catch (_err) {
+      return false;
+    }
+  }
+
   function show(pending) {
-    if (document.getElementById(ROOT_ID) || saved()) {
+    if (document.getElementById(ROOT_ID) || saved() || nativeProviderSetupVisible()) {
       return;
     }
     var root = document.createElement("div");
@@ -139,17 +148,38 @@
     if (saved()) {
       return;
     }
-    api("/dragon-ai-api/models", { method: "GET" })
-      .then(function (data) {
-        if (data && data.saved === true) {
-          markSaved();
-          return;
+    var tries = 0;
+    function decide() {
+      if (saved() || nativeProviderSetupVisible()) {
+        var existing = document.getElementById(ROOT_ID);
+        if (existing) {
+          hide(existing);
         }
-        show(data || {});
-      })
-      .catch(function () {
-        show({});
-      });
+        return;
+      }
+      tries += 1;
+      if (tries < 16) {
+        setTimeout(decide, 250);
+        return;
+      }
+      api("/dragon-ai-api/models", { method: "GET" })
+        .then(function (data) {
+          if (nativeProviderSetupVisible()) {
+            return;
+          }
+          if (data && data.saved === true) {
+            markSaved();
+            return;
+          }
+          show(data || {});
+        })
+        .catch(function () {
+          if (!nativeProviderSetupVisible()) {
+            show({});
+          }
+        });
+    }
+    decide();
   }
 
   if (document.readyState === "loading") {

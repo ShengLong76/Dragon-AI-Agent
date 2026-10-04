@@ -205,6 +205,8 @@ def test_desktop_web_ui_not_headless() -> None:
         fail("desktop host must default the window upstream to the dashboard web UI (:8660)")
     if "first-run-models" not in host:
         fail("desktop host must inject the Air Maze first-run Models step onto the web UI")
+    if "provider-setup" not in host:
+        fail("desktop host must inject provider-setup so the native first screen can be polished")
     if "/api/launch" not in host:
         fail("desktop host must expose /api/launch")
     if "refusing headless" not in host:
@@ -228,6 +230,18 @@ def test_desktop_web_ui_not_headless() -> None:
         fail("first-run Models step must stamp data-airmaze-models")
     if "Continue" not in first_run or "Skip this step" not in first_run:
         fail("first-run Models step must have Continue and Skip this step")
+    if "nativeProviderSetupVisible" not in first_run:
+        fail("first-run Models overlay must yield when the native provider-setup screen is showing")
+    provider_js = ROOT / "branding" / "fonts" / "syne" / "provider-setup.js"
+    if not provider_js.is_file():
+        fail("missing branding/fonts/syne/provider-setup.js")
+    provider = read(provider_js)
+    if "data-dragon-ai-recommended" not in provider or "xAI Grok" not in provider:
+        fail("provider-setup.js must recommend xAI Grok on the first screen")
+    if "Errno" not in provider or "setup.status" not in provider:
+        fail("provider-setup.js must hide the setup.status / Errno -2 banner")
+    if "Hermes connects automatically" not in provider:
+        fail("provider-setup.js must rewrite Hermes connects automatically")
     if "xAI Grok login" not in first_run:
         fail("first-run Models step must reuse the existing xAI login (no new API key)")
     if "Teams Marketplace" not in first_run or "Personal Assistant" not in first_run:
@@ -255,6 +269,8 @@ def test_desktop_web_ui_not_headless() -> None:
         fail("packaged exe must refuse the headless web UI disabled page; rebuild DragonAIAgent.exe")
     if b"first-run-models" not in exe:
         fail("packaged exe must inject first-run Models onto the desktop web UI; rebuild")
+    if b"provider-setup" not in exe:
+        fail("packaged exe must inject provider-setup onto the desktop web UI; rebuild")
     print("OK  window loads the desktop web UI (headless serve page refused)")
 
 

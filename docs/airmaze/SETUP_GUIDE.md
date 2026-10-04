@@ -40,7 +40,7 @@ Bots stay **`needs_setup`** until required wizard steps **email + CRM + telephon
 
 ## Step 2 — Default chat LLM and default image LLM
 
-**In-app (primary):** pick a provider on first run (Nous Portal, local models, **Other providers** for cloud + self-hosted). Launch writes Grok / Grok Imagine only if the embedded gateway config is still empty (`Apply-GatewayModels -IfMissing`). When that dialog completes, **all bots inherit** the chosen chat model (Personal Assistant and later team seats) unless a bot already has its own `model` without the inherited marker.
+**In-app (primary):** the first install screen is the provider-setup dialog, expanded so every option is visible. **xAI Grok** is recommended (not Nous Portal). Launch writes Grok / Grok Imagine only if the embedded gateway config is still empty (`Apply-GatewayModels -IfMissing`). When that dialog completes, **all bots inherit** the chosen chat model (Personal Assistant and later team seats) unless a bot already has its own `model` without the inherited marker.
 
 **WinForms Setup (edge case):** pick the models Dragon AI Agent should use. Product defaults (preselected):
 

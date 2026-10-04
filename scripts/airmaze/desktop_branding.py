@@ -1120,6 +1120,15 @@ def self_test() -> int:
     if "data-dragon-ai-provider-setup" not in once or "hermes model" not in once:
         print("FAIL: provider-setup must mark the dialog and keep the hermes model CLI", file=sys.stderr)
         return 1
+    if "data-dragon-ai-recommended" not in once or "xAI Grok" not in once:
+        print("FAIL: provider-setup must recommend xAI Grok", file=sys.stderr)
+        return 1
+    if "Errno" not in once or "setup.status" not in once:
+        print("FAIL: provider-setup must hide the setup.status resolution banner", file=sys.stderr)
+        return 1
+    if "nativeProviderSetupVisible" not in once:
+        print("FAIL: first-run-models must yield to the native provider-setup first screen", file=sys.stderr)
+        return 1
     if "input_audio_buffer.append" not in once or "grok-voice-latest" not in once:
         print("FAIL: overlay must send official STS append events to grok-voice-latest", file=sys.stderr)
         return 1

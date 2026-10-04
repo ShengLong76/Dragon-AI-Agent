@@ -46,17 +46,17 @@ image_gen:
 
 First-run uses the **in-app Models UI on the real desktop chat screen**, plus launcher `Apply-GatewayModels.ps1 -IfMissing`.
 
-`DragonAIAgent.exe` opens `http://127.0.0.1:8655/` (the host inject proxy). That proxy loads `DRAGON_AI_UI_URL` (default `http://127.0.0.1:8660/`), which is `hermes dashboard` published by `hermes-airmaze-desktop-ui`. It **refuses** `http://127.0.0.1:8650/` when GET `/` is the headless body `web UI disabled`. The first-run script `branding/fonts/syne/first-run-models.js` is injected into that dashboard HTML. The user picks Default chat LLM and Default image LLM, then Continue (or Skip this step). Continue POSTs `/dragon-ai-api/models`, which writes `principal` + `image_gen` through `gateway_models.py`.
+`DragonAIAgent.exe` opens `http://127.0.0.1:8655/` (the host inject proxy). That proxy loads `DRAGON_AI_UI_URL` (default `http://127.0.0.1:8660/`), which is `hermes dashboard` published by `hermes-airmaze-desktop-ui`. It **refuses** `http://127.0.0.1:8650/` when GET `/` is the headless body `web UI disabled`. The first screen is the native in-app provider-setup dialog (“Let’s get you setup with Dragon AI Agent”). `provider-setup.js` expands every option, recommends **xAI Grok** (not Nous Portal), rewrites leftover Hermes copy (`Hermes connects automatically` → Dragon AI), and hides the `[Errno -2] Name or service not known` / `setup.status` banner. The custom `first-run-models.js` Models overlay does not cover that dialog.
 
 Install and launch mark `welcome=success` and `models=in_app` (`Set-DragonAIInAppProviderOnboarding`) so WinForms `Onboard-Wizard.ps1` is not auto-launched.
 
 Do **not** ship a Desktop / Start Menu **Dragon AI Agent Setup** shortcut. The launch wait window (and its Setup button) is not shown. The WinForms Models step remains in-tree as a deprecated fallback (no product `.lnk`, not auto-launched). A native recreation of the chat shell is not the product window.
 
-Copy overlay (`desktop_branding.json` + `provider-setup.js`): user-visible **Hermes** → **Dragon AI**. Do not rewrite `hermes model` / `hermes auth` / `Hermes.exe` / tokens. **Other providers** opens by default; the dialog is taller so those rows are visible without hunting.
+Copy overlay (`desktop_branding.json` + `provider-setup.js`): user-visible **Hermes** → **Dragon AI**. Do not rewrite `hermes model` / `hermes auth` / `Hermes.exe` / tokens. The dialog starts expanded so every provider row is visible. **xAI Grok** is the recommended choice. Do not recommend Nous Portal.
 
 **Handoff to gateway + bots:** launch still runs `Apply-GatewayModels.ps1 -IfMissing` before `docker compose up`. That writes Grok / Grok Imagine only when `principal` / `image_gen` are missing, and stamps bots that have no model. When the in-app picker completes, `provider-setup.js` POSTs `http://127.0.0.1:8655/api/inherit-models`. The helper reads the newest Hermes config that has a chat model, syncs it onto the embedded gateway, and stamps **all deployed bots** (`# dragon-ai-inherited-model`). A per-bot `model` without that marker is left alone. Later team seats inherit on deploy.
 
-**Edge case:** Start Menu **Dragon AI Agent Setup** / the launch splash **Setup** button still opens `Onboard-Wizard.ps1` for email / CRM / telephony (and a Models step if `models` is still pending). That path keeps the cloud + self-hosted catalog, Grok defaults, Continue `.Text` guard, and short `Welcome: OK · Models: pending` status (or `Models: in-app` after the in-app mark).
+**Edge case:** Start Menu **Dragon AI Agent Setup** / the launch splash **Setup** button still opens `Onboard-Wizard.ps1` for email / CRM / telephony (and a Models step if `models` is still pending). That path keeps the cloud + self-hosted catalog, Grok defaults, Continue `.Text` guard, and short `Welcome: OK / Models: pending` status (or `Models: in-app` after the in-app mark).
 
 Step order (wizard, when opened):
 
@@ -70,7 +70,7 @@ WinForms + console fallback both get two ComboBoxes / numbered lists:
 Copy is **Dragon AI Agent** (not Hermes). Auth line: suggested default is Grok; cloud providers reuse keys already on this PC; self-hosted asks for base URL + model id (API key optional).
 
 - **Continue** writes the selected pair (overwrite those keys) and stamps inherited bots. Do not assign `.Text` on `$msgLabel` from a `GetNewClosure()` handler (that object is often `$null` and WinForms shows *The property 'Text' cannot be found on this object*).
-- Status under the header is **Welcome + Models only** (`Welcome: OK · Models: pending`), not every step smashed into one PENDING string.
+- Status under the header is **Welcome + Models only** (`Welcome: OK / Models: pending`), not every step smashed into one PENDING string.
 - **Skip this step** / **Skip wizard** writes the product defaults **only if** `image_gen.provider` or `principal.model` is missing.
 - Review lists the chosen labels (never secrets).
 

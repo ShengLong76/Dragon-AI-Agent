@@ -125,14 +125,14 @@ function Format-WizardStatusLine {
     param($Progress)
     $welcome = Format-WizardStepWord (Get-StepValue -Progress $Progress -Name "welcome")
     $models = Format-WizardStepWord (Get-StepValue -Progress $Progress -Name "models")
-    return "Welcome: $welcome · Models: $models"
+    return "Welcome: $welcome / Models: $models"
 }
 
 function Test-WizardCanSetText {
     <#
     .SYNOPSIS
       True only when Target has a settable Text property (WinForms/WPF control or similar).
-      $null, hashtables, and PSCustomObjects without Text are refused — assigning .Text
+      $null, hashtables, and PSCustomObjects without Text are refused - assigning .Text
       to those throws: The property 'Text' cannot be found on this object.
     #>
     param($Target)
@@ -194,22 +194,22 @@ function Get-EmbeddedHermesHome {
 
 function Get-WizardChatCatalog {
     @(
-        @{ id = "grok-4.6"; label = "Grok (xAI) — grok-4.6" },
-        @{ id = "grok-4.5"; label = "Grok (xAI) — grok-4.5" },
-        @{ id = "grok-4.3"; label = "Grok (xAI) — grok-4.3" },
-        @{ id = "gpt-4o"; label = "OpenAI — gpt-4o" },
-        @{ id = "claude-sonnet-4-6"; label = "Anthropic — claude-sonnet-4-6" },
-        @{ id = "gemini-2.5-pro"; label = "Google Gemini — gemini-2.5-pro" },
-        @{ id = "openrouter-gpt-4o"; label = "OpenRouter — openai/gpt-4o" },
+        @{ id = "grok-4.6"; label = "Grok (xAI) - grok-4.6" },
+        @{ id = "grok-4.5"; label = "Grok (xAI) - grok-4.5" },
+        @{ id = "grok-4.3"; label = "Grok (xAI) - grok-4.3" },
+        @{ id = "gpt-4o"; label = "OpenAI - gpt-4o" },
+        @{ id = "claude-sonnet-4-6"; label = "Anthropic - claude-sonnet-4-6" },
+        @{ id = "gemini-2.5-pro"; label = "Google Gemini - gemini-2.5-pro" },
+        @{ id = "openrouter-gpt-4o"; label = "OpenRouter - openai/gpt-4o" },
         @{ id = "self-hosted"; label = "Self-hosted / custom endpoint" }
     )
 }
 
 function Get-WizardImageCatalog {
     @(
-        @{ id = "grok-imagine-image"; label = "Grok Imagine — grok-imagine-image" },
-        @{ id = "grok-imagine-image-quality"; label = "Grok Imagine (Quality) — grok-imagine-image-quality" },
-        @{ id = "grok-imagine-image-2.0"; label = "Grok Imagine 2.0 — grok-imagine-image-2.0" }
+        @{ id = "grok-imagine-image"; label = "Grok Imagine - grok-imagine-image" },
+        @{ id = "grok-imagine-image-quality"; label = "Grok Imagine (Quality) - grok-imagine-image-quality" },
+        @{ id = "grok-imagine-image-2.0"; label = "Grok Imagine 2.0 - grok-imagine-image-2.0" }
     )
 }
 
@@ -1475,7 +1475,7 @@ function Invoke-WizardSelfTest {
         }
     }
     $line = Format-WizardStatusLine -Progress $progress
-    $expected = "Welcome: OK · Models: pending"
+    $expected = "Welcome: OK / Models: pending"
     if ($line -ne $expected) {
         $failures.Add("Format-WizardStatusLine expected '$expected' got '$line'") | Out-Null
     }
@@ -1528,7 +1528,7 @@ function Invoke-WizardSelfTest {
         }
     }
     $inAppLine = Format-WizardStatusLine -Progress $inAppProgress
-    if ($inAppLine -ne "Welcome: OK · Models: in-app") {
+    if ($inAppLine -ne "Welcome: OK / Models: in-app") {
         $failures.Add("in_app models must format as 'in-app', got '$inAppLine'") | Out-Null
     }
     $next = Get-FirstIncompleteStep -Progress $inAppProgress

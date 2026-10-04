@@ -1,5 +1,5 @@
 {
-  "version": 12,
+  "version": 13,
   "product": "Dragon AI Agent",
   "note": "User-visible product chrome only. Do not rename process names, Docker tags, tokens, ports, protocols, or license attribution.",
   "designSystem": {
@@ -135,12 +135,22 @@
     },
     {
       "from": "the recommended way to run Hermes",
-      "to": "the recommended way to run Dragon AI",
+      "to": "one subscription for 300+ frontier models",
       "surface": "provider-setup"
     },
     {
       "from": "the recommended way to run hermes",
-      "to": "the recommended way to run Dragon AI",
+      "to": "one subscription for 300+ frontier models",
+      "surface": "provider-setup"
+    },
+    {
+      "from": "Hermes connects automatically",
+      "to": "Dragon AI connects automatically",
+      "surface": "provider-setup"
+    },
+    {
+      "from": "hermes connects automatically",
+      "to": "Dragon AI connects automatically",
       "surface": "provider-setup"
     },
     {

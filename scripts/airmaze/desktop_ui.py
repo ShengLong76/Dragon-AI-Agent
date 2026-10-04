@@ -93,21 +93,23 @@ def assert_desktop_web_ui(url: str, timeout: float = 3.0, token: str = "") -> di
     }
 
 
-def overlay_snippets() -> list[str]:
+def overlay_snippets() -> list[tuple[str, str]]:
     return [
-        '<link rel="stylesheet" href="/dragon-ai-branding/dragon-ui.css" data-dragon-ai-branding="ui-face">',
-        '<script src="/dragon-ai-branding/sidebar-header.js" data-dragon-ai-branding="sidebar-header"></script>',
-        '<script src="/dragon-ai-branding/teams-picker.js" data-dragon-ai-branding="teams-picker"></script>',
-        '<script src="/dragon-ai-branding/first-run-models.js" data-dragon-ai-branding="first-run-models"></script>',
-        '<script src="/dragon-ai-branding/dragon-voice-selector.js" data-dragon-ai-branding="voice-provider"></script>',
-        '<script src="/dragon-ai-branding/dragon-voice-settings.js" data-dragon-ai-branding="voice-settings"></script>',
+        ('data-dragon-ai-branding="ui-face"', '<link rel="stylesheet" href="/dragon-ai-branding/dragon-ui.css" data-dragon-ai-branding="ui-face">'),
+        ('data-dragon-ai-branding="sidebar-header"', '<script src="/dragon-ai-branding/sidebar-header.js" data-dragon-ai-branding="sidebar-header"></script>'),
+        ('data-dragon-ai-branding="teams-picker"', '<script src="/dragon-ai-branding/teams-picker.js" data-dragon-ai-branding="teams-picker"></script>'),
+        ('data-dragon-ai-branding="provider-setup"', '<script src="/dragon-ai-branding/provider-setup.js" data-dragon-ai-branding="provider-setup"></script>'),
+        ('data-dragon-ai-branding="first-run-models"', '<script src="/dragon-ai-branding/first-run-models.js" data-dragon-ai-branding="first-run-models"></script>'),
+        ('data-dragon-ai-branding="voice-provider"', '<script src="/dragon-ai-branding/dragon-voice-selector.js" data-dragon-ai-branding="voice-provider"></script>'),
+        ('data-dragon-ai-branding="voice-settings"', '<script src="/dragon-ai-branding/dragon-voice-settings.js" data-dragon-ai-branding="voice-settings"></script>'),
     ]
 
 
 def inject_overlay(html: str) -> str:
-    if 'data-dragon-ai-branding="first-run-models"' in html:
+    missing = [snip for mark, snip in overlay_snippets() if mark not in html]
+    if not missing:
         return html
-    insert = "\n".join(overlay_snippets()) + "\n"
+    insert = "\n".join(missing) + "\n"
     lower = html.lower()
     idx = lower.find("</head>")
     if idx != -1:
@@ -132,6 +134,9 @@ def _self_test() -> int:
     injected = inject_overlay(good)
     if 'data-dragon-ai-branding="first-run-models"' not in injected:
         print("FAIL: overlay inject missed first-run models", file=sys.stderr)
+        return 1
+    if 'data-dragon-ai-branding="provider-setup"' not in injected:
+        print("FAIL: overlay inject missed provider-setup", file=sys.stderr)
         return 1
 
     class Handler(BaseHTTPRequestHandler):

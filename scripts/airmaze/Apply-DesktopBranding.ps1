@@ -233,8 +233,20 @@ function Install-DragonAIDesktopFontPack {
     if ($providerSnippet -notmatch 'data-dragon-ai-provider-setup' -or $providerSnippet -notmatch 'Other providers') {
         throw "Apply-DesktopBranding: provider-setup.js must expand Other providers on the in-app Models popup"
     }
+    if ($providerSnippet -notmatch 'xAI Grok' -or $providerSnippet -notmatch 'data-dragon-ai-recommended') {
+        throw "Apply-DesktopBranding: provider-setup.js must recommend xAI Grok, not Nous Portal"
+    }
+    if ($providerSnippet -notmatch 'Errno' -or $providerSnippet -notmatch 'setup.status') {
+        throw "Apply-DesktopBranding: provider-setup.js must hide the setup.status / Errno -2 banner"
+    }
     if ($providerSnippet -notmatch 'hermes model' -or $providerSnippet -notmatch 'Dragon AI') {
         throw "Apply-DesktopBranding: provider-setup.js must rewrite Hermes copy and keep the hermes model CLI"
+    }
+    if ($providerSnippet -notmatch 'Hermes connects automatically') {
+        throw "Apply-DesktopBranding: provider-setup.js must rewrite Hermes connects automatically"
+    }
+    if ($firstRunSnippet -notmatch 'nativeProviderSetupVisible') {
+        throw "Apply-DesktopBranding: first-run-models.js must yield to the native provider-setup first screen"
     }
     $utf8 = New-Object System.Text.UTF8Encoding $false
     foreach ($root in $Roots) {

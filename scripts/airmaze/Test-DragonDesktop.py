@@ -88,6 +88,8 @@ def test_package_has_desktop_source() -> None:
         fail("desktop host must refuse the headless hermes serve page")
     if "first-run-models" not in go:
         fail("desktop host must inject the Air Maze first-run Models step")
+    if "provider-setup" not in go:
+        fail("desktop host must inject provider-setup on the live window")
     if not DESKTOP_README.is_file():
         fail("missing desktop/README.md")
     if not VENDOR_README.is_file():

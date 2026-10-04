@@ -79,7 +79,7 @@ def format_wizard_status_line(steps: dict | None) -> str:
     steps = steps or {}
     welcome = format_wizard_step_word(str(steps.get("welcome") or "pending"))
     models = format_wizard_step_word(str(steps.get("models") or "pending"))
-    return f"Welcome: {welcome} · Models: {models}"
+    return f"Welcome: {welcome} / Models: {models}"
 
 
 def wizard_can_set_text(target) -> bool:
@@ -111,16 +111,16 @@ def test_status_formatting() -> None:
             "dialer": "pending",
         }
     )
-    if smashed != "Welcome: OK · Models: pending":
+    if smashed != "Welcome: OK / Models: pending":
         fail(f"expected short Welcome/Models line, got {smashed!r}")
     if smashed == MASHED_STATUS:
         fail("status line reproduced the smashed PENDING mashup")
     for token in BANNED_STATUS_TOKENS:
         if token in smashed:
             fail(f"status line must not contain {token!r}: {smashed}")
-    if format_wizard_status_line({"welcome": "failed", "models": "skipped"}) != "Welcome: failed · Models: skipped":
+    if format_wizard_status_line({"welcome": "failed", "models": "skipped"}) != "Welcome: failed / Models: skipped":
         fail("failed/skipped words are wrong")
-    if format_wizard_status_line({"welcome": "success", "models": "in_app"}) != "Welcome: OK · Models: in-app":
+    if format_wizard_status_line({"welcome": "success", "models": "in_app"}) != "Welcome: OK / Models: in-app":
         fail("in_app models must format as in-app")
     if format_wizard_status_line({}) != "Welcome: pending · Models: pending":
         fail("empty steps must default to pending")
@@ -213,7 +213,7 @@ def test_wizard_source() -> None:
         fail("wizard must expose -SelfTest for the Text/status regression")
 
     fmt = extract_function(wizard, "Format-WizardStatusLine")
-    if 'return "Welcome: $welcome · Models: $models"' not in fmt:
+    if 'return "Welcome: $welcome / Models: $models"' not in fmt:
         fail("Format-WizardStatusLine must return the short Welcome/Models template")
     word = extract_function(wizard, "Format-WizardStepWord")
     if "in_app" not in word or "in-app" not in word:

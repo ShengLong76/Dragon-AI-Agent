@@ -331,7 +331,8 @@ def test_table() -> dict:
         "Hermes Agent": "Dragon AI Agent",
         "About Hermes Desktop": "About Dragon AI Agent",
         "Hermes is not connected to any AI provider yet": "Dragon AI is not connected to any AI provider yet",
-        "the recommended way to run Hermes": "the recommended way to run Dragon AI",
+        "the recommended way to run Hermes": "one subscription for 300+ frontier models",
+        "Hermes connects automatically": "Dragon AI connects automatically",
         "Let's get you setup with Hermes Agent": "Let's get you setup with Dragon AI Agent",
     }
     for src, dst in expected.items():
@@ -416,6 +417,7 @@ export const copy = {
   ready: 'Hermes Desktop is ready',
   provider: 'Hermes is not connected to any AI provider yet. Run `hermes model` to pick one.',
   recommend: 'the recommended way to run Hermes',
+  auto: 'Hermes connects automatically',
   setup: "Let's get you setup with Hermes Agent"
 };
 function defaultBotLabel(bot) {
@@ -477,8 +479,14 @@ const protocol = 'hermes://copilot-key/start';
             fail("in-app provider copy must say Dragon AI is not connected")
         if "the recommended way to run Hermes" in branded:
             fail("in-app provider copy still recommends Hermes")
-        if "the recommended way to run Dragon AI" not in branded:
-            fail("in-app provider copy must recommend Dragon AI")
+        if "the recommended way to run Dragon AI" in branded:
+            fail("in-app provider copy must not recommend Nous Portal / Dragon AI there")
+        if "one subscription for 300+ frontier models" not in branded:
+            fail("in-app provider copy must drop the Nous recommended clause")
+        if "Hermes connects automatically" in branded:
+            fail("in-app provider copy still says Hermes connects automatically")
+        if "Dragon AI connects automatically" not in branded:
+            fail("in-app provider copy must say Dragon AI connects automatically")
         if "Let's get you setup with Hermes" in branded:
             fail("in-app setup title still says Hermes")
         if "Let's get you setup with Dragon AI Agent" not in branded:
@@ -542,6 +550,12 @@ const protocol = 'hermes://copilot-key/start';
             fail("index.html must inject the in-app Models / provider-setup overlay")
         if "Other providers" not in html or "data-dragon-ai-provider-setup" not in html:
             fail("provider-setup inject must expand Other providers and mark the dialog")
+        if "data-dragon-ai-recommended" not in html or "xAI Grok" not in html:
+            fail("provider-setup inject must recommend xAI Grok")
+        if "Errno" not in html or "setup.status" not in html:
+            fail("provider-setup inject must hide the setup.status / Errno -2 banner")
+        if "nativeProviderSetupVisible" not in html:
+            fail("first-run-models inject must yield to the native provider-setup first screen")
         if "hermes model" not in html or "Dragon AI" not in html:
             fail("provider-setup inject must rewrite Hermes copy and keep the hermes model CLI")
         if "GPT" not in html or "Grok" not in html:
@@ -821,6 +835,12 @@ def test_packaging_not_regressed() -> None:
     provider_js = read(pack / "provider-setup.js")
     if "Other providers" not in provider_js or "data-dragon-ai-other-providers" not in provider_js:
         fail("provider-setup.js must open Other providers by default")
+    if "data-dragon-ai-recommended" not in provider_js or "xAI Grok" not in provider_js:
+        fail("provider-setup.js must recommend xAI Grok, not Nous Portal")
+    if "Errno" not in provider_js or "setup.status" not in provider_js:
+        fail("provider-setup.js must hide the setup.status / Errno -2 banner")
+    if "Hermes connects automatically" not in provider_js:
+        fail("provider-setup.js must rewrite Hermes connects automatically")
     if "Dragon AI" not in provider_js or "hermes model" not in provider_js:
         fail("provider-setup.js must rewrite Hermes copy and keep the hermes model CLI")
     if "/api/inherit-models" not in provider_js or "8655" not in provider_js:

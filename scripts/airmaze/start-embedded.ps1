@@ -1062,7 +1062,7 @@ function Start-DragonAIInheritModels {
     try {
         & $py.Source $engine inherit --home $embeddedHome --profiles $desktop 2>$null | Out-Null
         Start-Process -FilePath $py.Source -ArgumentList $inheritArgs -WindowStyle Hidden -ErrorAction SilentlyContinue | Out-Null
-        Write-LaunchLog "Inherit helper on http://127.0.0.1:8655/api/inherit-models (in-app Models → all bots)"
+        Write-LaunchLog "Inherit helper on http://127.0.0.1:8655/api/inherit-models (in-app Models -> all bots)"
     } catch {
         Write-LaunchLog "Inherit helper skipped: $($_.Exception.Message)" "WARN"
     }

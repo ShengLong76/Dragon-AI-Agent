@@ -99,22 +99,30 @@ func isDesktopWebUI(body string) bool {
 	return isHTMLPage(body) && !isHeadlessPage(body)
 }
 
-func overlaySnippets() string {
-	return strings.Join([]string{
-		`<link rel="stylesheet" href="/dragon-ai-branding/dragon-ui.css" data-dragon-ai-branding="ui-face">`,
-		`<script src="/dragon-ai-branding/sidebar-header.js" data-dragon-ai-branding="sidebar-header"></script>`,
-		`<script src="/dragon-ai-branding/teams-picker.js" data-dragon-ai-branding="teams-picker"></script>`,
-		`<script src="/dragon-ai-branding/first-run-models.js" data-dragon-ai-branding="first-run-models"></script>`,
-		`<script src="/dragon-ai-branding/dragon-voice-selector.js" data-dragon-ai-branding="voice-provider"></script>`,
-		`<script src="/dragon-ai-branding/dragon-voice-settings.js" data-dragon-ai-branding="voice-settings"></script>`,
-	}, "\n") + "\n"
+func overlaySnippets() [][2]string {
+	return [][2]string{
+		{`data-dragon-ai-branding="ui-face"`, `<link rel="stylesheet" href="/dragon-ai-branding/dragon-ui.css" data-dragon-ai-branding="ui-face">`},
+		{`data-dragon-ai-branding="sidebar-header"`, `<script src="/dragon-ai-branding/sidebar-header.js" data-dragon-ai-branding="sidebar-header"></script>`},
+		{`data-dragon-ai-branding="teams-picker"`, `<script src="/dragon-ai-branding/teams-picker.js" data-dragon-ai-branding="teams-picker"></script>`},
+		{`data-dragon-ai-branding="provider-setup"`, `<script src="/dragon-ai-branding/provider-setup.js" data-dragon-ai-branding="provider-setup"></script>`},
+		{`data-dragon-ai-branding="first-run-models"`, `<script src="/dragon-ai-branding/first-run-models.js" data-dragon-ai-branding="first-run-models"></script>`},
+		{`data-dragon-ai-branding="voice-provider"`, `<script src="/dragon-ai-branding/dragon-voice-selector.js" data-dragon-ai-branding="voice-provider"></script>`},
+		{`data-dragon-ai-branding="voice-settings"`, `<script src="/dragon-ai-branding/dragon-voice-settings.js" data-dragon-ai-branding="voice-settings"></script>`},
+	}
 }
 
 func injectOverlay(html string) string {
-	if strings.Contains(html, `data-dragon-ai-branding="first-run-models"`) {
+	var b strings.Builder
+	for _, item := range overlaySnippets() {
+		if !strings.Contains(html, item[0]) {
+			b.WriteString(item[1])
+			b.WriteByte('\n')
+		}
+	}
+	insert := b.String()
+	if insert == "" {
 		return html
 	}
-	insert := overlaySnippets()
 	lower := strings.ToLower(html)
 	if i := strings.Index(lower, "</head>"); i >= 0 {
 		return html[:i] + insert + html[i:]
@@ -480,6 +488,9 @@ func brandingDir() string {
 	}
 	for _, dir := range candidates {
 		if st, err := os.Stat(filepath.Join(dir, "first-run-models.js")); err == nil && !st.IsDir() {
+			return dir
+		}
+		if st, err := os.Stat(filepath.Join(dir, "provider-setup.js")); err == nil && !st.IsDir() {
 			return dir
 		}
 	}
