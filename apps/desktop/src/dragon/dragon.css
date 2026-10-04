@@ -38,3 +38,22 @@ html[data-dragon-lockup] [data-titlebar-cluster='left'] {
   letter-spacing: 0;
   font-weight: 600;
 }
+
+/* Grok-style geometry: soft corners across the app and a pill composer.
+   The composer keeps a neutral border in every state; focus never tints it. */
+:root {
+  --radius-scalar: 0.6;
+}
+
+[data-slot='composer-surface'],
+[data-slot='composer-surface'] ~ *,
+.group\/composer {
+  border-radius: 1.75rem;
+}
+
+[data-slot='composer-surface'],
+[data-slot='composer-surface']:focus-within {
+  border-color: color-mix(in srgb, var(--dt-composer-ring) 55%, transparent);
+  box-shadow: none;
+  outline: none;
+}
