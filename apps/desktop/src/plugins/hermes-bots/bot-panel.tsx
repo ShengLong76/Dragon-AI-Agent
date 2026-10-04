@@ -1,11 +1,12 @@
 /**
  * The right-sidebar Bot panel: one bot's identity card with Details | Library |
- * Computer | Scheduled Jobs tabs. Double-clicking a roster row (or a pinned
- * tile) opens it on the Computer tab — the bot's VM desktop — rather than a
- * file list. Cron lives on Scheduled Jobs, not on a screen card.
+ * Computer | Scheduled Jobs | Routines tabs. Double-clicking a roster row (or
+ * a pinned tile) opens it on the Computer tab — the bot's VM desktop — rather
+ * than a file list. Cron lives on Scheduled Jobs; the Details routines list
+ * lives on Routines.
  */
 
-import { atom, Button, cn, Codicon, GlyphSpinner, host, PanelEmpty, useI18n, useValue } from '@hermes/plugin-sdk'
+import { atom, Button, cn, Codicon, GlyphSpinner, host, PanelEmpty, useI18n, useQuery, useValue } from '@hermes/plugin-sdk'
 import { useState } from 'react'
 
 import { avatarColor, botAppearance, BotFace } from './avatar'
@@ -19,13 +20,13 @@ import {
 } from './cron'
 import { $botMeta, $lastRoster, botSelectionKey } from './data'
 import { botRole, displayName } from './labels'
-import { botRosterMeta } from './routing'
+import { botRosterMeta, requestForBot } from './routing'
 import { BotScreenPane } from './screen-pane'
 import { ID } from './shared'
 import { HubSkillsSection } from './skills-hub'
 import type { RosterRow } from './types'
 
-export type BotPanelTab = 'computer' | 'details' | 'jobs' | 'library'
+export type BotPanelTab = 'computer' | 'details' | 'jobs' | 'library' | 'routines'
 
 export const BOT_PANEL_PANE_ID = `${ID}:bot-panel`
 
@@ -40,7 +41,8 @@ const TABS: { id: BotPanelTab; label: string }[] = [
   { id: 'details', label: 'Details' },
   { id: 'library', label: 'Library' },
   { id: 'computer', label: 'Computer' },
-  { id: 'jobs', label: 'Scheduled Jobs' }
+  { id: 'jobs', label: 'Scheduled Jobs' },
+  { id: 'routines', label: 'Routines' }
 ]
 
 export function BotPanelPane() {
@@ -52,7 +54,7 @@ export function BotPanelPane() {
   if (!panel || !bot) {
     return (
       <PanelEmpty
-        description="Double-click a bot in the Bots tab to open its computer, details, library, and scheduled jobs here."
+        description="Double-click a bot in the Bots tab to open its computer, details, library, scheduled jobs, and routines here."
         icon="hubot"
         title="No bot open"
       />
@@ -103,7 +105,8 @@ export function BotPanelPane() {
               <div className="h-full overflow-y-auto px-3 py-2">
                 <HubSkillsSection bot={bot} />
               </div>
-            )
+            ),
+            routines: <BotRoutines bot={bot} />
           }[panel.tab]
         }
       </div>
@@ -112,17 +115,37 @@ export function BotPanelPane() {
 }
 
 function BotDetails({ bot, description }: { bot: RosterRow; description: string }) {
+  const { data: soul, isLoading: soulLoading } = useQuery({
+    queryKey: [ID, 'soul', botSelectionKey(bot)],
+    queryFn: async () => {
+      const res = (await requestForBot(bot, 'profiles.describe', { name: bot.name })) as { soul?: string }
+
+      return res.soul || ''
+    }
+  })
+
   return (
     <div className="h-full overflow-y-auto px-3 pb-4">
-      {description ? (
-        <p className="px-1 pt-2 pb-3 text-[0.8125rem] leading-5 text-(--ui-text-secondary)">{description}</p>
-      ) : null}
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 px-1 py-2 text-[0.8125rem]">
         <dt className="text-(--ui-text-tertiary)">Profile</dt>
         <dd className="truncate font-mono text-xs leading-5">{bot.name}</dd>
         <dt className="text-(--ui-text-tertiary)">Runs on</dt>
         <dd className="truncate leading-5">{bot.connectionLabel || 'This device'}</dd>
+        <dt className="text-(--ui-text-tertiary)">Description</dt>
+        <dd className="leading-5 text-(--ui-text-secondary)">{description || '—'}</dd>
       </dl>
+      <section className="px-1 pt-3">
+        <div className="pb-1.5 text-[0.8125rem] font-semibold">SOUL.md</div>
+        {soulLoading ? (
+          <div className="flex justify-center py-4">
+            <GlyphSpinner className="text-(--ui-text-tertiary)" spinner="breathe" />
+          </div>
+        ) : (
+          <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-md border border-(--ui-stroke-secondary) bg-(--ui-bg-tertiary)/40 px-2.5 py-2 font-mono text-[0.75rem] leading-5 text-(--ui-text-secondary)">
+            {soul || ''}
+          </pre>
+        )}
+      </section>
     </div>
   )
 }
@@ -164,6 +187,41 @@ function BotJobs({ bot }: { bot: RosterRow }) {
       )}
       <RoutineDetailDialog job={detailJob} onClose={() => setDetailJobId(null)} open={Boolean(detailJob)} />
       <CreateRoutineDialog bot={bot} onClose={() => setCreateOpen(false)} open={createOpen} />
+    </div>
+  )
+}
+
+function BotRoutines({ bot }: { bot: RosterRow }) {
+  const { data, error, isLoading } = useRoutines(bot)
+  const [detailJobId, setDetailJobId] = useState<null | string>(null)
+  const view = selectRoutineJobs(data, error, $lastJobs.get(), bot.name)
+  const detailJob = detailJobId ? view.jobs.find(job => job.job_id === detailJobId) || null : null
+
+  return (
+    <div className="h-full overflow-y-auto px-3 pb-4">
+      <div className="flex items-center justify-between px-1 pt-3 pb-1.5">
+        <span className="text-[0.8125rem] font-semibold">Routines</span>
+        <Button onClick={() => host.revealPane(`${ID}:routines`)} size="xs" variant="text">
+          <Codicon name="add" />
+          New
+        </Button>
+      </div>
+      {isLoading && !view.all.length ? (
+        <div className="flex justify-center py-4">
+          <GlyphSpinner className="text-(--ui-text-tertiary)" spinner="breathe" />
+        </div>
+      ) : view.jobs.length ? (
+        <div className="grid gap-1.5">
+          {view.jobs.map(job => (
+            <RoutineRow job={job} key={job.job_id} onOpen={opened => setDetailJobId(opened.job_id)} owner={bot} />
+          ))}
+        </div>
+      ) : (
+        <p className="px-1 py-2 text-xs text-(--ui-text-tertiary)">
+          No routines yet. Scheduled jobs this bot runs on its own show up here.
+        </p>
+      )}
+      <RoutineDetailDialog job={detailJob} onClose={() => setDetailJobId(null)} open={Boolean(detailJob)} />
     </div>
   )
 }

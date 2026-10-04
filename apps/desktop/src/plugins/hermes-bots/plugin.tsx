@@ -489,7 +489,7 @@ export default {
     })
 
     // The Bot panel stacks into the right sidebar beside Files: a bot's
-    // identity card with its computer (VM desktop), details, library, and jobs.
+    // identity card with its computer (VM desktop), details, library, jobs, and routines.
     ctx.register({
       id: 'bot-panel',
       area: 'panes',
