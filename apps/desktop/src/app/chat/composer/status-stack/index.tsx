@@ -65,8 +65,10 @@ const GROUP_ICON: Record<StatusGroup['type'], string> = {
   background: 'server-process'
 }
 
+const SOLICIT_SHARED_METRICS = false
+
 // Goals and todos are the plan the user is following; subagents and background
-// processes are how Hermes is executing it. Simple mode shows the plan only.
+// processes are how the agent is executing it. Simple mode shows the plan only.
 const GROUP_TIER: Record<StatusGroup['type'], Tiered> = {
   goal: {},
   todo: {},
@@ -146,7 +148,10 @@ export function ComposerStatusStack({ onSubmit, queue, sessionId }: ComposerStat
   const freeTierNotice = ownsFreeTierNotice && freeTierStripPending(freeTierStatus, freeTierRoute)
   // Same single owner, one offer at a time: the metrics question waits for the free-tier notice.
   const sharedMetricsConsent = useStore($sharedMetricsConsent)
-  const sharedMetricsOffer = ownsFreeTierNotice && !freeTierNotice && sharedMetricsOfferPending(sharedMetricsConsent)
+
+  // Dragon AI never solicits upstream telemetry from the composer; the opt-in lives in Settings → Safety.
+  const sharedMetricsOffer =
+    SOLICIT_SHARED_METRICS && ownsFreeTierNotice && !freeTierNotice && sharedMetricsOfferPending(sharedMetricsConsent)
 
   const isStructuredSupported = controlEntry?.capability === 'supported'
 
