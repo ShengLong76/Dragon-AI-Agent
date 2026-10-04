@@ -51,7 +51,7 @@ def test_packager_source() -> None:
         "zip.OpenReader",
         "extractSelfPayload",
         "Re-download DragonAIAgentSetup.exe",
-        "payload\\install.ps1",
+        'filepath.Join(exeDir, "payload", "install.ps1")',
     ):
         if token not in setup:
             fail(f"build-exe.go missing {token!r}")
