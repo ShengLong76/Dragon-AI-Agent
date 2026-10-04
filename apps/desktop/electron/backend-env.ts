@@ -198,7 +198,22 @@ function storeFirstPath(
   const pathModule = pathModuleForPlatform(platform)
   const delimiter = delimiterForPlatform(platform)
   const hermesHome = resolveDesktopHermesHome({ home: homedir, env: currentEnv, platform })
-  const roots = [currentEnv?.HERMES_RUNTIME_DIR, pathModule.join(hermesHome, 'tools')].filter(Boolean)
+  const suffix = currentEnv?.HERMES_DATA_DIR_SUFFIX || ''
+
+  // pm resolves its store from the Python default home, which is not the desktop's data home.
+  const pmHome =
+    platform === 'win32'
+      ? pathModule.join(
+          (currentEnv?.LOCALAPPDATA || '').trim() || pathModule.join(homedir, 'AppData', 'Local'),
+          'hermes'
+        ) + suffix
+      : pathModule.join(homedir, '.hermes') + suffix
+
+  const roots = [
+    currentEnv?.HERMES_RUNTIME_DIR,
+    pathModule.join(hermesHome, 'tools'),
+    pathModule.join(pmHome, 'tools')
+  ].filter(Boolean)
 
   const owned = (entry: string) =>
     roots.some(root => {

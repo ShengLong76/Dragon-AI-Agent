@@ -62,13 +62,15 @@ REPLACEMENTS: list[tuple[re.Pattern[str], str]] = [
 PROTECTED = re.compile(
     r"^(?:Hermes|HermesBundled|HermesLight|Hermes\.exe|hermes\.exe|NousResearch\.Hermes.*|Hermes-Setup.*|HERMES_[A-Z_]+)$"
 )
+# A literal that is only a ~/.hermes path names the backend's on-disk home (pm store, SSH remotes).
+BARE_HOME_PATH = re.compile(r"^~/\.hermes(?:/[\w./-]*)?$")
 # Filesystem paths and bundle names that point at real upstream artifacts.
 PATHLIKE = re.compile(r"X-Hermes-|HERMES\.md|Hermes(?:\.app|\.exe|-Setup|\\|/)|[\\/]Hermes\b|\\\\hermes\b")
 REGEX_KEYWORDS = {"return", "typeof", "case", "do", "else", "in", "of", "new", "delete", "void", "throw", "yield", "await"}
 
 
 def rebrand_text(text: str) -> str:
-    if PROTECTED.match(text) or PATHLIKE.search(text):
+    if PROTECTED.match(text) or BARE_HOME_PATH.match(text) or PATHLIKE.search(text):
         return text
     for pattern, repl in REPLACEMENTS:
         text = pattern.sub(repl, text)

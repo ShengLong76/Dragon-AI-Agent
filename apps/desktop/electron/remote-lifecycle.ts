@@ -38,7 +38,7 @@ const LOCKFILE_SCHEMA_VERSION = 2
 // args, served-token reconciliation). A mismatch forces a clean respawn.
 const PROTOCOL_VERSION = 1
 const READY_RE = READY_IN_MERGED_OUTPUT_RE // the remote log is `>> log 2>&1`: merged, not line-accurate
-const REMOTE_LOCK_DIR = '~/.dragon-ai-claude/desktop-ssh'
+const REMOTE_LOCK_DIR = '~/.hermes/desktop-ssh'
 const SUPPORTED_REMOTE_OS = new Set(['Linux', 'Darwin'])
 // On a busy remote host a healthy cold boot can take 60-150s before the
 // freshly spawned `hermes serve --isolated` prints its READY line (event-loop
@@ -249,7 +249,7 @@ async function locateHermes(ssh, remoteHermesPath) {
   // command locations (scripts/install.sh) — per-user, root/FHS, legacy venv.
   candidates.push('~/.local/bin/hermes')
   candidates.push('/usr/local/bin/hermes')
-  candidates.push('~/.dragon-ai-claude/hermes-agent/venv/bin/hermes')
+  candidates.push('~/.hermes/hermes-agent/venv/bin/hermes')
 
   for (const candidate of candidates) {
     if (!candidate) {
@@ -310,7 +310,7 @@ async function probeRemoteHermesHome(ssh) {
   try {
     const out = (await ssh.exec('echo "${HERMES_HOME:-$HOME/.hermes}"')).trim().split('\n').pop()
 
-    return out || '~/.dragon-ai-claude'
+    return out || '~/.hermes'
   } catch (cause) {
     const error: any = new Error('Could not resolve the remote Dragon AI home.')
     error.kind = 'transient-transport-error'
@@ -1171,10 +1171,10 @@ function buildSpawnCommand(hermesPath, profile, opts: any = {}) {
   const tokenArg = tokenFilePath ? ` --ssh-session-token-file ${expandRemotePath(tokenFilePath)}` : ''
   const ownerArg = opts.spawnNonce ? ` --ssh-owner-nonce ${validateSpawnNonce(opts.spawnNonce)}` : ''
   const subCmd = `serve --isolated --host 127.0.0.1 --port 0${tokenArg}${ownerArg}`
-  const marker = expandRemotePath(`${remoteInstallRoot(opts.hermesHome || '~/.dragon-ai-claude')}/.hermes-update-in-progress`)
+  const marker = expandRemotePath(`${remoteInstallRoot(opts.hermesHome || '~/.hermes')}/.hermes-update-in-progress`)
 
   const updateMutex = expandRemotePath(
-    `${remoteInstallRoot(opts.hermesHome || '~/.dragon-ai-claude')}/.hermes-update-in-progress.mutex`
+    `${remoteInstallRoot(opts.hermesHome || '~/.hermes')}/.hermes-update-in-progress.mutex`
   )
 
   // The marker probe, ownership reservation, process creation, and initial
@@ -1307,7 +1307,7 @@ async function spawnRemoteDashboard(
     profile,
     token,
     ownershipId,
-    hermesHome = '~/.dragon-ai-claude',
+    hermesHome = '~/.hermes',
     guestOnboarding = false,
     assertInstallClear = async () => {}
   }
