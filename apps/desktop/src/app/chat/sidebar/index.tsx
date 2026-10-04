@@ -135,7 +135,7 @@ import { $workingSessionIds } from '@/store/session-states'
 import { ackAllSessionsRead } from '@/store/session-unread'
 import { markSessionUnread } from '@/store/session-unread-remote'
 import { $archivedSessions, loadArchivedSessions } from '@/store/sidebar-archive'
-import { applySidebarNavPrefs, SIDEBAR_NAV_PREFS_AREA } from '@/store/sidebar-nav'
+import { applySidebarNavPrefs, placeSidebarPluginNav, SIDEBAR_NAV_PREFS_AREA } from '@/store/sidebar-nav'
 import { $sidebarSessionRankIds } from '@/store/sidebar-sort'
 
 import {
@@ -448,7 +448,14 @@ export function ChatSidebar({
   const navPrefs = useContributions(SIDEBAR_NAV_PREFS_AREA)
 
   const navItems = useMemo(
-    () => applySidebarNavPrefs([...SIDEBAR_NAV, ...contributedNav].filter(shownInMode(interfaceMode)), navPrefs),
+    () =>
+      applySidebarNavPrefs(
+        placeSidebarPluginNav(
+          SIDEBAR_NAV.filter(shownInMode(interfaceMode)),
+          contributedNav.filter(shownInMode(interfaceMode))
+        ),
+        navPrefs
+      ),
     [contributedNav, interfaceMode, navPrefs]
   )
 

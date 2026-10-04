@@ -45,6 +45,24 @@ const cleanIds = (ids: unknown): string[] =>
  *  `order` = first contribution first, later contributions place only ids not
  *  yet placed; rows no order names keep their default relative order after
  *  the named ones; unknown ids are inert. */
+
+/** Put the Kanban board row directly under Messaging. Other plugin rows stay
+ *  after the built-ins. A missing Messaging row appends everything. */
+export function placeSidebarPluginNav<T extends { id: string; route?: string }>(
+  builtIn: readonly T[],
+  contributed: readonly T[]
+): T[] {
+  const kanban = contributed.filter(item => item.route === '/kanban')
+  const rest = contributed.filter(item => item.route !== '/kanban')
+  const afterMessaging = builtIn.findIndex(item => item.id === 'messaging')
+
+  if (afterMessaging === -1) {
+    return [...builtIn, ...kanban, ...rest]
+  }
+
+  return [...builtIn.slice(0, afterMessaging + 1), ...kanban, ...builtIn.slice(afterMessaging + 1), ...rest]
+}
+
 export function applySidebarNavPrefs<T extends { id: string }>(
   items: readonly T[],
   contributions: readonly Contribution[]
