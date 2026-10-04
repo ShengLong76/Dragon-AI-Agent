@@ -467,16 +467,14 @@
     --dt-sidebar-bg: var(--ui-bg-sidebar);
     --dt-sidebar-border: var(--ui-stroke-secondary);
     /* `--user-bubble-keep` is the Settings → Appearance → Message Bubble lever
-       (store/user-bubble-transparency.ts): the share of the theme's bubble
-       fill to keep. Unset at the default, so the mix is a no-op and the bubble
-       is the theme's fill exactly as before. The border stays put either way —
-       at full transparency the outline is what still marks your turn. */
-    --dt-user-bubble: color-mix(in srgb, var(--ui-chat-bubble-background) var(--user-bubble-keep, 100%), transparent);
+       (store/user-bubble-transparency.ts): the share of the fill to keep.
+       These two fills are the Grok Bot graphite pair, not theme mixes:
+       `--ui-chat-bubble-background` dark-mixes the user seed 46% into the
+       card and lands on `--dt-muted`, so both voices painted the same gray. */
+    --dt-user-bubble-fill: #ececec;
+    --dt-user-bubble: color-mix(in srgb, var(--dt-user-bubble-fill) var(--user-bubble-keep, 100%), transparent);
     --dt-user-bubble-border: var(--ui-stroke-tertiary);
-    /* Agent fill is the existing muted surface — darker than the user bubble,
-       close to the chat background, not a new hex. HUD overrides this to
-       transparent the same way it clears the user bubble. */
-    --dt-assistant-bubble: var(--dt-muted);
+    --dt-assistant-bubble: #d6d6d6;
 
     --dt-font-sans:
       'Segoe WPC', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif,
@@ -628,6 +626,9 @@
        touch — still clearly a surface, no longer the brightest thing in the
        transcript. Derived from the card so every skin follows its own seed. */
     --ui-widget-surface-background: color-mix(in srgb, var(--ui-bg-editor) 88%, #000);
+    /* Grok Bot pair: user lighter graphite, agent darker graphite. */
+    --dt-user-bubble-fill: #2f2f2f;
+    --dt-assistant-bubble: #1b1b1b;
   }
 
   /* ── Window glass (Settings → Appearance → Window Translucency: Glass) ──
