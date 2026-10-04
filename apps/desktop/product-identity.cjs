@@ -16,7 +16,7 @@ const variants = {
     pascal: 'DragonAIClaudeLight'
   },
   bundled: {
-    display: 'Dragon AI Claude',
+    display: 'Dragon AI Claude Agent',
     kebab: 'dragon-ai-claude-bundled',
     pascal: 'DragonAIClaudeBundled'
   }
