@@ -43,6 +43,8 @@ logger = logging.getLogger(__name__)
 # (macOS Intel / Apple Silicon Homebrew / app bundle).
 _DOCKER_SEARCH_PATHS = [
     "/usr/local/bin/docker", "/opt/homebrew/bin/docker", "/Applications/Docker.app/Contents/Resources/bin/docker",
+    os.path.expandvars(r"%ProgramFiles%\Docker\Docker\resources\bin\docker.exe"),
+    os.path.expandvars(r"%ProgramW6432%\Docker\Docker\resources\bin\docker.exe"),
 ]
 
 _docker_executable: Optional[str] = None  # resolved once, cached
@@ -263,7 +265,7 @@ def _docker_query(
 
 def find_docker() -> Optional[str]:
     """Locate the docker/podman CLI (cached): ``HERMES_DOCKER_BINARY`` override, ``docker``
-    on PATH, ``podman`` on PATH, then macOS Docker Desktop locations; ``None`` if absent."""
+    on PATH, ``podman`` on PATH, then macOS / Windows Docker Desktop locations; ``None`` if absent."""
     global _docker_executable
     if _docker_executable is not None:
         return _docker_executable

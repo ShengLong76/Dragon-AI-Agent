@@ -59,6 +59,11 @@ def _(rid, params: dict) -> dict:
     image_data, error}`` — ``image_data`` is omitted when the download fails, so
     callers fall back to ``image`` (the backend's URL/path)."""
     try:
+        from tools.image_generation_defaults import maybe_default_image_gen_from_llm
+        maybe_default_image_gen_from_llm()
+    except Exception:
+        pass
+    try:
         from tools.image_generation_tool import check_image_generation_requirements
         available = bool(check_image_generation_requirements())
     except Exception:

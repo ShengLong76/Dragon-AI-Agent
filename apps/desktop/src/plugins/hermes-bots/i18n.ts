@@ -88,7 +88,7 @@ type BotsMessages = {
     lockFace: string
     lockedHint: string
     unlockedHint: string
-    noImageModel: string
+    chooseImageModel: string
     checkingImage: string
     chooseImage: string
     editDescription: (name: string, profile: string) => string
@@ -540,8 +540,7 @@ const en: BotsMessages = {
     lockFace: 'Lock face',
     lockedHint: 'Face locked — renaming won’t change it.',
     unlockedHint: 'Face follows the name.',
-    noImageModel:
-      'No image model available. If you just enabled one (or updated Dragon AI), restart the gateway: Ctrl+K → "Restart gateway".',
+    chooseImageModel: 'Choose an image model',
     checkingImage: 'Checking image backend…',
     chooseImage: 'Choose an image…',
     editDescription: (name, profile) => `Appearance and role for ${name} (${profile}).`,
@@ -799,8 +798,9 @@ const en: BotsMessages = {
   screen: {
     title: 'Screen',
     menu: 'Open Screen',
-    unsupportedTitle: 'No bot screen on this host',
-    unsupportedBody: 'Bot screens run on Linux gateway hosts. This bot uses the host\u2019s own display.',
+    unsupportedTitle: 'No Linux guest on this host',
+    unsupportedBody:
+      'Bot screens run in a Linux guest. Install Docker Desktop and retry, or run the gateway on Linux.',
     notInstalledTitle: 'Screen packages missing',
     notInstalledBody: 'The gateway host needs TigerVNC and the Xfce core to give this bot a screen. Run on the host:',
     installHint: 'Runs on the gateway host as the user Dragon AI runs as; sudo is asked for once, through Dragon AI.',
@@ -978,8 +978,7 @@ const ja: BotsMessages = {
     lockFace: '顔を固定',
     lockedHint: '顔を固定しました。名前を変えても変化しません。',
     unlockedHint: '顔は名前に合わせて変わります。',
-    noImageModel:
-      '画像モデルがありません。有効にした直後や Dragon AI 更新後の場合は、Ctrl+K →「ゲートウェイを再起動」で再起動してください。',
+    chooseImageModel: '画像モデルを選択',
     checkingImage: '画像バックエンドを確認中…',
     chooseImage: '画像を選択…',
     editDescription: (name, profile) => `${name}（${profile}）の外観と役割。`,
@@ -1236,9 +1235,9 @@ const ja: BotsMessages = {
   screen: {
     title: '画面',
     menu: '画面を開く',
-    unsupportedTitle: 'このホストにはボット画面がありません',
+    unsupportedTitle: 'このホストには Linux ゲストがありません',
     unsupportedBody:
-      'ボット画面は Linux のゲートウェイホストで動作します。このボットはホスト自身のディスプレイを使います。',
+      'ボット画面は Linux ゲストで動作します。Docker Desktop をインストールして再試行するか、Linux 上でゲートウェイを実行してください。',
     notInstalledTitle: '画面パッケージが不足しています',
     notInstalledBody:
       'このボットに画面を与えるには、ゲートウェイホストに TigerVNC と Xfce コアが必要です。ホストで実行:',
@@ -1414,7 +1413,7 @@ const zh: BotsMessages = {
     lockFace: '锁定外观',
     lockedHint: '外观已锁定，重命名不会改变外观。',
     unlockedHint: '外观随名称变化。',
-    noImageModel: '没有可用的图像模型。如果刚启用模型或更新了 Dragon AI，请重启网关：Ctrl+K →“重启网关”。',
+    chooseImageModel: '选择图像模型',
     checkingImage: '正在检查图像后端…',
     chooseImage: '选择图像…',
     editDescription: (name, profile) => `${name}（${profile}）的外观和职责。`,
@@ -1663,8 +1662,8 @@ const zh: BotsMessages = {
   screen: {
     title: '屏幕',
     menu: '打开屏幕',
-    unsupportedTitle: '此主机没有机器人屏幕',
-    unsupportedBody: '机器人屏幕在 Linux 网关主机上运行。此机器人使用主机自身的显示器。',
+    unsupportedTitle: '此主机没有 Linux 访客',
+    unsupportedBody: '机器人屏幕在 Linux 访客中运行。请安装 Docker Desktop 后重试，或在 Linux 上运行网关。',
     notInstalledTitle: '缺少屏幕软件包',
     notInstalledBody: '网关主机需要 TigerVNC 和 Xfce 核心组件才能为此机器人提供屏幕。在主机上运行:',
     installHint: '在网关主机上以运行 Dragon AI 的用户身份执行；sudo 只会通过 Dragon AI 询问一次。',
@@ -1838,7 +1837,7 @@ const zhHant: BotsMessages = {
     lockFace: '鎖定外觀',
     lockedHint: '外觀已鎖定，重新命名不會改變外觀。',
     unlockedHint: '外觀隨名稱變化。',
-    noImageModel: '沒有可用的影像模型。如果剛啟用模型或更新了 Dragon AI，請重新啟動閘道：Ctrl+K →「重新啟動閘道」。',
+    chooseImageModel: '選擇影像模型',
     checkingImage: '正在檢查影像後端…',
     chooseImage: '選擇影像…',
     editDescription: (name, profile) => `${name}（${profile}）的外觀和職責。`,
@@ -2087,8 +2086,8 @@ const zhHant: BotsMessages = {
   screen: {
     title: '螢幕',
     menu: '開啟螢幕',
-    unsupportedTitle: '此主機沒有機器人螢幕',
-    unsupportedBody: '機器人螢幕在 Linux 閘道主機上執行。此機器人使用主機自身的顯示器。',
+    unsupportedTitle: '此主機沒有 Linux 訪客',
+    unsupportedBody: '機器人螢幕在 Linux 訪客中執行。請安裝 Docker Desktop 後重試，或在 Linux 上執行閘道。',
     notInstalledTitle: '缺少螢幕套件',
     notInstalledBody: '閘道主機需要 TigerVNC 與 Xfce 核心元件才能為此機器人提供螢幕。在主機上執行:',
     installHint: '在閘道主機上以執行 Dragon AI 的使用者身分執行；sudo 只會透過 Dragon AI 詢問一次。',

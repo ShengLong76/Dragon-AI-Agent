@@ -11,7 +11,6 @@ import {
   coarseElapsed,
   Codicon,
   ContextMenu,
-  ContextMenuCheckboxItem,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
@@ -22,7 +21,6 @@ import {
   GlyphSpinner,
   haptic,
   host,
-  queryClient,
   RowButton,
   SessionStatusDot,
   SidebarRowLead,
@@ -33,42 +31,33 @@ import {
 
 import { avatarColor, botAppearance, BotFace } from './avatar'
 import { isBackfilledFacePng } from './avatar-image'
+import { BotContextMenu } from './bot-context-menu'
 import { openBotPanel } from './bot-panel'
 import {
   $botChatFocused,
   $focusedBotOwner,
   $pendingBotOpen,
   $selectedRosterKey,
-  focusedRosterOwner,
-  saveSelectedRosterBot
+  focusedRosterOwner
 } from './bot-state'
-import { ensureBotMetadata } from './canonical-chat'
 import {
   $botAttention,
   $botMeta,
-  $lastRoster,
   botActivitySession,
   botAttentionHint,
   botHandle,
   botRosterKey,
-  botSelectionKey,
-  botSourceStatus,
-  isDefaultBot,
-  newBotChat,
-  ROSTER_KEY,
-  saveBotMeta
+  botSourceStatus
 } from './data'
 import { $groupChats, $groupChatWorkspace } from './group-chat'
-import { botGroups, groupLastActivity } from './group-membership'
+import { groupLastActivity } from './group-membership'
 import { toggleGroupChatPinned } from './group-pin'
 import { $activeGroupMemberKeys } from './group-presence'
-import { fallbackSelectionAfterHide, isBotHidden, isBotPinned } from './hidden-bots'
+import { isBotHidden, isBotPinned } from './hidden-bots'
 import { useBots } from './i18n'
 import { displayName, stripPreviewMarkdown } from './labels'
-import { duplicateBot } from './profile-ops'
-import { botRecentSession, openBotRecentSession } from './recent-session'
 import { openRosterBot } from './roster-actions'
-import { botRosterMeta, botWorkspaceOwnerKey, setBotsWorkspaceOwner } from './routing'
+import { botRosterMeta } from './routing'
 import {
   A2A_PREFIX_RE,
   botCanonicalSessionId,
@@ -78,16 +67,13 @@ import {
   useTurnBusy,
   workerActiveAt
 } from './row-helpers'
-import { openBotScreen } from './screen-open'
 import type { GroupMember, RosterRow, SidebarRowLabels } from './types'
 import {
   $botSections,
   $draggingBot,
   BOT_DRAG_MIME,
-  botSectionId,
   groupChatSectionId,
   groupDragKey,
-  moveBotsToSection,
   moveGroupChatsToSection
 } from './user-sections'
 
@@ -128,7 +114,6 @@ export function BotRow({ bot, onDelete, onEdit, onGroup, onNewSection, showHandl
   const hidden = isBotHidden(bot, allMeta)
   const pinned = isBotPinned(bot, allMeta)
   const sourceStatus = botSourceStatus(bot)
-  const groups = botGroups(meta)
   const last = bot.last_session
   // Highlight follows the chat on screen (focused session's owner), not the
   // gateway socket's home — a focused tab doesn't swap the socket, and on the
@@ -235,9 +220,7 @@ export function BotRow({ bot, onDelete, onEdit, onGroup, onNewSection, showHandl
   // gestures. The drag carries the roster key under a private MIME type, so
   // only a section block can accept it.
   const rosterKey = botRosterKey(bot)
-  const sections = useValue($botSections)
   const dragging = useValue($draggingBot) === rosterKey
-  const currentSectionId = botSectionId(bot, allMeta)
 
   const row = (
     <RowButton
@@ -329,172 +312,9 @@ export function BotRow({ bot, onDelete, onEdit, onGroup, onNewSection, showHandl
   )
 
   return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>{row}</ContextMenuTrigger>
-      <ContextMenuContent>
-        <ContextMenuItem onSelect={() => void openRosterBot(bot)}>{b.bot.openBotChat}</ContextMenuItem>
-        <ContextMenuItem onSelect={() => openBotPanel(bot, 'computer')}>{b.screen.menu}</ContextMenuItem>
-        <ContextMenuItem onSelect={() => openBotScreen(bot, meta)}>Open computer in a tab</ContextMenuItem>
-        <ContextMenuCheckboxItem
-          checked={Boolean(meta?.screenAutoOpen)}
-          onSelect={() => {
-            void ensureBotMetadata(bot)
-              .then(current => {
-                const next = !current.screenAutoOpen
-                void saveBotMeta(bot, { screenAutoOpen: next })
-                host.notify({
-                  kind: 'info',
-                  message: next
-                    ? b.screen.autoOpenOnToast(displayName(bot, current))
-                    : b.screen.autoOpenOffToast(displayName(bot, current))
-                })
-              })
-              .catch(error => host.notifyError?.(error, b.bot.metadataLoadFailed))
-          }}
-        >
-          {b.screen.autoOpenMenu}
-        </ContextMenuCheckboxItem>
-        <ContextMenuSeparator />
-        <ContextMenuItem
-          onSelect={() => {
-            void ensureBotMetadata(bot)
-              .then(current => {
-                const pinned =
-                  typeof current.pinned === 'boolean' ? current.pinned : isDefaultBot(bot) && !bot.remoteSource
-                void saveBotMeta(bot, {
-                  pinned: !pinned
-                })
-                host.notify({
-                  kind: 'info',
-                  message: pinned
-                    ? b.bot.unpinnedToast(displayName(bot, current))
-                    : b.bot.pinnedToast(displayName(bot, current))
-                })
-              })
-              .catch(error => host.notifyError?.(error, b.bot.metadataLoadFailed))
-          }}
-        >
-          {pinned ? b.bot.unpin : b.bot.pinToTop}
-        </ContextMenuItem>
-        <ContextMenuItem
-          onSelect={() => {
-            void ensureBotMetadata(bot)
-              .then(current => {
-                const hidden = Boolean(current.hidden)
-                void saveBotMeta(bot, {
-                  hidden: !hidden
-                })
-
-                if (!hidden) {
-                  fallbackSelectionAfterHide(botSelectionKey(bot))
-                }
-
-                host.notify({
-                  kind: 'info',
-                  message: hidden
-                    ? b.bot.unhiddenToast(displayName(bot, current))
-                    : b.bot.hiddenToast(displayName(bot, current))
-                })
-              })
-              .catch(error => host.notifyError?.(error, b.bot.metadataLoadFailed))
-          }}
-        >
-          {hidden ? b.bot.unhide : b.bot.hide}
-        </ContextMenuItem>
-        <ContextMenuSeparator />
-        <ContextMenuItem
-          onSelect={() =>
-            void ensureBotMetadata(bot)
-              .then(() => onEdit(bot))
-              .catch(error => host.notifyError?.(error, b.bot.loadFailed))
-          }
-        >
-          {b.bot.editMenu}
-        </ContextMenuItem>
-        <ContextMenuItem
-          onSelect={() =>
-            void ensureBotMetadata(bot)
-              .then(() => onGroup(bot))
-              .catch(error => host.notifyError?.(error, b.bot.groupsLoadFailed))
-          }
-        >
-          {groups.length ? b.bot.groupsMenu(groups.join(', ')) : b.bot.manageGroups}
-        </ContextMenuItem>
-        <ContextMenuItem
-          onSelect={() => {
-            host.notify({
-              kind: 'info',
-              message: `Duplicating ${displayName(bot, meta)}…`
-            })
-            duplicateBot(bot, $lastRoster.get())
-              .then(name => {
-                queryClient.invalidateQueries({
-                  queryKey: ROSTER_KEY
-                })
-                host.notify({
-                  kind: 'success',
-                  message: `Created ${name} — full copy of ${bot.name}`
-                })
-              })
-              .catch(err => host.notifyError(err, b.bot.duplicateFailed))
-          }}
-        >
-          {b.bot.duplicate}
-        </ContextMenuItem>
-        <ContextMenuSeparator />
-        <ContextMenuItem
-          onSelect={() => {
-            saveSelectedRosterBot(bot)
-            setBotsWorkspaceOwner(botWorkspaceOwnerKey(bot), bot)
-            newBotChat(bot)
-          }}
-        >
-          {b.bot.newChatWith}
-        </ContextMenuItem>
-        {/* Click-to-latest (#93054): the freshest listed session — a cron run,
-            a delegated job, a side thread — without moving the row click off
-            the canonical Bot Chat. */}
-        <ContextMenuItem disabled={!botRecentSession(bot)} onSelect={() => void openBotRecentSession(bot)}>
-          Open recent session
-        </ContextMenuItem>
-        <ContextMenuSeparator />
-        {/* Filing. Membership is one field on the bot's meta (`sectionId`), so
-            this is a one-field write and no list anywhere has to be kept in
-            sync with it. */}
-        <ContextMenuSub>
-          <ContextMenuSubTrigger>{b.sections.moveTo}</ContextMenuSubTrigger>
-          <ContextMenuSubContent>
-            {sections.map(section => (
-              <ContextMenuItem
-                disabled={section.id === currentSectionId}
-                key={section.id}
-                onSelect={() => void moveBotsToSection([bot], section.id)}
-              >
-                <Codicon className="mr-1.5" name="folder" />
-                {section.name}
-              </ContextMenuItem>
-            ))}
-            {sections.length ? <ContextMenuSeparator /> : null}
-            <ContextMenuItem onSelect={() => onNewSection(bot)}>
-              <Codicon className="mr-1.5" name="new-folder" />
-              {b.sections.newSectionEllipsis}
-            </ContextMenuItem>
-            {currentSectionId ? (
-              <ContextMenuItem onSelect={() => void moveBotsToSection([bot], null)}>
-                <Codicon className="mr-1.5" name="inbox" />
-                {b.sections.removeFromSection}
-              </ContextMenuItem>
-            ) : null}
-          </ContextMenuSubContent>
-        </ContextMenuSub>
-        {isDefaultBot(bot) ? null : <ContextMenuSeparator />}
-        {isDefaultBot(bot) ? null : (
-          <ContextMenuItem onSelect={() => onDelete(bot)} variant="destructive">
-            {t.common.delete}
-          </ContextMenuItem>
-        )}
-      </ContextMenuContent>
-    </ContextMenu>
+    <BotContextMenu bot={bot} onDelete={onDelete} onEdit={onEdit} onGroup={onGroup} onNewSection={onNewSection}>
+      {row}
+    </BotContextMenu>
   )
 }
 

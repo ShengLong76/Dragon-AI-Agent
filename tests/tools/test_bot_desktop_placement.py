@@ -17,6 +17,26 @@ from tools.bot_desktop import placement, runtime
 from tools.environments import streams
 
 
+def test_auto_local_spins_a_docker_guest_when_the_host_cannot_run_xvnc(monkeypatch):
+    monkeypatch.setattr(placement, "_setting", lambda: "auto")
+    monkeypatch.setattr(placement, "_terminal_backend", lambda: "local")
+    monkeypatch.setattr(placement, "_host_can_run_xvnc", lambda: False)
+    monkeypatch.setattr(placement, "_docker_cli", lambda: "/usr/bin/docker")
+    chosen = placement.resolve()
+    assert chosen.where == placement.TERMINAL
+    assert chosen.backend == "docker"
+
+
+def test_explicit_gateway_does_not_fall_through_to_a_docker_guest(monkeypatch):
+    monkeypatch.setattr(placement, "_setting", lambda: "gateway")
+    monkeypatch.setattr(placement, "_terminal_backend", lambda: "local")
+    monkeypatch.setattr(placement, "_host_can_run_xvnc", lambda: False)
+    monkeypatch.setattr(placement, "_docker_cli", lambda: "/usr/bin/docker")
+    chosen = placement.resolve()
+    assert chosen.where == placement.GATEWAY
+    assert chosen.backend == "local"
+
+
 @pytest.mark.parametrize(
     ("setting", "backend", "expected"),
     [

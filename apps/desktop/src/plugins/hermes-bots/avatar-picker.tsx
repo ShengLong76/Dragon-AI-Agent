@@ -34,6 +34,7 @@ import {
   $imagenAvailable,
   generateAvatarImage,
   type GeneratedImage,
+  IMAGE_GEN_SETTINGS_PATH,
   normalizeAvatarImage,
   pickImageFromDevice,
   probeImagen
@@ -269,9 +270,18 @@ export function AvatarPicker({ shape, color, image, onShape, onColor, onImage, g
               <div className="text-center text-[0.65rem] text-(--ui-text-quaternary)">{b.bot.descriptionHint}</div>
             )}
           </div>
+        ) : imagen === false ? (
+          <button
+            className="px-2 py-3 text-center text-xs leading-5 text-(--ui-accent) underline-offset-2 hover:underline"
+            data-slot="bot_choose_image_model"
+            onClick={() => host.navigate(IMAGE_GEN_SETTINGS_PATH)}
+            type="button"
+          >
+            {b.editor.chooseImageModel}
+          </button>
         ) : (
           <div className="px-2 py-3 text-center text-xs leading-5 text-(--ui-text-tertiary)">
-            {imagen === false ? b.editor.noImageModel : b.editor.checkingImage}
+            {b.editor.checkingImage}
           </div>
         )
       ) : null}

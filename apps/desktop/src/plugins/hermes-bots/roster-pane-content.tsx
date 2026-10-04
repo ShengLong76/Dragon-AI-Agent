@@ -36,6 +36,10 @@ interface RosterContentProps {
   hiddenGatewaySections: ReturnType<typeof deriveRosterPresentation>['hiddenGatewaySections']
   renderBotRow: (bot: RosterRow, keyPrefix?: string) => ReactNode
   pinnedBots: RosterRow[]
+  onDelete: (bot: RosterRow) => void
+  onEdit: (bot: RosterRow) => void
+  onGroup: (bot: RosterRow) => void
+  onNewSection: (bot: RosterRow) => void
   renderGroupChatSection: ReturnType<typeof rosterSectionRenderers>['renderGroupChatSection']
   renderGatewaySection: ReturnType<typeof rosterSectionRenderers>['renderGatewaySection']
   renderUserSections: ReturnType<typeof rosterSectionRenderers>['renderUserSections']
@@ -68,6 +72,10 @@ export function renderRosterContent({
   hiddenGatewaySections,
   renderBotRow,
   pinnedBots,
+  onDelete,
+  onEdit,
+  onGroup,
+  onNewSection,
   renderGroupChatSection,
   renderGatewaySection,
   renderUserSections,
@@ -130,7 +138,13 @@ export function renderRosterContent({
         </div>
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain" data-slot="bots-roster">
-          <PinnedBotTiles bots={pinnedBots} />
+          <PinnedBotTiles
+            bots={pinnedBots}
+            onDelete={onDelete}
+            onEdit={onEdit}
+            onGroup={onGroup}
+            onNewSection={onNewSection}
+          />
           <div className="grid w-full min-w-0 gap-0.5 px-1.5 pb-2">
             {showGatewaySections
               ? [
