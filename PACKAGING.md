@@ -42,6 +42,14 @@ GOOS=windows GOARCH=amd64 go build -o DragonAIAgentSetup.exe .
 
 If `go-winres` / `.syso` is skipped, the exe may keep the default Go icon; the PNG/ICO still ship inside the payload and are used for desktop shortcut `IconLocation`. Documented here intentionally.
 
+Release is **one file**: `DragonAIAgentSetup.exe`. The payload is embedded (not a zip with a second exe beside it).
+
+Build:
+
+```bash
+python3 installer/pack.py --out /tmp/DragonAIAgentSetup.exe
+```
+
 Embedded payload (inside `DragonAIAgentSetup.exe`; not a second download file):
 
 ```text

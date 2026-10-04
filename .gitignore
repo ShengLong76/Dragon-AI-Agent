@@ -6,6 +6,12 @@ dist/
 vendor/docker/*.exe
 installer/vendor/docker/*.exe
 
+# Generated Windows binaries and the embedded setup payload
+desktop/win-unpacked/*.exe
+installer/DragonAIAgentSetup.exe
+installer/embed/payload.zip
+installer/embed/*.tmp.zip
+
 # Understand-Anything knowledge graph (do not commit generated graphs)
 .ua/
 .understand-anything/

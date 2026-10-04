@@ -613,6 +613,7 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\Test-GatewayModels.py",
         "scripts\airmaze\Test-OnboardWizard.py",
         "scripts\airmaze\Test-BotDefaultModel.py",
+        "scripts\airmaze\Test-FirstRunUI.py",
         "docs\airmaze\FIRST_RUN_MODELS.md",
         "docs\airmaze\BOT_DEFAULT_MODEL.md",
         "scripts\airmaze\voice_chat.py",
@@ -650,6 +651,7 @@ function Install-PackageFiles([string]$Root) {
         "docs\airmaze\TEAMS_MARKETPLACE.md",
         "docs\airmaze\PRODUCT_BRANDING.md",
         "scripts\airmaze\Start-DragonAI.vbs",
+        "scripts\airmaze\Uninstall-DragonAI.ps1",
         "scripts\airmaze\desktop-loopback-proxy.py",
         "scripts\airmaze\desktop_ui.py",
         "scripts\airmaze\start-desktop-serve.sh",
@@ -793,6 +795,39 @@ function Install-Shortcuts {
         Write-Log "Start Menu shortcut: $sc2Path"
     } catch {
         Write-Log "Shortcut creation failed: $($_.Exception.Message)" "WARN"
+    }
+    Register-DragonAIUninstall
+}
+
+function Register-DragonAIUninstall {
+    Write-Log "Registering Dragon AI Agent in Windows Settings Apps"
+    $key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\DragonAIAgent"
+    $uninstaller = Join-Path $InstallRoot "scripts\airmaze\Uninstall-DragonAI.ps1"
+    if (-not (Test-Path -LiteralPath $uninstaller)) {
+        $uninstaller = Join-Path $PSScriptRoot "Uninstall-DragonAI.ps1"
+    }
+    $icon = Join-Path $InstallRoot "branding\dragon-ai-agent-logo.ico"
+    if (-not (Test-Path -LiteralPath $icon)) { $icon = Join-Path $InstallRoot "dragon-ai-agent-logo.ico" }
+    $uninstallCmd = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$uninstaller`""
+    try {
+        if (-not (Test-Path -LiteralPath $key)) {
+            New-Item -Path $key -Force | Out-Null
+        }
+        New-ItemProperty -Path $key -Name "DisplayName" -Value $ProductName -PropertyType String -Force | Out-Null
+        New-ItemProperty -Path $key -Name "DisplayVersion" -Value $ProductVersion -PropertyType String -Force | Out-Null
+        New-ItemProperty -Path $key -Name "Publisher" -Value "Dragon's Den" -PropertyType String -Force | Out-Null
+        New-ItemProperty -Path $key -Name "InstallLocation" -Value $InstallRoot -PropertyType String -Force | Out-Null
+        New-ItemProperty -Path $key -Name "UninstallString" -Value $uninstallCmd -PropertyType String -Force | Out-Null
+        New-ItemProperty -Path $key -Name "QuietUninstallString" -Value "$uninstallCmd -Quiet" -PropertyType String -Force | Out-Null
+        New-ItemProperty -Path $key -Name "NoModify" -Value 1 -PropertyType DWord -Force | Out-Null
+        New-ItemProperty -Path $key -Name "NoRepair" -Value 1 -PropertyType DWord -Force | Out-Null
+        New-ItemProperty -Path $key -Name "NoRemove" -Value 0 -PropertyType DWord -Force | Out-Null
+        if (Test-Path -LiteralPath $icon) {
+            New-ItemProperty -Path $key -Name "DisplayIcon" -Value $icon -PropertyType String -Force | Out-Null
+        }
+        Write-Log "Apps uninstall entry: $key"
+    } catch {
+        Write-Log "Could not write Apps uninstall entry: $($_.Exception.Message)" "WARN"
     }
 }
 
@@ -1053,6 +1088,6 @@ Write-Host "  Log:          $LogPath"
 Write-Host "  Desktop Screen: http://127.0.0.1:8650  (Remote token dragon-local)"
 Write-Host "  Gateway API:    127.0.0.1:8642  dashboard: http://127.0.0.1:9119"
 Write-Host "  Bot groups:   in-app Teams Marketplace"
-Write-Host "  First-run:    in-app Models UI (Dragon AI Agent launcher)"
+Write-Host "  First-run:    in-app provider screen (xAI Grok, grok-4.7, Bots + VM)"
 Write-Host "  Setup guide:  $setupGuide"
 Write-Host ""

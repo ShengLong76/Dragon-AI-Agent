@@ -253,8 +253,8 @@ def check_launcher() -> None:
         fail("launcher still auto-opens WinForms Onboard-Wizard on first-run")
     if "first-run Onboard-Wizard if welcome is still pending" in text:
         fail("launch plan still advertises first-run Onboard-Wizard")
-    if "first-run uses in-app Models UI" not in text:
-        fail("launch plan must say first-run uses in-app Models UI")
+    if "first-run uses in-app provider screen" not in text:
+        fail("launch plan must say first-run uses in-app provider screen")
     if "web UI disabled" not in text:
         fail("launcher must refuse a headless web UI disabled page")
     if "8660" not in text or "Test-DesktopWebUIReady" not in text:

@@ -293,6 +293,13 @@ func startUIServer(ui fs.FS) (addr string, stop func(), err error) {
 	mux.Handle("/dragon-ai-agent-logo.svg", files)
 	mux.Handle("/app.css", files)
 	mux.Handle("/app.js", files)
+	mux.HandleFunc("/vm/", func(w http.ResponseWriter, r *http.Request) {
+		suffix := strings.TrimPrefix(r.URL.Path, "/vm")
+		if suffix == "" {
+			suffix = "/"
+		}
+		proxyJSON(w, r, desktopSvc+suffix, sessionTok, true)
+	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet && (r.URL.Path == "/" || r.URL.Path == "/index.html") {
 			handleWindowRoot(w, r, ui)
@@ -341,6 +348,7 @@ func serveLoader(w http.ResponseWriter, ui fs.FS, status string) {
 		return
 	}
 	html := strings.ReplaceAll(string(raw), "Opening the desktop chat screen...", status)
+	html = strings.Replace(html, "<body>", `<body data-dragon-ai-loader="desktop-web-ui">`, 1)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = w.Write([]byte(html))
 }
@@ -613,6 +621,7 @@ main{max-width:28rem;padding:2rem}h1{font-size:1.4rem}p{color:#c4c4ce;line-heigh
 func main() {
 	selfTest := flag.Bool("self-test", false, "print paths JSON and exit")
 	launchCheck := flag.Bool("launch-check", false, "start the UI server, print a launch result, and exit")
+	serveOnly := flag.Bool("serve", false, "serve the Dragon AI Agent UI and block (Linux verification)")
 	flag.Parse()
 	if !isHeadlessPage(headlessFixture) || isDesktopWebUI(headlessFixture) {
 		fmt.Fprintln(os.Stderr, "Dragon AI Agent: headless page detector failed its fixture")
@@ -646,6 +655,10 @@ func main() {
 		result["headlessFixtureRefused"] = isHeadlessPage(headlessFixture)
 		_ = json.NewEncoder(os.Stdout).Encode(result)
 		return
+	}
+	if *serveOnly {
+		fmt.Println(addr)
+		select {}
 	}
 	if err := openDesktop(addr); err != nil {
 		fmt.Fprintf(os.Stderr, "Dragon AI Agent: %v\n", err)

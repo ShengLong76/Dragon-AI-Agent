@@ -1,6 +1,8 @@
 // DragonAIAgentSetup — console launcher for Dragon AI Agent Windows installer payload.
 // Build (from this directory or via installer/pack.py):
 //
+//	python3 installer/pack.py
+//	python3 installer/pack-payload.py   // optional //go:embed embed/payload.zip path
 //	GOOS=windows GOARCH=amd64 go build -o DragonAIAgentSetup.exe .
 //
 // Release handoff is this one exe. pack.py appends a zip of the payload to the

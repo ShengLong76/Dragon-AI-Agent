@@ -59,7 +59,7 @@ REQUIRED_INSTALLER = (
     "DragonAIAgent.exe",
     "HERMES_DESKTOP_USER_DATA_DIR",
     "desktop\\win-unpacked",
-    "in-app Models UI",
+    "in-app provider screen",
 )
 
 RETIRED_START_MENU_LINKS = (

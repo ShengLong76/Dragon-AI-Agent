@@ -1094,16 +1094,16 @@ function Start-DragonAIVoiceChat {
 function Start-OnboardingIfNeeded {
     # WinForms Onboard-Wizard is deprecated as a first-run surface.
     # Model defaults are applied by Apply-GatewayModels (-IfMissing) before compose up.
-    # Operators pick models in the in-app Models UI.
+    # Operators pick xAI Grok on the in-app provider screen, then grok-4.7 confirmation.
     if ($NoWizard) { return }
-    Write-LaunchLog "First-run setup uses in-app first-run Models UI (WinForms Onboard-Wizard shortcut retired)"
+    Write-LaunchLog "First-run setup uses in-app provider screen (WinForms Onboard-Wizard shortcut retired)"
     if (-not (Test-OnboardingNeedsUi)) { return }
     try {
         if (Import-DragonAISecureStore) {
             Set-DragonAIInAppProviderOnboarding | Out-Null
-            Write-LaunchLog "Marked welcome/models as in-app Models UI; WinForms wizard not launched"
+            Write-LaunchLog "Marked welcome/models as in-app provider screen; WinForms wizard not launched"
         } else {
-            Write-LaunchLog "DragonAI-SecureStore.ps1 missing; in-app Models mark skipped" "WARN"
+            Write-LaunchLog "DragonAI-SecureStore.ps1 missing; in-app provider mark skipped" "WARN"
         }
     } catch {
         Write-LaunchLog "In-app provider onboarding mark failed: $($_.Exception.Message)" "WARN"
@@ -1131,7 +1131,7 @@ function Get-LaunchPlan {
             "standalone Hermes connections.json primary stays local",
             "launch Dragon AI Agent desktop only (not $DashboardUrl)",
             "start the background engine invisibly when docker info fails (already running is a no-op; no dashboard, no onboarding, no tray icon)",
-            "first-run uses in-app Models UI (WinForms Onboard-Wizard not launched)",
+            "first-run uses in-app provider screen (xAI Grok recommended, grok-4.7 confirmation)",
             "in-app first-run Models inherit the chosen chat model onto all bots",
             "in-app Models complete inherits the chosen chat model onto all bots",
             "do not show Waiting for gateway Setup/Close status window (Dragon AI Agent is the loading UX)",
