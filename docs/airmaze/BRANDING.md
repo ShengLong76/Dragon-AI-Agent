@@ -10,6 +10,7 @@ Internal protocol, image, and path names stay Hermes/AirMaze where changing them
 | Surface | What James sees |
 |---------|-----------------|
 | Desktop / Start Menu shortcuts | **Dragon AI Agent** only → `wscript.exe` + `Start-DragonAI.vbs` (no console). No Bot Groups / Dashboard / Profiles / Setup `.lnk` (leftovers deleted on install and launch) |
+| Settings > Apps | Per-user **Dragon AI Agent** (`HKCU\...\Uninstall\DragonAIAgent`). Uninstall removes the app, both shortcuts, and that key |
 | Shortcut descriptions | “start the gateway and open the app” |
 | Installer exe | `DragonAIAgentSetup.exe` — ProductName / FileDescription **Dragon AI Agent** (`installer/winres/winres.json`) |
 | Onboarding wizard | Window title **Dragon AI Agent Setup**; welcome copy; dragon + title on a **blue** `#2563EB` header band (buttons stay crimson) |

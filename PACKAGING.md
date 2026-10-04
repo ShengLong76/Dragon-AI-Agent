@@ -46,6 +46,7 @@ Embedded payload (inside `DragonAIAgentSetup.exe`; not a second download file):
 
 ```text
 install.ps1
+uninstall.ps1
 docker-compose.embedded.yml
 README.md
 vendor/docker/Docker Desktop Installer.exe   (optional; see below)
@@ -86,6 +87,8 @@ Setting keys include `openUIOnStartupDisabled` = true, `displayedOnboarding` = t
 ## Outputs
 
 `dist/DragonAIAgentSetup.exe` — one installer exe. Check: `python3 scripts/airmaze/Test-Packaging.py`. Do not ship a zip or a sibling `DragonAIAgent.exe`. Also `dragon-ai-agent-logo.png` at release root for GitHub assets if needed. Source tree zip: `airmaze-agent-source.zip` (developers only, not the product handoff).
+
+Setup writes a per-user **Settings > Apps** entry at `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\DragonAIAgent` (not HKLM; the app lives under `%LOCALAPPDATA%\DragonAIAgent`). Uninstall from Apps runs `uninstall.ps1`, which removes the app folder, the desktop shortcut, the Start Menu shortcut/folder, and that registry key. Check: `python3 scripts/airmaze/Test-Uninstall.py`.
 
 ## Launch UI
 

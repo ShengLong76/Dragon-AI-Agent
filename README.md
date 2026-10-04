@@ -26,7 +26,8 @@ Be honest about limits: full silent WSL/Docker provision often needs a reboot an
 ## Quick start (Windows)
 
 1. Run `DragonAIAgentSetup.exe` (console; shows progress). That one file is the whole install package. It unpacks its payload and runs setup. Do not also download a loose `DragonAIAgent.exe`.
-2. From a git checkout you can still run the script directly:
+2. After setup, **Dragon AI Agent** appears in Settings > Apps. Uninstall from Apps removes the app, the desktop shortcut, the Start Menu shortcut, and that Apps entry.
+3. From a git checkout you can still run the script directly:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass
@@ -149,6 +150,7 @@ desktop/                (DragonAIAgent.exe Windows host + UI)
 vendor/desktop/         (optional zip slot for the same exe)
 scripts/airmaze/
   install.ps1
+  uninstall.ps1
   start-embedded.ps1
   Test-DockerInstall.py
   Start-DragonAI.vbs

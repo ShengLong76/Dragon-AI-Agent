@@ -109,6 +109,10 @@ def stage_payload(dest: pathlib.Path, desktop_exe: pathlib.Path, with_docker: bo
 
     install_src = ROOT / "scripts" / "airmaze" / "install.ps1"
     shutil.copy2(install_src, dest / "install.ps1")
+    uninstall_src = ROOT / "scripts" / "airmaze" / "uninstall.ps1"
+    if not uninstall_src.is_file():
+        fail("missing scripts/airmaze/uninstall.ps1")
+    shutil.copy2(uninstall_src, dest / "uninstall.ps1")
 
     unpacked = dest / "desktop" / "win-unpacked"
     unpacked.mkdir(parents=True, exist_ok=True)
@@ -126,6 +130,8 @@ def stage_payload(dest: pathlib.Path, desktop_exe: pathlib.Path, with_docker: bo
 
     if not (dest / "install.ps1").is_file():
         fail("payload staging lost install.ps1")
+    if not (dest / "uninstall.ps1").is_file():
+        fail("payload staging lost uninstall.ps1")
     if not (unpacked / "DragonAIAgent.exe").is_file():
         fail("payload staging lost desktop/win-unpacked/DragonAIAgent.exe")
 

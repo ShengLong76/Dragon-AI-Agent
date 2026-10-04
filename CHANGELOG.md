@@ -5,6 +5,7 @@ All notable changes to Dragon AI Agent (packaging/distribution) are documented h
 ## [Unreleased]
 
 ### Changed
+- **Settings > Apps lists Dragon AI Agent and can uninstall it.** Setup writes a per-user `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\DragonAIAgent` entry (LocalAppData install, not HKLM). Uninstall from Apps runs `uninstall.ps1`, which removes `%LOCALAPPDATA%\DragonAIAgent`, the desktop shortcut, the Start Menu shortcut/folder, and that registry key. Docker Desktop is left installed. Check: `python3 scripts/airmaze/Test-Uninstall.py`.
 - **Windows handoff is one installer exe.** `python3 installer/pack.py` builds `DragonAIAgentSetup.exe` with the payload (including `desktop/win-unpacked/DragonAIAgent.exe`) appended inside that PE. James receives that file only — not a zip and not a loose desktop exe beside Setup. The installed app still unpacks its binaries under `%LOCALAPPDATA%\\DragonAIAgent`. Check: `python3 scripts/airmaze/Test-Packaging.py`.
 
 ### Fixed

@@ -34,6 +34,7 @@ $LogPath = Join-Path $InstallRoot "install.log"
 $DataDir = Join-Path $env:USERPROFILE ".hermes-airmaze-embedded"
 $DockerSettingsDir = Join-Path $env:APPDATA "Docker"
 $StartMenuDir = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Dragon AI Agent"
+$UninstallRegPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\DragonAIAgent"
 
 function Write-Log {
     param([string]$Message, [string]$Level = "INFO", [switch]$FileOnly)
@@ -595,6 +596,7 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\apply-default-bot-group.ps1",
         "scripts\airmaze\apply-default-profile.ps1",
         "scripts\airmaze\install.ps1",
+        "scripts\airmaze\uninstall.ps1",
         "scripts\airmaze\bot_groups.py",
         "scripts\airmaze\Test-BotGroups.py",
         "scripts\airmaze\Select-BotGroup.ps1",
@@ -700,6 +702,15 @@ function Install-PackageFiles([string]$Root) {
         Copy-Item -LiteralPath $thisScript -Destination (Join-Path $InstallRoot "install.ps1") -Force
     }
 
+    $uninstallSrc = Join-Path $Root "uninstall.ps1"
+    if (-not (Test-Path -LiteralPath $uninstallSrc)) {
+        $uninstallSrc = Join-Path $Root "scripts\airmaze\uninstall.ps1"
+    }
+    if (Test-Path -LiteralPath $uninstallSrc) {
+        Copy-Item -LiteralPath $uninstallSrc -Destination (Join-Path $InstallRoot "uninstall.ps1") -Force
+        Write-Log "Copied uninstall.ps1"
+    }
+
     Ensure-Dir $DataDir
     Write-Log "Data directory: $DataDir"
 }
@@ -776,6 +787,59 @@ function Install-Shortcuts {
         Write-Log "Start Menu shortcut: $sc2Path"
     } catch {
         Write-Log "Shortcut creation failed: $($_.Exception.Message)" "WARN"
+    }
+}
+
+function Register-DragonAIAppsEntry {
+    <#
+      Per-user Settings > Apps / Programs and Features entry.
+      Install lives under LocalAppData, so HKCU (not HKLM) is correct.
+    #>
+    Write-Log "Registering per-user Apps uninstall entry..."
+    $uninstaller = Join-Path $InstallRoot "uninstall.ps1"
+    if (-not (Test-Path -LiteralPath $uninstaller)) {
+        Write-Log "uninstall.ps1 missing at $uninstaller; Apps entry not written" "ERROR"
+        return
+    }
+    $ps = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
+    if (-not (Test-Path -LiteralPath $ps)) {
+        $ps = "powershell.exe"
+    }
+    $uninstallString = "`"$ps`" -NoProfile -ExecutionPolicy Bypass -File `"$uninstaller`""
+    $quietString = "`"$ps`" -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$uninstaller`" -Quiet"
+    $ico = Join-Path $InstallRoot "branding\dragon-ai-agent-logo.ico"
+    if (-not (Test-Path -LiteralPath $ico)) {
+        $ico = Join-Path $InstallRoot "dragon-ai-agent-logo.ico"
+    }
+    $sizeKb = 0
+    try {
+        $bytes = [long]0
+        Get-ChildItem -LiteralPath $InstallRoot -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
+            $bytes += $_.Length
+        }
+        $sizeKb = [int][Math]::Ceiling($bytes / 1KB)
+    } catch {}
+
+    try {
+        if (-not (Test-Path -LiteralPath $UninstallRegPath)) {
+            New-Item -Path $UninstallRegPath -Force | Out-Null
+        }
+        New-ItemProperty -Path $UninstallRegPath -Name "DisplayName" -Value $ProductName -PropertyType String -Force | Out-Null
+        New-ItemProperty -Path $UninstallRegPath -Name "DisplayVersion" -Value $ProductVersion -PropertyType String -Force | Out-Null
+        New-ItemProperty -Path $UninstallRegPath -Name "Publisher" -Value "Dragon's Den" -PropertyType String -Force | Out-Null
+        New-ItemProperty -Path $UninstallRegPath -Name "InstallLocation" -Value $InstallRoot -PropertyType String -Force | Out-Null
+        New-ItemProperty -Path $UninstallRegPath -Name "UninstallString" -Value $uninstallString -PropertyType String -Force | Out-Null
+        New-ItemProperty -Path $UninstallRegPath -Name "QuietUninstallString" -Value $quietString -PropertyType String -Force | Out-Null
+        New-ItemProperty -Path $UninstallRegPath -Name "NoModify" -Value 1 -PropertyType DWord -Force | Out-Null
+        New-ItemProperty -Path $UninstallRegPath -Name "NoRepair" -Value 1 -PropertyType DWord -Force | Out-Null
+        New-ItemProperty -Path $UninstallRegPath -Name "EstimatedSize" -Value $sizeKb -PropertyType DWord -Force | Out-Null
+        if (Test-Path -LiteralPath $ico) {
+            New-ItemProperty -Path $UninstallRegPath -Name "DisplayIcon" -Value $ico -PropertyType String -Force | Out-Null
+        }
+        New-ItemProperty -Path $UninstallRegPath -Name "InstallDate" -Value (Get-Date -Format "yyyyMMdd") -PropertyType String -Force | Out-Null
+        Write-Log "Registered HKCU Uninstall key: $UninstallRegPath"
+    } catch {
+        Write-Log "Apps registration failed: $($_.Exception.Message)" "WARN"
     }
 }
 
@@ -967,6 +1031,7 @@ Invoke-BotGroupSetup -Root $root
 # Do not launch WinForms Onboard-Wizard.ps1.
 
 Install-Shortcuts
+Register-DragonAIAppsEntry
 Start-AgentDesktop | Out-Null
 
 $setupGuide = Join-Path $InstallRoot "docs\airmaze\SETUP_GUIDE.md"

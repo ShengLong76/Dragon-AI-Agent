@@ -131,6 +131,10 @@ def test_live_pack() -> None:
             names = zf.namelist()
         if "install.ps1" not in names:
             fail("embedded payload missing install.ps1")
+        if "uninstall.ps1" not in names:
+            fail("embedded payload missing uninstall.ps1")
+        if "scripts/airmaze/uninstall.ps1" not in names:
+            fail("embedded payload missing scripts/airmaze/uninstall.ps1")
         if "desktop/win-unpacked/DragonAIAgent.exe" not in names:
             fail("embedded payload missing desktop/win-unpacked/DragonAIAgent.exe")
         if "docker-compose.embedded.yml" not in names:

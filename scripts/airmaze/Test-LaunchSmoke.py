@@ -456,6 +456,11 @@ def main() -> int:
         proc = subprocess.run([sys.executable, str(packaging_test)], cwd=str(ROOT))
         if proc.returncode != 0:
             fail("Test-Packaging.py failed")
+    uninstall_test = ROOT / "scripts" / "airmaze" / "Test-Uninstall.py"
+    if uninstall_test.is_file():
+        proc = subprocess.run([sys.executable, str(uninstall_test)], cwd=str(ROOT))
+        if proc.returncode != 0:
+            fail("Test-Uninstall.py failed")
     run_host_smoke()
     print("SMOKE OK: opening Dragon AI Agent is wired to branded UI or a blocking error.")
     return 0
