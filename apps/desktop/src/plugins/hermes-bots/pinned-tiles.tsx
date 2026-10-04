@@ -8,8 +8,8 @@
 import { cn, useValue } from '@hermes/plugin-sdk'
 
 import { avatarColor, botAppearance, BotFace } from './avatar'
-import { $selectedRosterKey } from './bot-state'
 import { openBotPanel } from './bot-panel'
+import { $selectedRosterKey } from './bot-state'
 import { $botMeta, botRosterKey } from './data'
 import { botRole, displayName } from './labels'
 import { openRosterBot } from './roster-actions'

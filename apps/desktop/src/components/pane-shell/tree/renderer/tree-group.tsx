@@ -29,6 +29,8 @@ import {
 } from '@/components/ui/pane-tab'
 import { ContribBoundary, ContribRender } from '@/contrib/react/boundary'
 import { useContributions } from '@/contrib/react/use-contributions'
+import { DRAGON_SIDEBAR_CHROME_HEIGHT, DRAGON_TABS_HEIGHT } from '@/dragon/sidebar-chrome'
+import { DragonSidebarLockup } from '@/dragon/sidebar-lockup'
 import { useI18n } from '@/i18n'
 import { useKeybindHint } from '@/lib/keybinds/use-keybind-hint'
 import { cn } from '@/lib/utils'
@@ -86,9 +88,6 @@ import {
 
 import { startPaneDrag } from './drag-session'
 import { KeepAlivePaneSlot, useStablePaneHosts } from './keep-alive-panes'
-import { DRAGON_SIDEBAR_CHROME_HEIGHT, DRAGON_TABS_HEIGHT } from '@/dragon/sidebar-chrome'
-import { DragonSidebarLockup } from '@/dragon/sidebar-lockup'
-
 import { PaneBody } from './pane-body'
 import { usePanelTitlebar } from './panel-titlebar'
 import { tabStripVisibleForZone } from './strip-visibility'

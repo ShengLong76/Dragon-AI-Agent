@@ -4,10 +4,10 @@ import type { ReactNode, RefObject } from 'react'
 import type { useRoster } from './data'
 import { $showHiddenBots } from './hidden-bots'
 import type { useBots } from './i18n'
+import { PinnedBotTiles } from './pinned-tiles'
 import type { deriveRosterPresentation, deriveRosterRows } from './roster-pane-derivation'
 import type { rosterSectionRenderers } from './roster-pane-sections'
 import type { rosterGatewayOptions } from './roster-sections'
-import { PinnedBotTiles } from './pinned-tiles'
 import type { RosterRow } from './types'
 
 interface RosterContentProps {

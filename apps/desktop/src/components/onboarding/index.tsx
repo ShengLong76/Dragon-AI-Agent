@@ -62,9 +62,9 @@ export {
   sortProviders
 } from './providers'
 
+import { DRAGON_ONBOARDING_BEGIN_EVENT } from '@/dragon/brand'
 import { $gateway, activeGatewayConnectionId } from '@/store/gateway'
 import { captureOnboardingScope, requestOnboardingGateway } from '@/store/onboarding-scope'
-import { DRAGON_ONBOARDING_BEGIN_EVENT } from '@/dragon/brand'
 
 interface DesktopOnboardingOverlayProps {
   enabled: boolean

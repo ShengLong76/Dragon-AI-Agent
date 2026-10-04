@@ -4,7 +4,7 @@
  * the Computer tab — the bot's VM desktop — rather than a file list.
  */
 
-import { atom, Button, Codicon, cn, GlyphSpinner, host, PanelEmpty, useValue } from '@hermes/plugin-sdk'
+import { atom, Button, cn, Codicon, GlyphSpinner, host, PanelEmpty, useValue } from '@hermes/plugin-sdk'
 import { useState } from 'react'
 
 import { avatarColor, botAppearance, BotFace } from './avatar'

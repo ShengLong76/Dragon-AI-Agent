@@ -1,9 +1,9 @@
 import { RowButton } from '@/components/ui/row-button'
+import { DRAGON_GROK_PITCH } from '@/dragon/brand'
 import { useI18n } from '@/i18n'
 import { Check, ChevronRight, Terminal } from '@/lib/icons'
 import { PROVIDER_DISPLAY_NAMES } from '@/lib/model-status-label'
 import type { OAuthProvider } from '@/types/hermes'
-import { DRAGON_GROK_PITCH } from '@/dragon/brand'
 
 // Titles live in PROVIDER_DISPLAY_NAMES (shared with the model pill); this is
 // only the featured order. Both Anthropic entries sit at the bottom: the API-key
