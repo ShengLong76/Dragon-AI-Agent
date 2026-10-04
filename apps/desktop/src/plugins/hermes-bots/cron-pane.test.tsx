@@ -98,6 +98,9 @@ describe('the pane follows the roster hydrating after mount', () => {
     await waitFor(() => expect(screen.queryByText('This bot has to appear in the roster first.')).toBeNull())
     expect(await screen.findByText('Report')).toBeTruthy()
     expect(screen.getByText('Scheduled jobs')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Open live/i })).toBeNull()
+    expect(screen.queryByText('Live · bot in control')).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Screen:/ })).toBeNull()
   })
 
   it('offers a create affordance once the owner resolves', async () => {

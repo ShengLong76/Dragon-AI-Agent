@@ -16,12 +16,12 @@ import { expect, test } from './test'
 
 // Bot Screen portal vs. a slow `display.status` reply, in the real Electron app.
 //
-// The Screen hero (the portal above a bot's routines) fetches `display.status`
+// The Screen portal (Sessions sidebar profile group) fetches `display.status`
 // once on mount; opening the Screen pane fetches it again. The renderer keeps a
 // per-bot generation so a reply that a NEWER request overtook is dropped. Before
 // the fix the portal's reply carried no request token, so `setScreenStatus`
 // treated it as authoritative: it landed as truth AND bumped the generation,
-// which dropped the pane's newer `running: false` — the hero kept saying
+// which dropped the pane's newer `running: false` — the portal kept saying
 // "Live · bot in control" (running/pid/display of a screen that had stopped)
 // and the pane attached to a dead display.
 //
@@ -29,7 +29,7 @@ import { expect, test } from './test'
 // `WebSocket.prototype.send` holds the two requests and the test answers them
 // through the real JSON-RPC client in the order the bug needs (portal's stale
 // `running: true` first, pane's fresh `running: false` second). Everything else
-// — roster, routines pane, hero, pane, store, listeners — is the shipped renderer.
+// — roster, sessions portal, pane, store, listeners — is the shipped renderer.
 //
 // The orphan-row branch (a source-scoped row whose connection was deleted) is
 // not reachable in this single-local-source rig: `window.hermesDesktop` is a
@@ -167,13 +167,13 @@ const pushEvent = (page: Page, type: string, payload: unknown) =>
 
 const hero = (page: Page) => page.locator('button[aria-label^="Screen:"]').first()
 
-async function revealScreenHero(page: Page): Promise<void> {
-  const tab = page
+async function revealScreenPortal(page: Page): Promise<void> {
+  const bots = page
     .getByRole('button', { name: 'Bots', exact: true })
     .or(page.getByRole('tab', { name: 'Bots', exact: true }))
     .first()
 
-  await tab.click()
+  await bots.click()
   await expect(page.getByRole('button', { name: 'New bot or group chat' })).toBeVisible()
 
   const row = page.locator('[data-slot="bots-roster"] [data-roster-key="local::alpha"]')
@@ -199,9 +199,16 @@ async function revealScreenHero(page: Page): Promise<void> {
     .waitFor({ state: 'hidden', timeout: 90_000 })
     .catch(() => undefined)
 
-  if ((await hero(page).count()) === 0) {
-    await page.getByRole('tab', { name: 'Scheduled jobs' }).first().click()
+  const sessions = page
+    .getByRole('button', { name: 'Sessions', exact: true })
+    .or(page.getByRole('tab', { name: 'Sessions', exact: true }))
+    .first()
+
+  if ((await sessions.count()) > 0) {
+    await sessions.click()
   }
+
+  await expect(hero(page)).toBeVisible({ timeout: 30_000 })
 }
 
 test.beforeAll(async () => {
@@ -239,10 +246,10 @@ test('a stale portal display.status reply does not roll back the newer stopped s
   const page = fixture!.page
 
   await installScreenProbe(page)
-  // Reveal the routines pane: the Screen hero mounts and fires the portal's one-shot fetch.
-  await revealScreenHero(page)
+  // Reveal the Sessions portal: it mounts and fires the one-shot fetch.
+  await revealScreenPortal(page)
 
-  await expect(hero(page)).toHaveAttribute('aria-label', 'Screen: Checking the screen…', { timeout: 15_000 })
+  await expect(hero(page)).toBeVisible({ timeout: 15_000 })
   await expect.poll(async () => (await probe(page)).held, { timeout: 15_000 }).toBe(1)
   await capture(page, '1-hero-fetch-in-flight')
 
@@ -257,13 +264,13 @@ test('a stale portal display.status reply does not roll back the newer stopped s
   await page.waitForTimeout(1000)
   await capture(page, '2-after-stale-reply')
 
-  await expect(hero(page)).toHaveAttribute('aria-label', 'Screen: Screen is off', { timeout: 10_000 })
+  await expect(hero(page)).toHaveAttribute('aria-label', 'Screen: Stopped', { timeout: 10_000 })
   await expect(page.getByText('Screen is off', { exact: true }).filter({ visible: true }).first()).toBeVisible()
   await expect(page.getByRole('button', { name: 'Start screen' })).toBeVisible()
 
   // Belt and braces: it stays stopped — nothing later "corrects" back to live.
   await page.waitForTimeout(1500)
-  await expect(hero(page)).toHaveAttribute('aria-label', 'Screen: Screen is off')
+  await expect(hero(page)).toHaveAttribute('aria-label', 'Screen: Stopped')
   expect(pageErrors).toEqual([])
 })
 
@@ -272,7 +279,7 @@ test('pushed display.status / display.lease events keep updating the shipped lis
   const page = fixture!.page
 
   await installScreenProbe(page)
-  await revealScreenHero(page)
+  await revealScreenPortal(page)
   await expect(hero(page)).toBeVisible({ timeout: 15_000 })
 
   // A start made outside this window is pushed as a token-less status: authoritative.

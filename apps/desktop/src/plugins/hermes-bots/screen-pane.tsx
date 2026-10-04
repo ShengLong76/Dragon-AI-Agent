@@ -477,18 +477,6 @@ export function BotScreenPane({ bot }: { bot: RosterRow }) {
       <div className="flex items-center gap-2 border-b px-3 py-1.5 text-xs">
         <Codicon name="device-desktop" />
         <span className="font-medium">{t.screen.title}</span>
-        {status?.display ? (
-          <span className="text-muted-foreground">
-            {status.display} · {status.geometry}
-          </span>
-        ) : null}
-        {status?.placement?.startsWith('terminal:') ? (
-          // Where the desktop lives matters for what a takeover can reach: inside the terminal's sandbox,
-          // not on the gateway host.
-          <span className="rounded bg-(--ui-bg-tertiary) px-1.5 py-0.5 text-muted-foreground">
-            {t.screen.placementSandbox(status.placement.slice('terminal:'.length))}
-          </span>
-        ) : null}
         <span className="grow" />
         {lease?.holder === 'human' && lease.reason ? (
           // Why control was taken stays readable while the human acts.
@@ -505,40 +493,7 @@ export function BotScreenPane({ bot }: { bot: RosterRow }) {
           </span>
         ) : humanOther ? (
           <span className="rounded bg-muted px-2 py-0.5 text-muted-foreground">{t.screen.otherControls}</span>
-        ) : (
-          <span className="rounded bg-muted px-2 py-0.5 text-muted-foreground">{t.screen.agentControls}</span>
-        )}
-        {iHold ? (
-          <Button disabled={busy} onClick={() => void handBack()} size="sm" variant="secondary">
-            <Codicon name="debug-continue" /> {t.screen.handBack}
-          </Button>
-        ) : (
-          <>
-            {humanOther ? (
-              <Tip label={t.screen.handBackForceHint}>
-                <Button disabled={busy} onClick={() => void handBack(true)} size="sm" variant="secondary">
-                  <Codicon name="debug-continue" /> {t.screen.handBackForce}
-                </Button>
-              </Tip>
-            ) : null}
-            {/* The lease is granted to a server-minted viewer id; until `display.observe` has
-                minted one for this attach a Take over could only send an empty id and dead-end
-                on "viewer_id required". Reconnect is the way to mint one. */}
-            <Button disabled={busy || conn === 'attaching' || !viewer} onClick={() => void takeOver()} size="sm">
-              <Codicon name="record-keys" /> {t.screen.takeOver}
-            </Button>
-          </>
-        )}
-        <Tip label={t.screen.openLarger}>
-          <Button
-            aria-label={t.screen.openLarger}
-            onClick={() => openBotScreen(bot)}
-            size="sm"
-            variant="ghost"
-          >
-            <Codicon name="link-external" /> {t.screen.openLarger}
-          </Button>
-        </Tip>
+        ) : null}
         <Tip label={t.screen.reconnect}>
           <Button
             aria-label={t.screen.reconnect}
@@ -574,6 +529,34 @@ export function BotScreenPane({ bot }: { bot: RosterRow }) {
         {conn === 'error' && error ? (
           <div className="absolute inset-x-0 bottom-0 bg-red-950/80 px-3 py-1.5 text-xs text-red-200">{error}</div>
         ) : null}
+      </div>
+      <div className="flex items-center gap-2 border-t px-3 py-1.5">
+        {iHold ? (
+          <Button disabled={busy} onClick={() => void handBack()} size="sm" variant="secondary">
+            <Codicon name="debug-continue" /> {t.screen.handBack}
+          </Button>
+        ) : (
+          <>
+            {humanOther ? (
+              <Tip label={t.screen.handBackForceHint}>
+                <Button disabled={busy} onClick={() => void handBack(true)} size="sm" variant="secondary">
+                  <Codicon name="debug-continue" /> {t.screen.handBackForce}
+                </Button>
+              </Tip>
+            ) : null}
+            {/* The lease is granted to a server-minted viewer id; until `display.observe` has
+                minted one for this attach a Take over could only send an empty id and dead-end
+                on "viewer_id required". Reconnect is the way to mint one. */}
+            <Button disabled={busy || conn === 'attaching' || !viewer} onClick={() => void takeOver()} size="sm">
+              <Codicon name="record-keys" /> {t.screen.takeOver}
+            </Button>
+          </>
+        )}
+        <Tip label={t.screen.openLarger}>
+          <Button aria-label={t.screen.openLarger} onClick={() => openBotScreen(bot)} size="sm" variant="ghost">
+            <Codicon name="link-external" /> {t.screen.openLarger}
+          </Button>
+        </Tip>
       </div>
     </div>
   )
