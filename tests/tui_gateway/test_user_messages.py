@@ -31,9 +31,9 @@ def test_generic_timeout_keeps_the_model_setup_hints():
     # A TimeoutError that is NOT an auth lock (e.g. a network connect timeout) must not
     # be misread as lock contention.
     message = agent_init_failed_message(TimeoutError("connect timed out"))
-    assert "/model" in message and "hermes setup" in message
+    assert "/model" in message and "dragon setup" in message
 
 
 def test_other_init_failures_keep_the_model_setup_hints():
     message = agent_init_failed_message(RuntimeError("provider bootstrap failed"))
-    assert "/model" in message and "hermes setup" in message
+    assert "/model" in message and "dragon setup" in message

@@ -1404,13 +1404,13 @@ def _get_config_hint_for_unknown_provider(provider_name: str) -> str:
         return ("OpenCode discontinued anonymous free-tier access outside its own client "
                 "(relay 403s FreeTierError), so the keyless 'opencode-free' provider was removed. "
                 "Switch to 'opencode-zen' (pay-as-you-go, OPENCODE_ZEN_API_KEY) or 'opencode-go' "
-                "($10/mo subscription, OPENCODE_GO_API_KEY) via 'hermes model'.")
+                "($10/mo subscription, OPENCODE_GO_API_KEY) via 'dragon model'.")
     try:
         from hermes_cli.config import validate_config_structure
         issues = validate_config_structure()
         if not issues:
             return ""
-        lines = ["Config issue detected — run 'hermes doctor' for full diagnostics:"]
+        lines = ["Config issue detected — run 'dragon doctor' for full diagnostics:"]
         for ci in issues:
             lines.append(f"  [{'ERROR' if ci.severity == 'error' else 'WARNING'}] {ci.message}")
             if ci.hint and ci.hint.splitlines()[0]:
@@ -1438,7 +1438,7 @@ def _refuse_env_adoption_if_config_corrupt() -> None:
     raise AuthError(
         f"config.yaml at {path} is corrupt ({err}) — refusing to auto-select "
         f"an inference provider from environment keys. Fix the YAML (a backup "
-        f"was saved next to it) or run hermes setup.",
+        f"was saved next to it) or run dragon setup.",
         code="corrupt_config")
 
 
@@ -1658,8 +1658,8 @@ def resolve_provider(
         return normalized
     if normalized != "auto":
         hint = _get_config_hint_for_unknown_provider(normalized)
-        tail = (f"\n\n{hint}" if hint else " Check 'hermes model' for available providers, "
-                "or run 'hermes doctor' to diagnose config issues.")
+        tail = (f"\n\n{hint}" if hint else " Check 'dragon model' for available providers, "
+                "or run 'dragon doctor' to diagnose config issues.")
         raise AuthError(f"Unknown provider '{normalized}'." + tail, code="invalid_provider")
 
     if explicit_api_key or explicit_base_url:  # one-off CLI creds always mean openrouter/custom
@@ -1848,7 +1848,7 @@ def resolve_nous_access_token(
 
     with _provider_state_transaction("nous") as (auth_store, state, state_source_path):
         if not state:
-            raise _nous_err("Hermes is not logged into Nous Portal.", "nous_auth_missing", relogin=True)
+            raise _nous_err("Dragon AI is not logged into Nous Portal.", "nous_auth_missing", relogin=True)
         portal_base_url = _nous_portal_base_url(state)
         client_id = str(state.get("client_id") or DEFAULT_NOUS_CLIENT_ID)
         verify = _resolve_verify(insecure=insecure, ca_bundle=ca_bundle, auth_state=state)
@@ -2246,11 +2246,11 @@ def _get_azure_foundry_auth_status() -> Dict[str, Any]:
                 credential_verified=False, logged_in=bool(installed),
                 hint=(
                     "azure-identity is installed; live credential validation "
-                    "is skipped here. Run `hermes doctor` to verify token acquisition."
+                    "is skipped here. Run `dragon doctor` to verify token acquisition."
                 ) if installed else (
-                    "azure-identity not installed. From the Hermes environment, run: "
+                    "azure-identity not installed. From the Dragon AI environment, run: "
                     f"{install_hint('azure-identity')}. "
-                    "Then restart Hermes."))
+                    "Then restart Dragon AI."))
         except Exception as exc:
             info["logged_in"] = False
             info["error"] = f"azure-identity check failed: {exc}"
@@ -2446,8 +2446,8 @@ def _reset_config_provider() -> Path:
 
 def login_command(args) -> None:
     """Deprecated: use 'hermes model' or 'hermes setup' instead."""
-    print("The 'hermes login' command has been removed.\nUse 'hermes auth' to manage credentials,\n"
-          "'hermes model' to select a provider, or 'hermes setup' for full setup.")
+    print("The 'dragon login' command has been removed.\nUse 'dragon auth' to manage credentials,\n"
+          "'dragon model' to select a provider, or 'dragon setup' for full setup.")
     raise SystemExit(0)
 
 
@@ -2496,6 +2496,6 @@ def logout_command(args) -> None:
     if not should_reset_config:
         print("Model provider configuration was unchanged.")
     elif os.getenv("OPENROUTER_API_KEY"):
-        print("Hermes will use OpenRouter for inference.")
+        print("Dragon AI will use OpenRouter for inference.")
     else:
-        print("Run `hermes model` or configure an API key to use Hermes.")
+        print("Run `dragon model` or configure an API key to use Dragon AI.")

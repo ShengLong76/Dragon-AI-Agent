@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Rebrand user-visible framework naming in the desktop sources to Dragon AI Claude.
+"""Rebrand user-visible framework naming to Dragon AI Claude.
 
-Only the *contents* of string literals ('...', "...", `...` outside ${...}) and
-JSX text are rewritten. Identifiers, object keys, comments, imports and
+Desktop sources: only the *contents* of string literals ('...', "...", `...`
+outside ${...}) and JSX text are rewritten. Python: only single-line string
+literals (and f-string text) in PYTHON_TARGETS, the modules whose messages
+reach the UI; docstrings and other triple-quoted strings are left alone. Identifiers, object keys, comments, imports and
 lowercase storage keys are left untouched, so the code keeps compiling and
 persisted state keeps its keys. Run it again after every upstream sync:
 
@@ -20,6 +22,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 DESKTOP = ROOT / "apps" / "desktop"
 TARGETS = [DESKTOP / "src", DESKTOP / "electron"]
+PYTHON_TARGETS = [
+    ROOT / "agent" / "prompt_builder.py",
+    ROOT / "agent" / "turn_failure_copy.py",
+    ROOT / "agent" / "turn_recovery.py",
+    ROOT / "hermes_cli" / "auth.py",
+    ROOT / "tools" / "voice_live.py",
+    ROOT / "tui_gateway" / "methods_prompt.py",
+    ROOT / "tui_gateway" / "server.py",
+    ROOT / "tui_gateway" / "user_messages.py",
+]
 SKIP_DIRS = {"node_modules", "dist", "fixtures"}
 SKIP_FILES = {
     # Module specifiers and wire identifiers, not copy.
@@ -28,6 +40,7 @@ SKIP_FILES = {
 
 # Applied in order; each pattern only ever sees literal text.
 REPLACEMENTS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"\bHermes Agent \(by Nous Research\)"), "Dragon AI Claude"),
     (re.compile(r"\bHermes Agent Desktop\b"), "Dragon AI Claude"),
     (re.compile(r"\bHermes Desktop\b"), "Dragon AI Claude"),
     (re.compile(r"\bHermes Agent\b"), "Dragon AI Claude"),
@@ -50,7 +63,7 @@ PROTECTED = re.compile(
     r"^(?:Hermes|HermesBundled|HermesLight|Hermes\.exe|hermes\.exe|NousResearch\.Hermes.*|Hermes-Setup.*|HERMES_[A-Z_]+)$"
 )
 # Filesystem paths and bundle names that point at real upstream artifacts.
-PATHLIKE = re.compile(r"X-Hermes-|Hermes(?:\.app|\.exe|-Setup|\\|/)|[\\/]Hermes\b|\\\\hermes\b")
+PATHLIKE = re.compile(r"X-Hermes-|HERMES\.md|Hermes(?:\.app|\.exe|-Setup|\\|/)|[\\/]Hermes\b|\\\\hermes\b")
 REGEX_KEYWORDS = {"return", "typeof", "case", "do", "else", "in", "of", "new", "delete", "void", "throw", "yield", "await"}
 
 
@@ -193,6 +206,33 @@ def transform_source(src: str, jsx: bool) -> str:
     return "".join(out)
 
 
+def transform_python(src: str) -> str:
+    import io
+    import tokenize
+
+    line_starts = [0]
+    for line in src.splitlines(keepends=True):
+        line_starts.append(line_starts[-1] + len(line))
+    offset = lambda pos: line_starts[pos[0] - 1] + pos[1]  # noqa: E731
+    edits: list[tuple[int, int, str]] = []
+    middle = getattr(tokenize, "FSTRING_MIDDLE", None)
+    for tok in tokenize.generate_tokens(io.StringIO(src).readline):
+        if tok.type == middle:
+            new = rebrand_text(tok.string)
+        elif tok.type == tokenize.STRING:
+            m = re.match(r"([rRbBuUfF]*)('|\")(.*)\2$", tok.string, re.S)
+            if not m or "b" in m.group(1).lower() or tok.string[len(m.group(1)):].startswith(("'''", '"""')):
+                continue
+            new = m.group(1) + m.group(2) + rebrand_text(m.group(3)) + m.group(2)
+        else:
+            continue
+        if new != tok.string:
+            edits.append((offset(tok.start), offset(tok.end), new))
+    for start, end, new in reversed(edits):
+        src = src[:start] + new + src[end:]
+    return src
+
+
 def iter_files() -> list[Path]:
     files: list[Path] = []
     for base in TARGETS:
@@ -210,9 +250,9 @@ def main() -> int:
     parser.add_argument("--check", action="store_true", help="report files that still need rebranding")
     args = parser.parse_args()
     changed: list[Path] = []
-    for path in iter_files():
+    for path in iter_files() + PYTHON_TARGETS:
         src = path.read_text(encoding="utf-8")
-        new = transform_source(src, jsx=path.suffix == ".tsx")
+        new = transform_python(src) if path.suffix == ".py" else transform_source(src, jsx=path.suffix == ".tsx")
         if new != src:
             changed.append(path)
             if not args.check:
