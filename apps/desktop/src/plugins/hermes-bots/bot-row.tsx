@@ -41,6 +41,7 @@ import {
   focusedRosterOwner,
   saveSelectedRosterBot
 } from './bot-state'
+import { openBotPanel } from './bot-panel'
 import { ensureBotMetadata } from './canonical-chat'
 import {
   $botAttention,
@@ -253,6 +254,7 @@ export function BotRow({ bot, onDelete, onEdit, onGroup, onNewSection, showHandl
       data-roster-key={rosterKey}
       draggable
       onClick={open}
+      onDoubleClick={() => openBotPanel(bot, 'computer')}
       onDragEnd={() => $draggingBot.set(null)}
       onDragStart={event => {
         event.dataTransfer.setData(BOT_DRAG_MIME, rosterKey)
@@ -268,7 +270,7 @@ export function BotRow({ bot, onDelete, onEdit, onGroup, onNewSection, showHandl
           mood={botMood}
           name={bot.name}
           shape={shape}
-          size={34}
+          size={40}
         />
       </div>
       <div className="min-w-0 flex-1">
@@ -290,7 +292,7 @@ export function BotRow({ bot, onDelete, onEdit, onGroup, onNewSection, showHandl
               </Tip>
             ) : null}
             <Tip label={rowTooltip}>
-              <span className="min-w-0 truncate text-[0.8125rem] font-medium">{displayName(bot, meta)}</span>
+              <span className="min-w-0 truncate text-[0.9375rem] font-semibold">{displayName(bot, meta)}</span>
             </Tip>
           </div>
           {attention ? (
@@ -331,7 +333,8 @@ export function BotRow({ bot, onDelete, onEdit, onGroup, onNewSection, showHandl
       <ContextMenuTrigger asChild>{row}</ContextMenuTrigger>
       <ContextMenuContent>
         <ContextMenuItem onSelect={() => void openRosterBot(bot)}>{b.bot.openBotChat}</ContextMenuItem>
-        <ContextMenuItem onSelect={() => openBotScreen(bot, meta)}>{b.screen.menu}</ContextMenuItem>
+        <ContextMenuItem onSelect={() => openBotPanel(bot, 'computer')}>{b.screen.menu}</ContextMenuItem>
+        <ContextMenuItem onSelect={() => openBotScreen(bot, meta)}>Open computer in a tab</ContextMenuItem>
         <ContextMenuCheckboxItem
           checked={Boolean(meta?.screenAutoOpen)}
           onSelect={() => {
@@ -356,7 +359,7 @@ export function BotRow({ bot, onDelete, onEdit, onGroup, onNewSection, showHandl
           onSelect={() => {
             void ensureBotMetadata(bot)
               .then(current => {
-                const pinned = Boolean(current.pinned)
+                const pinned = isBotPinned(bot, $botMeta.get())
                 void saveBotMeta(bot, {
                   pinned: !pinned
                 })

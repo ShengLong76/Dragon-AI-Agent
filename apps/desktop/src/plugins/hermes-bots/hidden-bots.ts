@@ -26,8 +26,12 @@ export function isBotHidden(bot: RosterRow, metaByName: BotMetaSnapshot) {
   return Boolean(botRosterMeta(bot, metaByName)?.hidden)
 }
 
+/** The default bot is the Chief of Staff every other bot routes through, so
+ *  it starts pinned; an explicit unpin (`pinned: false`) is respected. */
 export function isBotPinned(bot: RosterRow, metaByName: BotMetaSnapshot) {
-  return Boolean(botRosterMeta(bot, metaByName)?.pinned)
+  const pinned = botRosterMeta(bot, metaByName)?.pinned
+
+  return typeof pinned === 'boolean' ? pinned : isDefaultBot(bot) && !bot.remoteSource
 }
 
 /** Hiding the selected bot re-homes the selection to the next visible owner. */

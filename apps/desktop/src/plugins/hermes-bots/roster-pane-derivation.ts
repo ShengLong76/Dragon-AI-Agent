@@ -40,6 +40,8 @@ interface RosterRowsInput {
   gatewayOptions: ReturnType<typeof rosterGatewayOptions>
   activityOf: (bot: RosterRow) => number
   isPinned: (bot: RosterRow) => boolean
+  /** Pinned bots render as the tile strip above the list, so the list skips them. */
+  pinnedAsTiles?: boolean
 }
 
 export function deriveRosterRows({
@@ -53,7 +55,8 @@ export function deriveRosterRows({
   activeRosterKeys,
   gatewayOptions,
   activityOf,
-  isPinned
+  isPinned,
+  pinnedAsTiles = false
 }: RosterRowsInput) {
   const activeSourceRoster = roster.filter(bot => !bot.remoteSource)
   // Hidden rows remain fully alive and recoverable at the bottom. Every
@@ -105,10 +108,13 @@ export function deriveRosterRows({
     }))
     .filter(row => rowKindFilter !== 'bots' && rosterActivityMatches(row, activityFilter))
 
+  const reachable = preferReachableSameNameRows(filteredRoster)
+  const pinnedBots = pinnedAsTiles ? reachable.filter(isPinned) : []
+
   const botRows =
     rowKindFilter === 'groups'
       ? []
-      : preferReachableSameNameRows(filteredRoster).map((bot): RosterBotRow => ({
+      : reachable.filter(bot => !pinnedBots.includes(bot)).map((bot): RosterBotRow => ({
           kind: 'bot',
           bot,
           pinned: isPinned(bot),
@@ -123,6 +129,7 @@ export function deriveRosterRows({
 
   return {
     activeSourceRoster,
+    pinnedBots,
     hiddenBots,
     visibleRoster,
     filteredHiddenBots,

@@ -85,6 +85,8 @@ export interface BotMeta {
   /** Legacy single-group scalar, projected alongside `groups`. */
   group?: null | string
   pinned?: boolean
+  /** Short role badge shown under the name on pinned tiles and the bot panel ("Router", "Researcher"). */
+  role?: string
   /** Raise this bot's Screen tab when it starts driving its desktop (`screen-autoraise.ts`). Opt-in per bot. */
   screenAutoOpen?: boolean
   shape?: string

@@ -27,6 +27,7 @@ import {
 import type { ChatEmptyProps, PluginContext, ProfileGroupRoute } from '@hermes/plugin-sdk'
 
 import { startFaceClock, stopFaceClock } from './avatar'
+import { BotPanelPane, openBotPanel } from './bot-panel'
 import {
   $botChatFocused,
   $botsPaneVisible,
@@ -48,6 +49,7 @@ import {
   botSelectionKey,
   cachedUnionRoster,
   isActiveRosterBot,
+  isDefaultBot,
   migrateBotMeta,
   primeRoster,
   resolveRosterMentions
@@ -85,6 +87,9 @@ import { startHideSweepScheduler } from './session-sweep'
 import { bumpBotOpenGeneration, getBotOpenGeneration, ID, setPluginCtx } from './shared'
 import type { GroupChat, RosterRow } from './types'
 import { loadBotSections } from './user-sections'
+
+/** Mirrors DRAGON_ONBOARDING_BEGIN_EVENT in src/dragon/brand.ts; plugins stay off the app's `@/` imports. */
+const ONBOARDING_BEGIN_EVENT = 'dragon:onboarding-begin'
 
 // ── plugin ───────────────────────────────────────────────────────────────────
 
@@ -482,6 +487,65 @@ export default {
       },
       render: () => <BotsPane />
     })
+
+    // The Bot panel stacks into the right sidebar beside Files: a bot's
+    // identity card with its computer (VM desktop), details and library.
+    ctx.register({
+      id: 'bot-panel',
+      area: 'panes',
+      title: 'Bot',
+      data: {
+        placement: 'right',
+        collapsible: true,
+        width: '340px',
+        minWidth: '280px',
+        dock: { pane: 'files', pos: 'center' }
+      },
+      render: () => <BotPanelPane />
+    })
+
+    // First run ends on the Bots tab with the Chief of Staff's computer open
+    // in the right panel. The roster may still be loading when Begin lands.
+    if (typeof window !== 'undefined') {
+      let stopWaiting: (() => void) | null = null
+
+      const openChiefOfStaff = () => {
+        const bot = $lastRoster.get().find(row => isDefaultBot(row) && !row.remoteSource)
+
+        if (bot) {
+          openBotPanel(bot, 'computer')
+        }
+
+        return Boolean(bot)
+      }
+
+      const onBegin = () => {
+        host.revealPane(`${ID}:pane`)
+        stopWaiting?.()
+
+        if (!openChiefOfStaff()) {
+          const unlisten = $lastRoster.listen(() => {
+            if (openChiefOfStaff()) {
+              stopWaiting?.()
+            }
+          })
+
+          const timer = setTimeout(() => stopWaiting?.(), 60_000)
+
+          stopWaiting = () => {
+            unlisten()
+            clearTimeout(timer)
+            stopWaiting = null
+          }
+        }
+      }
+
+      window.addEventListener(ONBOARDING_BEGIN_EVENT, onBegin)
+      ctx.onDispose?.(() => {
+        window.removeEventListener(ONBOARDING_BEGIN_EVENT, onBegin)
+        stopWaiting?.()
+      })
+    }
 
     // Routines — its OWN tiling pane splitting the workspace's right edge
     // (NOT the collapsible right sidebar; placement 'right' is that sidebar's

@@ -147,3 +147,14 @@ export function stripPreviewMarkdown(text: unknown) {
     .replace(/\s+/g, ' ')
     .trim()
 }
+
+/** The role badge a pinned tile and the bot panel show under the name. */
+export function botRole(bot: Partial<RosterRow>, meta?: BotMeta | null): string {
+  const role = meta?.role?.trim()
+
+  if (role) {
+    return role
+  }
+
+  return (bot.name || '').trim().toLowerCase() === 'default' ? DEFAULT_BOT_ROLE : 'Bot'
+}

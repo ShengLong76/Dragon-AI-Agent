@@ -53,7 +53,7 @@ import type { BotMeta, RosterRow, RoutineJob } from './types'
 const ROUTINES_KEY = [ID, 'routines']
 
 /** Last good cron list, same idea as the roster snapshot. */
-const $lastJobs = atom<RoutineJob[]>([])
+export const $lastJobs = atom<RoutineJob[]>([])
 
 function showsHandle(name: string, meta: BotMeta | null | undefined, bot?: RosterRow) {
   const display = displayName(
@@ -171,7 +171,7 @@ export async function loadRoutines(owner: RoutineOwner): Promise<RoutineListResu
   }
 }
 
-function useRoutines(owner: RoutineOwner) {
+export function useRoutines(owner: RoutineOwner) {
   const bot =
     typeof owner === 'string'
       ? {

@@ -329,8 +329,11 @@ export function BotsPane() {
   }, [gatewayFilterExists])
   const hiddenExpanded = useValue($showHiddenBots)
 
+  const pinnedAsTiles = !query.trim() && rowKindFilter === 'all' && activityFilter === 'all' && gatewayFilter === 'all'
+
   const {
     activeSourceRoster,
+    pinnedBots,
     hiddenBots,
     visibleRoster,
     filteredHiddenBots,
@@ -350,7 +353,8 @@ export function BotsPane() {
     activeRosterKeys,
     gatewayOptions,
     activityOf,
-    isPinned
+    isPinned,
+    pinnedAsTiles
   })
 
   const {
@@ -517,6 +521,7 @@ export function BotsPane() {
         showHiddenRows,
         hiddenGatewaySections,
         renderBotRow,
+        pinnedBots,
         renderGroupChatSection,
         renderGatewaySection,
         renderUserSections,

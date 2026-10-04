@@ -7,6 +7,7 @@ import type { useBots } from './i18n'
 import type { deriveRosterPresentation, deriveRosterRows } from './roster-pane-derivation'
 import type { rosterSectionRenderers } from './roster-pane-sections'
 import type { rosterGatewayOptions } from './roster-sections'
+import { PinnedBotTiles } from './pinned-tiles'
 import type { RosterRow } from './types'
 
 interface RosterContentProps {
@@ -34,6 +35,7 @@ interface RosterContentProps {
   showHiddenRows: boolean
   hiddenGatewaySections: ReturnType<typeof deriveRosterPresentation>['hiddenGatewaySections']
   renderBotRow: (bot: RosterRow, keyPrefix?: string) => ReactNode
+  pinnedBots: RosterRow[]
   renderGroupChatSection: ReturnType<typeof rosterSectionRenderers>['renderGroupChatSection']
   renderGatewaySection: ReturnType<typeof rosterSectionRenderers>['renderGatewaySection']
   renderUserSections: ReturnType<typeof rosterSectionRenderers>['renderUserSections']
@@ -65,6 +67,7 @@ export function renderRosterContent({
   showHiddenRows,
   hiddenGatewaySections,
   renderBotRow,
+  pinnedBots,
   renderGroupChatSection,
   renderGatewaySection,
   renderUserSections,
@@ -110,7 +113,7 @@ export function renderRosterContent({
             {b.roster.showHidden}
           </Button>
         </div>
-      ) : rosterRows.length === 0 && matchingHiddenBots.length === 0 ? (
+      ) : rosterRows.length === 0 && matchingHiddenBots.length === 0 && pinnedBots.length === 0 ? (
         <div aria-live="polite" className="flex min-h-0 flex-1 flex-col" role="status">
           <PanelEmpty
             description={
@@ -127,6 +130,7 @@ export function renderRosterContent({
         </div>
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain" data-slot="bots-roster">
+          <PinnedBotTiles bots={pinnedBots} />
           <div className="grid w-full min-w-0 gap-0.5 px-1.5 pb-2">
             {showGatewaySections
               ? [
