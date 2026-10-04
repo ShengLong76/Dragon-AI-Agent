@@ -57,12 +57,12 @@ describe('build stamp → update ownership', () => {
 
 describe('buildManualUpdateCommand', () => {
   it('bare command on main and detached HEAD', () => {
-    expect(buildManualUpdateCommand('main')).toBe('hermes update')
-    expect(buildManualUpdateCommand('HEAD')).toBe('hermes update')
-    expect(buildManualUpdateCommand(null)).toBe('hermes update')
+    expect(buildManualUpdateCommand('main')).toBe('dragon update')
+    expect(buildManualUpdateCommand('HEAD')).toBe('dragon update')
+    expect(buildManualUpdateCommand(null)).toBe('dragon update')
   })
 
   it('branch-pinned for non-main checkouts', () => {
-    expect(buildManualUpdateCommand('ethie/pm')).toBe('hermes update --branch ethie/pm')
+    expect(buildManualUpdateCommand('ethie/pm')).toBe('dragon update --branch ethie/pm')
   })
 })

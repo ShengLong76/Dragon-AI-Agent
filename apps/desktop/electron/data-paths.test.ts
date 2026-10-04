@@ -24,7 +24,8 @@ test('default data roots append the suffix literally on each platform', (): void
     const home: string = platform === 'win32' ? 'C:\\Users\\test' : '/home/test'
     const local: string = paths.join(home, 'AppData', 'Local')
     const userData: string = paths.join(home, 'app-data', 'Hermes')
-    const base: string = platform === 'win32' ? paths.join(local, 'hermes') : paths.join(home, '.hermes')
+    const base: string =
+      platform === 'win32' ? paths.join(local, 'DragonAIClaude', 'home') : paths.join(home, '.dragon-ai-claude')
 
     for (const suffix of ['', '-asdfasdf', 'magic-test', ' spaced ']) {
       const env: NodeJS.ProcessEnv = { LOCALAPPDATA: local, HERMES_DATA_DIR_SUFFIX: suffix }
@@ -55,7 +56,7 @@ test('explicit homes and userData retain precedence, and suffixed Windows homes 
 
   const windowsHome: string = 'C:\\Users\\test'
   const windowsEnv: NodeJS.ProcessEnv = { HERMES_DATA_DIR_SUFFIX: 'magic-test' }
-  const expected: string = path.win32.join(windowsHome, 'AppData', 'Local', 'hermesmagic-test')
+  const expected: string = path.win32.join(windowsHome, 'AppData', 'Local', 'DragonAIClaude', 'homemagic-test')
 
   assert.equal(
     resolveDesktopHermesHome({
