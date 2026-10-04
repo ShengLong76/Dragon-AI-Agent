@@ -98,6 +98,33 @@ def test_auto_mount_host_cwd_adds_volume(monkeypatch, tmp_path):
     assert f"{project_dir}:/workspace" in run_args_str
 
 
+def test_container_workdir_never_uses_a_drive_letter_path():
+    """Linux sandbox -w must be an in-guest absolute path.
+
+    Repro: ``docker run -w 'C:\\Users\\Admin' nousresearch/hermes-sandbox:desktop``
+    → daemon exit 125. Guest home or /workspace are valid.
+    """
+    assert docker_env.container_workdir(r"C:\Users\Admin") == "/root"
+    assert docker_env.container_workdir(r"C:\Users\Admin", "/workspace") == "/workspace"
+    assert docker_env.container_workdir("/root") == "/root"
+    assert docker_env.container_workdir("/workspace") == "/workspace"
+
+
+def test_docker_run_rejects_a_windows_host_workdir(monkeypatch):
+    """Start screen on Windows feeds the host home as cwd; docker run -w must not."""
+    monkeypatch.setattr(docker_env, "find_docker", lambda: "/usr/bin/docker")
+    calls = _mock_subprocess_run(monkeypatch)
+
+    env = _make_dummy_env(cwd=r"C:\Users\Admin")
+
+    assert env.cwd == "/root"
+    run_calls = [c for c in calls if isinstance(c[0], list) and len(c[0]) >= 2 and c[0][1] == "run"]
+    assert run_calls, "docker run should have been called"
+    run_args = run_calls[0][0]
+    assert "-w" in run_args
+    workdir = run_args[run_args.index("-w") + 1]
+    assert workdir == "/root"
+    assert not docker_env._is_windows_drive_path(workdir)
 
 
 def _make_execute_only_env(forward_env=None):
