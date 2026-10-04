@@ -12,14 +12,17 @@ import { AvatarPicker } from './avatar-picker'
 import { $imagenAvailable, IMAGE_GEN_SETTINGS_PATH } from './avatar-image'
 import { translateBotsIn } from './i18n-test-helper'
 
-const { navigate } = vi.hoisted(() => ({ navigate: vi.fn() }))
+const { navigate, request } = vi.hoisted(() => ({
+  navigate: vi.fn(),
+  request: vi.fn()
+}))
 
 vi.mock('@hermes/plugin-sdk', async importOriginal => {
   const sdk = await importOriginal<typeof HermesSdk>()
 
   return {
     ...sdk,
-    host: { ...sdk.host, navigate, request: vi.fn() },
+    host: { ...sdk.host, navigate, request },
     usePluginI18n: () => translateBotsIn('en')
   }
 })
@@ -29,6 +32,7 @@ const noop = () => undefined
 beforeEach(() => {
   vi.clearAllMocks()
   $imagenAvailable.set(false)
+  request.mockResolvedValue({ available: false })
 })
 
 describe('Generate tab without an image model', () => {

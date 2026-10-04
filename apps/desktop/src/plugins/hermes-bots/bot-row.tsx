@@ -47,6 +47,7 @@ import {
   botAttentionHint,
   botHandle,
   botRosterKey,
+  botSelectionKey,
   botSourceStatus
 } from './data'
 import { $groupChats, $groupChatWorkspace } from './group-chat'
