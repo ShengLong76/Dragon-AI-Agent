@@ -122,7 +122,7 @@ def test_status_formatting() -> None:
         fail("failed/skipped words are wrong")
     if format_wizard_status_line({"welcome": "success", "models": "in_app"}) != "Welcome: OK / Models: in-app":
         fail("in_app models must format as in-app")
-    if format_wizard_status_line({}) != "Welcome: pending · Models: pending":
+    if format_wizard_status_line({}) != "Welcome: pending / Models: pending":
         fail("empty steps must default to pending")
     print("OK  status formatting is Welcome/Models only")
 

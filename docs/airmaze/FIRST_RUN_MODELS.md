@@ -48,7 +48,7 @@ First-run uses the **in-app Models UI on the real desktop chat screen**, plus la
 
 `DragonAIAgent.exe` opens `http://127.0.0.1:8655/` (the host inject proxy). That proxy loads `DRAGON_AI_UI_URL` (default `http://127.0.0.1:8660/`), which is `hermes dashboard` published by `hermes-airmaze-desktop-ui`. It **refuses** `http://127.0.0.1:8650/` when GET `/` is the headless body `web UI disabled`. Fresh-install order:
 
-1. The native in-app provider-setup dialog (“Let’s get you setup with Dragon AI Agent”). `provider-setup.js` expands every option, recommends **xAI Grok** (not Nous Portal), rewrites leftover Hermes copy (`Hermes connects automatically` → Dragon AI), and hides the `[Errno -2] Name or service not known` / `setup.status` banner.
+1. The native in-app provider-setup dialog (“Let’s get you setup with Dragon AI Agent”). `provider-setup.js` expands every option (**Other providers** included), recommends **xAI Grok** (not Nous Portal), rewrites leftover Hermes copy (`Hermes connects automatically` → Dragon AI), and hides the `[Errno -2] Name or service not known` / `setup.status` banner.
 2. After Grok connects, the confirmation screen: **XAI GROK OAUTH (SUPERGROK / PREMIUM+) CONNECTED**, **DEFAULT MODEL** `grok-4.7`, Change, and **[ BEGIN ]**. Do not return to the provider list. No Nous rows, no Hermes copy.
 
 The custom `first-run-models.js` Models overlay does not cover either of those screens.

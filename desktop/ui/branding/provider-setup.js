@@ -14,6 +14,8 @@
   var INHERIT_URL = "http://127.0.0.1:8655/api/inherit-models";
   var PROTECTED = /hermes\s+model|hermes\s+auth|hermes\s+setup|hermes\.exe|hermes-airmaze|x-hermes-session-token|hermes:\/\/|~\/\.hermes/i;
   var EXPAND_LABEL = /other providers|i'?ll choose a provider later|show (all|more)|more providers|all providers/i;
+  var SETUP_STATUS = "setup.status";
+  var ERRNO_BANNER = "[Errno -2] Name or service not known";
   var ERROR_TEXT = /errno\s*-?\s*2|name or service not known|setup\.status|runtime resolution still failed/i;
   var PROVIDER_ROW = /nous portal|run models locally|openrouter|openai|anthropic|gemini|grok|self-hosted|ollama|custom|fireworks|minimax|opencode|chatgpt|codex/i;
   var LIST_ROW = /nous portal|run models locally|fireworks|chatgpt or codex|minimax|opencode|anthropic api|anthropic oauth|i'?ll choose a provider later|other providers/i;
@@ -136,7 +138,7 @@
     for (i = 0; i < nodes.length; i++) {
       var el = nodes[i];
       var text = labelOf(el);
-      if (!ERROR_TEXT.test(text)) continue;
+      if (!ERROR_TEXT.test(text) && text.indexOf(ERRNO_BANNER) === -1 && text.indexOf(SETUP_STATUS) === -1) continue;
       if (text.length > 280) continue;
       el.setAttribute(HIDDEN_ERR, "1");
       el.style.display = "none";
