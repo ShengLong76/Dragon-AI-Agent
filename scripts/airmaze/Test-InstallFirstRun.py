@@ -207,6 +207,8 @@ def test_desktop_web_ui_not_headless() -> None:
         fail("desktop host must inject the Air Maze first-run Models step onto the web UI")
     if "provider-setup" not in host:
         fail("desktop host must inject provider-setup so the native first screen can be polished")
+    if "bot-workspace" not in host:
+        fail("desktop host must inject bot-workspace so Begin lands on Bots + the VM screen")
     if "/api/launch" not in host:
         fail("desktop host must expose /api/launch")
     if "refusing headless" not in host:
@@ -246,6 +248,14 @@ def test_desktop_web_ui_not_headless() -> None:
         fail("provider-setup.js must keep the connected DEFAULT MODEL / BEGIN screen")
     if "BEGIN" not in provider or "hidden-provider-list" not in provider:
         fail("after Grok connects, provider-setup.js must not return to the provider list")
+    workspace_js = ROOT / "branding" / "fonts" / "syne" / "bot-workspace.js"
+    if not workspace_js.is_file():
+        fail("missing branding/fonts/syne/bot-workspace.js")
+    workspace = read(workspace_js)
+    if "openBotsTab" not in workspace or "hidden-file-tree" not in workspace:
+        fail("after Begin, bot-workspace.js must open the Bots tab and hide the Hermes file tree")
+    if "bot VM screen" not in workspace or "Embedded Linux" not in workspace:
+        fail("after Begin, the right pane must be the bot VM screen, not Embedded Linux / a file tree")
     if "xAI Grok login" not in first_run:
         fail("first-run Models step must reuse the existing xAI login (no new API key)")
     if "Teams Marketplace" not in first_run or "Personal Assistant" not in first_run:
@@ -275,6 +285,8 @@ def test_desktop_web_ui_not_headless() -> None:
         fail("packaged exe must inject first-run Models onto the desktop web UI; rebuild")
     if b"provider-setup" not in exe:
         fail("packaged exe must inject provider-setup onto the desktop web UI; rebuild")
+    if b"bot-workspace" not in exe:
+        fail("packaged exe must inject bot-workspace onto the desktop web UI; rebuild")
     print("OK  window loads the desktop web UI (headless serve page refused)")
 
 

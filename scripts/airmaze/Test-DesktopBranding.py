@@ -556,6 +556,10 @@ const protocol = 'hermes://copilot-key/start';
             fail("provider-setup inject must hide the setup.status / Errno -2 banner")
         if "nativeProviderSetupVisible" not in html:
             fail("first-run-models inject must yield to the native provider-setup first screen")
+        if 'data-dragon-ai-branding="bot-workspace"' not in html:
+            fail("index.html must inject the after-Begin Bots / VM screen workspace")
+        if "hidden-file-tree" not in html or "Embedded Linux" not in html:
+            fail("bot-workspace inject must hide the Hermes file tree and Embedded Linux header")
         if "hermes model" not in html or "Dragon AI" not in html:
             fail("provider-setup inject must rewrite Hermes copy and keep the hermes model CLI")
         if "GPT" not in html or "Grok" not in html:
@@ -632,8 +636,12 @@ const protocol = 'hermes://copilot-key/start';
             fail("first-run-models.js must be copied into dragon-ai-branding")
         if not (pack_dir / "provider-setup.js").is_file():
             fail("provider-setup.js must be copied into dragon-ai-branding")
+        if not (pack_dir / "bot-workspace.js").is_file():
+            fail("bot-workspace.js must be copied into dragon-ai-branding")
         if "dragon-ai-provider-setup:1" not in css_txt:
             fail("copied dragon-ui.css must stamp the taller in-app provider dialog")
+        if "dragon-ai-bot-workspace:1" not in css_txt:
+            fail("copied dragon-ui.css must stamp the after-Begin Bots / VM screen workspace")
         if "18cqi" in css_txt:
             fail("injected CSS must not shrink the sidebar logo with column width")
         if "dragon-ai-logo-175:1" not in css_txt or "--dragon-sidebar-logo-size: 56px" not in css_txt:
@@ -820,6 +828,8 @@ def test_packaging_not_regressed() -> None:
         fail("dragon-ui.css must stamp composer chrome (no persistent red island)")
     if "dragon-ai-provider-setup:1" not in css or "[data-dragon-ai-provider-setup]" not in css:
         fail("dragon-ui.css must stamp and size the in-app provider dialog")
+    if "dragon-ai-bot-workspace:1" not in css:
+        fail("dragon-ui.css must stamp the after-Begin Bots / VM screen workspace")
     voice_js = ROOT / "branding" / "voice" / "dragon-voice-selector.js"
     assert_composer_chrome(css, read(voice_js) if voice_js.is_file() else "")
     table = json.loads(read(TABLE))
@@ -849,6 +859,13 @@ def test_packaging_not_regressed() -> None:
         fail("provider-setup.js must rewrite Hermes copy and keep the hermes model CLI")
     if "/api/inherit-models" not in provider_js or "8655" not in provider_js:
         fail("provider-setup.js must POST inherit-models when the in-app provider step completes")
+    workspace_js = read(pack / "bot-workspace.js")
+    if "openBotsTab" not in workspace_js or "hidden-file-tree" not in workspace_js:
+        fail("bot-workspace.js must default to the Bots tab and hide the Hermes file tree")
+    if "bot VM screen" not in workspace_js or "Embedded Linux" not in workspace_js:
+        fail("bot-workspace.js must open the bot VM screen and hide Embedded Linux")
+    if "couldn't finish the reply" not in workspace_js and "couldn'?t finish" not in workspace_js:
+        fail("bot-workspace.js must hide the Hermes couldn't-finish-the-reply toast")
     assert_sidebar_host_fallback(sidebar_js, teams_js, css)
     host_note = ROOT / "docs" / "airmaze" / "SIDEBAR_HOST.md"
     host_txt = read(host_note)
@@ -887,6 +904,8 @@ def test_packaging_not_regressed() -> None:
         fail("Apply-DesktopBranding.ps1 must verify Grok-Bot chat bubbles landed")
     if "provider-setup:1" not in apply_ps:
         fail("Apply-DesktopBranding.ps1 must verify the in-app provider dialog CSS stamp landed")
+    if "bot-workspace" not in apply_ps or "bot-workspace:1" not in apply_ps:
+        fail("Apply-DesktopBranding.ps1 must inject bot-workspace.js and verify its CSS stamp")
     if "18cqi" in css or "clamp(20px, 18cqi, 32px)" in css:
         fail("sidebar logo must stay a fixed 56px (do not clamp/shrink)")
     if "--dragon-sidebar-control-height: 32px" not in css:

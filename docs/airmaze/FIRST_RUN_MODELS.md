@@ -51,7 +51,9 @@ First-run uses the **in-app Models UI on the real desktop chat screen**, plus la
 1. The native in-app provider-setup dialog (“Let’s get you setup with Dragon AI Agent”). `provider-setup.js` expands every option (**Other providers** included), recommends **xAI Grok** (not Nous Portal), rewrites leftover Hermes copy (`Hermes connects automatically` → Dragon AI), and hides the `[Errno -2] Name or service not known` / `setup.status` banner.
 2. After Grok connects, the confirmation screen: **XAI GROK OAUTH (SUPERGROK / PREMIUM+) CONNECTED**, **DEFAULT MODEL** `grok-4.7`, Change, and **[ BEGIN ]**. Do not return to the provider list. No Nous rows, no Hermes copy.
 
-The custom `first-run-models.js` Models overlay does not cover either of those screens.
+3. After **Begin**, the product workspace opens on the **Bots** tab. The right pane is the bot VM screen, not a Hermes file tree. Sessions / Bots stay below the Dragon logo and Teams Marketplace. Hide leftover Hermes toasts (`couldn't finish the reply`, `run hermes setup`), the right-edge HERMES file browser, and an **Embedded Linux** connection header.
+
+The custom `first-run-models.js` Models overlay does not cover those screens. This sequence is the product spec for every install.
 
 Install and launch mark `welcome=success` and `models=in_app` (`Set-DragonAIInAppProviderOnboarding`) so WinForms `Onboard-Wizard.ps1` is not auto-launched.
 

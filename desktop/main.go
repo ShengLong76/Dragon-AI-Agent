@@ -105,6 +105,7 @@ func overlaySnippets() [][2]string {
 		{`data-dragon-ai-branding="sidebar-header"`, `<script src="/dragon-ai-branding/sidebar-header.js" data-dragon-ai-branding="sidebar-header"></script>`},
 		{`data-dragon-ai-branding="teams-picker"`, `<script src="/dragon-ai-branding/teams-picker.js" data-dragon-ai-branding="teams-picker"></script>`},
 		{`data-dragon-ai-branding="provider-setup"`, `<script src="/dragon-ai-branding/provider-setup.js" data-dragon-ai-branding="provider-setup"></script>`},
+		{`data-dragon-ai-branding="bot-workspace"`, `<script src="/dragon-ai-branding/bot-workspace.js" data-dragon-ai-branding="bot-workspace"></script>`},
 		{`data-dragon-ai-branding="first-run-models"`, `<script src="/dragon-ai-branding/first-run-models.js" data-dragon-ai-branding="first-run-models"></script>`},
 		{`data-dragon-ai-branding="voice-provider"`, `<script src="/dragon-ai-branding/dragon-voice-selector.js" data-dragon-ai-branding="voice-provider"></script>`},
 		{`data-dragon-ai-branding="voice-settings"`, `<script src="/dragon-ai-branding/dragon-voice-settings.js" data-dragon-ai-branding="voice-settings"></script>`},
@@ -491,6 +492,9 @@ func brandingDir() string {
 			return dir
 		}
 		if st, err := os.Stat(filepath.Join(dir, "provider-setup.js")); err == nil && !st.IsDir() {
+			return dir
+		}
+		if st, err := os.Stat(filepath.Join(dir, "bot-workspace.js")); err == nil && !st.IsDir() {
 			return dir
 		}
 	}

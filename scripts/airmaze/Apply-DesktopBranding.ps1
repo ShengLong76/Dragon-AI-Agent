@@ -205,10 +205,12 @@ function Install-DragonAIDesktopFontPack {
     $teamsMark = 'data-dragon-ai-branding="teams-picker"'
     $firstRunMark = 'data-dragon-ai-branding="first-run-models"'
     $providerMark = 'data-dragon-ai-branding="provider-setup"'
+    $workspaceMark = 'data-dragon-ai-branding="bot-workspace"'
     $sidebarSnippet = "<script $sidebarMark>`n" + (Get-DragonAIPackScript -Name "sidebar-header.js") + "`n</script>"
     $teamsSnippet = "<script $teamsMark>`n" + (Get-DragonAIPackScript -Name "teams-picker.js") + "`n</script>"
     $firstRunSnippet = "<script $firstRunMark>`n" + (Get-DragonAIPackScript -Name "first-run-models.js") + "`n</script>"
     $providerSnippet = "<script $providerMark>`n" + (Get-DragonAIPackScript -Name "provider-setup.js") + "`n</script>"
+    $workspaceSnippet = "<script $workspaceMark>`n" + (Get-DragonAIPackScript -Name "bot-workspace.js") + "`n</script>"
     if ($sidebarSnippet -notmatch 'data-dragon-ai-sidebar-fixed' -or $sidebarSnippet -notmatch 'findDragonSidebarHost' -or $sidebarSnippet -notmatch 'findColumnHost') {
         throw "Apply-DesktopBranding: sidebar-header.js is missing the body fixed-overlay fallback host"
     }
@@ -250,6 +252,12 @@ function Install-DragonAIDesktopFontPack {
     }
     if ($firstRunSnippet -notmatch 'nativeProviderSetupVisible') {
         throw "Apply-DesktopBranding: first-run-models.js must yield to the native provider-setup first screen"
+    }
+    if ($workspaceSnippet -notmatch 'data-dragon-ai-bot-workspace' -or $workspaceSnippet -notmatch 'hidden-file-tree') {
+        throw "Apply-DesktopBranding: bot-workspace.js must default to the Bots tab and hide the Hermes file tree"
+    }
+    if ($workspaceSnippet -notmatch 'Embedded Linux' -or $workspaceSnippet -notmatch 'bot VM screen') {
+        throw "Apply-DesktopBranding: bot-workspace.js must open the bot VM screen and hide Embedded Linux"
     }
     $utf8 = New-Object System.Text.UTF8Encoding $false
     foreach ($root in $Roots) {
@@ -316,6 +324,9 @@ function Install-DragonAIDesktopFontPack {
             if ($sheet -notmatch "dragon-ai-provider-setup:1") {
                 throw "Apply-DesktopBranding: copied dragon-ui.css is missing the taller in-app provider dialog stamp ($sheetPath)"
             }
+            if ($sheet -notmatch "dragon-ai-bot-workspace:1") {
+                throw "Apply-DesktopBranding: copied dragon-ui.css is missing the after-Begin Bots / VM screen stamp ($sheetPath)"
+            }
             $copiedCss++
             $cssMark = "/* dragon-ai-ui-face */"
             $cssFiles = @(Get-ChildItem -LiteralPath $cand -Filter "*.css" -File -ErrorAction SilentlyContinue)
@@ -362,6 +373,9 @@ function Install-DragonAIDesktopFontPack {
                 $provider = Update-DragonAIMarkedSnippet -Html $text -Mark $providerMark -Snippet $providerSnippet
                 $text = $provider.text
                 if ($provider.changed) { $changed = $true }
+                $workspace = Update-DragonAIMarkedSnippet -Html $text -Mark $workspaceMark -Snippet $workspaceSnippet
+                $text = $workspace.text
+                if ($workspace.changed) { $changed = $true }
                 $stripped = Remove-DragonAICrimsonLockupBorder -Text $text
                 if ($stripped -ne $text) {
                     $text = $stripped

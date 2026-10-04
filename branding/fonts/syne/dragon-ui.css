@@ -1422,6 +1422,18 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="
   background: #0c0c10;
 }
 
+/* dragon-ai-bot-workspace:1
+   After Begin: Bots tab + bot VM screen. No Hermes file tree default. */
+[data-dragon-ai-hidden-file-tree],
+[data-dragon-ai-hidden-hermes-toast],
+[data-dragon-ai-hidden-embedded-linux] {
+  display: none !important;
+}
+
+[data-dragon-ai-bot-vm-screen] {
+  min-width: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

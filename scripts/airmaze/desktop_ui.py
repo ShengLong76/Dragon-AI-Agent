@@ -99,6 +99,7 @@ def overlay_snippets() -> list[tuple[str, str]]:
         ('data-dragon-ai-branding="sidebar-header"', '<script src="/dragon-ai-branding/sidebar-header.js" data-dragon-ai-branding="sidebar-header"></script>'),
         ('data-dragon-ai-branding="teams-picker"', '<script src="/dragon-ai-branding/teams-picker.js" data-dragon-ai-branding="teams-picker"></script>'),
         ('data-dragon-ai-branding="provider-setup"', '<script src="/dragon-ai-branding/provider-setup.js" data-dragon-ai-branding="provider-setup"></script>'),
+        ('data-dragon-ai-branding="bot-workspace"', '<script src="/dragon-ai-branding/bot-workspace.js" data-dragon-ai-branding="bot-workspace"></script>'),
         ('data-dragon-ai-branding="first-run-models"', '<script src="/dragon-ai-branding/first-run-models.js" data-dragon-ai-branding="first-run-models"></script>'),
         ('data-dragon-ai-branding="voice-provider"', '<script src="/dragon-ai-branding/dragon-voice-selector.js" data-dragon-ai-branding="voice-provider"></script>'),
         ('data-dragon-ai-branding="voice-settings"', '<script src="/dragon-ai-branding/dragon-voice-settings.js" data-dragon-ai-branding="voice-settings"></script>'),
@@ -137,6 +138,9 @@ def _self_test() -> int:
         return 1
     if 'data-dragon-ai-branding="provider-setup"' not in injected:
         print("FAIL: overlay inject missed provider-setup", file=sys.stderr)
+        return 1
+    if 'data-dragon-ai-branding="bot-workspace"' not in injected:
+        print("FAIL: overlay inject missed bot-workspace", file=sys.stderr)
         return 1
 
     class Handler(BaseHTTPRequestHandler):

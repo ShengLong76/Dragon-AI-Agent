@@ -32,6 +32,7 @@ def main() -> int:
     for src in (
         ROOT / "branding" / "fonts" / "syne" / "first-run-models.js",
         ROOT / "branding" / "fonts" / "syne" / "provider-setup.js",
+        ROOT / "branding" / "fonts" / "syne" / "bot-workspace.js",
         ROOT / "branding" / "fonts" / "syne" / "sidebar-header.js",
         ROOT / "branding" / "fonts" / "syne" / "teams-picker.js",
         ROOT / "branding" / "fonts" / "syne" / "dragon-ui.css",

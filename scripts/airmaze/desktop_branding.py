@@ -39,6 +39,8 @@ VOICE_SCRIPT_MARK = 'data-dragon-ai-branding="voice-provider"'
 VOICE_SETTINGS_SCRIPT_MARK = 'data-dragon-ai-branding="voice-settings"'
 PROVIDER_SCRIPT_MARK = 'data-dragon-ai-branding="provider-setup"'
 PROVIDER_SCRIPT_NAME = "provider-setup.js"
+WORKSPACE_SCRIPT_MARK = 'data-dragon-ai-branding="bot-workspace"'
+WORKSPACE_SCRIPT_NAME = "bot-workspace.js"
 OLD_HTML_MARKS = ('data-dragon-ai-branding="outfit"',)
 STYLESHEET_NAME = "dragon-ui.css"
 CSS_APPEND_MARK = "/* dragon-ai-ui-face */"
@@ -502,6 +504,14 @@ def inject_provider_setup_script(html: str) -> tuple[str, bool]:
     return upsert_marked_script(html, PROVIDER_SCRIPT_MARK, provider_setup_script())
 
 
+def bot_workspace_script() -> str:
+    return wrap_marked_script(WORKSPACE_SCRIPT_MARK, load_pack_script(WORKSPACE_SCRIPT_NAME))
+
+
+def inject_bot_workspace_script(html: str) -> tuple[str, bool]:
+    return upsert_marked_script(html, WORKSPACE_SCRIPT_MARK, bot_workspace_script())
+
+
 def inject_html_branding(html: str) -> tuple[str, bool]:
     out, changed = inject_font_link(html)
     out2, changed2 = inject_sidebar_header_script(out)
@@ -510,8 +520,9 @@ def inject_html_branding(html: str) -> tuple[str, bool]:
     out5, changed5 = inject_voice_provider_script(out4)
     out6, changed6 = inject_voice_settings_script(out5)
     out7, changed7 = inject_provider_setup_script(out6)
-    out8, stripped = strip_crimson_lockup_border(out7)
-    return out8, changed or changed2 or changed3 or changed4 or changed5 or changed6 or changed7 or bool(stripped)
+    out8, changed8 = inject_bot_workspace_script(out7)
+    out9, stripped = strip_crimson_lockup_border(out8)
+    return out9, changed or changed2 or changed3 or changed4 or changed5 or changed6 or changed7 or changed8 or bool(stripped)
 
 
 def append_font_css(css_text: str, sheet: str) -> tuple[str, bool]:
@@ -1131,6 +1142,12 @@ def self_test() -> int:
         return 1
     if "data-dragon-ai-provider-connected" not in once or "DEFAULT MODEL" not in once:
         print("FAIL: provider-setup must keep the connected DEFAULT MODEL / BEGIN screen", file=sys.stderr)
+        return 1
+    if once.count(WORKSPACE_SCRIPT_MARK) != 1 or "bot VM screen" not in once:
+        print("FAIL: bot-workspace script must inject the after-Begin Bots / VM screen default", file=sys.stderr)
+        return 1
+    if "hidden-file-tree" not in once or "Embedded Linux" not in once:
+        print("FAIL: bot-workspace must hide the Hermes file tree and Embedded Linux header", file=sys.stderr)
         return 1
     if "input_audio_buffer.append" not in once or "grok-voice-latest" not in once:
         print("FAIL: overlay must send official STS append events to grok-voice-latest", file=sys.stderr)
