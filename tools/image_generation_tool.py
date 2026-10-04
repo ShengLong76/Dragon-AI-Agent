@@ -187,11 +187,30 @@ def _read_configured_image_provider():
 
 
 def _plugin_provider_name() -> Optional[str]:
-    """Configured provider that must go through the plugin registry; None for unset/fal/nous."""
+    """Configured provider that must go through the plugin registry; None for unset/fal/nous.
+
+    The stored string is returned as-is (lookup resolves aliases/labels). When the
+    provider key is unset, a selected ``image_gen.model`` can still name a plugin.
+    """
     configured = _read_configured_image_provider()
-    if not configured or configured in ("fal", NOUS_MANAGED_PROVIDER):
+    if configured and configured not in ("fal", NOUS_MANAGED_PROVIDER):
+        return configured
+    if configured in ("fal", NOUS_MANAGED_PROVIDER):
         return None
-    return configured
+    model = _read_configured_image_model()
+    if not model:
+        return None
+    from hermes_cli.plugins import _ensure_plugins_discovered
+    from agent.image_gen_registry import resolve_provider_for_model
+
+    _ensure_plugins_discovered()
+    provider = resolve_provider_for_model(model)
+    if provider is None:
+        return None
+    name = getattr(provider, "name", None)
+    if not isinstance(name, str) or name in ("fal", NOUS_MANAGED_PROVIDER):
+        return None
+    return name
 
 
 def _resolve_fal_model() -> tuple:
@@ -521,17 +540,26 @@ def _build_no_backend_setup_message() -> str:
 
 def _get_plugin_provider(name: str, *, force: bool = False):
     """Discover plugins (local import: importing this module must not trigger discovery) and return the named provider."""
-    from agent.image_gen_registry import get_provider
+    from agent.image_gen_registry import get_provider, resolve_provider
     from hermes_cli.plugins import _ensure_plugins_discovered
     if force:
         _ensure_plugins_discovered(force=True)
     else:
         _ensure_plugins_discovered()
-    return get_provider(name)
+    # Exact registry key first so monkeypatches on get_provider stay the seam;
+    # resolve_provider then accepts display names / aliases / case folds.
+    return get_provider(name) or resolve_provider(name)
 
 
 def check_image_generation_requirements() -> bool:
-    """True if FAL or the explicitly configured image backend is available."""
+    """True if FAL is ready or an image backend/model has already been selected.
+
+    Selection is enough: Generate must use the chosen backend instead of asking
+    again. ``is_available()`` and exact registry-key match are not the probe —
+    a selected backend stored under a display name, LLM alias, or model id
+    (or whose availability check fails) is still a selection. An unselected
+    install stays False so the empty spot can link to the model picker.
+    """
     try:
         if check_fal_api_key():
             # Lazy import doubles as the SDK presence check: ImportError falls through to plugins.
@@ -539,12 +567,11 @@ def check_image_generation_requirements() -> bool:
             return True
     except ImportError:
         pass
-    configured = _plugin_provider_name()
-    if configured is None:
-        return False
-    # Probe only the selected plugin: a cloud key alone must not opt a user into a paid backend.
-    provider = _get_plugin_provider(configured)
-    return bool(provider and provider.is_available())
+    # Probe only whether the user chose a backend: a leftover cloud key must
+    # not opt them into a paid plugin they never selected.
+    if _read_configured_image_provider():
+        return True
+    return bool(_read_configured_image_model())
 
 
 # --- Registry ---

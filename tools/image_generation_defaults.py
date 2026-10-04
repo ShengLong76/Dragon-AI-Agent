@@ -41,10 +41,10 @@ def _fal_already_ready() -> bool:
 
 def _image_backend(name: str):
     from hermes_cli.plugins import _ensure_plugins_discovered
-    from agent.image_gen_registry import get_provider
+    from agent.image_gen_registry import resolve_provider
 
     _ensure_plugins_discovered()
-    provider = get_provider(name)
+    provider = resolve_provider(name)
     if provider is None:
         return None
     try:
