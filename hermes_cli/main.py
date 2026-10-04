@@ -207,7 +207,7 @@ def _warn_if_unsupervised_pid1(pid: "int | None" = None) -> None:
 
 
 def _set_process_title() -> None:
-    """Cosmetic: show 'hermes' instead of 'python3.xx' in ps/top/htop.
+    """Cosmetic: show 'dragon-ai' instead of 'python3.xx' in ps/top/htop.
 
     Order: opt-in ``setproctitle`` dep; ctypes ``prctl(PR_SET_NAME)`` (Linux,
     15-char limit); ``pthread_setname_np`` (macOS — lldb/top only, not ``ps
@@ -216,7 +216,7 @@ def _set_process_title() -> None:
     try:
         import setproctitle  # type: ignore[import-untyped]
 
-        setproctitle.setproctitle("hermes")
+        setproctitle.setproctitle("dragon-ai")
         return
     except ImportError:
         pass
@@ -228,10 +228,10 @@ def _set_process_title() -> None:
         system = platform.system()
         if system == "Linux":
             libc = ctypes.CDLL("libc.so.6", use_errno=True)
-            libc.prctl(15, b"hermes", 0, 0, 0)  # PR_SET_NAME = 15
+            libc.prctl(15, b"dragon-ai", 0, 0, 0)  # PR_SET_NAME = 15
         elif system == "Darwin":
             libc = ctypes.CDLL("libc.dylib", use_errno=True)
-            libc.pthread_setname_np(b"hermes")
+            libc.pthread_setname_np(b"dragon-ai")
     except Exception:
         pass
 
