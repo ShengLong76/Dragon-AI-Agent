@@ -97,7 +97,7 @@ Singular import/export of one bot is an optional toggle (`allowSingularBotImport
 
 ## First-run models + setup guide
 
-Open **Dragon AI Agent** (Desktop / Start Menu launcher). First-run chat + image LLM defaults are written by `Apply-GatewayModels.ps1` (`Grok` / **Grok Imagine**) when those keys are missing. Change them in the **in-app Models UI**. There is no **Dragon AI Agent Setup** Desktop / Start Menu shortcut; the WinForms `Onboard-Wizard.ps1` path is deprecated.
+Open **Dragon AI Agent** (Desktop / Start Menu launcher). First-run chat + image LLM defaults are written by `Apply-GatewayModels.ps1` (`Grok` / **Grok Imagine**) when those keys are missing. Change them in the **in-app Models UI** on the real dashboard web UI (`:8660` via host `:8655`). That pick is inherited onto **all bots** unless a bot already has its own model. There is no **Dragon AI Agent Setup** Desktop / Start Menu shortcut; the WinForms `Onboard-Wizard.ps1` path is not auto-launched.
 
 Connector steps (email / CRM / telephony) for Real Estate packs are documented in [`docs/airmaze/SETUP_GUIDE.md`](docs/airmaze/SETUP_GUIDE.md). Secrets, when used, stay in **Windows DPAPI** under `%LOCALAPPDATA%\DragonAIAgent\onboarding\secrets\` — never in plaintext JSON. Real Estate bots remain **`needs_setup`** until email + CRM + telephony succeed.
 
@@ -180,6 +180,7 @@ scripts/airmaze/
   embedded_desktop_connection.py
   Set-EmbeddedDesktopConnection.ps1
   Onboard-Wizard.ps1
+  Test-OnboardWizard.py
   DragonAI-SecureStore.ps1
 templates/profiles/personal-assistant/
 installer/

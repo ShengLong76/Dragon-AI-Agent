@@ -692,7 +692,7 @@ function Start-GatewayContainer {
     if (Test-Path -LiteralPath $applyModels) {
         try {
             & $applyModels -HermesHome $data -IfMissing | Out-Null
-            Write-LaunchLog "Applied default chat/image LLMs if gateway config was missing them"
+            Write-LaunchLog "Applied default chat/image LLMs if gateway config was missing them (bots inherit)"
         } catch {
             Write-LaunchLog "Gateway model defaults skipped: $($_.Exception.Message)" "WARN"
         }
@@ -945,18 +945,34 @@ Re-download DragonAIAgentSetup.exe and run that one installer.
     return $exe
 }
 
+function Import-DragonAISecureStore {
+    $store = Join-Path $PSScriptRoot "DragonAI-SecureStore.ps1"
+    if (-not (Test-Path -LiteralPath $store)) {
+        $store = Join-Path $InstallRoot "scripts\airmaze\DragonAI-SecureStore.ps1"
+    }
+    if (-not (Test-Path -LiteralPath $store)) { return $false }
+    . $store
+    return $true
+}
+
 function Test-OnboardingNeedsUi {
     $progressPath = Join-Path $env:LOCALAPPDATA "DragonAIAgent\onboarding\progress.json"
     if (-not (Test-Path -LiteralPath $progressPath)) { return $true }
     try {
         $p = Get-Content -LiteralPath $progressPath -Raw -Encoding UTF8 | ConvertFrom-Json
         if ($p.skipped) { return $false }
+        if ($p.inAppProviderUi) { return $false }
         $welcome = $null
+        $models = $null
         if ($p.steps) {
             if ($p.steps.PSObject.Properties.Name -contains "welcome") {
                 $welcome = [string]$p.steps.welcome
             }
+            if ($p.steps.PSObject.Properties.Name -contains "models") {
+                $models = [string]$p.steps.models
+            }
         }
+        if ($models -in @("in_app", "success", "skipped")) { return $false }
         if ([string]::IsNullOrWhiteSpace($welcome) -or $welcome -eq "pending") { return $true }
         return $false
     } catch {
@@ -1022,6 +1038,36 @@ function Start-DragonAITeamsPicker {
     }
 }
 
+function Start-DragonAIInheritModels {
+    $engine = Join-Path $PSScriptRoot "gateway_models.py"
+    if (-not (Test-Path -LiteralPath $engine)) {
+        $engine = Join-Path $InstallRoot "scripts\airmaze\gateway_models.py"
+    }
+    if (-not (Test-Path -LiteralPath $engine)) { return }
+    $py = Get-Command python3 -ErrorAction SilentlyContinue
+    if (-not $py) { $py = Get-Command python -ErrorAction SilentlyContinue }
+    if (-not $py) { return }
+    $embeddedHome = if ($env:USERPROFILE) { Join-Path $env:USERPROFILE ".hermes-airmaze-embedded" } else { Join-Path $InstallRoot "hermes-home" }
+    $desktop = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "hermes\profiles" } else { "" }
+    $inheritArgs = @(
+        $engine, "serve",
+        "--home", $embeddedHome,
+        "--host", "127.0.0.1",
+        "--port", "8655"
+    )
+    if (-not [string]::IsNullOrWhiteSpace($desktop)) {
+        $inheritArgs += @("--profiles", $desktop)
+        $inheritArgs += @("--profiles", (Join-Path $embeddedHome "profiles"))
+    }
+    try {
+        & $py.Source $engine inherit --home $embeddedHome --profiles $desktop 2>$null | Out-Null
+        Start-Process -FilePath $py.Source -ArgumentList $inheritArgs -WindowStyle Hidden -ErrorAction SilentlyContinue | Out-Null
+        Write-LaunchLog "Inherit helper on http://127.0.0.1:8655/api/inherit-models (in-app Models → all bots)"
+    } catch {
+        Write-LaunchLog "Inherit helper skipped: $($_.Exception.Message)" "WARN"
+    }
+}
+
 function Start-DragonAIVoiceChat {
     $engine = Join-Path $PSScriptRoot "voice_chat.py"
     if (-not (Test-Path -LiteralPath $engine)) {
@@ -1050,7 +1096,18 @@ function Start-OnboardingIfNeeded {
     # Model defaults are applied by Apply-GatewayModels (-IfMissing) before compose up.
     # Operators pick models in the in-app Models UI.
     if ($NoWizard) { return }
-    Write-LaunchLog "First-run setup uses in-app Models UI (WinForms Onboard-Wizard shortcut retired)"
+    Write-LaunchLog "First-run setup uses in-app first-run Models UI (WinForms Onboard-Wizard shortcut retired)"
+    if (-not (Test-OnboardingNeedsUi)) { return }
+    try {
+        if (Import-DragonAISecureStore) {
+            Set-DragonAIInAppProviderOnboarding | Out-Null
+            Write-LaunchLog "Marked welcome/models as in-app Models UI; WinForms wizard not launched"
+        } else {
+            Write-LaunchLog "DragonAI-SecureStore.ps1 missing; in-app Models mark skipped" "WARN"
+        }
+    } catch {
+        Write-LaunchLog "In-app provider onboarding mark failed: $($_.Exception.Message)" "WARN"
+    }
 }
 
 function Get-LaunchPlan {
@@ -1075,6 +1132,8 @@ function Get-LaunchPlan {
             "launch Dragon AI Agent desktop only (not $DashboardUrl)",
             "start the background engine invisibly when docker info fails (already running is a no-op; no dashboard, no onboarding, no tray icon)",
             "first-run uses in-app Models UI (WinForms Onboard-Wizard not launched)",
+            "in-app first-run Models inherit the chosen chat model onto all bots",
+            "in-app Models complete inherits the chosen chat model onto all bots",
             "do not show Waiting for gateway Setup/Close status window (Dragon AI Agent is the loading UX)",
             "docker CLI stderr progress is not a terminating error",
             "Desktop Remote -> $($script:DesktopServeUrl) (token mode; not :8642)",
@@ -1140,7 +1199,11 @@ function Invoke-Smoke {
         "8654",
         "8660",
         "Test-DesktopWebUIReady",
-        "web UI disabled"
+        "web UI disabled",
+        "Set-DragonAIInAppProviderOnboarding",
+        "in-app first-run Models",
+        "Start-DragonAIInheritModels",
+        "8655"
     )
     foreach ($token in $required) {
         if ($text -notlike "*$token*") {
@@ -1205,6 +1268,7 @@ try {
     Exclude-DragonAIHermesBots
     Start-DragonAITeamsPicker
     Start-DragonAIVoiceChat
+    Start-DragonAIInheritModels
     try { Sync-EmbeddedGatewayProfiles | Out-Null } catch {
         Write-LaunchLog "Profile sync skipped: $($_.Exception.Message)" "WARN"
     }

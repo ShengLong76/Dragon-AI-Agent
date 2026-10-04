@@ -632,7 +632,10 @@ function Install-PackageFiles([string]$Root) {
         "scripts\airmaze\gateway_models.py",
         "scripts\airmaze\Apply-GatewayModels.ps1",
         "scripts\airmaze\Test-GatewayModels.py",
+        "scripts\airmaze\Test-OnboardWizard.py",
+        "scripts\airmaze\Test-BotDefaultModel.py",
         "docs\airmaze\FIRST_RUN_MODELS.md",
+        "docs\airmaze\BOT_DEFAULT_MODEL.md",
         "scripts\airmaze\voice_chat.py",
         "scripts\airmaze\Apply-VoiceChat.ps1",
         "scripts\airmaze\patch_grok_voice_mode.py",
@@ -982,8 +985,23 @@ if ($dockerOk -and (Test-DockerEngine)) {
 
 Invoke-BotGroupSetup -Root $root
 
-# First-run models live in-app (Apply-GatewayModels + desktop Models UI).
-# Do not launch WinForms Onboard-Wizard.ps1.
+# First-run Models lives in the in-app UI. Do not launch WinForms Onboard-Wizard.ps1.
+try {
+    $store = Join-Path $InstallRoot "scripts\airmaze\DragonAI-SecureStore.ps1"
+    if (-not (Test-Path -LiteralPath $store)) {
+        $store = Join-Path $root "scripts\airmaze\DragonAI-SecureStore.ps1"
+    }
+    $wizGroup = if ($BotGroupId) { $BotGroupId } else { $ProfileId }
+    if (Test-Path -LiteralPath $store) {
+        . $store
+        Set-DragonAIInAppProviderOnboarding -ProfileId $wizGroup | Out-Null
+        Write-Log "Marked first-run Models as in-app UI (bot group=$wizGroup); WinForms wizard not launched"
+    } else {
+        Write-Log "DragonAI-SecureStore.ps1 not found; in-app Models mark skipped" "WARN"
+    }
+} catch {
+    Write-Log "In-app provider onboarding mark failed (install continues): $($_.Exception.Message)" "WARN"
+}
 
 Install-Shortcuts
 Register-DragonAIAppsEntry

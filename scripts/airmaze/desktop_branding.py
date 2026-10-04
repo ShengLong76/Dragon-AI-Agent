@@ -37,6 +37,8 @@ TEAMS_SCRIPT_MARK = 'data-dragon-ai-branding="teams-picker"'
 FIRST_RUN_SCRIPT_MARK = 'data-dragon-ai-branding="first-run-models"'
 VOICE_SCRIPT_MARK = 'data-dragon-ai-branding="voice-provider"'
 VOICE_SETTINGS_SCRIPT_MARK = 'data-dragon-ai-branding="voice-settings"'
+PROVIDER_SCRIPT_MARK = 'data-dragon-ai-branding="provider-setup"'
+PROVIDER_SCRIPT_NAME = "provider-setup.js"
 OLD_HTML_MARKS = ('data-dragon-ai-branding="outfit"',)
 STYLESHEET_NAME = "dragon-ui.css"
 CSS_APPEND_MARK = "/* dragon-ai-ui-face */"
@@ -66,7 +68,11 @@ TEXT_EXTENSIONS = {
     ".tsx",
     ".jsx",
 }
-SKIP_DIR_NAMES = {"node_modules", ".git", "prebuilds", "__pycache__"}
+SKIP_DIR_NAMES = {"node_modules", ".git", "prebuilds", "__pycache__", BRAND_DIR_NAME}
+BRAND_SCRIPT_RE = re.compile(
+    r'(<script\s+data-dragon-ai-branding="[^"]+">.*?</script>)',
+    re.IGNORECASE | re.DOTALL,
+)
 SKIP_NAME_PREFIXES = ("LICENSE", "NOTICE", "THIRD_PARTY", "COPYING")
 MAX_FILE_BYTES = 40 * 1024 * 1024
 STAMP_NAME = ".dragon-ai-ui-branding.json"
@@ -179,6 +185,22 @@ def apply_text(text: str, replacements: list[dict[str, str]]) -> tuple[str, int]
     return out, hits
 
 
+def apply_text_preserving_brand_scripts(text: str, replacements: list[dict[str, str]]) -> tuple[str, int]:
+    """Do not rewrite overlay injects that mention Hermes so they can still match live copy."""
+    if "data-dragon-ai-branding=" not in text:
+        return apply_text(text, replacements)
+    hits = 0
+    out: list[str] = []
+    for part in BRAND_SCRIPT_RE.split(text):
+        if part.lower().startswith("<script") and "data-dragon-ai-branding=" in part.lower():
+            out.append(part)
+            continue
+        rewritten, n = apply_text(part, replacements)
+        hits += n
+        out.append(rewritten)
+    return "".join(out), hits
+
+
 def apply_source_only(path: Path, table: dict[str, Any], text: str) -> tuple[str, int]:
     hits = 0
     out = text
@@ -213,10 +235,15 @@ def strip_crimson_lockup_border(text: str) -> tuple[str, int]:
 
 
 def overlay_file(path: Path, table: dict[str, Any], replacements: list[dict[str, str]]) -> int:
+    if BRAND_DIR_NAME in path.parts:
+        return 0
     text = read_text_file(path)
     if text is None:
         return 0
-    out, hits = apply_text(text, replacements)
+    if path.suffix.lower() in {".html", ".htm"}:
+        out, hits = apply_text_preserving_brand_scripts(text, replacements)
+    else:
+        out, hits = apply_text(text, replacements)
     out, extra = apply_source_only(path, table, out)
     hits += extra
     out, stripped = strip_crimson_lockup_border(out)
@@ -455,7 +482,7 @@ def voice_settings_js_path() -> Path:
 
 
 def voice_settings_script() -> str:
-    """Settings → Voice conversation mode: Chained | Gpt-live | Grok Voice."""
+    """Settings -> Voice conversation mode: Chained | Gpt-live | Grok Voice."""
     path = voice_settings_js_path()
     body = path.read_text(encoding="utf-8").strip()
     if VOICE_SETTINGS_SCRIPT_MARK in body:
@@ -467,6 +494,14 @@ def inject_voice_settings_script(html: str) -> tuple[str, bool]:
     return upsert_marked_script(html, VOICE_SETTINGS_SCRIPT_MARK, voice_settings_script())
 
 
+def provider_setup_script() -> str:
+    return wrap_marked_script(PROVIDER_SCRIPT_MARK, load_pack_script(PROVIDER_SCRIPT_NAME))
+
+
+def inject_provider_setup_script(html: str) -> tuple[str, bool]:
+    return upsert_marked_script(html, PROVIDER_SCRIPT_MARK, provider_setup_script())
+
+
 def inject_html_branding(html: str) -> tuple[str, bool]:
     out, changed = inject_font_link(html)
     out2, changed2 = inject_sidebar_header_script(out)
@@ -474,8 +509,9 @@ def inject_html_branding(html: str) -> tuple[str, bool]:
     out4, changed4 = inject_first_run_models_script(out3)
     out5, changed5 = inject_voice_provider_script(out4)
     out6, changed6 = inject_voice_settings_script(out5)
-    out7, stripped = strip_crimson_lockup_border(out6)
-    return out7, changed or changed2 or changed3 or changed4 or changed5 or changed6 or bool(stripped)
+    out7, changed7 = inject_provider_setup_script(out6)
+    out8, stripped = strip_crimson_lockup_border(out7)
+    return out8, changed or changed2 or changed3 or changed4 or changed5 or changed6 or changed7 or bool(stripped)
 
 
 def append_font_css(css_text: str, sheet: str) -> tuple[str, bool]:
@@ -903,6 +939,9 @@ def self_test() -> int:
     if "--dragon-bubble-user: #2563eb" not in css or "--dragon-bubble-assistant: #17345a" not in css:
         print("FAIL: overlay CSS must use blue-shade user/assistant bubble fills", file=sys.stderr)
         return 1
+    if "dragon-ai-provider-setup:1" not in css or "[data-dragon-ai-provider-setup]" not in css:
+        print("FAIL: overlay CSS must stamp the taller in-app provider dialog", file=sys.stderr)
+        return 1
     if "rgba(196,30,58" in css.replace(" ", "") or "rgba(196, 30, 58" in css:
         print("FAIL: overlay CSS must not paint a crimson lockup border", file=sys.stderr)
         return 1
@@ -1074,6 +1113,12 @@ def self_test() -> int:
         return 1
     if "dockWidget" not in once or "findChatColumn" not in once:
         print("FAIL: overlay must dock the Grok capsule at the top of the chat column", file=sys.stderr)
+        return 1
+    if once.count(PROVIDER_SCRIPT_MARK) != 1 or "Other providers" not in once:
+        print("FAIL: provider-setup script must inject and expand Other providers", file=sys.stderr)
+        return 1
+    if "data-dragon-ai-provider-setup" not in once or "hermes model" not in once:
+        print("FAIL: provider-setup must mark the dialog and keep the hermes model CLI", file=sys.stderr)
         return 1
     if "input_audio_buffer.append" not in once or "grok-voice-latest" not in once:
         print("FAIL: overlay must send official STS append events to grok-voice-latest", file=sys.stderr)

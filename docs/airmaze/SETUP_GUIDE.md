@@ -3,7 +3,7 @@
 **Product:** Dragon AI Agent v0.1.0  
 **Audience:** First-run users (especially the **Real Estate Cold Call Lead Refresher** bot group)
 
-This guide covers first-run **in-app Models** plus connector steps (email / CRM / telephony). Prefer the **Dragon AI Agent** app for model picks. The WinForms `Onboard-Wizard.ps1` path is deprecated (no Desktop / Start Menu **Dragon AI Agent Setup** shortcut). Use this doc if you configure connectors manually.
+This guide covers first-run **in-app Models** plus connector steps (email / CRM / telephony). Prefer the **Dragon AI Agent** app for model picks. Install and launch do not open the WinForms wizard. Use this doc if you configure connectors manually.
 
 > **Not legal advice.** Dragon AI Agent is software for drafting and workflow automation. TCPA, CAN-SPAM, Do Not Call, and consent rules vary by jurisdiction. Consult your own counsel before outbound email or calling.
 
@@ -33,23 +33,25 @@ Bots stay **`needs_setup`** until required wizard steps **email + CRM + telephon
 
 ## Step 1 — Welcome
 
-- Open **Dragon AI Agent** from the Desktop or Start Menu launcher. First-run chat + image LLM defaults are applied in-app (`Apply-GatewayModels` writes Grok / Grok Imagine if those keys are missing).
+- Open **Dragon AI Agent** from the Desktop or Start Menu launcher. First-run chat + image LLM defaults are applied in-app on the dashboard web UI (`Apply-GatewayModels` writes Grok / Grok Imagine if those keys are missing). That pick is inherited onto all bots unless overridden.
 - Connector steps below stay available for Real Estate packs. Bots remain `needs_setup` until you complete required connections. There is no **Dragon AI Agent Setup** shortcut.
 
 ---
 
 ## Step 2 — Default chat LLM and default image LLM
 
-Pick the models Dragon AI Agent should use. Product defaults (preselected):
+**In-app (primary):** pick a provider on first run (Nous Portal, local models, **Other providers** for cloud + self-hosted). Launch writes Grok / Grok Imagine only if the embedded gateway config is still empty (`Apply-GatewayModels -IfMissing`). When that dialog completes, **all bots inherit** the chosen chat model (Personal Assistant and later team seats) unless a bot already has its own `model` without the inherited marker.
+
+**WinForms Setup (edge case):** pick the models Dragon AI Agent should use. Product defaults (preselected):
 
 | Picker | Default | Written keys |
 |--------|---------|----------------|
-| **Default chat LLM** | Grok (xAI) `grok-4.6` | `principal.provider: xai`, `principal.model` |
+| **Default chat LLM** | Grok (xAI) `grok-4.6` | `principal.provider` / `principal.model`, Hermes `model.provider` / `model.default` |
 | **Default image LLM** | **Grok Imagine** `grok-imagine-image` | `image_gen.provider: xai`, `image_gen.model`, `image_gen.xai.model` |
 
-Also listed: `grok-4.5`, `grok-4.3`, and Imagine quality variants `grok-imagine-image-quality` / `grok-imagine-image-2.0`.
+Also listed: `grok-4.5`, `grok-4.3`, Imagine quality variants `grok-imagine-image-quality` / `grok-imagine-image-2.0`, plus popular cloud chats (**OpenAI** `gpt-4o`, **Anthropic** `claude-sonnet-4-6`, **Google Gemini**, **OpenRouter**) and **Self-hosted / custom endpoint** (OpenAI-compatible base URL + model id; optional API key stored via DPAPI, never in `config.yaml`).
 
-Choices land in `%USERPROFILE%\.hermes-airmaze-embedded\config.yaml` (the Docker volume). This step does **not** ask for a new key — it reuses the xAI Grok login already on the PC (OAuth or `XAI_API_KEY`). After a change, restart the gateway if Edit profile → Generate still says no image model.
+Choices land in `%USERPROFILE%\.hermes-airmaze-embedded\config.yaml` (the Docker volume). Cloud picks reuse keys already on the PC (`XAI_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`, `OPENROUTER_API_KEY`). After a change, restart the gateway if Edit profile → Generate still says no image model.
 
 The same xAI login is what **Grok voice** uses. Voice chat keeps **GPT** (needs `OPENAI_API_KEY` for GPT-Live) and adds **Grok Voice** on Settings → Voice → Voice conversation mode (`XAI_API_KEY` / xAI OAuth). Pick **Grok Voice** there (same `voice.voice_chat_mode` switch as Gpt-live); the composer **waveform** opens the Grok-Bot capsule and starts official full duplex. Gear is Voice settings (voice, speed). Details: [`VOICE.md`](VOICE.md).
 

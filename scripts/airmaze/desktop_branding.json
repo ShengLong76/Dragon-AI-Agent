@@ -124,6 +124,26 @@
       "surface": "settings-onboarding"
     },
     {
+      "from": "Let's get you setup with Hermes",
+      "to": "Let's get you setup with Dragon AI",
+      "surface": "provider-setup"
+    },
+    {
+      "from": "Hermes is not connected to any AI provider yet",
+      "to": "Dragon AI is not connected to any AI provider yet",
+      "surface": "provider-setup"
+    },
+    {
+      "from": "the recommended way to run Hermes",
+      "to": "the recommended way to run Dragon AI",
+      "surface": "provider-setup"
+    },
+    {
+      "from": "the recommended way to run hermes",
+      "to": "the recommended way to run Dragon AI",
+      "surface": "provider-setup"
+    },
+    {
       "from": "Setting up Hermes Agent",
       "to": "Setting up Dragon AI Agent",
       "surface": "settings-setup"

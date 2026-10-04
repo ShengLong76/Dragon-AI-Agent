@@ -65,6 +65,10 @@ REQUIRED_LAUNCHER = (
     "8653",
     "voice_chat",
     "8654",
+    "Set-DragonAIInAppProviderOnboarding",
+    "in-app first-run",
+    "Start-DragonAIInheritModels",
+    "8655",
 )
 
 REQUIRED_FINDER = (
@@ -88,6 +92,12 @@ REQUIRED_WIZARD = (
     "Initialize-WizardWinForms",
     "[System.Drawing.Color]",
     "OrderedDictionary",
+    "Format-WizardStatusLine",
+    "Set-WizardControlText",
+    "Test-WizardCanSetText",
+    "Set-WizardMessage",
+    "Test-WizardStepComplete",
+    "in_app",
 )
 
 REQUIRED_COMPOSE = (
@@ -163,6 +173,16 @@ RETIRED_START_MENU_LINKS = (
 def fail(msg: str) -> None:
     print(f"FAIL: {msg}", file=sys.stderr)
     raise SystemExit(1)
+
+
+def extract_function(src: str, name: str) -> str:
+    token = f"function {name}"
+    start = src.find(token)
+    if start < 0:
+        fail(f"missing function {name}")
+    rest = src[start:]
+    nxt = rest.find("\nfunction ", 1)
+    return rest if nxt < 0 else rest[:nxt]
 
 
 def require_tokens(path: pathlib.Path, tokens: tuple[str, ...], label: str) -> None:
@@ -250,6 +270,13 @@ def check_launcher() -> None:
     launch_idx = main.find("Start-AgentDesktopOrThrow")
     if launch_idx < 0 or wait_idx < 0 or launch_idx > wait_idx:
         fail("Dragon AI Agent desktop must open before Wait-GatewayReady so it is the wait UX")
+    onboard = extract_function(text, "Start-OnboardingIfNeeded")
+    if "Start-HiddenPowerShell" in onboard and "Onboard-Wizard.ps1" in onboard:
+        fail("Start-OnboardingIfNeeded must not auto-launch WinForms Onboard-Wizard")
+    if "Set-DragonAIInAppProviderOnboarding" not in onboard:
+        fail("Start-OnboardingIfNeeded must mark in-app provider onboarding instead of the wizard")
+    if "first-run Onboard-Wizard if welcome is still pending" in text:
+        fail("launch plan must not still auto-open Onboard-Wizard on first run")
 
 
 def check_shortcuts() -> None:
@@ -473,6 +500,16 @@ def main() -> int:
         proc = subprocess.run([sys.executable, str(uninstall_test)], cwd=str(ROOT))
         if proc.returncode != 0:
             fail("Test-Uninstall.py failed")
+    onboard_wizard_test = ROOT / "scripts" / "airmaze" / "Test-OnboardWizard.py"
+    if onboard_wizard_test.is_file():
+        proc = subprocess.run([sys.executable, str(onboard_wizard_test)], cwd=str(ROOT))
+        if proc.returncode != 0:
+            fail("Test-OnboardWizard.py failed")
+    bot_default_test = ROOT / "scripts" / "airmaze" / "Test-BotDefaultModel.py"
+    if bot_default_test.is_file():
+        proc = subprocess.run([sys.executable, str(bot_default_test)], cwd=str(ROOT))
+        if proc.returncode != 0:
+            fail("Test-BotDefaultModel.py failed")
     run_host_smoke()
     print("SMOKE OK: opening Dragon AI Agent is wired to branded UI or a blocking error.")
     return 0
