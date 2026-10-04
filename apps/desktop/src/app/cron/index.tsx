@@ -636,7 +636,7 @@ export function CronView({ onClose, onOpenSession, setStatusbarItemGroup: _setSt
   }
 
   return (
-    <Panel closeLabel={c.close} onClose={onClose}>
+    <Panel closeLabel={c.close} keepRightSidebar onClose={onClose}>
       <PanelHeader subtitle={c.count(totalCount)} title={c.title} />
 
       {loading && jobs.length === 0 ? (

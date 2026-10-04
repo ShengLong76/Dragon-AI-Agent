@@ -34,6 +34,7 @@ interface PanelProps {
   className?: string
   closeLabel?: string
   contentClassName?: string
+  keepRightSidebar?: boolean
   onClose: () => void
 }
 
@@ -42,6 +43,7 @@ export function Panel({
   className,
   closeLabel = translateNow('common.close'),
   contentClassName,
+  keepRightSidebar,
   onClose
 }: PanelProps) {
   return (
@@ -50,6 +52,7 @@ export function Panel({
       // Header title rides up next to the floating close button — see
       // OVERLAY_TOP_CLEARANCE, the shared clearance every overlay column uses.
       contentClassName={cn('flex h-full min-h-0 flex-col px-4 pb-4 sm:px-5', OVERLAY_TOP_CLEARANCE, contentClassName)}
+      keepRightSidebar={keepRightSidebar}
       onClose={onClose}
       rootClassName={cn('flex h-full w-full flex-col', className)}
     >

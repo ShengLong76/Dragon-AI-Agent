@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode, useEffect } from 'react'
+import { type CSSProperties, type ReactNode, useEffect, useState } from 'react'
 
 import { TITLEBAR_HEIGHT } from '@/app/shell/titlebar'
 import { TitlebarIcon } from '@/app/shell/titlebar-icon'
@@ -30,6 +30,38 @@ interface OverlayViewProps {
   /** Controls rendered on the close button's row, to its left. They ride the
    *  titlebar strip, so keep them titlebar-sized and quiet. */
   titlebarActions?: ReactNode
+  /** Stop at the main column's right edge so the right sidebar stays visible and usable. */
+  keepRightSidebar?: boolean
+}
+
+function useMainColumnRightGap(enabled: boolean): number {
+  const [gap, setGap] = useState(0)
+
+  useEffect(() => {
+    if (!enabled) {
+      return
+    }
+
+    const measure = () => {
+      const main = [...document.querySelectorAll<HTMLElement>('[data-tree-group="grp-main"]')].find(
+        el => el.getBoundingClientRect().width > 0
+      )
+
+      setGap(main ? Math.max(0, Math.round(window.innerWidth - main.getBoundingClientRect().right)) : 0)
+    }
+
+    measure()
+    const observer = new ResizeObserver(measure)
+    document.querySelectorAll('[data-tree-group]').forEach(el => observer.observe(el))
+    window.addEventListener('resize', measure)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [enabled])
+
+  return enabled ? gap : 0
 }
 
 export function OverlayView({
@@ -40,8 +72,11 @@ export function OverlayView({
   edgeBadge,
   headerContent,
   rootClassName,
-  titlebarActions
+  titlebarActions,
+  keepRightSidebar = false
 }: OverlayViewProps) {
+  const rightGap = useMainColumnRightGap(keepRightSidebar)
+
   const closeOverlay = () => {
     triggerHaptic('close')
     onClose()
@@ -100,7 +135,12 @@ export function OverlayView({
       // below its in-flow title bar), and CSS vars inherit through the DOM —
       // so a fixed overlay mounted inside a zone would read 0 and bleed to
       // the edges. Re-pin the real height at the overlay root.
-      style={{ '--titlebar-height': `${TITLEBAR_HEIGHT}px` } as CSSProperties}
+      style={
+        {
+          '--titlebar-height': `${TITLEBAR_HEIGHT}px`,
+          ...(rightGap > 0 ? { right: `${rightGap}px` } : null)
+        } as CSSProperties
+      }
     >
       <div className="relative h-full min-h-0">
         <div
