@@ -68,7 +68,7 @@ const normalizeSkin = (name: string | null): string =>
  * much heavier tint, tuned for a bright desktop they don't have.
  */
 const normalizeMode = (value: string | null): ThemeMode =>
-  value === 'light' || value === 'dark' || value === 'system' ? value : 'system'
+  value === 'light' || value === 'dark' || value === 'system' ? value : 'dark'
 
 // ─── Per-profile appearance persistence ─────────────────────────────────────
 // Skin and mode are each stored per profile. "default" isn't a real profile —
@@ -446,7 +446,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   )
 
   const [mode, setModeState] = useState<ThemeMode>(() =>
-    typeof window === 'undefined' ? 'system' : modePref.resolve(BOOT_PROFILE_KEY)
+    typeof window === 'undefined' ? 'dark' : modePref.resolve(BOOT_PROFILE_KEY)
   )
 
   // Follow profile switches: paint the profile's assigned skin + mode and

@@ -177,6 +177,80 @@ export const nousTheme: DesktopTheme = {
   }
 }
 
+/**
+ * Dragon — the Dragon AI Claude identity. Near-black Grok Bot chrome with
+ * neutral strokes, soft graphite chat bubbles, and the dragon's steel blue as
+ * the only accent. Focus and composer rings are neutral grey by design: the
+ * dragon's red stays in the logo's eyes, never on an input border.
+ */
+const DRAGON_DARK = {
+  background: '#0a0a0a',
+  foreground: '#ececec',
+  card: '#141414',
+  cardForeground: '#ececec',
+  muted: '#1b1b1b',
+  mutedForeground: '#9b9b9b',
+  popover: '#171717',
+  popoverForeground: '#ececec',
+  primary: '#6f93cf',
+  primaryForeground: '#0a0a0a',
+  secondary: '#1f1f1f',
+  secondaryForeground: '#ececec',
+  accent: '#232323',
+  accentForeground: '#f5f5f5',
+  border: '#262626',
+  input: '#2c2c2c',
+  ring: '#4a4a4a',
+  midground: '#8a8a8a',
+  composerRing: '#3a3a3a',
+  destructive: '#e5484d',
+  destructiveForeground: '#ffffff',
+  sidebarBackground: '#111111',
+  sidebarBorder: '#1d1d1d',
+  userBubble: '#2f2f2f',
+  userBubbleBorder: '#2f2f2f'
+}
+
+const DRAGON_LIGHT = {
+  background: '#ffffff',
+  foreground: '#151515',
+  card: '#f6f6f6',
+  cardForeground: '#151515',
+  muted: '#f0f0f0',
+  mutedForeground: '#666666',
+  popover: '#ffffff',
+  popoverForeground: '#151515',
+  primary: '#2f4f86',
+  primaryForeground: '#ffffff',
+  secondary: '#efefef',
+  secondaryForeground: '#151515',
+  accent: '#ececec',
+  accentForeground: '#151515',
+  border: '#e2e2e2',
+  input: '#dcdcdc',
+  ring: '#b5b5b5',
+  midground: '#8a8a8a',
+  composerRing: '#cfcfcf',
+  destructive: '#d4343a',
+  destructiveForeground: '#ffffff',
+  sidebarBackground: '#f7f7f7',
+  sidebarBorder: '#e8e8e8',
+  userBubble: '#ececec',
+  userBubbleBorder: '#ececec'
+}
+
+export const dragonTheme: DesktopTheme = {
+  name: 'dragon',
+  label: 'Dragon',
+  description: 'Dragon AI — near-black chrome, graphite bubbles, steel-blue accent',
+  colors: DRAGON_LIGHT,
+  darkColors: DRAGON_DARK,
+  typography: {
+    fontSans: SYSTEM_SANS,
+    fontMono: SYSTEM_MONO
+  }
+}
+
 /** Catppuccin — Latte in light, Mocha in dark (Catppuccin.catppuccin-vsc). */
 export const catppuccinTheme: DesktopTheme = {
   name: 'catppuccin',
@@ -378,7 +452,7 @@ const classicPalette = (colors: Record<string, string>) => skinToDesktopTheme({ 
  */
 export const classicTheme: DesktopTheme = {
   name: 'classic',
-  label: 'Classic Hermes',
+  label: 'Classic Dragon',
   description: "Gold on navy, the CLI's original look",
   colors: classicPalette(CLASSIC_LIGHT_SKIN_COLORS),
   darkColors: classicPalette(CLASSIC_DARK_SKIN_COLORS)
@@ -442,6 +516,7 @@ export const slateTheme: DesktopTheme = {
 }
 
 export const BUILTIN_THEMES: Record<string, DesktopTheme> = {
+  dragon: dragonTheme,
   nous: nousTheme,
   github: githubTheme,
   catppuccin: catppuccinTheme,
@@ -459,7 +534,7 @@ export const BUILTIN_THEMES: Record<string, DesktopTheme> = {
 export const BUILTIN_THEME_LIST = Object.values(BUILTIN_THEMES)
 
 /** Skin used when nothing is persisted or the persisted name is retired. */
-export const DEFAULT_SKIN_NAME = 'nous'
+export const DEFAULT_SKIN_NAME = 'dragon'
 
 /** Names that no longer resolve to a skin of their own. A stored pick of one
  *  falls back to DEFAULT_SKIN_NAME, and a cached backend theme under one is
