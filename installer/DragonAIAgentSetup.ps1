@@ -878,7 +878,7 @@ function Start-AgentDesktop {
     Write-Host ""
     Write-Host "Dragon AI Agent desktop was not found in this package."
     Write-Host "  Expected: $hint"
-    Write-Host "Re-download Dragon-AI-Agent-v0.1.0-windows.zip and run DragonAIAgentSetup.exe."
+    Write-Host "Re-download DragonAIAgentSetup.exe and run that one installer."
     Write-Host ""
     Write-Log "Packaged Dragon AI Agent desktop missing at $hint" "WARN"
     return $false

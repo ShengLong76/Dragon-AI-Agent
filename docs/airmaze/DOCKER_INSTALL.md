@@ -13,7 +13,7 @@ Launch still does **not** download or install Docker (`docs/airmaze/DOCKER_LAUNC
 3. **One-string `ArgumentList`.** `install --quiet --accept-license` was passed as a single argument. Official Docker docs want separate `ArgumentList` entries.
 4. **No elevation.** Quiet install needs admin for the all-users layout. Without `-Verb RunAs`, UAC never ran and the step failed.
 5. **Download-page fallback.** Failure opened `https://www.docker.com/products/docker-desktop/` and told the user to install Docker themselves. That is a prerequisite, not a packaged step.
-6. **Installer not in the zip.** The release layout had no `vendor/docker` slot, so Setup always hit the network (or the browser).
+6. **Installer not in the package.** The old release zip had no `vendor/docker` slot, so Setup always hit the network (or the browser).
 
 Per-user Docker (`%LOCALAPPDATA%\Programs\DockerDesktop`) was also invisible to `Get-DockerDesktopExe`.
 
@@ -36,19 +36,20 @@ Half-installed (exe present, CLI missing) takes the same quiet-install path. Alr
 
 ## Package slot
 
-The Windows zip may include the official installer so a clean PC never needs a first-hop to docker.com:
+The single installer exe may embed the official installer so a clean PC never needs a first-hop to docker.com:
 
 ```text
 payload/vendor/docker/Docker Desktop Installer.exe
 ```
 
-Stage at release-build time (not committed; ~500MB):
+Stage at release-build time (not committed; ~500MB), then pack:
 
 ```bash
 python3 installer/stage-docker-desktop.py
+python3 installer/pack.py --out dist/DragonAIAgentSetup.exe --with-docker
 ```
 
-Git keeps `vendor/docker/README.md` only. Setup still downloads when the slot is empty (source checkout or slim zip). The download is Setup’s job, not the user’s.
+Git keeps `vendor/docker/README.md` only. Setup still downloads when the slot is empty (source checkout or slim installer). The download is Setup’s job, not the user’s.
 
 ## Tests
 

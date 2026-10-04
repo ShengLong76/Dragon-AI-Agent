@@ -4,6 +4,9 @@ All notable changes to Dragon AI Agent (packaging/distribution) are documented h
 
 ## [Unreleased]
 
+### Changed
+- **Windows handoff is one installer exe.** `python3 installer/pack.py` builds `DragonAIAgentSetup.exe` with the payload (including `desktop/win-unpacked/DragonAIAgent.exe`) appended inside that PE. James receives that file only — not a zip and not a loose desktop exe beside Setup. The installed app still unpacks its binaries under `%LOCALAPPDATA%\\DragonAIAgent`. Check: `python3 scripts/airmaze/Test-Packaging.py`.
+
 ### Fixed
 - **Windows PowerShell 5.1 cannot parse Setup on a clean PC.** `installer/DragonAIAgentSetup.ps1` (UTF-8, no BOM) used an em dash in the shortcut description (`Dragon AI Agent — start...`). Windows PowerShell 5.1 decodes that as ANSI, the string ends early, and `start` is an unexpected token. Installer and the PowerShell scripts Setup runs now use ASCII punctuation only. Do not require a BOM. Check: `python3 scripts/airmaze/Test-WindowsLaunchParse.py`.
 

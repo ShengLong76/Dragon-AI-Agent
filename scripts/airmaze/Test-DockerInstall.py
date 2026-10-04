@@ -139,7 +139,7 @@ def test_package_slot() -> None:
         fail("stage-docker-desktop.py must write vendor/docker/Docker Desktop Installer.exe")
     packaging = read(PACKAGING)
     if "vendor/docker" not in packaging:
-        fail("PACKAGING.md must list vendor/docker in the Windows zip")
+        fail("PACKAGING.md must list vendor/docker in the single installer exe payload")
     if "stage-docker-desktop.py" not in packaging:
         fail("PACKAGING.md must document staging the Docker installer")
     readme = read(README)

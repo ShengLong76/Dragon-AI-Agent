@@ -25,14 +25,12 @@ Be honest about limits: full silent WSL/Docker provision often needs a reboot an
 
 ## Quick start (Windows)
 
-1. Unzip `Dragon-AI-Agent-v0.1.0-windows.zip`.
-2. Run `DragonAIAgentSetup.exe` (console; shows progress). It looks for `payload\install.ps1` beside itself.
-3. Or run manually:
+1. Run `DragonAIAgentSetup.exe` (console; shows progress). That one file is the whole install package. It unpacks its payload and runs setup. Do not also download a loose `DragonAIAgent.exe`.
+2. From a git checkout you can still run the script directly:
 
 ```powershell
-cd Dragon-AI-Agent-v0.1.0-windows\payload
 Set-ExecutionPolicy -Scope Process Bypass
-.\install.ps1
+.\scripts\airmaze\install.ps1
 ```
 
 Install log: `%LOCALAPPDATA%\DragonAIAgent\install.log`  
@@ -185,6 +183,7 @@ templates/profiles/personal-assistant/
 installer/
   DragonAIAgentSetup.ps1
   build-exe.go
+  pack.py
   stage-docker-desktop.py
 branding/   (release: dragon-ai-agent-logo.png / .svg / .ico — James’s navy coiled mark; fonts/syne — OFL wordmark face)
 design-system/dragon-ai-agent/   (UI UX Pro Max MASTER + desktop-client override)
