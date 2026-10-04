@@ -37,17 +37,13 @@ def test_sandbox_start_without_fcntl_still_publishes_the_guest(tmp_path, monkeyp
 
     started = []
 
-    class _SandboxHost:
-        @staticmethod
-        def chromium_executable(env):
-            return None
+    def _start(env, profile, geometry="", wait_seconds=0, browser_exec=None, browser_exec_line=None):
+        started.append((profile, geometry))
+        return {"DISPLAY": ":20"}
 
-        @staticmethod
-        def start(env, profile, geometry="", wait_seconds=0, browser_exec=None, browser_exec_line=None):
-            started.append((profile, geometry))
-            return {"DISPLAY": ":20"}
-
-    monkeypatch.setattr("tools.bot_desktop.sandbox_host", _SandboxHost)
+    from tools.bot_desktop import sandbox_host
+    monkeypatch.setattr(sandbox_host, "chromium_executable", lambda env: None)
+    monkeypatch.setattr(sandbox_host, "start", _start)
     assert runtime._start_in_sandbox(1.0) == {"state": "running"}
     assert started == [("default", "1280x800")]
     assert (tmp_path / "bot-desktop" / "env").read_text(encoding="utf-8") == "DISPLAY=:20\n"
