@@ -33,6 +33,7 @@ import {
 
 import { avatarColor, botAppearance, BotFace } from './avatar'
 import { isBackfilledFacePng } from './avatar-image'
+import { openBotPanel } from './bot-panel'
 import {
   $botChatFocused,
   $focusedBotOwner,
@@ -41,7 +42,6 @@ import {
   focusedRosterOwner,
   saveSelectedRosterBot
 } from './bot-state'
-import { openBotPanel } from './bot-panel'
 import { ensureBotMetadata } from './canonical-chat'
 import {
   $botAttention,
@@ -359,7 +359,8 @@ export function BotRow({ bot, onDelete, onEdit, onGroup, onNewSection, showHandl
           onSelect={() => {
             void ensureBotMetadata(bot)
               .then(current => {
-                const pinned = isBotPinned(bot, $botMeta.get())
+                const pinned =
+                  typeof current.pinned === 'boolean' ? current.pinned : isDefaultBot(bot) && !bot.remoteSource
                 void saveBotMeta(bot, {
                   pinned: !pinned
                 })
