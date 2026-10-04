@@ -14,6 +14,45 @@ import pytest
 from tools.bot_desktop import runtime, thumbnail
 
 
+def test_flocked_does_not_require_fcntl(tmp_path, monkeypatch):
+    """Start screen on Windows takes start.lock on the host after the Linux
+    guest is up. fcntl does not exist there; the critical section must still run.
+    """
+    monkeypatch.setattr(runtime, "fcntl", None)
+    ran = []
+    with runtime._flocked(tmp_path / "start.lock"):
+        ran.append(True)
+    assert ran == [True]
+
+
+def test_sandbox_start_without_fcntl_still_publishes_the_guest(tmp_path, monkeypatch):
+    """Missing fcntl must not skip publishing the desktop inside the guest."""
+    monkeypatch.setattr(runtime, "fcntl", None)
+    monkeypatch.setattr(runtime, "state_dir", lambda: tmp_path / "bot-desktop")
+    monkeypatch.setattr(runtime, "_sandbox_env", lambda *, create: object())
+    monkeypatch.setattr(runtime, "_profile_name", lambda: "default")
+    monkeypatch.setattr(runtime, "geometry", lambda: "1280x800")
+    monkeypatch.setattr(runtime, "touch_activity", lambda: None)
+    monkeypatch.setattr(runtime, "status", lambda: {"state": "running"})
+
+    started = []
+
+    class _SandboxHost:
+        @staticmethod
+        def chromium_executable(env):
+            return None
+
+        @staticmethod
+        def start(env, profile, geometry="", wait_seconds=0, browser_exec=None, browser_exec_line=None):
+            started.append((profile, geometry))
+            return {"DISPLAY": ":20"}
+
+    monkeypatch.setattr("tools.bot_desktop.sandbox_host", _SandboxHost)
+    assert runtime._start_in_sandbox(1.0) == {"state": "running"}
+    assert started == [("default", "1280x800")]
+    assert (tmp_path / "bot-desktop" / "env").read_text(encoding="utf-8") == "DISPLAY=:20\n"
+
+
 @pytest.mark.parametrize("pm", sorted(runtime.PACKAGES))
 def test_every_required_binary_maps_to_an_installed_package(pm):
     """Each binary the launcher execs must come from a package the distro list actually installs; dnf5

@@ -29,6 +29,13 @@ from typing import Dict, Optional
 from hermes_constants import get_hermes_home
 from tools.bot_desktop import placement
 
+try:
+    import fcntl
+except ImportError:
+    # Start screen on Windows brings up a Linux guest and still takes start.lock
+    # on the host process. A bare import fcntl is "No module named fcntl".
+    fcntl = None
+
 logger = logging.getLogger(__name__)
 
 _LAUNCHER = Path(__file__).with_name("launcher.sh")
@@ -316,8 +323,12 @@ _ALLOC_LOCK = Path(os.environ.get("XDG_RUNTIME_DIR") or Path.home() / ".cache") 
 
 @contextlib.contextmanager
 def _flocked(path: Path):
-    import fcntl  # windows-footgun: ok — Linux-only runtime (is_supported_host gates start)
-    with open(path, "a+", encoding="utf-8") as fh:  # windows-footgun: ok — Linux-only runtime
+    """Exclusive lock around a critical section. Real ``fcntl.flock`` on Linux;
+    no-op when fcntl is missing (Windows host starting a Linux guest)."""
+    if fcntl is None:
+        yield None
+        return
+    with open(path, "a+", encoding="utf-8") as fh:
         fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
         try:
             yield fh
