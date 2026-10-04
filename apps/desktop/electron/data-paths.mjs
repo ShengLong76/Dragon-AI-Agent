@@ -27,9 +27,9 @@ export function platformDefaultHermesHome(home, env = process.env, platform = pr
   const suffix = env.HERMES_DATA_DIR_SUFFIX || ''
   if (platform === 'win32') {
     const base = (env.LOCALAPPDATA || '').trim() || path.win32.join(home, 'AppData', 'Local')
-    return path.win32.join(base, 'hermes') + suffix
+    return path.win32.join(base, 'DragonAIClaude', 'home') + suffix
   }
-  return path.posix.join(home, '.hermes') + suffix
+  return path.posix.join(home, '.dragon-ai-claude') + suffix
 }
 
 export function resolveDesktopUserData(defaultPath, env = process.env) {
@@ -55,12 +55,8 @@ export function resolveDesktopHermesHome({ home, env = process.env, platform = p
     }
   }
   const defaultHome = platformDefaultHermesHome(home, env, platform)
-  // Keep the legacy migration for ordinary installs, not isolated suffix runs.
-  if (platform === 'win32' && !env.HERMES_DATA_DIR_SUFFIX) {
-    const legacy = paths.join(home, '.hermes')
-    if (!directoryExists(defaultHome) && directoryExists(legacy)) {
-      return legacy
-    }
-  }
+  // Dragon AI Claude owns its home outright: it never adopts another agent
+  // install's data directory.
+  void directoryExists
   return defaultHome
 }

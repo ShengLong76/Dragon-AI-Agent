@@ -1,10 +1,10 @@
 {
-  "name": "hermes",
-  "productName": "Hermes",
+  "name": "dragon-ai-claude",
+  "productName": "Dragon AI Claude",
   "private": true,
   "version": "0.0.0",
-  "description": "Native desktop shell for Hermes Agent.",
-  "author": "Nous Research",
+  "description": "Dragon AI Claude — the Dragon AI desktop agent with bot teams and bot VM desktops.",
+  "author": "Dragon AI",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/NousResearch/hermes-agent.git"
