@@ -100,6 +100,23 @@ def resolve() -> Placement:
     return Placement(REFUSED, backend, reason)
 
 
+def _linux_guest_paths(config: dict) -> tuple[str, Optional[str]]:
+    """``(container_cwd, host_cwd)`` for a Docker Linux guest.
+
+    The profile's local terminal cwd is the Windows/macOS host home and must
+    never become ``docker run -w``. Guest workdir is ``/root``; ``host_cwd``
+    is only whatever the docker config already chose to bind.
+    """
+    from tools.terminal_tool_config import _is_unusable_container_cwd
+
+    raw = str(config.get("cwd") or "/root")
+    host = config.get("host_cwd")
+    host_cwd = host.strip() if isinstance(host, str) and host.strip() else None
+    if _is_unusable_container_cwd(raw):
+        return "/root", host_cwd
+    return raw, host_cwd
+
+
 def _linux_guest_environment(*, create: bool) -> Optional[Any]:
     """A Docker ``hermes-sandbox:desktop`` guest for Computer tab on a non-Linux host.
 
@@ -124,13 +141,14 @@ def _linux_guest_environment(*, create: bool) -> Optional[Any]:
         if env is not None:
             return env
         config = dict(tt._get_env_config())
+        cwd, host_cwd = _linux_guest_paths(config)
         env = _create_configured_env(
             config, "docker",
             image=DEFAULT_SANDBOX_IMAGE,
-            cwd=str(config.get("cwd") or "/root"),
+            cwd=cwd,
             timeout=int(config.get("timeout") or 180),
             task_id=task_id,
-            host_cwd=config.get("host_cwd"),
+            host_cwd=host_cwd,
         )
         with tt._env_lock:
             tt._active_environments[task_id] = env

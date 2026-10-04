@@ -25,7 +25,8 @@ from typing import Optional
 from hermes_constants import get_hermes_home
 from tools.environments.base import BaseEnvironment, EnvironmentConnectionError, _SHELL_ENV_NAME_RE
 from tools.terminal_tool_config import (
-    _host_path_key, _is_windows_drive_path, cwd_follows_host_mount,
+    _host_path_key, _is_unusable_container_cwd, _is_windows_drive_path,
+    cwd_follows_host_mount,
 )
 from tools.environments.base_output import _popen_bash
 from tools.environments.docker_egress import (
@@ -622,6 +623,23 @@ def _abs_host_cwd(host_cwd: str) -> str:
     return os.path.abspath(expanded)
 
 
+def container_workdir(cwd: str, mount: str | None = None) -> str:
+    """Absolute Linux path for ``docker run -w``.
+
+    The sandbox image is a Linux guest. A Windows drive path (``C:\\Users\\…``)
+    or any other host/relative path is rejected by the daemon (exit 125). Bind
+    mounts still use the host path via ``-v``; only the workdir is remapped to
+    the guest mount or ``/root``.
+    """
+    if cwd == "~":
+        cwd = "/root"
+    if mount and cwd_follows_host_mount(cwd, mount):
+        return mount
+    if _is_unusable_container_cwd(cwd):
+        return mount or "/root"
+    return cwd or "/root"
+
+
 class DockerEnvironment(BaseEnvironment):
     """Hardened Docker container execution (caps dropped, no-new-privileges, PID limits,
     size-limited tmpfs). The container is the security boundary — its filesystem stays
@@ -683,12 +701,13 @@ class DockerEnvironment(BaseEnvironment):
         resource_args = self._resource_args(image, cpu, memory, disk, network, shm_size, extra_args)
         volume_args, writable_args = self._mount_args(volumes, host_cwd, auto_mount_cwd, task_id)
         mount = getattr(self, "host_cwd_mount", None)
-        if mount and cwd_follows_host_mount(cwd, mount):
+        workdir = container_workdir(cwd, mount)
+        if workdir != cwd:
             logger.info(
-                "Container cwd follows configured host workspace at %s (requested %s)",
-                mount, cwd)
-            cwd = mount
-            self.cwd = mount
+                "Container cwd remapped to %s (requested %s)",
+                workdir, cwd)
+            cwd = workdir
+            self.cwd = workdir
         volume_args.extend(_readonly_skill_mount_args())
         egress_label, egress_volume_args, egress_host_args, env_args, validated_extra = (
             self._egress_and_env_args(extra_args))
@@ -1014,7 +1033,8 @@ class DockerEnvironment(BaseEnvironment):
         mid-pull) can leave a "Created" orphan the exited-only reaper never catches, so it is
         removed by name before re-raising."""
         container_name = f"hermes-{uuid.uuid4().hex[:8]}"
-        run_cmd = self._run_command(container_name, cwd)
+        run_cmd = self._run_command(
+            container_name, container_workdir(cwd, getattr(self, "host_cwd_mount", None)))
         logger.debug("Starting container: %s", ' '.join(run_cmd))
         try:
             result = run_capture(
@@ -1134,7 +1154,10 @@ class DockerEnvironment(BaseEnvironment):
             try:
                 new_name = f"hermes-{uuid.uuid4().hex[:8]}"
                 result = run_capture(
-                    self._run_command(new_name, self.cwd), timeout=120, check=True,
+                    self._run_command(
+                        new_name,
+                        container_workdir(self.cwd, getattr(self, "host_cwd_mount", None)),
+                    ), timeout=120, check=True,
                     env=self._docker_client_env(self._run_env_values))
                 self._container_id = result.stdout.strip()
                 logger.info("Recovery: created fresh container %s (%s)", new_name, self._container_id[:12])

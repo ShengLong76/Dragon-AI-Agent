@@ -17,6 +17,18 @@ from tools.bot_desktop import placement, runtime
 from tools.environments import streams
 
 
+def test_linux_guest_paths_do_not_use_a_windows_host_cwd():
+    """Start screen on Windows reads the local terminal cwd (host home).
+
+    The Linux sandbox workdir must be /root, not that drive-letter path.
+    """
+    cwd, host_cwd = placement._linux_guest_paths({"cwd": r"C:\Users\Admin", "host_cwd": None})
+    assert cwd == "/root"
+    assert host_cwd is None
+    cwd, host_cwd = placement._linux_guest_paths({"cwd": "/root", "host_cwd": None})
+    assert cwd == "/root"
+
+
 def test_auto_local_spins_a_docker_guest_when_the_host_cannot_run_xvnc(monkeypatch):
     monkeypatch.setattr(placement, "_setting", lambda: "auto")
     monkeypatch.setattr(placement, "_terminal_backend", lambda: "local")
