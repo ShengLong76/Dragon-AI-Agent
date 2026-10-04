@@ -540,13 +540,15 @@ def _build_no_backend_setup_message() -> str:
 
 def _get_plugin_provider(name: str, *, force: bool = False):
     """Discover plugins (local import: importing this module must not trigger discovery) and return the named provider."""
-    from agent.image_gen_registry import resolve_provider
+    from agent.image_gen_registry import get_provider, resolve_provider
     from hermes_cli.plugins import _ensure_plugins_discovered
     if force:
         _ensure_plugins_discovered(force=True)
     else:
         _ensure_plugins_discovered()
-    return resolve_provider(name)
+    # Exact registry key first so monkeypatches on get_provider stay the seam;
+    # resolve_provider then accepts display names / aliases / case folds.
+    return get_provider(name) or resolve_provider(name)
 
 
 def check_image_generation_requirements() -> bool:
