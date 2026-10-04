@@ -112,6 +112,8 @@ def test_home_layout() -> None:
         fail("VM pane must load Bot Screen only after the desktop service is up")
     if "fallback.hidden = false" not in js:
         fail("VM pane must keep the Bot Screen fallback when the desktop service is down")
+    if "[hidden]" not in css or "display: none" not in css:
+        fail("hidden confirmation controls must stay hidden until Change")
     if "border-radius: 28px" not in css:
         fail("composer must be one dark rounded pill")
     block = css.split(".composer {", 1)

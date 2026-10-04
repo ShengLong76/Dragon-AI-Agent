@@ -41,6 +41,7 @@ html, body {
 }
 .skip:focus { left: 12px; top: 12px; background: #2563eb; color: #fff; padding: 8px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+[hidden] { display: none !important; }
 
 .screen { display: none; height: 100%; }
 .screen.is-on { display: flex; }
