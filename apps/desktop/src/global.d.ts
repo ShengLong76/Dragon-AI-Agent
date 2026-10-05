@@ -609,8 +609,8 @@ declare global {
       probeLocalBackend?: () => Promise<{ bootstrapNeeded: boolean }>
       continueBootstrapLocal: () => Promise<{ ok: boolean }>
       recycleBackend?: (profile?: null | string) => Promise<{ ok: boolean }>
-      resetBootstrap: () => Promise<{ ok: boolean }>
-      repairBootstrap: () => Promise<{ ok: boolean; error?: string }>
+      resetBootstrap: () => Promise<{ ok: boolean; inFlight?: boolean }>
+      repairBootstrap: () => Promise<{ ok: boolean; error?: string; inFlight?: boolean }>
       cancelBootstrap: () => Promise<{ ok: boolean; cancelled: boolean }>
       onBootstrapEvent: (callback: (payload: DesktopBootstrapEvent) => void) => () => void
       getVersion: (scope?: { connectionId?: string; profile?: string }) => Promise<DesktopVersionInfo>

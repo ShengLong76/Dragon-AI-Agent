@@ -19,6 +19,8 @@ export const BOOTSTRAP_STAGE_LABELS: ReadonlyMap<string, string> = new Map([
   ['node', 'Node.js'],
   ['system-packages', 'System packages'],
   ['repository', 'Dragon AI source code'],
+  ['docker', 'Docker Desktop (bot screens)'],
+  ['products', 'App components'],
   ['python', 'Python runtime'],
   ['venv', 'Python environment'],
   ['dependencies', 'Python packages'],
@@ -57,6 +59,15 @@ const BOOTSTRAP_FAILURE_REMEDY =
   'Common causes: no internet connection, antivirus blocking the installer, or another copy of Dragon AI running. ' +
   'Close other Dragon AI windows and choose Reload and retry; if it fails again, open the logs and send them to support.'
 
+/** Two setup runs touching the same files: a git lock, the installer's own
+ * run lock, or the package/update locks the later steps take. */
+const CONCURRENT_SETUP_RE =
+  /index\.lock|another git process|install is already running|update is (?:already|still) running|\.install\.lock/i
+
+const CONCURRENT_SETUP_REMEDY =
+  'Another Dragon AI setup was running at the same time and both tried to change the same files. ' +
+  'Wait a minute for it to finish, then choose Reload and retry. You do not need to reinstall.'
+
 /**
  * Build the Error.message for a failed bootstrap. First line is the plain
  * explanation; the raw error follows on its own "Details:" line.
@@ -68,9 +79,16 @@ export function describeBootstrapFailure(failedStage: string | null | undefined,
     ? `Setting up Dragon AI stopped during the '${label}' step.`
     : 'Setting up Dragon AI stopped before it could finish.'
 
-  const details = typeof rawError === 'string' && rawError.trim() ? rawError.trim() : 'unknown error'
+  // Installer output still carries the upstream product name in places; the
+  // UI shows Dragon AI only (paths like hermes-agent are lowercase and kept).
+  const details =
+    typeof rawError === 'string' && rawError.trim()
+      ? rawError.trim().replace(/\bHermes Agent\b/g, 'Dragon AI').replace(/\bHermes\b/g, 'Dragon AI')
+      : 'unknown error'
 
-  return `${lead} ${BOOTSTRAP_FAILURE_REMEDY}\nDetails: ${details}`
+  const remedy = CONCURRENT_SETUP_RE.test(details) ? CONCURRENT_SETUP_REMEDY : BOOTSTRAP_FAILURE_REMEDY
+
+  return `${lead} ${remedy}\nDetails: ${details}`
 }
 
 /**

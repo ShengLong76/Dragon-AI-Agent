@@ -1031,6 +1031,72 @@ function Stage-Docker {
     }
 }
 
+# One install at a time per HERMES_HOME. Two runs on the same checkout race
+# git (a leftover .git\index.lock fails "Pinning"), stash each other's files
+# and trip the package/update locks of later stages. The handle is held for
+# this process's lifetime and released by the OS on exit or kill, so it can
+# never go stale. Returns $false only when another live run holds it.
+function Enter-InstallLock {
+    $lockPath = Join-Path $HermesHome '.install-run.lock'
+    try {
+        New-Item -ItemType Directory -Force -Path $HermesHome | Out-Null
+        $script:InstallRunLock = [IO.File]::Open($lockPath, [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+        return $true
+    } catch [System.IO.IOException] {
+        return $false
+    } catch {
+        # An unusable lock file (permissions, odd filesystem) must not block
+        # installing; the desktop app already allows only one run.
+        Write-Warn "could not take the install lock at ${lockPath}: $($_.Exception.Message)"
+        return $true
+    }
+}
+
+# A git killed mid-write (Cancel, a closed window, a crash) leaves
+# .git\index.lock and friends behind; every later git command in the checkout
+# then fails with "Another git process seems to be running". Remove them only
+# when no git process is working in this checkout. Returns $true if any lock
+# was removed, so the caller can retry once.
+function Clear-StaleGitLocks([string]$Dir) {
+    $gitDir = Join-Path $Dir '.git'
+    if (-not (Test-Path -LiteralPath $gitDir -PathType Container)) { return $false }
+    $locks = @(Get-ChildItem -LiteralPath $gitDir -Filter '*.lock' -File -Force -ErrorAction SilentlyContinue)
+    $refsDir = Join-Path $gitDir 'refs'
+    if (Test-Path -LiteralPath $refsDir) {
+        $locks += @(Get-ChildItem -LiteralPath $refsDir -Filter '*.lock' -File -Recurse -Force -ErrorAction SilentlyContinue)
+    }
+    if ($locks.Count -eq 0) { return $false }
+    $gits = @()
+    try { $gits = @(Get-CimInstance Win32_Process -Filter "Name = 'git.exe'" -ErrorAction Stop) } catch { $gits = @() }
+    $full = [IO.Path]::GetFullPath($Dir).TrimEnd('\')
+    $needles = @($full, $full.Replace('\', '/'))
+    foreach ($proc in $gits) {
+        $cmd = "$($proc.CommandLine)"
+        foreach ($needle in $needles) {
+            if ($cmd.IndexOf($needle, [StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                Write-Warn "git (process $($proc.ProcessId)) is still working in $Dir; leaving its lock files alone"
+                return $false
+            }
+        }
+    }
+    # A git started from inside the checkout (no -C on its command line) is
+    # invisible above; a lock written in the last minute while any git runs
+    # may still be live.
+    $fresh = @($locks | Where-Object { $_.LastWriteTime -gt (Get-Date).AddMinutes(-1) })
+    if ($gits.Count -gt 0 -and $fresh.Count -gt 0) { return $false }
+    $removed = $false
+    foreach ($lock in $locks) {
+        try {
+            Remove-Item -LiteralPath $lock.FullName -Force -ErrorAction Stop
+            Write-Warn "removed stale git lock $($lock.FullName) (left by an interrupted git)"
+            $removed = $true
+        } catch {
+            Write-Warn "could not remove stale git lock $($lock.FullName): $($_.Exception.Message)"
+        }
+    }
+    return $removed
+}
+
 function Stage-Repository {
     # Refuse an occupied non-checkout before provisioning Git. This check
     # needs no tool download and must not overwrite a user's existing files.
@@ -1056,6 +1122,7 @@ function Stage-Repository {
     }
     if (Test-Path (Join-Path $InstallDir ".git")) {
         Log "Updating $InstallDir ($Branch)"
+        Clear-StaleGitLocks $InstallDir | Out-Null
         # An explicit HERMES_REPO_URL names the source for reruns too, not
         # just the first clone.
         if ($env:HERMES_REPO_URL) {
@@ -1199,7 +1266,10 @@ function Stage-Repository {
         # rerun "update" onto a different line.
         Invoke-Native { git -C $InstallDir merge-base --is-ancestor $Commit "origin/$Branch" 2>$null }
         if ($LASTEXITCODE) { Fail "commit $Commit is not on branch $Branch" }
-        Invoke-Logged "Pinning $Commit" { git -C $InstallDir checkout $Commit }
+        Invoke-Logged -MayFail "Pinning $Commit" { git -C $InstallDir checkout $Commit }
+        if ($LASTEXITCODE -and (Clear-StaleGitLocks $InstallDir)) {
+            Invoke-Logged "Pinning $Commit (retry after clearing a stale git lock)" { git -C $InstallDir checkout $Commit }
+        }
         if ($LASTEXITCODE) { Fail "could not pin commit $Commit" }
     }
 }
@@ -1594,6 +1664,12 @@ if ($Stage) {
         if ($Json) { Emit-Frame $true $Stage $true "needs user input" }
         exit 0
     }
+    if (-not (Enter-InstallLock)) {
+        $held = "another install is already running for $HermesHome; nothing was changed. Wait for it to finish, then retry."
+        Write-Err $held
+        if ($Json) { Emit-Frame $false $Stage $false $held }
+        exit 1
+    }
     try {
         Invoke-StageByName $Stage
         if ($Json) { Emit-Frame $true $Stage $false }
@@ -1607,6 +1683,12 @@ if ($Stage) {
 
 # No -Stage: run the whole ladder — the same authoritative list the
 # manifest prints, so -IncludeDesktop inserts desktop here too.
+if (-not (Enter-InstallLock)) {
+    Write-Err "another install is already running for $HermesHome; nothing was changed. Wait for it to finish, then run this again."
+    if ($script:RunAsFile) { exit 1 }
+    $global:LASTEXITCODE = 1
+    return
+}
 try {
     Write-Banner
     foreach ($s in $Stages) {

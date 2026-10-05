@@ -300,6 +300,7 @@ export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayP
   const [logOpen, setLogOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [retrying, setRetrying] = useState(false)
   const [remoteOpen, setRemoteOpen] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const logEndRef = useRef<HTMLDivElement | null>(null)
@@ -764,7 +765,15 @@ export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayP
                   {copied ? copy.copiedOutput : copy.copyOutput}
                 </Button>
                 <Button
+                  disabled={retrying}
                   onClick={async () => {
+                    // Ignore repeat clicks: one retry, one installer run.
+                    if (retrying) {
+                      return
+                    }
+
+                    setRetrying(true)
+
                     // Tell main.ts to clear its latched failure BEFORE we
                     // reload. Otherwise the renderer reload calls getConnection
                     // and main short-circuits to the latched error without

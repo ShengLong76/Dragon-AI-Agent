@@ -22,7 +22,7 @@ import {
   LIVENESS_REPROBE_DELAY_MS
 } from '@/lib/gateway-liveness-policy'
 import { resolveDesktopGatewayWsUrl } from '@/lib/gateway-ws-url'
-import { BACKEND_BOOT_WAIT_TIMEOUT_MS, RECONNECT_ATTEMPT_TIMEOUT_MS, withTimeout } from '@/lib/with-timeout'
+import { BACKEND_BOOT_WAIT_TIMEOUT_MS, isTimeoutError, RECONNECT_ATTEMPT_TIMEOUT_MS, withTimeout } from '@/lib/with-timeout'
 import {
   $desktopBoot,
   applyDesktopBootProgress,
@@ -154,6 +154,29 @@ const BOOT_RETRY_BASE_DELAY_MS = 2_000
 // latched — the UI stays "reconnecting" until the app is restarted even
 // though the gateway is reachable again. gateway.connect() already has its
 // own connect timeout.
+
+/** First-run setup (Docker Desktop, source checkout, packages) can take far
+ * longer than the cold-boot budget, and main only answers getConnection once
+ * it finishes. While main reports the installer active, keep waiting on the
+ * same request instead of failing boot: a failure here offers Retry, and a
+ * Retry used to start a second installer racing the first. */
+async function awaitBackendThroughSetup<T>(request: Promise<T>, message: string, isCancelled: () => boolean): Promise<T> {
+  for (;;) {
+    try {
+      return await withTimeout(request, BACKEND_BOOT_WAIT_TIMEOUT_MS, message)
+    } catch (error) {
+      if (isCancelled() || !isTimeoutError(error)) {
+        throw error
+      }
+
+      const setup = await window.hermesDesktop?.getBootstrapState?.().catch(() => null)
+
+      if (!setup?.active) {
+        throw error
+      }
+    }
+  }
+}
 
 /** Registry identity whose runtimes died with the primary connection. */
 export function primaryRuntimeConnectionId(connection: Pick<HermesConnection, 'connectionId' | 'mode'>): null | string {
@@ -1460,10 +1483,10 @@ export function useGatewayBoot({
         // round-trip must not hang "Starting Hermes…" forever. Initial boot
         // rides out a full backend cold spawn, so it gets the shared 45s
         // backend-boot budget, not the 20s reconnect budget.
-        const conn = await withTimeout(
+        const conn = await awaitBackendThroughSetup(
           getWindowBackend(true),
-          BACKEND_BOOT_WAIT_TIMEOUT_MS,
-          'Timed out connecting to Dragon AI backend'
+          'Timed out connecting to Dragon AI backend',
+          () => cancelled
         )
 
         if (cancelled) {

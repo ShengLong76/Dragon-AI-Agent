@@ -225,12 +225,22 @@ export function BootFailureOverlay() {
   }
 
   const retry = async () => {
+    // One click is enough: a second Retry/Repair used to start another
+    // installer while the first was still running.
+    if (busy) {
+      return
+    }
+
     setBusy('retry')
     await window.hermesDesktop?.resetBootstrap().catch(() => undefined)
     window.location.reload()
   }
 
   const repair = async (): Promise<void> => {
+    if (busy) {
+      return
+    }
+
     setBusy('repair')
 
     try {

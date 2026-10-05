@@ -2205,6 +2205,11 @@ let remoteReauthFailure = null
 // Active first-launch install, so the renderer's Cancel button (and app quit)
 // can abort the in-flight install.sh/ps1 instead of leaving it running.
 let bootstrapAbortController = null
+// The one in-flight first-launch install. Retry / Repair / a renderer reload
+// while it runs must join this run, never start a second install script:
+// two runs racing on the same checkout left .git\index.lock behind, stashed
+// each other's files and failed the products step (UltraDragon 0.2 test).
+let bootstrapInFlight: Promise<any> | null = null
 // Explicit "the user asked for a repair" flag. Repair used to signal intent by
 // deleting the bootstrap marker, which stranded healthy installs whose only
 // problem was a transient backend error (#72166). Intent now lives here, so
@@ -5579,42 +5584,50 @@ async function ensureRuntime(
     }
 
     localBackendLifecycle.assertCanStart()
-    bootstrapAbortController = new AbortController()
 
-    // The repair request has been honoured by reaching the installer; clear it
-    // so a later boot isn't forced through bootstrap again.
-    bootstrapRepairRequested = false
-    bootstrapRepairAttempt = 0
+    if (bootstrapInFlight) {
+      rememberLog('[bootstrap] an install is already running; waiting for it instead of starting another')
+    } else {
+      bootstrapAbortController = new AbortController()
 
-    const bootstrapResult = await runBootstrap({
-      installStamp: backend.installStamp,
-      activeRoot: backend.activeRoot,
-      sourceRepoRoot: SOURCE_REPO_ROOT,
-      hermesHome: HERMES_HOME,
-      logRoot: path.join(HERMES_HOME, 'logs'),
-      abortSignal: bootstrapAbortController.signal,
-      onEvent: ev => {
-        // Tee every bootstrap event to (a) the desktop log for forensics
-        // and (b) the renderer for live progress UI. Either may be absent;
-        // tolerate both gracefully so a renderer crash doesn't stall the
-        // bootstrap and a log-write failure doesn't suppress the UI signal.
-        try {
-          rememberLog(`[bootstrap] ${JSON.stringify(ev)}`)
-        } catch {
-          void 0
-        }
+      // The repair request has been honoured by reaching the installer; clear it
+      // so a later boot isn't forced through bootstrap again.
+      bootstrapRepairRequested = false
+      bootstrapRepairAttempt = 0
 
-        try {
-          broadcastBootstrapEvent(ev)
-        } catch {
-          void 0
-        }
-      },
-      writeMarker: writeBootstrapMarker,
-      gitBinary: resolveGitBinary()
-    })
+      bootstrapInFlight = runBootstrap({
+        installStamp: backend.installStamp,
+        activeRoot: backend.activeRoot,
+        sourceRepoRoot: SOURCE_REPO_ROOT,
+        hermesHome: HERMES_HOME,
+        logRoot: path.join(HERMES_HOME, 'logs'),
+        abortSignal: bootstrapAbortController.signal,
+        onEvent: ev => {
+          // Tee every bootstrap event to (a) the desktop log for forensics
+          // and (b) the renderer for live progress UI. Either may be absent;
+          // tolerate both gracefully so a renderer crash doesn't stall the
+          // bootstrap and a log-write failure doesn't suppress the UI signal.
+          try {
+            rememberLog(`[bootstrap] ${JSON.stringify(ev)}`)
+          } catch {
+            void 0
+          }
 
-    bootstrapAbortController = null
+          try {
+            broadcastBootstrapEvent(ev)
+          } catch {
+            void 0
+          }
+        },
+        writeMarker: writeBootstrapMarker,
+        gitBinary: resolveGitBinary()
+      }).finally(() => {
+        bootstrapAbortController = null
+        bootstrapInFlight = null
+      })
+    }
+
+    const bootstrapResult = await bootstrapInFlight
 
     if (bootstrapResult.cancelled) {
       const cancelledError = new Error('Dragon AI install was cancelled.') as any
@@ -15983,6 +15996,14 @@ ipcMain.handle('hermes:bootstrap:reset', async () => {
   // Renderer's "Reload and retry" path. Clear the latched failure and
   // reset connection state so the next startHermes() call restarts the
   // full backend flow (including a fresh runBootstrap pass).
+  if (bootstrapInFlight) {
+    // Setup is still running: keep it and its progress. The renderer reloads
+    // and its boot joins the same run instead of starting a second installer.
+    rememberLog('[bootstrap] reset ignored: an install is already running; the window will rejoin it')
+
+    return { ok: true, inFlight: true }
+  }
+
   rememberLog('[bootstrap] reset requested by renderer; clearing latched failure')
   await teardownPrimaryBackendAndWait()
   bootstrapFailure = null
@@ -15993,7 +16014,13 @@ ipcMain.handle('hermes:bootstrap:reset', async () => {
 
   return { ok: true }
 })
-ipcMain.handle('hermes:bootstrap:repair', async (): Promise<{ ok: boolean; bundled?: boolean; error?: string }> => {
+ipcMain.handle('hermes:bootstrap:repair', async (): Promise<{ ok: boolean; bundled?: boolean; error?: string; inFlight?: boolean }> => {
+  if (bootstrapInFlight) {
+    rememberLog('[bootstrap] repair ignored: an install is already running; the window will rejoin it')
+
+    return { ok: true, inFlight: true }
+  }
+
   // A bundled install's payload is immutable and sealed at build time —
   // "repair" would re-run the installer against a separate
   // %LOCALAPPDATA%\hermes tree the app doesn't own. The only repair for a
