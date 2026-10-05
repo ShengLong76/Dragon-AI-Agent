@@ -290,7 +290,7 @@ module.exports = {
     installerHeaderIcon: 'assets/icon.ico',
     runAfterFinish: true,
     deleteAppDataOnUninstall: false,
-    artifactName: `${artifactNamePascal}-Setup-\${version}-\${arch}.\${ext}`
+    artifactName: `DragonAIAgent-Setup-\${version}-\${arch}.\${ext}`
   },
   linux: {
     category: 'Development',
