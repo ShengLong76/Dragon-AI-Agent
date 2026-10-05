@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// set-exe-identity.mjs — stamp the Hermes icon + version metadata onto the
-// built Hermes.exe using rcedit, completely decoupled from electron-builder's
+// set-exe-identity.mjs — stamp the Dragon AI icon + version metadata onto the
+// built Dragon AI.exe using rcedit, completely decoupled from electron-builder's
 // signing path.
 //
 // WHY THIS EXISTS
@@ -83,13 +83,18 @@ async function stampExeIdentity(
   console.log(`[set-exe-identity] stamping ${exe}`)
   console.log(`[set-exe-identity] icon: ${icon}`)
 
+  // Product identity matches electron-builder / app.setAppUserModelId (appId).
+  // Hardcoding Hermes left the taskbar/notifications on the wrong AUMID family.
+  const { createRequire } = await import('node:module')
+  const identity = createRequire(import.meta.url)('../product-identity.cjs')
+  const productName = identity.displayName || 'Dragon AI'
   const options = {
     icon,
     'version-string': {
-      ProductName: 'Hermes',
-      FileDescription: 'Hermes',
-      CompanyName: 'Nous Research',
-      LegalCopyright: 'Copyright (c) 2026 Nous Research'
+      ProductName: productName,
+      FileDescription: productName,
+      CompanyName: 'Dragon AI',
+      LegalCopyright: 'Copyright (c) 2026 Dragon AI'
     }
   }
 
@@ -107,7 +112,7 @@ async function stampExeIdentity(
     }
   }
 
-  console.log('[set-exe-identity] done — Hermes icon + identity stamped')
+  console.log(`[set-exe-identity] done — ${productName} icon + identity stamped`)
 }
 
 export { RCEDIT_COMMIT_RETRY_DELAYS_MS, stampExeIdentity }

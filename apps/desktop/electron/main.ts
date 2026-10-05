@@ -1812,15 +1812,15 @@ app.setName(APP_NAME)
 // an installed menu. The real menu lands in installApplicationMenuAfterFirstWindow.
 Menu.setApplicationMenu(null)
 
-// Windows toast notifications silently no-op unless an AppUserModelID is set:
-// `new Notification().show()` returns without error and nothing appears. The
-// AUMID must match the installed Start Menu shortcut's AUMID, which
-// electron-builder derives from the build `appId` (com.nousresearch.hermes) —
-// keep this string in sync with package.json `build.appId`. macOS/Linux don't
-// need this, so gate it on Windows. (Fixes: desktop approval/turn notifications
-// never firing on Windows.)
+// Windows toast notifications and the taskbar icon silently break unless an
+// AppUserModelID is set and matches the Start Menu shortcut AUMID that
+// electron-builder derives from build `appId` (PRODUCT_IDENTITY.appId, e.g.
+// ai.dragon.dragon-ai-claude). Stable builds leave IDENTITY_APP_NAME null
+// (shared historical userData), so never fall back to the upstream Hermes
+// AUMID — that produced a blank/generic taskbar icon after rebrand.
+// macOS/Linux don't need this, so gate it on Windows.
 if (IS_WINDOWS) {
-  app.setAppUserModelId(IDENTITY_APP_NAME ? PRODUCT_IDENTITY.appId : 'com.nousresearch.hermes')
+  app.setAppUserModelId(PRODUCT_IDENTITY.appId)
 }
 
 // Seed the native About panel with the best-known Hermes version. This is

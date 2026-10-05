@@ -281,7 +281,7 @@ module.exports = {
     oneClick: false,
     perMachine: false,
     allowToChangeInstallationDirectory: true,
-    createDesktopShortcut: true,
+    createDesktopShortcut: false,
     createStartMenuShortcut: true,
     shortcutName: displayName,
     uninstallDisplayName: displayName,

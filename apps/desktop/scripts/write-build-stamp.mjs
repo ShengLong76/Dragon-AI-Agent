@@ -224,7 +224,14 @@ export function buildStampPayload(stamp, env = process.env, platform = process.p
   const base = {
     schemaVersion: STAMP_SCHEMA_VERSION,
     commit: stamp.commit,
-    branch: commitBuild || channelBuild ? null : stamp.branch,
+    // Packaged first-launch bootstrap clones this branch when the commit pin
+    // is absent/all-zero. Local feature-branch builds must not pin cursor/*
+    // into the Setup exe — prefer main. CI keeps GITHUB_REF_NAME. Override
+    // with HERMES_INSTALL_BRANCH.
+    branch: commitBuild || channelBuild
+      ? null
+      : env.HERMES_INSTALL_BRANCH ||
+        (stamp.source === "ci" && stamp.branch ? stamp.branch : FALLBACK_BRANCH),
     builtAt: new Date().toISOString(),
     dirty: stamp.dirty,
     source: channelBuild ? 'channel-build' : commitBuild ? 'commit-build' : stamp.source,

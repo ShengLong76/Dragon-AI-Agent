@@ -714,6 +714,7 @@ function Emit-Frame([bool]$ok, [string]$name, [bool]$skipped, [string]$reason = 
 $ProductTitle = if ($IncludeDesktop) { "Install command and app + desktop" } else { "Install command and app" }
 $Stages = @(
     @{ name = "prerequisites"; title = "System prerequisites"; category = "runtime"; needs_user_input = $false },
+    @{ name = "docker"; title = "Install Docker Desktop"; category = "runtime"; needs_user_input = $false },
     @{ name = "repository"; title = "Download Hermes Agent"; category = "runtime"; needs_user_input = $false },
     @{ name = "venv"; title = "Create Python environment"; category = "runtime"; needs_user_input = $false },
     @{ name = "python-deps"; title = "Install Python dependencies"; category = "runtime"; needs_user_input = $false },
@@ -740,6 +741,293 @@ function Disable-TreelessGraphWrites([string]$Dir) {
     foreach ($key in 'maintenance.commit-graph.enabled', 'gc.writeCommitGraph', 'fetch.writeCommitGraph') {
         Invoke-Native { git -C $Dir config $key false } | Out-Null
         if ($LASTEXITCODE) { Write-Warn "could not set $key in $Dir" }
+    }
+}
+
+
+function Test-HermesIsAdmin {
+    try {
+        $id = [Security.Principal.WindowsIdentity]::GetCurrent()
+        $principal = New-Object Security.Principal.WindowsPrincipal($id)
+        return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    } catch {
+        return $false
+    }
+}
+
+function Get-HermesDockerDesktopExe {
+    foreach ($c in @(
+        (Join-Path $env:ProgramFiles "Docker\Docker\Docker Desktop.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "Docker\Docker\Docker Desktop.exe"),
+        (Join-Path $env:LOCALAPPDATA "Programs\DockerDesktop\Docker Desktop.exe"),
+        (Join-Path $env:LOCALAPPDATA "Docker\Docker Desktop.exe")
+    )) {
+        if ($c -and (Test-Path -LiteralPath $c)) { return $c }
+    }
+    return $null
+}
+
+function Fix-HermesDockerPath {
+    foreach ($d in @(
+        (Join-Path $env:ProgramFiles "Docker\Docker\resources\bin"),
+        (Join-Path $env:LOCALAPPDATA "Programs\DockerDesktop\resources\bin"),
+        (Join-Path $env:LOCALAPPDATA "Docker\resources\bin")
+    )) {
+        if ((Test-Path -LiteralPath $d) -and ($env:PATH -notlike "*$d*")) {
+            $env:PATH = "$d;$env:PATH"
+        }
+    }
+}
+
+function Test-HermesDockerCliPresent {
+    Fix-HermesDockerPath
+    return [bool](Get-Command docker -ErrorAction SilentlyContinue)
+}
+
+function Test-HermesDockerDesktopComplete {
+    return ([bool](Get-HermesDockerDesktopExe) -and (Test-HermesDockerCliPresent))
+}
+
+function Test-HermesDockerEngine {
+    try {
+        Fix-HermesDockerPath
+        if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { return $false }
+        $null = & docker info 2>$null
+        return ($LASTEXITCODE -eq 0)
+    } catch {
+        return $false
+    }
+}
+
+function Get-HermesDockerInstallerCachePath {
+    $dir = Join-Path $HermesHome "vendor\docker"
+    New-Item -ItemType Directory -Force -Path $dir | Out-Null
+    return (Join-Path $dir "Docker Desktop Installer.exe")
+}
+
+function Save-HermesDockerInstallerFromUrl {
+    param([string]$Dest)
+    $url = "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe"
+    $destDir = Split-Path $Dest -Parent
+    New-Item -ItemType Directory -Force -Path $destDir | Out-Null
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    Write-Host "-> Downloading Docker Desktop installer..."
+    Invoke-WebRequest -Uri $url -OutFile $Dest -UseBasicParsing -ErrorAction Stop
+    if (-not (Test-Path -LiteralPath $Dest)) { throw "Download produced no file: $Dest" }
+    $size = (Get-Item -LiteralPath $Dest).Length
+    if ($size -lt 1000000) {
+        Remove-Item -LiteralPath $Dest -Force -ErrorAction SilentlyContinue
+        throw "Downloaded Docker installer is too small ($size bytes)"
+    }
+    return $Dest
+}
+
+function Resolve-HermesDockerInstaller {
+    $names = @("Docker Desktop Installer.exe", "DockerDesktopInstaller.exe")
+    $dirs = @(
+        (Join-Path $HermesHome "vendor\docker"),
+        (Join-Path $PSScriptRoot "vendor\docker"),
+        (Join-Path $PSScriptRoot "..\vendor\docker")
+    )
+    foreach ($dir in $dirs) {
+        if (-not $dir) { continue }
+        foreach ($name in $names) {
+            $p = Join-Path $dir $name
+            if (Test-Path -LiteralPath $p) { return $p }
+        }
+    }
+    $cache = Get-HermesDockerInstallerCachePath
+    if (Test-Path -LiteralPath $cache) { return $cache }
+    return (Save-HermesDockerInstallerFromUrl -Dest $cache)
+}
+
+function Invoke-HermesDockerDesktopQuietInstall {
+    param([string]$InstallerPath)
+    Write-Host "-> Quiet-installing Docker Desktop (UAC may prompt; Dragon AI will not reboot)..."
+    $argList = @("install", "--quiet", "--accept-license", "--always-run-service")
+    $start = @{
+        FilePath     = $InstallerPath
+        ArgumentList = $argList
+        Wait         = $true
+        PassThru     = $true
+        WindowStyle  = "Hidden"
+        ErrorAction  = "Stop"
+    }
+    if (-not (Test-HermesIsAdmin)) {
+        $start["Verb"] = "RunAs"
+    }
+    $p = Start-Process @start
+    Write-Host "-> Docker installer exit code: $($p.ExitCode)"
+    # 0 = ok; 3010 = success, reboot required (MSI). We never reboot ourselves.
+    return ($p.ExitCode -eq 0 -or $p.ExitCode -eq 3010)
+}
+
+function Set-HermesDockerHeadlessSettings {
+    $settingsDir = Join-Path $env:APPDATA "Docker"
+    New-Item -ItemType Directory -Force -Path $settingsDir | Out-Null
+    # camelCase only in this hashtable (PS hashtables are case-insensitive).
+    $legacy = @{
+        openUIOnStartupDisabled = $true
+        openAtLogin             = $true
+        autoStart               = $true
+        startMinimized          = $true
+        displayedOnboarding     = $true
+        displayedTutorial       = $true
+        analyticsEnabled        = $false
+        disableTips             = $true
+        licenseTermsVersion     = 2
+        disableTrayIcon         = $true
+        enableDockerAI          = $false
+    }
+    $store = @{
+        OpenUIOnStartupDisabled = $true
+        AutoStart               = $true
+        DisplayedOnboarding     = $true
+        DisplayedTutorial       = $true
+        AnalyticsEnabled        = $false
+        DisableTips             = $true
+        LicenseTermsVersion     = 2
+        DisableTrayIcon         = $true
+        EnableDockerAI          = $false
+    }
+    foreach ($target in @(
+        @{ File = (Join-Path $settingsDir "settings.json"); Patch = $legacy },
+        @{ File = (Join-Path $settingsDir "settings-store.json"); Patch = $store }
+    )) {
+        try {
+            $obj = $null
+            if (Test-Path -LiteralPath $target.File) {
+                $raw = Get-Content -LiteralPath $target.File -Raw -ErrorAction Stop
+                if (-not [string]::IsNullOrWhiteSpace($raw)) {
+                    $obj = $raw | ConvertFrom-Json -ErrorAction Stop
+                }
+            }
+            if ($null -eq $obj) { $obj = [pscustomobject]@{} }
+            foreach ($k in $target.Patch.Keys) {
+                $obj | Add-Member -MemberType NoteProperty -Name $k -Value $target.Patch[$k] -Force
+            }
+            ($obj | ConvertTo-Json -Depth 20) | Set-Content -LiteralPath $target.File -Encoding utf8
+        } catch {
+            Write-Warn "could not patch $($target.File): $_"
+        }
+    }
+}
+
+function Start-HermesDockerEngine {
+    Fix-HermesDockerPath
+    Set-HermesDockerHeadlessSettings
+    $env:DOCKER_DESKTOP_DISABLE_LOGIN = "1"
+    if (Test-HermesDockerEngine) { return $true }
+
+    $svc = Get-Service -Name "com.docker.service" -ErrorAction SilentlyContinue
+    if ($svc -and $svc.Status -ne "Running") {
+        try {
+            if (Test-HermesIsAdmin) {
+                Start-Service -Name "com.docker.service" -ErrorAction Stop
+            } else {
+                Start-Process -FilePath "net" -ArgumentList @("start", "com.docker.service") -Verb RunAs -WindowStyle Hidden -Wait -ErrorAction SilentlyContinue
+            }
+        } catch {
+            Write-Warn "com.docker.service start: $_"
+        }
+    }
+
+    $backendCandidates = @(
+        (Join-Path $env:ProgramFiles "Docker\Docker\resources\com.docker.backend.exe"),
+        (Join-Path $env:LOCALAPPDATA "Programs\DockerDesktop\resources\com.docker.backend.exe")
+    )
+    $desktop = Get-HermesDockerDesktopExe
+    if ($desktop) {
+        $backendCandidates = @((Join-Path (Split-Path -Parent $desktop) "resources\com.docker.backend.exe")) + $backendCandidates
+    }
+    if (-not (Test-HermesDockerEngine)) {
+        foreach ($backend in $backendCandidates) {
+            if ($backend -and (Test-Path -LiteralPath $backend)) {
+                Start-Process -FilePath $backend -WindowStyle Hidden -ErrorAction SilentlyContinue | Out-Null
+                break
+            }
+        }
+    }
+    if (-not (Test-HermesDockerEngine)) {
+        $exe = Get-HermesDockerDesktopExe
+        if ($exe) {
+            Start-Process -FilePath $exe -WindowStyle Hidden -ErrorAction SilentlyContinue | Out-Null
+        }
+    }
+
+    $deadline = (Get-Date).AddMinutes(3)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-HermesDockerEngine) { return $true }
+        Start-Sleep -Seconds 5
+    }
+    return $false
+}
+
+function Install-HermesSandboxImage {
+    Fix-HermesDockerPath
+    if (-not (Test-HermesDockerEngine)) { return }
+    $image = "nousresearch/hermes-sandbox:desktop"
+    Write-Host "-> Pulling bot screen sandbox image ($image)..."
+    try {
+        & docker pull $image
+        if ($LASTEXITCODE -eq 0) {
+            Write-Ok "sandbox image ready ($image)"
+        } else {
+            Write-Warn "docker pull $image exited $LASTEXITCODE (bot screens can retry later)"
+        }
+    } catch {
+        Write-Warn "docker pull failed: $_"
+    }
+}
+
+function Stage-Docker {
+    # Bot screens (Computer tab) need Docker Desktop on Windows. Chat must keep
+    # working even if this stage cannot finish (UAC denied, reboot pending).
+    # Never reboot from this stage.
+    if ($PSVersionTable.PSEdition -eq 'Core' -and -not $IsWindows) {
+        Write-Ok "docker skipped (not Windows)"
+        return
+    }
+    if ($env:OS -ne "Windows_NT") {
+        Write-Ok "docker skipped (not Windows)"
+        return
+    }
+
+    try {
+        Fix-HermesDockerPath
+        if (Test-HermesDockerDesktopComplete) {
+            Write-Ok "Docker Desktop already installed"
+            Set-HermesDockerHeadlessSettings
+        } else {
+            if ((Get-HermesDockerDesktopExe) -and -not (Test-HermesDockerCliPresent)) {
+                Write-Warn "Docker Desktop.exe present but CLI missing; repairing via quiet install"
+            } else {
+                Write-Host "-> Docker Desktop missing; installing as part of Dragon AI setup..."
+            }
+            $installer = Resolve-HermesDockerInstaller
+            $ok = Invoke-HermesDockerDesktopQuietInstall -InstallerPath $installer
+            Fix-HermesDockerPath
+            Set-HermesDockerHeadlessSettings
+            if (Test-HermesDockerDesktopComplete) {
+                Write-Ok "Docker Desktop installed"
+            } elseif (Get-HermesDockerDesktopExe) {
+                Write-Warn "Docker Desktop.exe present; CLI may appear after PATH refresh or reboot"
+            } elseif ($ok) {
+                Write-Warn "Docker installer reported success but exe not found yet (reboot may be pending; Dragon AI will not reboot)"
+            } else {
+                Write-Warn "Docker Desktop install did not complete (approve UAC if prompted). Chat still works; bot screens need Docker."
+                return
+            }
+        }
+
+        if (Start-HermesDockerEngine) {
+            Write-Ok "Docker engine is ready"
+            Install-HermesSandboxImage
+        } else {
+            Write-Warn "Docker engine not ready yet (WSL/reboot may be needed). Chat still works; open Docker Desktop once if bot screens stay offline."
+        }
+    } catch {
+        Write-Warn "docker stage: $_ (continuing install; chat does not require Docker)"
     }
 }
 
@@ -1239,6 +1527,7 @@ function New-DesktopShortcuts {
 function Invoke-StageByName([string]$name) {
     switch ($name) {
         "prerequisites" { Stage-Prerequisites }
+        "docker" { Stage-Docker }
         "repository" { Stage-Repository }
         "venv" { Stage-Venv }
         "python-deps" { Stage-PythonDeps }
