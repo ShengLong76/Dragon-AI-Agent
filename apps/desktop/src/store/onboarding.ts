@@ -800,7 +800,7 @@ export async function refreshOnboarding(ctx: OnboardingContext, stillWanted?: ()
         kind: 'info',
         title: 'Runtime not ready',
         message:
-          'Dragon AI Claude could not verify the running backend on startup. Some features may be unavailable until the gateway is reachable.'
+          'Dragon AI could not verify the running backend on startup. Some features may be unavailable until the gateway is reachable.'
       })
     }
 

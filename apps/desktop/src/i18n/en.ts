@@ -425,7 +425,7 @@ export const en: Translations = {
   },
 
   boot: {
-    ready: 'Dragon AI Claude is ready',
+    ready: 'Dragon AI is ready',
     desktopBootFailedWithMessage: message => `Desktop boot failed: ${message}`,
     steps: {
       connectingGateway: 'Connecting live desktop gateway',
@@ -433,7 +433,7 @@ export const en: Translations = {
       loadingSessions: 'Loading recent sessions',
       retryingRemoteBackend: 'Reconnecting to the remote Dragon AI backend…',
       startingDesktopConnection: 'Starting desktop connection',
-      startingHermesDesktop: 'Starting Dragon AI Claude…'
+      startingHermesDesktop: 'Starting Dragon AI…'
     },
     errors: {
       backgroundExited:
@@ -451,7 +451,7 @@ export const en: Translations = {
       gatewaySignInRequired: 'Your remote Dragon AI signed you out',
       gatewaySignInRequiredDetail: 'Sign in again to reconnect. Your chats and settings are safe.',
       signInAgain: 'Sign in again',
-      ipcBridgeUnavailable: "Dragon AI Claude couldn't talk to its own background layer. Restart the app."
+      ipcBridgeUnavailable: "Dragon AI couldn't talk to its own background layer. Restart the app."
     },
     // Plain causes for a local backend boot failure (`classifyBootFailure`);
     // the raw output stays behind "Show recent logs".
@@ -1074,7 +1074,7 @@ export const en: Translations = {
         }
       },
       test: 'Send test notification',
-      testTitle: 'Dragon AI Claude',
+      testTitle: 'Dragon AI',
       testBody: 'Notifications are working.',
       testSent: 'Test sent. If nothing appears, check your OS notification permissions and Focus/Do Not Disturb.',
       testUnsupported: 'This system does not support native notifications.',
@@ -1093,7 +1093,7 @@ export const en: Translations = {
       advanced: 'Advanced'
     },
     searchPlaceholder: {
-      about: 'About Dragon AI Claude',
+      about: 'About Dragon AI',
       config: 'Search settings...',
       gateway: 'Gateway connection...',
       keys: 'Search API keys...',
@@ -1550,7 +1550,7 @@ export const en: Translations = {
       loading: 'Loading gateway settings...',
       unavailableTitle: 'Gateway settings unavailable',
       unavailableDesc:
-        'Connection settings can only be changed from the Dragon AI Claude app on the computer running it.',
+        'Connection settings can only be changed from the Dragon AI app on the computer running it.',
       title: 'Gateway Connection',
       envOverride: 'env override',
       intro:
@@ -1645,7 +1645,7 @@ export const en: Translations = {
       enterUrlFirst: 'Enter a remote URL first.',
       restartingTitle: 'Gateway connection restarting',
       savedTitle: 'Gateway settings saved',
-      restartingMessage: 'Dragon AI Claude will reconnect using the saved settings — the shell stays open.',
+      restartingMessage: 'Dragon AI will reconnect using the saved settings — the shell stays open.',
       savedMessage: 'Saved for the next restart.',
       connectedTo: (baseUrl, version) => `Connected to ${baseUrl}${version ? ` · Dragon AI ${version}` : ''}`,
       reachableTitle: 'Remote gateway reachable',
@@ -1690,7 +1690,7 @@ export const en: Translations = {
       sshErrNotInstalled:
         'Dragon AI is not installed on the remote host. Install it there (curl -fsSL https://hermes-agent.nousresearch.com/install.sh | sh) or set the Dragon AI path.',
       sshErrPlatform:
-        'Unsupported remote platform. Dragon AI Claude SSH mode supports Linux, macOS, and Windows remote hosts.',
+        'Unsupported remote platform. Dragon AI SSH mode supports Linux, macOS, and Windows remote hosts.',
       sshErrTimeout: 'SSH connection timed out. The host may be unreachable or asleep.',
       sshErrUpdateRequired: 'Update Dragon AI on the remote host before connecting with Desktop SSH.',
       sshErrUnknown: 'SSH connection failed.'
@@ -2166,7 +2166,7 @@ export const en: Translations = {
         cliBillingDisabled: {
           title: 'Remote spending is off',
           message:
-            "Remote spending is off for this account — a billing admin can turn it on from the portal's Dragon AI Claude page."
+            "Remote spending is off for this account — a billing admin can turn it on from the portal's Dragon AI page."
         },
         roleRequired: {
           title: 'Admin role required',
@@ -3879,7 +3879,7 @@ export const en: Translations = {
       '/subscription': 'View your Nous plan and change it in the browser',
       '/topup': 'Show your Nous balance and manage billing on the portal',
       '/platform': 'Pause, resume, or list a failing gateway platform',
-      '/version': 'Show Dragon AI Claude version',
+      '/version': 'Show Dragon AI version',
       '/debug': 'Upload debug report (system info + logs) and get shareable links',
       '/model': 'Switch the model for this session'
     },
@@ -4274,7 +4274,7 @@ export const en: Translations = {
       noReturn: 'Backend didn’t come back online. The update may not have completed — check the backend host.'
     },
     // Update-status overlay + version-details (mechanism-aware update UI).
-    appName: 'Dragon AI Claude',
+    appName: 'Dragon AI',
     version: (value: string) => `Version ${value}`,
     versionUnavailable: 'Version unavailable',
     checkNow: 'Check now',
@@ -4351,7 +4351,7 @@ export const en: Translations = {
     viewDocs: 'View install docs',
     installTo: 'Will install to',
     retryAfterRun: 'I’ve run it -- retry',
-    setupChoiceTitle: 'Set up Dragon AI Claude',
+    setupChoiceTitle: 'Set up Dragon AI',
     setupChoiceDesc:
       'Connect this app to a Dragon AI gateway you already run, or install Dragon AI locally on this computer.',
     setupChoiceDescLocal: 'Install Dragon AI on this computer, or connect to a Dragon AI gateway you already run.',
@@ -4363,9 +4363,9 @@ export const en: Translations = {
     useLocalTitle: 'Use Dragon AI on this computer',
     useLocalDesc: 'A Dragon AI runtime is already installed here — start it with one click. Nothing downloads.',
     bundledLocalDesc: 'Use the Dragon AI runtime included with this app — the bundled backend is the local install.',
-    localStartUnavailable: 'Local installation could not start. Restart Dragon AI Claude and try again.',
+    localStartUnavailable: 'Local installation could not start. Restart Dragon AI and try again.',
     remoteSetupTitle: 'Connect to existing Dragon AI',
-    remoteSetupDesc: 'Enter your gateway URL. Dragon AI Claude will detect whether it needs a token or browser sign-in.',
+    remoteSetupDesc: 'Enter your gateway URL. Dragon AI will detect whether it needs a token or browser sign-in.',
     remoteUrlTitle: 'Gateway URL',
     remoteUrlDesc: 'Use the base URL of the Dragon AI gateway, including https:// when remote.',
     remoteUrlPlaceholder: 'https://gateway.example.com/hermes',
@@ -4392,7 +4392,7 @@ export const en: Translations = {
     applyRemote: 'Apply and reconnect',
     backToSetup: 'Back',
     failedTitle: 'Installation failed',
-    settingUpTitle: 'Setting up Dragon AI Claude',
+    settingUpTitle: 'Setting up Dragon AI',
     finishingTitle: 'Finishing up',
     failedDesc:
       'One of the setup steps did not finish. This can happen when another copy of Dragon AI is running, the internet connection dropped, or antivirus blocked the installer. Close other Dragon AI windows, then choose Reload and retry. If it fails again, open the logs and send them to support.',
@@ -4416,7 +4416,7 @@ export const en: Translations = {
   },
 
   onboarding: {
-    headerTitle: "Let's get you setup with Dragon AI Claude",
+    headerTitle: "Let's get you setup with Dragon AI",
     headerDesc: 'Connect a model provider to start chatting. Most options take one click.',
     preparingInstall: 'Dragon AI is finishing install. This usually takes under a minute on first run.',
     starting: 'Starting Dragon AI…',
@@ -4679,7 +4679,7 @@ export const en: Translations = {
       updateInProgress: 'Update in progress',
       commitsBehind: (count, branch) => `${count} commit${count === 1 ? '' : 's'} behind ${branch}`,
       releaseAvailable: (tag: string) => `Version ${tag} is available.`,
-      desktopVersion: version => `Dragon AI Claude v${version}`,
+      desktopVersion: version => `Dragon AI v${version}`,
       backendVersion: version => `Backend v${version}`,
       clientLabel: version => `client v${version}`,
       connectionSsh: host => `SSH: ${host}`,
@@ -5570,8 +5570,8 @@ export const en: Translations = {
     sessionExportFailed: 'Could not export session',
     imageSaved: 'Image saved',
     downloadStarted: 'Download started',
-    restartToUseSaveImage: 'Restart Dragon AI Claude to use Save Image.',
-    restartToSaveImages: 'Restart Dragon AI Claude to save images',
+    restartToUseSaveImage: 'Restart Dragon AI to use Save Image.',
+    restartToSaveImages: 'Restart Dragon AI to save images',
     imageDownloadFailed: 'Image download failed',
     openImage: 'Open image',
     downloadImage: 'Download image',

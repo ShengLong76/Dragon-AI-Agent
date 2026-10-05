@@ -1,9 +1,9 @@
 {
   "name": "dragon-ai-claude",
-  "productName": "Dragon AI Claude",
+  "productName": "Dragon AI",
   "private": true,
   "version": "0.0.0",
-  "description": "Dragon AI Claude — the Dragon AI desktop agent with bot teams and bot VM desktops.",
+  "description": "Dragon AI — the Dragon AI desktop agent with bot teams and bot VM desktops.",
   "author": "Dragon AI",
   "repository": {
     "type": "git",

@@ -55,7 +55,7 @@ export function resolveDesktopHermesHome({ home, env = process.env, platform = p
     }
   }
   const defaultHome = platformDefaultHermesHome(home, env, platform)
-  // Dragon AI Claude owns its home outright: it never adopts another agent
+  // Dragon AI owns its home outright: it never adopts another agent
   // install's data directory.
   void directoryExists
   return defaultHome

@@ -42,9 +42,11 @@ export function DragonSidebarLockup() {
           <div className="dragon-wordmark truncate text-[1.0625rem] font-bold tracking-[0.01em] text-foreground">
             {DRAGON_PRODUCT.wordmark}
           </div>
-          <div className="mt-1 truncate text-[0.625rem] font-semibold uppercase tracking-[0.24em] text-(--ui-text-tertiary)">
-            {DRAGON_PRODUCT.edition}
-          </div>
+          {DRAGON_PRODUCT.edition ? (
+            <div className="mt-1 truncate text-[0.625rem] font-semibold uppercase tracking-[0.24em] text-(--ui-text-tertiary)">
+              {DRAGON_PRODUCT.edition}
+            </div>
+          ) : null}
         </div>
       </div>
       <div className="flex items-center px-2.5" style={{ height: DRAGON_MARKETPLACE_ROW_HEIGHT }}>

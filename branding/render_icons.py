@@ -1,4 +1,4 @@
-"""Render every Dragon AI Claude icon from the canonical low-poly dragon artwork.
+"""Render every Dragon AI icon from the canonical low-poly dragon artwork.
 
 The artwork (branding/dragon-logo.png) is used as-is: it is only cropped to its
 visible bounds, centered on a transparent square and resampled.

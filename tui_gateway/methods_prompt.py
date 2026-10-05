@@ -304,7 +304,7 @@ def _legacy_group_fence_error(rid, session, params):
     if hosted or peer:
         owner = "its gateway" if hosted else "its home host"
         return _err(
-            rid, 4122, f"This room is managed by {owner}. Update Dragon AI Claude to continue it.")
+            rid, 4122, f"This room is managed by {owner}. Update Dragon AI to continue it.")
     return None
 
 
@@ -1290,7 +1290,7 @@ def _side_agent_args(rid, params, prefix):
 
 
 _PREVIEW_RESTART_RULES = (
-    "Restart exactly the app intended for the Preview URL, not Dragon AI Claude itself.",
+    "Restart exactly the app intended for the Preview URL, not Dragon AI itself.",
     "The Preview URL and port are the target. Preserve that target unless you conclude it is impossible.",
     "If the prior conversation shows a specific command that bound this URL/port, prefer re-running THAT exact command (in the same cwd) over guessing a new one.",
     "First inspect what process, if any, owns the Preview URL port. If a stale server exists, inspect its cwd and prefer that cwd over the Hermes/Desktop process cwd.",

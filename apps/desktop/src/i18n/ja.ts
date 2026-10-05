@@ -145,7 +145,7 @@ export const ja = defineLocale({
   },
 
   boot: {
-    ready: 'Dragon AI Claude の準備ができました',
+    ready: 'Dragon AI の準備ができました',
     desktopBootFailedWithMessage: message => `デスクトップの起動に失敗しました: ${message}`,
     steps: {
       connectingGateway: 'ライブデスクトップゲートウェイに接続中',
@@ -153,7 +153,7 @@ export const ja = defineLocale({
       loadingSessions: '最近のセッションを読み込み中',
       retryingRemoteBackend: 'リモート Dragon AI バックエンドに再接続中…',
       startingDesktopConnection: 'デスクトップ接続を開始中',
-      startingHermesDesktop: 'Dragon AI Claude を起動中…'
+      startingHermesDesktop: 'Dragon AI を起動中…'
     },
     errors: {
       backgroundExited: 'Dragon AI バックグラウンドプロセスが終了しました。',
@@ -247,7 +247,7 @@ export const ja = defineLocale({
       diskFull: 'ディスク容量不足です — 空きを作ってからもう一度お試しください。',
       gatewayAuthFailed: 'ゲートウェイ認証に失敗しました — API_SERVER_KEY を確認してください。',
       methodNotAllowed:
-        'デスクトップバックエンドがそのリクエストを拒否しました (405 Method Not Allowed)。Dragon AI Claude を再起動してください。',
+        'デスクトップバックエンドがそのリクエストを拒否しました (405 Method Not Allowed)。Dragon AI を再起動してください。',
       microphonePermission: 'マイクのアクセス許可が拒否されました。',
       openaiRejectedApiKey: 'OpenAI が API キーを拒否しました。',
       openaiTtsNeedsKey: 'OpenAI TTS には VOICE_TOOLS_OPENAI_KEY または OPENAI_API_KEY が必要です。',
@@ -594,7 +594,7 @@ export const ja = defineLocale({
         }
       },
       test: 'テスト通知を送信',
-      testTitle: 'Dragon AI Claude',
+      testTitle: 'Dragon AI',
       testBody: '通知は正常に動作しています。',
       testSent:
         'テストを送信しました。表示されない場合は、OS の通知許可と集中モード／おやすみモードを確認してください。',
@@ -614,7 +614,7 @@ export const ja = defineLocale({
       advanced: '詳細'
     },
     searchPlaceholder: {
-      about: 'Dragon AI Claude について',
+      about: 'Dragon AI について',
       config: '設定を検索…',
       gateway: 'ゲートウェイ接続…',
       keys: 'API キーを検索…',
@@ -1135,7 +1135,7 @@ export const ja = defineLocale({
       title: 'ゲートウェイ接続',
       envOverride: 'env オーバーライド',
       intro:
-        'Dragon AI Claude はデフォルトで独自のローカルゲートウェイを起動します。別のマシンや信頼できるプロキシの背後で既に動作している Dragon AI バックエンドをこのアプリで制御する場合は、リモートゲートウェイを使用してください。ゲートウェイ接続はマシン単位の設定で、プロファイルは接続したゲートウェイから検出されます。',
+        'Dragon AI はデフォルトで独自のローカルゲートウェイを起動します。別のマシンや信頼できるプロキシの背後で既に動作している Dragon AI バックエンドをこのアプリで制御する場合は、リモートゲートウェイを使用してください。ゲートウェイ接続はマシン単位の設定で、プロファイルは接続したゲートウェイから検出されます。',
       envOverrideTitle: '環境変数がこのデスクトップセッションを制御しています。',
       envOverrideDesc:
         '保存された設定を使用するには HERMES_DESKTOP_REMOTE_URL と HERMES_DESKTOP_REMOTE_TOKEN の設定を解除してください。',
@@ -1194,7 +1194,7 @@ export const ja = defineLocale({
       enterUrlFirst: '最初にリモート URL を入力してください。',
       restartingTitle: 'ゲートウェイ接続を再起動中',
       savedTitle: 'ゲートウェイ設定を保存しました',
-      restartingMessage: 'Dragon AI Claude は保存された設定を使用して再接続します。',
+      restartingMessage: 'Dragon AI は保存された設定を使用して再接続します。',
       savedMessage: '次回起動時に保存されます。',
       connectedTo: (baseUrl, version) => `${baseUrl}${version ? ` · Dragon AI ${version}` : ''} に接続しました`,
       reachableTitle: 'リモートゲートウェイに到達可能',
@@ -1239,7 +1239,7 @@ export const ja = defineLocale({
       sshErrNotInstalled:
         'リモートホストに Dragon AI がインストールされていません。リモートでインストールする（curl -fsSL https://hermes-agent.nousresearch.com/install.sh | sh）か、Dragon AI パスを設定してください。',
       sshErrPlatform:
-        'サポートされていないリモートプラットフォームです。Dragon AI Claude の SSH モードは Linux、macOS、Windows のリモートホストに対応しています。',
+        'サポートされていないリモートプラットフォームです。Dragon AI の SSH モードは Linux、macOS、Windows のリモートホストに対応しています。',
       sshErrTimeout: 'SSH 接続がタイムアウトしました。ホストが到達不能、またはスリープ中の可能性があります。',
       sshErrUpdateRequired: 'Desktop SSH で接続する前に、リモートホストの Dragon AI を更新してください。',
       sshErrUnknown: 'SSH 接続に失敗しました。'
@@ -2772,7 +2772,7 @@ export const ja = defineLocale({
       '/subscription': 'Nous のプランを確認し、ブラウザーで変更',
       '/topup': 'Nous の残高を表示し、請求を管理',
       '/platform': '問題のあるゲートウェイプラットフォームを一時停止、再開、一覧表示',
-      '/version': 'Dragon AI Claude のバージョンを表示',
+      '/version': 'Dragon AI のバージョンを表示',
       '/debug': 'デバッグレポートを作成',
       '/model': 'このセッションのモデルを切り替え'
     },
@@ -3169,7 +3169,7 @@ export const ja = defineLocale({
     viewDocs: 'インストールドキュメントを見る',
     installTo: 'インストール先',
     retryAfterRun: '実行しました — 再試行',
-    setupChoiceTitle: 'Dragon AI Claude をセットアップ',
+    setupChoiceTitle: 'Dragon AI をセットアップ',
     setupChoiceDesc:
       'すでに実行している Dragon AI ゲートウェイに接続するか、このコンピューターに Dragon AI をローカルインストールします。',
     connectExistingTitle: '既存の Dragon AI に接続',
@@ -3179,10 +3179,10 @@ export const ja = defineLocale({
     installLocalTitle: 'Dragon AI をローカルにインストール',
     installLocalDesc: 'Dragon AI をダウンロードし、Python 環境を作成して、このコンピューターでバックエンドを実行します。',
     localStartUnavailable:
-      'ローカルインストールを開始できません。Dragon AI Claude を再起動して、もう一度お試しください。',
+      'ローカルインストールを開始できません。Dragon AI を再起動して、もう一度お試しください。',
     remoteSetupTitle: '既存の Dragon AI に接続',
     remoteSetupDesc:
-      'ゲートウェイ URL を入力してください。Dragon AI Claude がトークンとブラウザーサインインのどちらが必要かを検出します。',
+      'ゲートウェイ URL を入力してください。Dragon AI がトークンとブラウザーサインインのどちらが必要かを検出します。',
     remoteUrlTitle: 'ゲートウェイ URL',
     remoteUrlDesc: 'Dragon AI ゲートウェイのベース URL を使用します。リモートの場合は https:// を含めてください。',
     remoteUrlPlaceholder: 'https://gateway.example.com/hermes',
@@ -3207,7 +3207,7 @@ export const ja = defineLocale({
     applyRemote: '適用して再接続',
     backToSetup: '戻る',
     failedTitle: 'インストールに失敗しました',
-    settingUpTitle: 'Dragon AI Claude を設定中',
+    settingUpTitle: 'Dragon AI を設定中',
     finishingTitle: '仕上げ中',
     failedDesc:
       'インストール手順のいずれかが失敗しました。Windows では、別の Dragon AI CLI またはデスクトップインスタンスが実行中の場合に発生することがあります。実行中の Dragon AI インスタンスをすべて停止してから再試行してください。詳細は以下またはデスクトップログで確認できます。',
@@ -3230,7 +3230,7 @@ export const ja = defineLocale({
   },
 
   onboarding: {
-    headerTitle: 'Dragon AI Claude のセットアップをしましょう',
+    headerTitle: 'Dragon AI のセットアップをしましょう',
     headerDesc: 'チャットを始めるにはモデルプロバイダーを接続してください。ほとんどのオプションはワンクリックです。',
     preparingInstall: 'Dragon AI はインストールを完了中です。初回実行では通常 1 分以内に完了します。',
     starting: 'Dragon AI を起動中…',
@@ -3417,7 +3417,7 @@ export const ja = defineLocale({
       update: '更新',
       updateInProgress: '更新中',
       commitsBehind: (count, branch) => `${branch} より ${count} コミット遅れています`,
-      desktopVersion: version => `Dragon AI Claude v${version}`,
+      desktopVersion: version => `Dragon AI v${version}`,
       backendVersion: version => `バックエンド v${version}`,
       clientLabel: version => `クライアント v${version}`,
       connectionSsh: host => `SSH: ${host}`,
@@ -4161,8 +4161,8 @@ export const ja = defineLocale({
     sessionExportFailed: 'セッションをエクスポートできませんでした',
     imageSaved: '画像を保存しました',
     downloadStarted: 'ダウンロードを開始しました',
-    restartToUseSaveImage: '画像を保存するには Dragon AI Claude を再起動してください。',
-    restartToSaveImages: '画像を保存するには Dragon AI Claude を再起動してください',
+    restartToUseSaveImage: '画像を保存するには Dragon AI を再起動してください。',
+    restartToSaveImages: '画像を保存するには Dragon AI を再起動してください',
     imageDownloadFailed: '画像のダウンロードに失敗しました',
     openImage: '画像を開く',
     downloadImage: '画像をダウンロード',

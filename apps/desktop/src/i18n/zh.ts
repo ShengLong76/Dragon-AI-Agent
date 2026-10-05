@@ -206,8 +206,8 @@ export const zh = defineLocale({
       back: '返回',
       openLogs: '打开日志',
       repairHint: '修复会重新运行安装器，在新机器上可能需要几分钟。',
-      bundledReinstallHint: '捆绑安装无法从应用内部自修复——重新安装 Dragon AI Claude 以恢复其后端。',
-      reinstallApp: '重新安装 Dragon AI Claude',
+      bundledReinstallHint: '捆绑安装无法从应用内部自修复——重新安装 Dragon AI 以恢复其后端。',
+      reinstallApp: '重新安装 Dragon AI',
       remoteSignInHint: signInLabel =>
         `先退出已保存的远程浏览器会话，然后打开${signInLabel}。也可以使用本地网关切换到随应用提供的后端。`,
       signOutAndSignIn: '退出并重新登录',
@@ -271,7 +271,7 @@ export const zh = defineLocale({
       elevenLabsRejectedKey: 'ElevenLabs 拒绝了该 API key (401)。',
       diskFull: '磁盘已满 — 请腾出一些空间后再试。',
       gatewayAuthFailed: '网关认证失败 — 请检查你的 API_SERVER_KEY。',
-      methodNotAllowed: '桌面后端拒绝了该请求 (405 Method Not Allowed)。请尝试重启 Dragon AI Claude。',
+      methodNotAllowed: '桌面后端拒绝了该请求 (405 Method Not Allowed)。请尝试重启 Dragon AI。',
       microphonePermission: '麦克风权限已被拒绝。',
       openaiRejectedApiKey: 'OpenAI 拒绝了该 API key。',
       openaiTtsNeedsKey: 'OpenAI TTS 需要 VOICE_TOOLS_OPENAI_KEY 或 OPENAI_API_KEY。',
@@ -759,7 +759,7 @@ export const zh = defineLocale({
         }
       },
       test: '发送测试通知',
-      testTitle: 'Dragon AI Claude',
+      testTitle: 'Dragon AI',
       testBody: '通知工作正常。',
       testSent: '测试已发送。如果没有出现，请检查系统通知权限和专注模式／勿扰模式。',
       testUnsupported: '此系统不支持原生通知。',
@@ -778,7 +778,7 @@ export const zh = defineLocale({
       advanced: '高级'
     },
     searchPlaceholder: {
-      about: '关于 Dragon AI Claude',
+      about: '关于 Dragon AI',
       config: '搜索设置…',
       gateway: '网关连接…',
       keys: '搜索 API 密钥…',
@@ -1490,7 +1490,7 @@ export const zh = defineLocale({
       title: '网关连接',
       envOverride: '环境变量覆盖',
       intro:
-        'Dragon AI Claude 默认会启动自己的本地网关。当你希望此应用控制另一台机器上或可信代理后的现有 Dragon AI 后端时，可以使用远程网关。网关连接属于本机级设置；profile 是从所连接的网关中发现的。',
+        'Dragon AI 默认会启动自己的本地网关。当你希望此应用控制另一台机器上或可信代理后的现有 Dragon AI 后端时，可以使用远程网关。网关连接属于本机级设置；profile 是从所连接的网关中发现的。',
       envOverrideTitle: '环境变量正在控制此桌面会话。',
       envOverrideDesc: '取消设置 HERMES_DESKTOP_REMOTE_URL 和 HERMES_DESKTOP_REMOTE_TOKEN 后才会使用下面保存的设置。',
       modeTitle: '连接模式',
@@ -1577,7 +1577,7 @@ export const zh = defineLocale({
       enterUrlFirst: '请先输入远程 URL。',
       restartingTitle: '网关连接正在重启',
       savedTitle: '网关设置已保存',
-      restartingMessage: 'Dragon AI Claude 将使用已保存设置重新连接（界面保持打开）。',
+      restartingMessage: 'Dragon AI 将使用已保存设置重新连接（界面保持打开）。',
       savedMessage: '已保存，下一次重启生效。',
       connectedTo: (baseUrl, version) => `已连接到 ${baseUrl}${version ? ` · Dragon AI ${version}` : ''}`,
       reachableTitle: '远程网关可访问',
@@ -1620,7 +1620,7 @@ export const zh = defineLocale({
       sshErrHostKey: '自上次连接以来主机密钥已更改。请确认这是预期的，然后运行 ssh-keygen -R <host> 并重新连接。',
       sshErrNotInstalled:
         '远程主机上未安装 Dragon AI。请在远程安装（curl -fsSL https://hermes-agent.nousresearch.com/install.sh | sh）或设置 Dragon AI 路径。',
-      sshErrPlatform: '不支持的远程平台。Dragon AI Claude 的 SSH 模式支持 Linux、macOS 和 Windows 远程主机。',
+      sshErrPlatform: '不支持的远程平台。Dragon AI 的 SSH 模式支持 Linux、macOS 和 Windows 远程主机。',
       sshErrTimeout: 'SSH 连接超时。主机可能无法访问或处于休眠状态。',
       sshErrUpdateRequired: '使用 Desktop SSH 连接前，请更新远程主机上的 Dragon AI。',
       sshErrUnknown: 'SSH 连接失败。'
@@ -2051,7 +2051,7 @@ export const zh = defineLocale({
         sessionRevoked: { title: '会话已登出', message: '你的会话已登出。请从“设置 → 网关”重新登录。' },
         cliBillingDisabled: {
           title: '远程支出已关闭',
-          message: '此账户的远程支出已关闭，账单管理员可在门户的 Dragon AI Claude 页面开启。'
+          message: '此账户的远程支出已关闭，账单管理员可在门户的 Dragon AI 页面开启。'
         },
         roleRequired: {
           title: '需要管理员权限',
@@ -3643,7 +3643,7 @@ export const zh = defineLocale({
       '/subscription': '查看你的 Nous 方案，并在浏览器中更改',
       '/topup': '显示你的 Nous 余额，并在 Portal 管理账务',
       '/platform': '暂停、恢复或列出故障的网关平台',
-      '/version': '显示 Dragon AI Claude 版本',
+      '/version': '显示 Dragon AI 版本',
       '/debug': '上传调试报告（系统信息与日志），并获取可分享链接',
       '/model': '切换此会话的模型'
     },
@@ -4020,7 +4020,7 @@ export const zh = defineLocale({
       noReturn: '后端未恢复在线。更新可能未完成——请检查后端主机。'
     },
     // Update-status overlay + version-details (mechanism-aware update UI).
-    appName: 'Dragon AI Claude',
+    appName: 'Dragon AI',
     version: value => `版本 ${value}`,
     versionUnavailable: '版本不可用',
     checkNow: '立即检查',
@@ -4086,7 +4086,7 @@ export const zh = defineLocale({
     viewDocs: '查看安装文档',
     installTo: '将安装到',
     retryAfterRun: '我已运行 -- 重试',
-    setupChoiceTitle: '设置 Dragon AI Claude',
+    setupChoiceTitle: '设置 Dragon AI',
     setupChoiceDesc: '将此应用连接到你已运行的 Dragon AI 网关，或在这台电脑上本地安装 Dragon AI。',
     connectExistingTitle: '连接到现有 Dragon AI',
     connectExistingShort: '连接现有环境',
@@ -4098,9 +4098,9 @@ export const zh = defineLocale({
     useLocalTitle: '使用这台电脑上的 Dragon AI',
     useLocalDesc: '此电脑已安装 Dragon AI 运行时——一键启动，无需下载。',
     bundledLocalDesc: '此应用自带 Dragon AI 运行时——捆绑后端即本地安装。',
-    localStartUnavailable: '无法启动本地安装。请重启 Dragon AI Claude 后重试。',
+    localStartUnavailable: '无法启动本地安装。请重启 Dragon AI 后重试。',
     remoteSetupTitle: '连接到现有 Dragon AI',
-    remoteSetupDesc: '输入网关 URL。Dragon AI Claude 会检测需要令牌还是浏览器登录。',
+    remoteSetupDesc: '输入网关 URL。Dragon AI 会检测需要令牌还是浏览器登录。',
     remoteUrlTitle: '网关 URL',
     remoteUrlDesc: '使用 Dragon AI 网关的基础 URL；远程地址请包含 https://。',
     remoteUrlPlaceholder: 'https://gateway.example.com/hermes',
@@ -4125,7 +4125,7 @@ export const zh = defineLocale({
     applyRemote: '应用并重新连接',
     backToSetup: '返回',
     failedTitle: '安装失败',
-    settingUpTitle: '正在设置 Dragon AI Claude',
+    settingUpTitle: '正在设置 Dragon AI',
     finishingTitle: '正在收尾',
     failedDesc:
       '某个安装步骤失败。在 Windows 上，如果另一个 Dragon AI CLI 或桌面实例正在运行，可能会出现这种情况。请停止正在运行的 Dragon AI 实例后重试。可查看下面的详情或 desktop 日志中的完整记录。',
@@ -4147,7 +4147,7 @@ export const zh = defineLocale({
   },
 
   onboarding: {
-    headerTitle: '开始设置 Dragon AI Claude',
+    headerTitle: '开始设置 Dragon AI',
     headerDesc: '连接模型提供方即可开始对话。大多数选项只需一次点击。',
     preparingInstall: 'Dragon AI 正在完成安装。首次运行通常不到一分钟。',
     starting: '正在启动 Dragon AI…',
@@ -4372,7 +4372,7 @@ export const zh = defineLocale({
       update: '更新',
       updateInProgress: '正在更新',
       commitsBehind: (count, branch) => `落后 ${branch} ${count} 个提交`,
-      desktopVersion: version => `Dragon AI Claude v${version}`,
+      desktopVersion: version => `Dragon AI v${version}`,
       releaseAvailable: tag => `版本 ${tag} 可用。`,
       backendVersion: version => `后端 v${version}`,
       clientLabel: version => `客户端 v${version}`,

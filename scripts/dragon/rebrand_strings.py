@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rebrand user-visible framework naming to Dragon AI Claude.
+"""Rebrand user-visible framework naming to Dragon AI.
 
 Desktop sources: only the *contents* of string literals ('...', "...", `...`
 outside ${...}) and JSX text are rewritten. Python: only single-line string
@@ -40,14 +40,14 @@ SKIP_FILES = {
 
 # Applied in order; each pattern only ever sees literal text.
 REPLACEMENTS: list[tuple[re.Pattern[str], str]] = [
-    (re.compile(r"\bHermes Agent \(by Nous Research\)"), "Dragon AI Claude"),
-    (re.compile(r"\bHermes Agent Desktop\b"), "Dragon AI Claude"),
-    (re.compile(r"\bHermes Desktop\b"), "Dragon AI Claude"),
-    (re.compile(r"\bHermes Agent\b"), "Dragon AI Claude"),
-    (re.compile(r"\bHermes Light\b"), "Dragon AI Claude Light"),
+    (re.compile(r"\bHermes Agent \(by Nous Research\)"), "Dragon AI"),
+    (re.compile(r"\bHermes Agent Desktop\b"), "Dragon AI"),
+    (re.compile(r"\bHermes Desktop\b"), "Dragon AI"),
+    (re.compile(r"\bHermes Agent\b"), "Dragon AI"),
+    (re.compile(r"\bHermes Light\b"), "Dragon AI Light"),
     (re.compile(r"\bHermes Cloud\b"), "Dragon AI Cloud"),
     (re.compile(r"\bClassic Hermes\b"), "Classic Dragon"),
-    (re.compile(r"\bHERMES AGENT\b"), "DRAGON AI CLAUDE"),
+    (re.compile(r"\bHERMES AGENT\b"), "DRAGON AI"),
     (re.compile(r"\bHERMES\b"), "DRAGON AI"),
     (re.compile(r"\bHermes's\b"), "Dragon AI's"),
     (re.compile(r"\bHermes'(?=\s)"), "Dragon AI's"),

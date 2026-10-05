@@ -313,7 +313,7 @@ export const zhHantChrome = {
       update: '更新',
       updateInProgress: '更新中',
       commitsBehind: (count, branch) => `落後 ${branch} ${count} 個提交`,
-      desktopVersion: version => `Dragon AI Claude v${version}`,
+      desktopVersion: version => `Dragon AI v${version}`,
       backendVersion: version => `後端 v${version}`,
       clientLabel: version => `用戶端 v${version}`,
       connectionSsh: host => `SSH: ${host}`,

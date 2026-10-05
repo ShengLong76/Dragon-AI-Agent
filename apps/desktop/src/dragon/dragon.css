@@ -1,4 +1,4 @@
-/* Dragon AI Claude chrome. Unlayered on purpose: these rules must beat the
+/* Dragon AI chrome. Unlayered on purpose: these rules must beat the
    Tailwind utility layer the upstream primitives are written in. */
 
 @font-face {

@@ -183,7 +183,7 @@ export function createMinimizeToTray(options: Options) {
             height: process.platform === 'darwin' ? 18 : 24
           })
         )
-        tray.setToolTip('Dragon AI Claude')
+        tray.setToolTip('Dragon AI')
         tray.setContextMenu(
           Menu.buildFromTemplate([
             { label: 'Show Dragon AI', click: restore },

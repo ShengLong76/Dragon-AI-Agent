@@ -1,8 +1,8 @@
-/** User-facing Dragon AI Claude names. The agent framework underneath is never named in the UI. */
+/** User-facing Dragon AI names. The agent framework underneath is never named in the UI. */
 export const DRAGON_PRODUCT = {
-  name: 'Dragon AI Claude',
+  name: 'Dragon AI',
   wordmark: 'Dragon AI',
-  edition: 'Claude',
+  edition: '',
   agentNoun: 'Dragon AI'
 } as const
 

@@ -118,9 +118,9 @@ test('nonstable runtime pins userData before the app name can change', async ():
 })
 
 test.each([
-  [undefined, 'Dragon AI Claude', 'dragon', 'latest', 'canary'],
-  ['bundled', 'Dragon AI Claude Agent', 'dragon', 'latest', 'canary'],
-  ['light', 'Dragon AI Claude Light', 'dragon-light', 'light', 'light-canary']
+  [undefined, 'Dragon AI', 'dragon', 'latest', 'canary'],
+  ['bundled', 'Dragon AI Agent', 'dragon', 'latest', 'canary'],
+  ['light', 'Dragon AI Light', 'dragon-light', 'light', 'light-canary']
 ] as const)(
   '%s separates stable, canary and independent commits',
   async (

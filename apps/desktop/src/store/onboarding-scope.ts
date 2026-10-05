@@ -32,7 +32,7 @@ export async function requestOnboardingGateway<T>(
   const desktop = window.hermesDesktop
 
   if (scope.connectionId && !desktop.getConnectionFor) {
-    throw new Error('This Desktop build cannot dial registry connections. Update Dragon AI Claude.')
+    throw new Error('This Desktop build cannot dial registry connections. Update Dragon AI.')
   }
 
   const connection = await withTimeout(

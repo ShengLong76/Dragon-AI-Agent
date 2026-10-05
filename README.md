@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="branding/dragon-logo.png" alt="Dragon AI Claude" width="220">
+  <img src="branding/dragon-logo.png" alt="Dragon AI" width="220">
 </p>
 
-# Dragon AI Claude
+# Dragon AI
 
-Dragon AI Claude is a desktop AI workspace built around **bot teams**. You chat with a Chief of Staff bot that routes work to specialist bots. Each bot has its own role, skills library, scheduled routines, and an optional VM desktop ("computer") you can watch it work on.
+Dragon AI is a desktop AI workspace built around **bot teams**. You chat with a Chief of Staff bot that routes work to specialist bots. Each bot has its own role, skills library, scheduled routines, and an optional VM desktop ("computer") you can watch it work on.
 
 It is a fork of the open-source [Hermes Agent](https://github.com/NousResearch/hermes-agent) framework (MIT), rebranded and extended. Everything a user sees, including the window, tray, installer, CLI messages, and process name, says Dragon AI.
 

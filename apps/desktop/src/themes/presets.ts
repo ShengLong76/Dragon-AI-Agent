@@ -178,7 +178,7 @@ export const nousTheme: DesktopTheme = {
 }
 
 /**
- * Dragon — the Dragon AI Claude identity. Near-black Grok Bot chrome with
+ * Dragon — the Dragon AI identity. Near-black Grok Bot chrome with
  * neutral strokes, soft graphite chat bubbles, and the dragon's steel blue as
  * the only accent. Focus and composer rings are neutral grey by design: the
  * dragon's red stays in the logo's eyes, never on an input border.

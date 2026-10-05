@@ -440,7 +440,7 @@ export const frOverrides = {
       "Ce chemin n'est pas sur cet ordinateur : il se trouve sur la machine du backend. Utilisez « Afficher dans l'arborescence »."
   },
   boot: {
-    ready: 'Dragon AI Claude est prêt',
+    ready: 'Dragon AI est prêt',
     desktopBootFailedWithMessage: message => `Échec du démarrage : ${message}`,
     steps: {
       connectingGateway: 'Connexion au gateway desktop',
@@ -448,7 +448,7 @@ export const frOverrides = {
       loadingSessions: 'Chargement des sessions récentes',
       retryingRemoteBackend: 'Reconnexion au backend Dragon AI distant…',
       startingDesktopConnection: 'Démarrage de la connexion desktop',
-      startingHermesDesktop: 'Démarrage de Dragon AI Claude…'
+      startingHermesDesktop: 'Démarrage de Dragon AI…'
     },
     errors: {
       backgroundExited: "Le processus en arrière-plan de Dragon AI s'est arrêté.",
@@ -559,7 +559,7 @@ export const frOverrides = {
         "Dragon AI n'a pas pu enregistrer dans son dossier de données. Ouvrez Maintenance pour le vérifier et le réparer.",
       gatewayAuthFailed: "Échec de l'authentification du gateway — vérifiez API_SERVER_KEY.",
       methodNotAllowed:
-        'Le backend du desktop a rejeté cette requête (405 Method Not Allowed). Essayez de redémarrer Dragon AI Claude.',
+        'Le backend du desktop a rejeté cette requête (405 Method Not Allowed). Essayez de redémarrer Dragon AI.',
       microphonePermission: "L'autorisation du microphone a été refusée.",
       openaiRejectedApiKey: 'OpenAI a rejeté la clé API.',
       openaiTtsNeedsKey: 'TTS OpenAI nécessite VOICE_TOOLS_OPENAI_KEY ou OPENAI_API_KEY.',
@@ -1092,7 +1092,7 @@ export const frOverrides = {
         }
       },
       test: 'Envoyer une notification de test',
-      testTitle: 'Dragon AI Claude',
+      testTitle: 'Dragon AI',
       testBody: 'Les notifications fonctionnent.',
       testSent:
         "Test envoyé. Si rien n'apparaît, vérifiez les autorisations de notification de votre système et le mode Ne pas déranger.",
@@ -1112,7 +1112,7 @@ export const frOverrides = {
       advanced: 'Avancé'
     },
     searchPlaceholder: {
-      about: 'À propos de Dragon AI Claude',
+      about: 'À propos de Dragon AI',
       config: 'Rechercher dans les paramètres...',
       gateway: 'Connexion au gateway...',
       keys: 'Rechercher des clés API...',
@@ -1971,7 +1971,7 @@ export const frOverrides = {
       enterUrlFirst: "Saisissez d'abord une URL distante.",
       restartingTitle: 'Reconnexion du gateway',
       savedTitle: 'Paramètres du gateway enregistrés',
-      restartingMessage: 'Dragon AI Claude va se reconnecter avec les paramètres enregistrés — le shell reste ouvert.',
+      restartingMessage: 'Dragon AI va se reconnecter avec les paramètres enregistrés — le shell reste ouvert.',
       savedMessage: 'Enregistré pour le prochain redémarrage.',
       connectedTo: (baseUrl, version) => `Connecté à ${baseUrl}${version ? ` · Dragon AI ${version}` : ''}`,
       reachableTitle: 'Gateway distant accessible',
@@ -2017,7 +2017,7 @@ export const frOverrides = {
       sshErrNotInstalled:
         "Dragon AI n'est pas installé sur l'hôte distant. Installez-le là-bas (curl -fsSL https://hermes-agent.nousresearch.com/install.sh | sh) ou définissez le chemin Dragon AI.",
       sshErrPlatform:
-        'Plateforme distante non prise en charge. Le mode SSH de Dragon AI Claude supporte les hôtes distants Linux, macOS et Windows.',
+        'Plateforme distante non prise en charge. Le mode SSH de Dragon AI supporte les hôtes distants Linux, macOS et Windows.',
       sshErrTimeout: "Expiration de la connexion SSH. L'hôte peut être inaccessible ou en veille.",
       sshErrUpdateRequired: "Mettez à jour Dragon AI sur l'hôte distant avant de vous connecter avec Desktop SSH.",
       sshErrUnknown: 'Échec de la connexion SSH.'
@@ -2528,7 +2528,7 @@ export const frOverrides = {
         cliBillingDisabled: {
           title: 'Les dépenses à distance sont désactivées',
           message:
-            'Les dépenses à distance sont désactivées pour ce compte — un administrateur de facturation peut les activer depuis la page Dragon AI Claude du portail.'
+            'Les dépenses à distance sont désactivées pour ce compte — un administrateur de facturation peut les activer depuis la page Dragon AI du portail.'
         },
         roleRequired: {
           title: 'Rôle administrateur requis',
@@ -3153,7 +3153,7 @@ export const frOverrides = {
       },
       settings: {
         title: 'Paramètres',
-        detail: 'Configurer Dragon AI Claude'
+        detail: 'Configurer Dragon AI'
       },
       capabilities: {
         title: 'Capacités',
@@ -4322,7 +4322,7 @@ export const frOverrides = {
       '/subscription': 'Voir votre forfait Nous et le modifier dans le navigateur',
       '/topup': 'Afficher votre solde Nous et gérer la facturation sur le portail',
       '/platform': 'Suspendre, reprendre ou lister une plateforme de gateway en échec',
-      '/version': 'Afficher la version de Dragon AI Claude',
+      '/version': 'Afficher la version de Dragon AI',
       '/debug': 'Téléverser un rapport de débogage (infos système + journaux) et obtenir des liens partageables',
       '/model': 'Changer le modèle de cette session'
     },
@@ -4608,7 +4608,7 @@ export const frOverrides = {
     discontinuedBody:
       "Cette version de Dragon AI n'est plus prise en charge et risque de ne plus fonctionner — désinstallez-la. Vos données restent sur le disque.",
     channels: { stable: 'Stable', canary: 'Canary' },
-    appName: 'Dragon AI Claude',
+    appName: 'Dragon AI',
     availableBodyRelease: tag => `La version ${tag} est prête à être installée.`,
     releaseAvailable: tag => `La version ${tag} est disponible.`,
     checkingShort: 'Vérification…',
@@ -4796,7 +4796,7 @@ export const frOverrides = {
     viewDocs: "Voir la documentation d'installation",
     installTo: 'Sera installé dans',
     retryAfterRun: "Je l'ai exécuté — réessayer",
-    setupChoiceTitle: 'Configurer Dragon AI Claude',
+    setupChoiceTitle: 'Configurer Dragon AI',
     setupChoiceDesc:
       'Connectez cette application à un gateway Dragon AI que vous exécutez déjà, ou installez Dragon AI localement sur cet ordinateur.',
     connectExistingTitle: 'Se connecter à un Dragon AI existant',
@@ -4805,10 +4805,10 @@ export const frOverrides = {
       'Utilisez un backend distant avec un jeton de session ou une connexion par navigateur. Aucune installation locale ne démarrera.',
     installLocalTitle: 'Installer Dragon AI localement',
     installLocalDesc: 'Téléchargez Dragon AI, créez son environnement Python et exécutez le backend sur cet ordinateur.',
-    localStartUnavailable: "L'installation locale n'a pas pu démarrer. Redémarrez Dragon AI Claude et réessayez.",
+    localStartUnavailable: "L'installation locale n'a pas pu démarrer. Redémarrez Dragon AI et réessayez.",
     remoteSetupTitle: 'Se connecter à un Dragon AI existant',
     remoteSetupDesc:
-      "Entrez l'URL du gateway. Dragon AI Claude détectera s'il a besoin d'un jeton ou d'une connexion par navigateur.",
+      "Entrez l'URL du gateway. Dragon AI détectera s'il a besoin d'un jeton ou d'une connexion par navigateur.",
     remoteUrlTitle: 'URL du gateway',
     remoteUrlDesc: "Utilisez l'URL de base du gateway Dragon AI, y compris https:// pour les connexions distantes.",
     remoteUrlPlaceholder: 'https://gateway.example.com/hermes',
@@ -4834,7 +4834,7 @@ export const frOverrides = {
     applyRemote: 'Appliquer et se reconnecter',
     backToSetup: 'Retour',
     failedTitle: "Échec de l'installation",
-    settingUpTitle: 'Configuration de Dragon AI Claude',
+    settingUpTitle: 'Configuration de Dragon AI',
     finishingTitle: 'Finalisation',
     failedDesc:
       "L'une des étapes d'installation a échoué. Sous Windows, cela peut arriver si une autre instance Dragon AI CLI ou desktop est en cours d'exécution. Arrêtez toutes les instances Dragon AI en cours, puis réessayez. Consultez les détails ci-dessous ou le journal du bureau pour la transcription complète.",
@@ -4857,7 +4857,7 @@ export const frOverrides = {
     openLogs: 'Ouvrir les journaux'
   },
   onboarding: {
-    headerTitle: 'Configurons Dragon AI Claude pour vous',
+    headerTitle: 'Configurons Dragon AI pour vous',
     headerDesc:
       'Connectez un fournisseur de modèles pour commencer à discuter. La plupart des options nécessitent un clic.',
     preparingInstall:
@@ -5130,7 +5130,7 @@ export const frOverrides = {
       update: 'mise à jour',
       updateInProgress: 'Mise à jour en cours',
       commitsBehind: (count, branch) => `${count} commit${count === 1 ? '' : 's'} en retard sur ${branch}`,
-      desktopVersion: version => `Dragon AI Claude v${version}`,
+      desktopVersion: version => `Dragon AI v${version}`,
       backendVersion: version => `Backend v${version}`,
       clientLabel: version => `client v${version}`,
       connectionSsh: host => `SSH : ${host}`,
@@ -6105,8 +6105,8 @@ export const frOverrides = {
     sessionExportFailed: "Impossible d'exporter la session",
     imageSaved: 'Image enregistrée',
     downloadStarted: 'Téléchargement démarré',
-    restartToUseSaveImage: "Redémarrez Dragon AI Claude pour utiliser Enregistrer l'image.",
-    restartToSaveImages: 'Redémarrez Dragon AI Claude pour enregistrer les images',
+    restartToUseSaveImage: "Redémarrez Dragon AI pour utiliser Enregistrer l'image.",
+    restartToSaveImages: 'Redémarrez Dragon AI pour enregistrer les images',
     imageDownloadFailed: "Échec du téléchargement de l'image",
     openImage: "Ouvrir l'image",
     downloadImage: "Télécharger l'image",

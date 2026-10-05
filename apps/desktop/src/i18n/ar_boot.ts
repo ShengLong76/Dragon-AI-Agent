@@ -2,7 +2,7 @@ import type { TranslationOverrides } from './define-locale'
 
 export const arBoot = {
   boot: {
-    ready: 'Dragon AI Claude جاهز',
+    ready: 'Dragon AI جاهز',
     desktopBootFailedWithMessage: message => `فشل تشغيل سطح المكتب: ${message}`,
     steps: {
       connectingGateway: 'جار الاتصال ببوابة سطح المكتب',
@@ -10,7 +10,7 @@ export const arBoot = {
       loadingSessions: 'جار تحميل الجلسات الأخيرة',
       retryingRemoteBackend: 'جارٍ إعادة الاتصال بخادم Dragon AI البعيد…',
       startingDesktopConnection: 'جار بدء اتصال سطح المكتب',
-      startingHermesDesktop: 'جار تشغيل Dragon AI Claude...'
+      startingHermesDesktop: 'جار تشغيل Dragon AI...'
     },
     errors: {
       backgroundExited: 'خرجت عملية Dragon AI الخلفية.',
@@ -84,7 +84,7 @@ export const arBoot = {
     tryAgain: 'إعادة المحاولة',
     notAvailableTitle: 'التحديث غير متاح',
     unsupportedMessage: 'لا يمكن لهذا الإصدار من Dragon AI تحديث نفسه من داخل التطبيق.',
-    appName: 'Dragon AI Claude',
+    appName: 'Dragon AI',
     version: value => `الإصدار ${value}`,
     versionUnavailable: 'الإصدار غير متاح',
     bundleOutOfSync: 'إصدار التطبيق قديم',
@@ -242,7 +242,7 @@ export const arBoot = {
     reloadRetry: 'إعادة التحميل وإعادة المحاولة'
   },
   onboarding: {
-    headerTitle: 'لنُعِدّ لك Dragon AI Claude',
+    headerTitle: 'لنُعِدّ لك Dragon AI',
     headerDesc: 'اربط مزوّد نماذج لبدء المحادثة. معظم الخيارات تتطلب نقرة واحدة.',
     preparingInstall: 'يُكمل Dragon AI التثبيت. عادة ما يستغرق ذلك أقل من دقيقة في أول تشغيل.',
     starting: 'جار بدء Dragon AI...',

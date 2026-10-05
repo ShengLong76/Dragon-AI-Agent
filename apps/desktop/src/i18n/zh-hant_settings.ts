@@ -214,7 +214,7 @@ export const zhHantSettings = {
         }
       },
       test: '傳送測試通知',
-      testTitle: 'Dragon AI Claude',
+      testTitle: 'Dragon AI',
       testBody: '通知運作正常。',
       testSent: '測試已傳送。若沒有出現，請檢查系統通知權限與專注模式／勿擾模式。',
       testUnsupported: '此系統不支援原生通知。',
@@ -233,7 +233,7 @@ export const zhHantSettings = {
       advanced: '進階'
     },
     searchPlaceholder: {
-      about: '關於 Dragon AI Claude',
+      about: '關於 Dragon AI',
       config: '搜尋設定…',
       gateway: '閘道連線…',
       keys: '搜尋 API 金鑰…',
@@ -854,7 +854,7 @@ export const zhHantSettings = {
       title: '閘道連線',
       envOverride: '環境變數覆寫',
       intro:
-        'Dragon AI Claude 預設會啟動自己的本機閘道。如果您希望此應用程式控制另一台機器或可信代理後面已執行的 Dragon AI 後端，請使用遠端閘道。閘道連線屬於本機層級設定；設定檔是從已連線的閘道中探索出來的。',
+        'Dragon AI 預設會啟動自己的本機閘道。如果您希望此應用程式控制另一台機器或可信代理後面已執行的 Dragon AI 後端，請使用遠端閘道。閘道連線屬於本機層級設定；設定檔是從已連線的閘道中探索出來的。',
       envOverrideTitle: '環境變數正在控制此桌面工作階段。',
       envOverrideDesc: '取消設定 HERMES_DESKTOP_REMOTE_URL 和 HERMES_DESKTOP_REMOTE_TOKEN 後才會使用下方儲存的設定。',
       localTitle: '本機閘道',
@@ -905,7 +905,7 @@ export const zhHantSettings = {
       enterUrlFirst: '請先輸入遠端 URL。',
       restartingTitle: '閘道連線正在重新啟動',
       savedTitle: '閘道設定已儲存',
-      restartingMessage: 'Dragon AI Claude 將使用已儲存的設定重新連線。',
+      restartingMessage: 'Dragon AI 將使用已儲存的設定重新連線。',
       savedMessage: '已儲存，下次重新啟動後生效。',
       connectedTo: (baseUrl, version) => `已連線至 ${baseUrl}${version ? ` · Dragon AI ${version}` : ''}`,
       reachableTitle: '遠端閘道可連線',
@@ -948,7 +948,7 @@ export const zhHantSettings = {
       sshErrHostKey: '自上次連線以來主機金鑰已變更。請確認這是預期的，然後執行 ssh-keygen -R <host> 並重新連線。',
       sshErrNotInstalled:
         '遠端主機上未安裝 Dragon AI。請在遠端安裝（curl -fsSL https://hermes-agent.nousresearch.com/install.sh | sh）或設定 Dragon AI 路徑。',
-      sshErrPlatform: '不支援的遠端平台。Dragon AI Claude 的 SSH 模式支援 Linux、macOS 和 Windows 遠端主機。',
+      sshErrPlatform: '不支援的遠端平台。Dragon AI 的 SSH 模式支援 Linux、macOS 和 Windows 遠端主機。',
       sshErrTimeout: 'SSH 連線逾時。主機可能無法存取或處於睡眠狀態。',
       sshErrUpdateRequired: '使用 Desktop SSH 連線前，請更新遠端主機上的 Dragon AI。',
       sshErrUnknown: 'SSH 連線失敗。'
@@ -1357,7 +1357,7 @@ export const zhHantSettings = {
         sessionRevoked: { title: '工作階段已登出', message: '你的工作階段已登出。請從「設定 → 閘道」重新登入。' },
         cliBillingDisabled: {
           title: '遠端支出已關閉',
-          message: '此帳戶的遠端支出已關閉，帳單管理員可在入口網站的 Dragon AI Claude 頁面開啟。'
+          message: '此帳戶的遠端支出已關閉，帳單管理員可在入口網站的 Dragon AI 頁面開啟。'
         },
         roleRequired: {
           title: '需要管理員權限',

@@ -296,8 +296,8 @@ module.exports = {
     category: 'Development',
     maintainer: 'Dragon AI <support@dragon-ai.app>',
     synopsis: light
-      ? 'Remote-only desktop client for Dragon AI Claude.'
-      : 'Dragon AI Claude desktop app.',
+      ? 'Remote-only desktop client for Dragon AI.'
+      : 'Dragon AI desktop app.',
     target: ['AppImage']
   }
 }

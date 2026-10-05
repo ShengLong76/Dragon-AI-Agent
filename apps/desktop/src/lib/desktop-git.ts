@@ -23,7 +23,7 @@ function desktopApi<T>(path: string, body?: Record<string, unknown>): Promise<T>
   const desktop = window.hermesDesktop
 
   if (!desktop) {
-    throw new Error('Dragon AI Claude bridge is unavailable')
+    throw new Error('Dragon AI bridge is unavailable')
   }
 
   return hermesApi<T>(

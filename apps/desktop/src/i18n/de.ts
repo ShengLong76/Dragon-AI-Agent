@@ -438,7 +438,7 @@ export const deOverrides = {
       'Dieser Pfad befindet sich nicht auf diesem Computer, sondern auf dem Backend-Rechner. Verwenden Sie „Im Dateibaum anzeigen“.'
   },
   boot: {
-    ready: 'Dragon AI Claude ist bereit',
+    ready: 'Dragon AI ist bereit',
     desktopBootFailedWithMessage: message => `Desktop-Start fehlgeschlagen: ${message}`,
     steps: {
       connectingGateway: 'Live-Desktop-Gateway wird verbunden',
@@ -446,7 +446,7 @@ export const deOverrides = {
       loadingSessions: 'Letzte Sessions werden geladen',
       retryingRemoteBackend: 'Wird mit dem Remote-Dragon AI-Backend neu verbunden…',
       startingDesktopConnection: 'Desktop-Verbindung wird gestartet',
-      startingHermesDesktop: 'Dragon AI Claude wird gestartet…'
+      startingHermesDesktop: 'Dragon AI wird gestartet…'
     },
     errors: {
       backgroundExited: 'Der Dragon AI-Hintergrundprozess wurde beendet.',
@@ -558,7 +558,7 @@ export const deOverrides = {
         'Dragon AI konnte nicht in seinen Datenordner speichern. Öffnen Sie die Wartung, um das Problem zu prüfen und zu beheben.',
       gatewayAuthFailed: 'Gateway-Authentifizierung fehlgeschlagen – überprüfen Sie Ihren API_SERVER_KEY.',
       methodNotAllowed:
-        'Das Desktop-Backend hat diese Anfrage abgelehnt (405 Method Not Allowed). Starten Sie Dragon AI Claude neu.',
+        'Das Desktop-Backend hat diese Anfrage abgelehnt (405 Method Not Allowed). Starten Sie Dragon AI neu.',
       microphonePermission: 'Die Mikrofonberechtigung wurde verweigert.',
       openaiRejectedApiKey:
         'OpenAI hat Ihren API-Key abgelehnt. Aktualisieren Sie ihn unter Einstellungen → Schlüssel und versuchen Sie es erneut.',
@@ -1090,7 +1090,7 @@ export const deOverrides = {
         }
       },
       test: 'Testbenachrichtigung senden',
-      testTitle: 'Dragon AI Claude',
+      testTitle: 'Dragon AI',
       testBody: 'Benachrichtigungen funktionieren.',
       testSent:
         'Test gesendet. Wenn nichts erscheint, überprüfen Sie die Benachrichtigungsberechtigungen Ihres Betriebssystems und Fokus/Nicht stören.',
@@ -1111,7 +1111,7 @@ export const deOverrides = {
       advanced: 'Erweitert'
     },
     searchPlaceholder: {
-      about: 'Über Dragon AI Claude',
+      about: 'Über Dragon AI',
       config: 'Einstellungen durchsuchen…',
       gateway: 'Gateway-Verbindung…',
       keys: 'API-Schlüssel durchsuchen…',
@@ -1967,7 +1967,7 @@ export const deOverrides = {
       restartingTitle: 'Gateway-Verbindung wird neu gestartet',
       savedTitle: 'Gateway-Einstellungen gespeichert',
       restartingMessage:
-        'Dragon AI Claude stellt mit den gespeicherten Einstellungen die Verbindung wieder her — die Shell bleibt offen.',
+        'Dragon AI stellt mit den gespeicherten Einstellungen die Verbindung wieder her — die Shell bleibt offen.',
       savedMessage: 'Für den nächsten Neustart gespeichert.',
       connectedTo: (baseUrl, version) => `Verbunden mit ${baseUrl}${version ? ` · Dragon AI ${version}` : ''}`,
       reachableTitle: 'Remote-Gateway erreichbar',
@@ -3140,7 +3140,7 @@ export const deOverrides = {
       },
       settings: {
         title: 'Einstellungen',
-        detail: 'Dragon AI Claude konfigurieren'
+        detail: 'Dragon AI konfigurieren'
       },
       capabilities: {
         title: 'Fähigkeiten',
@@ -4594,7 +4594,7 @@ export const deOverrides = {
     discontinuedBody:
       'Dieser Dragon AI-Build wird nicht mehr unterstützt und funktioniert möglicherweise nicht mehr — deinstallieren Sie ihn. Ihre Daten bleiben auf dem Datenträger.',
     channels: { stable: 'Stabil', canary: 'Canary' },
-    appName: 'Dragon AI Claude',
+    appName: 'Dragon AI',
     availableBodyRelease: tag => `Version ${tag} ist bereit zur Installation.`,
     releaseAvailable: tag => `Version ${tag} ist verfügbar.`,
     checkingShort: 'Wird geprüft…',
@@ -4781,7 +4781,7 @@ export const deOverrides = {
     viewDocs: 'Installations-Doku ansehen',
     installTo: 'Wird installiert nach',
     retryAfterRun: "Ich hab's ausgeführt – erneut versuchen",
-    setupChoiceTitle: 'Dragon AI Claude einrichten',
+    setupChoiceTitle: 'Dragon AI einrichten',
     setupChoiceDesc:
       'Verbinden Sie diese App mit einem Dragon AI Gateway, das Sie bereits betreiben, oder installieren Sie Dragon AI lokal auf diesem Computer.',
     connectExistingTitle: 'Mit bestehendem Dragon AI verbinden',
@@ -4792,10 +4792,10 @@ export const deOverrides = {
     installLocalDesc:
       'Dragon AI herunterladen, seine Python-Umgebung erstellen und das Backend auf diesem Computer ausführen.',
     localStartUnavailable:
-      'Die lokale Installation konnte nicht gestartet werden. Starten Sie Dragon AI Claude neu und versuchen Sie es erneut.',
+      'Die lokale Installation konnte nicht gestartet werden. Starten Sie Dragon AI neu und versuchen Sie es erneut.',
     remoteSetupTitle: 'Mit bestehendem Dragon AI verbinden',
     remoteSetupDesc:
-      'Geben Sie die URL Ihres Gateways ein. Dragon AI Claude erkennt, ob ein Token oder eine Browser-Anmeldung nötig ist.',
+      'Geben Sie die URL Ihres Gateways ein. Dragon AI erkennt, ob ein Token oder eine Browser-Anmeldung nötig ist.',
     remoteUrlTitle: 'Gateway-URL',
     remoteUrlDesc: 'Verwenden Sie die Basis-URL des Dragon AI Gateways, bei Remote-Gateways einschließlich https://.',
     remoteUrlPlaceholder: 'https://gateway.example.com/hermes',
@@ -4821,7 +4821,7 @@ export const deOverrides = {
     applyRemote: 'Übernehmen und neu verbinden',
     backToSetup: 'Zurück',
     failedTitle: 'Installation fehlgeschlagen',
-    settingUpTitle: 'Dragon AI Claude wird eingerichtet',
+    settingUpTitle: 'Dragon AI wird eingerichtet',
     finishingTitle: 'Wird abgeschlossen',
     failedDesc:
       'Einer der Installationsschritte ist fehlgeschlagen. Unter Windows kann das passieren, wenn eine andere Dragon AI-CLI- oder Desktop-Instanz läuft. Beenden Sie alle laufenden Dragon AI-Instanzen und versuchen Sie es dann erneut. Das vollständige Protokoll finden Sie in den Details unten oder im Desktop-Log.',
@@ -4844,7 +4844,7 @@ export const deOverrides = {
     openLogs: 'Logs öffnen'
   },
   onboarding: {
-    headerTitle: 'Dragon AI Claude für Sie einrichten',
+    headerTitle: 'Dragon AI für Sie einrichten',
     headerDesc:
       'Verbinden Sie einen Modell-Anbieter, um mit dem Chatten zu beginnen. Die meisten Optionen brauchen nur einen Klick.',
     preparingInstall:
@@ -5116,7 +5116,7 @@ export const deOverrides = {
       update: 'Update',
       updateInProgress: 'Update läuft',
       commitsBehind: (count, branch) => `${count} commit${count === 1 ? '' : 's'} hinter ${branch}`,
-      desktopVersion: version => `Dragon AI Claude v${version}`,
+      desktopVersion: version => `Dragon AI v${version}`,
       backendVersion: version => `Backend v${version}`,
       clientLabel: version => `Client v${version}`,
       connectionSsh: host => `SSH: ${host}`,
@@ -6092,8 +6092,8 @@ export const deOverrides = {
     sessionExportFailed: 'Session konnte nicht exportiert werden',
     imageSaved: 'Bild gespeichert',
     downloadStarted: 'Download gestartet',
-    restartToUseSaveImage: 'Starten Sie Dragon AI Claude neu, um „Bild speichern“ zu verwenden.',
-    restartToSaveImages: 'Starten Sie Dragon AI Claude neu, um Bilder zu speichern',
+    restartToUseSaveImage: 'Starten Sie Dragon AI neu, um „Bild speichern“ zu verwenden.',
+    restartToSaveImages: 'Starten Sie Dragon AI neu, um Bilder zu speichern',
     imageDownloadFailed: 'Bild-Download fehlgeschlagen',
     openImage: 'Bild öffnen',
     downloadImage: 'Bild herunterladen',

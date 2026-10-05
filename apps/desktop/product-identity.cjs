@@ -1,6 +1,6 @@
 // The desktop product identity — THE single source for every name-shaped
 // value a variant owns. HERMES_DESKTOP_VARIANT=light builds "Dragon AI
-// Claude Light", the remote-only client; everything else is full "Dragon AI Claude".
+// Light", the remote-only client; everything else is full "Dragon AI".
 //
 // Consumed at build time by electron-builder.config.cjs (packaging
 // identity). electron/product-identity.ts is the typed runtime accessor.
@@ -9,14 +9,14 @@
 'use strict'
 
 const variants = {
-  '': { display: 'Dragon AI Claude', kebab: 'dragon-ai-claude', pascal: 'DragonAIClaude' },
+  '': { display: 'Dragon AI', kebab: 'dragon-ai-claude', pascal: 'DragonAIClaude' },
   light: {
-    display: 'Dragon AI Claude Light',
+    display: 'Dragon AI Light',
     kebab: 'dragon-ai-claude-light',
     pascal: 'DragonAIClaudeLight'
   },
   bundled: {
-    display: 'Dragon AI Claude Agent',
+    display: 'Dragon AI Agent',
     kebab: 'dragon-ai-claude-bundled',
     pascal: 'DragonAIClaudeBundled'
   }

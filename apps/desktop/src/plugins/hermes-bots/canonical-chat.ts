@@ -122,7 +122,7 @@ async function openStoredBotChat(
   { background = false }: OpenStoredBotChatOptions = {}
 ): Promise<string> {
   if (!storedId || typeof host.openSession !== 'function') {
-    throw new Error('This Dragon AI Claude version cannot open stored sessions')
+    throw new Error('This Dragon AI version cannot open stored sessions')
   }
 
   const { bot, name, route } = botOwner(owner)
@@ -664,7 +664,7 @@ export async function prepareBotSource(bot: RosterRow) {
   if (route && typeof host.requestProfile !== 'function') {
     throw new Error(
       getPluginCtx()?.i18n?.t('bot.remoteConnectionsUnsupported') ??
-        'Update Dragon AI Claude to chat with bots on other connections.'
+        'Update Dragon AI to chat with bots on other connections.'
     )
   }
 
