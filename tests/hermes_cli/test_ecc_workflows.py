@@ -2,7 +2,7 @@
 
 Regression: the official ecc-universal Hermes adapter writes ``HOME/.hermes``.
 Dragon's data folder is ``HERMES_HOME`` (profiles, ``HERMES_DATA_DIR_SUFFIX``,
-desktop ``~/.dragon-ai-claude``), so the wrapper must never fall back to a
+desktop ``~/.dragon-ai``), so the wrapper must never fall back to a
 hardcoded ``~/.hermes``.
 """
 
@@ -72,7 +72,7 @@ def test_bind_ecc_hermes_home_writes_through_to_active_home(tmp_path):
 
 
 def test_bind_respects_suffixed_and_custom_homes(tmp_path):
-    custom = tmp_path / ".dragon-ai-claude-magic-test"
+    custom = tmp_path / ".dragon-ai-magic-test"
     staging = tmp_path / "stage"
     bind_ecc_hermes_home(custom, staging)
     (staging / ".hermes" / "skills" / "ecc" / "demo").mkdir(parents=True)

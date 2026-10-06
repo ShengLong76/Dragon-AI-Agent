@@ -5726,7 +5726,7 @@ export const deOverrides = {
       reject: 'Ablehnen',
       alwaysTitle: 'Diesen Befehl immer erlauben?',
       alwaysDescription: pattern =>
-        `Dies fügt das Muster „${pattern}“ Ihrer dauerhaften Zulassungsliste hinzu (~/.dragon-ai-claude/config.yaml). Dragon AI fragt bei solchen Befehlen nicht mehr nach – weder in dieser noch in zukünftigen Sessions.`,
+        `Dies fügt das Muster „${pattern}“ Ihrer dauerhaften Zulassungsliste hinzu (~/.dragon-ai/config.yaml). Dragon AI fragt bei solchen Befehlen nicht mehr nach – weder in dieser noch in zukünftigen Sessions.`,
       alwaysAllow: 'Immer erlauben'
     },
     clarify: {

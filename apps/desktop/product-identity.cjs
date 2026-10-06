@@ -9,16 +9,16 @@
 'use strict'
 
 const variants = {
-  '': { display: 'Dragon AI', kebab: 'dragon-ai-claude', pascal: 'DragonAIClaude' },
+  '': { display: 'Dragon AI', kebab: 'dragon-ai', pascal: 'DragonAI' },
   light: {
     display: 'Dragon AI Light',
-    kebab: 'dragon-ai-claude-light',
-    pascal: 'DragonAIClaudeLight'
+    kebab: 'dragon-ai-light',
+    pascal: 'DragonAILight'
   },
   bundled: {
     display: 'Dragon AI Agent',
-    kebab: 'dragon-ai-claude-bundled',
-    pascal: 'DragonAIClaudeBundled'
+    kebab: 'dragon-ai-agent',
+    pascal: 'DragonAIAgent'
   }
 }
 
@@ -79,7 +79,7 @@ const identity = {
         storeMsix: {
           // Partner Center publisher identity (the account's publisher ID) —
           // validated + re-signed by the Store on submission.
-          identityName: 'DragonAI.DragonAIClaude',
+          identityName: 'DragonAI.DragonAIAgent',
           publisher: 'CN=EE6D86E4-606F-4E38-B940-AD7248C9D519',
           publisherDisplayName: 'Dragon AI'
         }

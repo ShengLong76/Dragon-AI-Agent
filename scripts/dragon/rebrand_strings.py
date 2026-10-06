@@ -52,8 +52,8 @@ REPLACEMENTS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\bHermes's\b"), "Dragon AI's"),
     (re.compile(r"\bHermes'(?=\s)"), "Dragon AI's"),
     (re.compile(r"\bHermes\b"), "Dragon AI"),
-    (re.compile(r"~/\.hermes\b"), "~/.dragon-ai-claude"),
-    (re.compile(r"%LOCALAPPDATA%\\\\hermes\b"), r"%LOCALAPPDATA%\\\\DragonAIClaude"),
+    (re.compile(r"~/\.hermes\b"), "~/.dragon-ai"),
+    (re.compile(r"%LOCALAPPDATA%\\\\hermes\b"), r"%LOCALAPPDATA%\\\\DragonAI"),
     (re.compile(r"(?<![\w./-])hermes(?= (?:-p |--profile |model|auth|debug|curator|desktop|setup|update|gateway|doctor|config|login|tools|pm |skills|profile|cron|chat|serve|dashboard|plugins|mcp|status|logs|version|uninstall|claw|webhook|pairing|insights|sessions|memory|backup|import|acp|portal|whatsapp|honcho|kanban)\b)"), "dragon"),
     (re.compile(r"`hermes`"), "`dragon`"),
 ]

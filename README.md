@@ -30,7 +30,7 @@ It is a fork of the open-source [Hermes Agent](https://github.com/NousResearch/h
 
 ```bash
 # 1. Backend: pm-managed Python environment (uv + pinned interpreter)
-export HERMES_HOME="$HOME/.dragon-ai-claude"
+export HERMES_HOME="$HOME/.dragon-ai"
 ./setup-hermes.sh
 source ./activate
 
@@ -40,7 +40,13 @@ cd apps/desktop
 npm run dev          # Vite renderer on http://127.0.0.1:5174, then Electron
 ```
 
-The desktop app starts its own backend process and keeps all state in `~/.dragon-ai-claude`. On first launch you'll go through onboarding. Pick **xAI Grok OAuth**, sign in, confirm the model, and press **Begin**.
+The desktop app starts its own backend process and keeps all state in `~/.dragon-ai` (Windows: `%LOCALAPPDATA%\DragonAI\home`). On first launch you'll go through onboarding. Pick **xAI Grok OAuth**, sign in, confirm the model, and press **Begin**.
+
+If you still have a leftover `%LOCALAPPDATA%\DragonAIClaude\home` from v0.2, the app moves it to `%LOCALAPPDATA%\DragonAI\home` on first launch (rename when possible, otherwise a copy). A `MOVED_TO.txt` pointer is left next to the old folder. One-shot manual move if you prefer:
+
+```powershell
+Move-Item -LiteralPath "$env:LOCALAPPDATA\DragonAIClaude\home" -Destination "$env:LOCALAPPDATA\DragonAI\home"
+```
 
 The CLI is also available as `dragon` (for example `dragon model` or `dragon auth add xai-oauth`).
 
@@ -50,17 +56,28 @@ From `apps/desktop`:
 
 | Target  | Command              | Output                                             |
 | ------- | -------------------- | -------------------------------------------------- |
-| Windows | `npm run dist:win`   | One `DragonAIClaude-Setup-<version>-<arch>.exe` (NSIS) |
+| Windows | `npm run dist:win`   | One `DragonAIAgent-Setup-<version>-<arch>.exe` (NSIS) |
 | macOS   | `npm run dist:mac`   | `.dmg` and `.zip`                                  |
 | Linux   | `npm run dist:linux` | AppImage, `.deb`, `.rpm`                           |
 
-The Windows installer is a single self-contained Setup `.exe`. It lets you choose the install directory, creates Start-menu and desktop shortcuts, and launches the app when it finishes. `npm run dist:win:msix` still builds an MSIX package if you need one.
+The Windows installer is a single self-contained Setup `.exe`. It lets you choose the install directory, creates a Start-menu shortcut named **Dragon AI**, and launches the app when it finishes. Default install folder is `%LOCALAPPDATA%\Programs\Dragon AI`. `npm run dist:win:msix` still builds an MSIX package if you need one.
+
+### Getting a new `DragonAIAgent-Setup-*.exe` from CI
+
+Windows NSIS is produced by **Desktop Bundled Release** (`.github/workflows/desktop-bundled-release.yml`). After this branch is on the default branch, Cos/James can:
+
+1. Actions → **Desktop Bundled Release** → **Run workflow**
+2. Set `build_commit` to the full 40-character SHA (mutually exclusive with `tag`)
+3. Optionally set `jobs` to `win32-x64` if only the living-room x64 Setup exe is needed
+4. Download `DragonAIAgent-Setup-<version>-x64.exe` from the run's staged R2/commit output (commit builds do **not** publish a GitHub Release)
+
+A Windows host can also build locally: `cd apps/desktop && npm run dist:win`. That writes the Setup exe under `apps/desktop/release/`.
 
 ## Tests and checks
 
 ```bash
 # Python
-HERMES_HOME=$HOME/.dragon-ai-claude scripts/run_tests.sh tests/tools tests/agent
+HERMES_HOME=$HOME/.dragon-ai scripts/run_tests.sh tests/tools tests/agent
 
 # Desktop
 cd apps/desktop

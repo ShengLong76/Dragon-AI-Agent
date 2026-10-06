@@ -5718,7 +5718,7 @@ export const esOverrides = {
       reject: 'Rechazar',
       alwaysTitle: '¿Permitir siempre este comando?',
       alwaysDescription: pattern =>
-        `Esto añade el patrón “${pattern}” a tu allowlist permanente (~/.dragon-ai-claude/config.yaml). Dragon AI no volverá a preguntar por comandos como este, ni en esta sesión ni en futuras.`,
+        `Esto añade el patrón “${pattern}” a tu allowlist permanente (~/.dragon-ai/config.yaml). Dragon AI no volverá a preguntar por comandos como este, ni en esta sesión ni en futuras.`,
       alwaysAllow: 'Permitir siempre'
     },
     clarify: {

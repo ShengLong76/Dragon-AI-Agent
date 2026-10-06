@@ -5739,7 +5739,7 @@ export const frOverrides = {
       reject: 'Rejeter',
       alwaysTitle: 'Toujours autoriser cette commande ?',
       alwaysDescription: pattern =>
-        `Cela ajoute le motif « ${pattern} » à votre liste d'autorisation permanente (~/.dragon-ai-claude/config.yaml). Dragon AI ne redemandera plus pour ce type de commande — que ce soit dans cette session ou dans une session future.`,
+        `Cela ajoute le motif « ${pattern} » à votre liste d'autorisation permanente (~/.dragon-ai/config.yaml). Dragon AI ne redemandera plus pour ce type de commande — que ce soit dans cette session ou dans une session future.`,
       alwaysAllow: 'Toujours autoriser'
     },
     clarify: {
