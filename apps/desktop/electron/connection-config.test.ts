@@ -1074,6 +1074,12 @@ test('resolveProfileApiRequest routes action-status polls with the action-spawni
     }),
     { backendProfile: null, requestPath: '/api/skills/hub/install?profile=iris' }
   )
+  assert.deepEqual(
+    resolveProfileApiRequest('iris', '/api/workflows/ecc/install', {
+      requestMethod: 'POST'
+    }),
+    { backendProfile: null, requestPath: '/api/workflows/ecc/install?profile=iris' }
+  )
   // MCP catalog installs spawn background actions too — same pairing rule.
   assert.deepEqual(
     resolveProfileApiRequest('iris', '/api/mcp/catalog/install', {

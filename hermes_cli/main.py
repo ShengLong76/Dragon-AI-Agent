@@ -3523,6 +3523,9 @@ def _build_cli_parser():
     build_console_parser(subparsers, cmd_console=cmd_console)
     build_pairing_parser(subparsers, cmd_pairing=cmd_pairing)
     build_skills_parser(subparsers, cmd_skills=cmd_skills)
+    from hermes_cli.subcommands.ecc import build_ecc_parser
+    from hermes_cli.ecc_workflows import cmd_ecc
+    build_ecc_parser(subparsers, cmd_ecc=cmd_ecc)
     build_bundles_parser(subparsers)
     build_plugins_parser(subparsers, cmd_plugins=cmd_plugins)
 
