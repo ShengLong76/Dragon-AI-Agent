@@ -1,6 +1,7 @@
 import { type OwnerScope, ownerScoped } from '@/api/client'
 import { hermesApi } from '@/hermes'
 
+import { rmsLevelFromFloatSamples } from './mic-level'
 import type { LiveHistoryMessage, LiveTranscriptFragment, VoiceLiveHandlers } from './voice-live'
 
 /**
@@ -237,13 +238,16 @@ export class GrokVoiceSession {
     const processor = context.createScriptProcessor(CAPTURE_FRAME, 1, 1)
 
     processor.onaudioprocess = event => {
+      const samples = event.inputBuffer.getChannelData(0)
+      this.handlers.onInputLevel?.(this.muted ? 0 : rmsLevelFromFloatSamples(samples))
+
       if (this.muted || !this.connected) {
         return
       }
 
       this.send({
         type: 'input_audio_buffer.append',
-        audio: toBase64(floatToPcm16(event.inputBuffer.getChannelData(0)))
+        audio: toBase64(floatToPcm16(samples))
       })
     }
 

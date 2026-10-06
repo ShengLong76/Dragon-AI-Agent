@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
+import { rmsLevelFromByteTimeDomain } from '@/lib/mic-level'
 import { closeMeterContext, meterContextsClosed } from '@/lib/mic-meter-context'
 
 type BrowserAudioContext = typeof AudioContext
@@ -179,15 +180,7 @@ export function useMicRecorder(copy: MicRecorderErrorCopy): {
       const tick = () => {
         analyser.getByteTimeDomainData(data)
 
-        let sum = 0
-
-        for (const value of data) {
-          const centered = value - 128
-          sum += centered * centered
-        }
-
-        const rms = Math.sqrt(sum / data.length)
-        const normalized = Math.min(1, rms / 42)
+        const normalized = rmsLevelFromByteTimeDomain(data)
         const now = Date.now()
 
         setLevel(normalized)

@@ -1,6 +1,8 @@
 import { type OwnerScope, ownerScoped, profileScoped } from '@/api/client'
 import { hermesApi } from '@/hermes'
 
+import { rmsLevelFromByteTimeDomain } from './mic-level'
+
 /**
  * GPT-Live voice chat: the full-duplex voice frontend that DELEGATES to Hermes.
  *
@@ -72,6 +74,8 @@ export interface VoiceLiveHandlers {
   onTranscript?: (fragment: LiveTranscriptFragment) => void
   /** Assistant audio output level hint: the remote track is speaking. */
   onSpeakingChange?: (speaking: boolean) => void
+  /** Live local-mic RMS (0..1) for the Listening meter. Independent of remote speech. */
+  onInputLevel?: (level: number) => void
 }
 
 const CLOSE_TIMEOUT_MS = 15_000
@@ -239,7 +243,9 @@ export class VoiceLiveSession {
   private eventCounter = 0
   private transcript: LiveTranscriptFragment[] = []
   private speakingProbe: null | number = null
+  private inputProbe: null | number = null
   private analyser: null | AnalyserNode = null
+  private inputAnalyser: null | AnalyserNode = null
   private audioContext: null | AudioContext = null
   private lastSpeaking = false
   sessionId: null | string = null
@@ -310,6 +316,7 @@ export class VoiceLiveSession {
     this.microphone = await navigator.mediaDevices.getUserMedia({
       audio: { autoGainControl: true, echoCancellation: true, noiseSuppression: true }
     })
+    this.armMicMeter(this.microphone)
 
     for (const track of this.microphone.getAudioTracks()) {
       connection.addTrack(track, this.microphone)
@@ -355,14 +362,75 @@ export class VoiceLiveSession {
     await connection.setRemoteDescription({ sdp: response.transport.sdp, type: 'answer' })
   }
 
+  private ensureAudioContext(): AudioContext | null {
+    if (this.audioContext && this.audioContext.state !== 'closed') {
+      if (this.audioContext.state === 'suspended') {
+        void this.audioContext.resume().catch(() => undefined)
+      }
+
+      return this.audioContext
+    }
+
+    const audioWindow = window as Window & { webkitAudioContext?: typeof AudioContext }
+    const AudioContextCtor = window.AudioContext || audioWindow.webkitAudioContext
+
+    if (!AudioContextCtor) {
+      return null
+    }
+
+    const context = new AudioContextCtor()
+    this.audioContext = context
+
+    if (context.state === 'suspended') {
+      void context.resume().catch(() => undefined)
+    }
+
+    return context
+  }
+
+  /** Local-mic RMS for the Listening waveform. Same graph the remote speaking probe uses. */
+  private armMicMeter(stream: MediaStream): void {
+    try {
+      const context = this.ensureAudioContext()
+
+      if (!context) {
+        return
+      }
+
+      const analyser = context.createAnalyser()
+      analyser.fftSize = 256
+      context.createMediaStreamSource(stream).connect(analyser)
+      this.inputAnalyser = analyser
+      const buffer = new Uint8Array(analyser.fftSize)
+
+      const tick = () => {
+        if (this.finalized || this.inputAnalyser !== analyser) {
+          return
+        }
+
+        analyser.getByteTimeDomainData(buffer)
+        this.handlers.onInputLevel?.(rmsLevelFromByteTimeDomain(buffer))
+        this.inputProbe = window.requestAnimationFrame(tick)
+      }
+
+      this.inputProbe = window.requestAnimationFrame(tick)
+    } catch {
+      // No analyser → static Listening meter; the conversation still hears.
+    }
+  }
+
   private armSpeakingProbe(stream: MediaStream): void {
     try {
-      const context = new AudioContext()
+      const context = this.ensureAudioContext()
+
+      if (!context) {
+        return
+      }
+
       const source = context.createMediaStreamSource(stream)
       const analyser = context.createAnalyser()
       analyser.fftSize = 512
       source.connect(analyser)
-      this.audioContext = context
       this.analyser = analyser
       const buffer = new Uint8Array(analyser.frequencyBinCount)
       let quietFrames = 0
@@ -545,6 +613,12 @@ export class VoiceLiveSession {
       this.speakingProbe = null
     }
 
+    if (this.inputProbe) {
+      window.cancelAnimationFrame(this.inputProbe)
+      this.inputProbe = null
+    }
+
+    this.inputAnalyser?.disconnect()
     this.analyser?.disconnect()
     void this.audioContext?.close().catch(() => undefined)
     this.microphone?.getTracks().forEach(track => track.stop())
