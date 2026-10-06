@@ -999,6 +999,7 @@ from hermes_cli.web_routers import (  # noqa: E402
     mcp as _mcp_routes,
     ops as _ops_routes,
     skills as _skills_routes,
+    ecc_workflows as _ecc_workflows_routes,
     tools as _tools_routes,
     analytics as _analytics_routes,
     chat_ws as _chat_ws_routes,
@@ -1030,6 +1031,7 @@ app.include_router(_cron_routes.router)
 app.include_router(_mcp_routes.router)
 app.include_router(_ops_routes.router)
 app.include_router(_skills_routes.hub_router)
+app.include_router(_ecc_workflows_routes.router)
 app.include_router(_profiles_routes.router)
 app.include_router(_skills_routes.router)
 app.include_router(_tools_routes.router)
