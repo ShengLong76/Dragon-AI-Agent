@@ -133,6 +133,11 @@ describe('the bot profile pane has four tabs and keeps Computer', () => {
 
     expect((await screen.findByRole('dialog')).textContent).toMatch(/research/i)
 
+    await act(async () => {
+      screen.getByRole('button', { name: 'Cancel' }).click()
+    })
+
+    expect(screen.queryByRole('dialog')).toBeNull()
     expect(screen.queryByRole('button', { name: /Open live/i })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Screen: Live · bot in control' })).toBeNull()
     expect(screen.queryByText('Live · bot in control')).toBeNull()
