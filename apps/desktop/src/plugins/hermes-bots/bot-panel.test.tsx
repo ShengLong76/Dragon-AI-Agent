@@ -8,7 +8,14 @@
 import type * as HermesSdk from '@hermes/plugin-sdk'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, cleanup, render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+
+// Radix calls these on open; jsdom doesn't implement them.
+beforeAll(() => {
+  Element.prototype.scrollIntoView = vi.fn()
+  Element.prototype.hasPointerCapture = vi.fn(() => false)
+  Element.prototype.releasePointerCapture = vi.fn()
+})
 
 import { translateBots } from './i18n-test-helper'
 import type { BotMeta, RosterRow } from './types'
@@ -114,8 +121,18 @@ describe('the bot profile pane has four tabs and keeps Computer', () => {
       screen.getByRole('tab', { name: 'Routines' }).click()
     })
 
-    expect(await screen.findByRole('button', { name: 'New cron' })).toBeTruthy()
+    expect((await screen.findAllByRole('button', { name: 'New cron' })).length).toBeGreaterThanOrEqual(1)
     expect(await screen.findByText('No scheduled jobs yet')).toBeTruthy()
+    expect(
+      screen.getByText(/Schedule a prompt to run on a cron expression/)
+    ).toBeTruthy()
+
+    await act(async () => {
+      screen.getAllByRole('button', { name: 'New cron' })[0].click()
+    })
+
+    expect((await screen.findByRole('dialog')).textContent).toMatch(/research/i)
+
     expect(screen.queryByRole('button', { name: /Open live/i })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Screen: Live · bot in control' })).toBeNull()
     expect(screen.queryByText('Live · bot in control')).toBeNull()
