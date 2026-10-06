@@ -155,7 +155,30 @@ models-dev-upstream/
 
 # Local editor / agent tooling (machine-specific; keep in global config, not the repo)
 .codex/
-.cursor/
+# ECC Cursor adapter is project-local and tracked (agents, rules, skills, hooks).
+# Ignore only machine-specific Cursor junk that is not part of the official install.
+.cursor/*
+!.cursor/agents/
+!.cursor/agents/**
+!.cursor/rules/
+!.cursor/rules/**
+!.cursor/skills/
+!.cursor/skills/**
+!.cursor/hooks/
+!.cursor/hooks/**
+!.cursor/hooks.json
+!.cursor/commands/
+!.cursor/commands/**
+!.cursor/scripts/
+!.cursor/scripts/**
+!.cursor/.agents/
+!.cursor/.agents/**
+!.cursor/.pi/
+!.cursor/.pi/**
+!.cursor/mcp.json
+!.cursor/mcp-configs/
+!.cursor/mcp-configs/**
+!.cursor/ecc-install-state.json
 .gemini/
 .zed/
 .mcp.json
