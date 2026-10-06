@@ -1886,9 +1886,12 @@ body.guest-pointer-lock :is(webview, iframe) {
    `.fit-text` rather than as utilities on the element: the two always travel
    together, and the face is the whole point of the treatment — it must not be
    something a class-merge or a missed scan can quietly drop, leaving the
-   wordmark rendered in body text. */
+   wordmark rendered in body text.
+
+   Dragon chrome uses the same Syne face as the title-bar product name
+   (`.dragon-wordmark` in dragon.css). */
 .wordmark {
-  font-family: 'Collapse', var(--font-sans);
+  font-family: 'Syne', var(--font-sans, system-ui), sans-serif;
   font-weight: 700;
   line-height: 0.9;
   text-transform: uppercase;
