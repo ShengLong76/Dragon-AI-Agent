@@ -1,15 +1,18 @@
 /* Dragon AI chrome. Unlayered on purpose: these rules must beat the
    Tailwind utility layer the upstream primitives are written in. */
 
-/* Title-bar product name shares the empty-state lockup face
-   (`.wordmark` in styles.css → Collapse Bold). Unlayered so Tailwind
-   tracking/weight utilities cannot silently drop it back to body text. */
-.dragon-wordmark {
-  font-family: 'Collapse', var(--font-sans);
-  font-weight: 700;
-  line-height: 0.9;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+@font-face {
+  font-family: 'Syne';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('../fonts/Syne-Variable.woff2') format('woff2');
+}
+
+/* Title-bar product name. The empty-state lockup reuses this face. */
+.dragon-wordmark,
+[data-slot='aui_intro'] .wordmark {
+  font-family: 'Syne', var(--font-sans, system-ui), sans-serif;
 }
 
 /* The navy mark reads on near-black only with a little lift behind it. */
