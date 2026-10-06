@@ -2,6 +2,7 @@ import { type OwnerScope, ownerScoped, profileScoped } from '@/api/client'
 import { hermesApi } from '@/hermes'
 
 import { rmsLevelFromByteTimeDomain } from './mic-level'
+import { closeMeterContext, meterContextsClosed } from './mic-meter-context'
 
 /**
  * GPT-Live voice chat: the full-duplex voice frontend that DELEGATES to Hermes.
@@ -313,6 +314,10 @@ export class VoiceLiveSession {
       }
     })
 
+    // A leftover recorder/barge meter still closing is what kills the next
+    // capture AudioContext (#75329) and leaves the Listening bars flat.
+    await meterContextsClosed()
+
     this.microphone = await navigator.mediaDevices.getUserMedia({
       audio: { autoGainControl: true, echoCancellation: true, noiseSuppression: true }
     })
@@ -620,7 +625,9 @@ export class VoiceLiveSession {
 
     this.inputAnalyser?.disconnect()
     this.analyser?.disconnect()
-    void this.audioContext?.close().catch(() => undefined)
+    const context = this.audioContext
+    this.audioContext = null
+    closeMeterContext(context)
     this.microphone?.getTracks().forEach(track => track.stop())
     this.events?.close()
     this.peer?.close()

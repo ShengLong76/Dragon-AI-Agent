@@ -2,6 +2,7 @@ import { type OwnerScope, ownerScoped } from '@/api/client'
 import { hermesApi } from '@/hermes'
 
 import { rmsLevelFromFloatSamples } from './mic-level'
+import { closeMeterContext, meterContextsClosed } from './mic-meter-context'
 import type { LiveHistoryMessage, LiveTranscriptFragment, VoiceLiveHandlers } from './voice-live'
 
 /**
@@ -179,6 +180,8 @@ export class GrokVoiceSession {
     }
 
     this.tool = grant.tool || this.tool
+
+    await meterContextsClosed()
 
     this.microphone = await navigator.mediaDevices.getUserMedia({
       audio: { autoGainControl: true, echoCancellation: true, noiseSuppression: true }
@@ -441,7 +444,9 @@ export class GrokVoiceSession {
     this.finalized = true
     this.stopPlayback()
     this.processor?.disconnect()
-    void this.captureContext?.close().catch(() => undefined)
+    const capture = this.captureContext
+    this.captureContext = null
+    closeMeterContext(capture)
     void this.playbackContext?.close().catch(() => undefined)
     this.microphone?.getTracks().forEach(track => track.stop())
 

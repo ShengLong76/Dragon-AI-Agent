@@ -18,6 +18,7 @@ class FakeAudioContext {
 
   createAnalyser() {
     return {
+      disconnect: vi.fn(),
       fftSize: 256,
       frequencyBinCount: 128,
       getByteTimeDomainData: (data: Uint8Array) => {
@@ -44,10 +45,17 @@ function installApi() {
 }
 
 function installWebRTC() {
-  const channel = { addEventListener: () => undefined, readyState: 'closed' as RTCDataChannelState, send: () => undefined }
+  const channel = {
+    addEventListener: () => undefined,
+    close: () => undefined,
+    readyState: 'closed' as RTCDataChannelState,
+    send: () => undefined
+  }
 
   const PeerConnection = class {
     addEventListener = () => undefined
+    addTrack = () => undefined
+    close = () => undefined
     connectionState = 'new'
     createDataChannel = () => channel
     createOffer = async () => ({})
@@ -55,8 +63,6 @@ function installWebRTC() {
     localDescription = { sdp: 'v=0\r\n' }
     setLocalDescription = async () => undefined
     setRemoteDescription = async () => undefined
-    addTrack = () => undefined
-    close = () => undefined
   }
 
   Object.defineProperty(globalThis, 'RTCPeerConnection', { configurable: true, value: PeerConnection })
