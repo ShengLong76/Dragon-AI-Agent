@@ -39,7 +39,10 @@ export function DragonSidebarLockup() {
           src={DRAGON_LOGO_SRC}
         />
         <div className="min-w-0 leading-none">
-          <div className="dragon-wordmark truncate text-[1.0625rem] font-bold tracking-[0.01em] text-foreground">
+          <div
+            className="wordmark dragon-wordmark truncate text-[1.0625rem] text-foreground"
+            data-dragon-wordmark=""
+          >
             {DRAGON_PRODUCT.wordmark}
           </div>
           {DRAGON_PRODUCT.edition ? (
