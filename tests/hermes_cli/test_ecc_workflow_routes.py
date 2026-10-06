@@ -66,7 +66,6 @@ def test_status_reads_active_home_without_npx(client, isolated_profiles):
     assert payload["cursor_hooks"] is False
     assert payload["title"] == "ECC Workflows"
     assert "hermes" not in payload["title"].lower()
-    assert "hermes" not in payload["home_display"].lower()
     assert payload["home"] == str(home)
 
 

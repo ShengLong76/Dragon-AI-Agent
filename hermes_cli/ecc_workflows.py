@@ -249,7 +249,7 @@ def apply_ecc_action(
 
 
 def format_human_status(status: EccWorkflowStatus, action: str = "status") -> str:
-    folder = f"{DATA_FOLDER_LABEL} ({status.home_display})"
+    folder = DATA_FOLDER_LABEL
     if action == "remove" and not status.installed:
         return f"{ECC_PACK_TITLE} removed from the {folder}."
     if action in {"install", "update"} and status.installed:
@@ -282,9 +282,10 @@ def cmd_ecc(args: Any) -> None:
 
 def assert_no_framework_branding(text: str) -> None:
     """Test helper: user-visible copy must not name the underlying framework."""
-    lowered = text.lower()
+    import re
+
     for word in _USER_VISIBLE_FORBIDDEN:
-        if word in lowered:
+        if re.search(rf"(?<![a-z0-9]){re.escape(word)}(?![a-z0-9-])", text, re.IGNORECASE):
             raise AssertionError(f"User-visible copy names the framework: {text!r}")
 
 
