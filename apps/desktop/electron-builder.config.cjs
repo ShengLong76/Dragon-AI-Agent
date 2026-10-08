@@ -93,13 +93,12 @@ module.exports = {
   // var (local, or a fork without the R2 vars) keep the github provider, which
   // is exactly today's behavior. The store build has no feed at all (the Store
   // owns its distribution and updates).
-  publish: channelRequest ? null : !channel
+  // Dragon has no assets CDN. A github publish provider instantiates
+  // GitHubPublisher and demands GH_TOKEN even under `--publish never`.
+  // The packaged Windows feed is written by after-pack (app-update.yml).
+  publish: channelRequest ? null : !channel || !publicUrl
     ? null
-    : [
-        publicUrl
-          ? { provider: 'generic', url: publicUrl, channel }
-          : { provider: 'github', owner, repo, channel }
-      ],
+    : [{ provider: 'generic', url: publicUrl, channel }],
   extraMetadata: {
     name: appNamePascal,
     // Electron bootstrap reads package.productName before main.ts. Keep the
@@ -203,7 +202,7 @@ module.exports = {
     // paste onto the stock removable-drive icon). It lives in packaging/ with
     // the background so the `files` whitelist keeps it out of the app bundle.
     icon: 'packaging/dmg-volume.icns',
-    title: 'Hermes Agent Installer',
+    title: 'Dragon AI Installer',
     // A prebuilt .tiff on purpose, not a PNG plus a @2x sibling: dmg-builder's
     // PNG path runs `tiffutil -cathidpicheck`, which on macOS 26 rewrites both
     // frames to 72 dpi and silently drops the 2x representation. A .tiff is

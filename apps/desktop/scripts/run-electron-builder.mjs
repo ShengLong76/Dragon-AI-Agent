@@ -59,6 +59,7 @@ export function validatePreparedBuilderArgs(args, inputs) {
       continue
     }
     if (arg === '--dir' || arg === '--publish=never' || arg === '--') continue
+    if (arg === '-c.publish=null' || arg === '--config.publish=null') continue
     if (/^(?:-c|--config)\.(?:extraMetadata\.(?:version|shortVersion|shortVersionWindows)|directories\.output|mac\.identity)=/.test(arg)) continue
     if (!arg.startsWith('-') && inputs.formats.includes(arg)) continue
     throw preparationRequired(`Argument is not admitted by prepared packaging: ${arg}`)
@@ -160,7 +161,8 @@ export function runElectronBuilder(args, { spawn = spawnSync } = {}) {
   if (inputs.dmgbuild) env.CUSTOM_DMGBUILD_PATH = inputs.dmgbuild
   if (inputs.windows?.dotnetRoot) env.DOTNET_ROOT = inputs.windows.dotnetRoot
   const result = spawn(process.execPath, [...preloads, path.join(builder, bin), ...args,
-    '--config', 'electron-builder.config.cjs', '--publish', 'never', `-c.electronDist=${inputs.electron}`,
+    '--config', 'electron-builder.config.cjs', '--publish', 'never', '-c.publish=null',
+    `-c.electronDist=${inputs.electron}`,
     ...toolsetArguments(inputs)], { cwd: app, stdio: 'inherit', env })
   if (result.error) throw result.error
   return result.status ?? 1

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'vitest'
 import { spawnSync } from 'node:child_process'
 import path from 'node:path'
-import { builderNodeOptions, runElectronBuilder } from './run-electron-builder.mjs'
+import { builderNodeOptions, runElectronBuilder, validatePreparedBuilderArgs } from './run-electron-builder.mjs'
 import fs from 'node:fs'
 import os from 'node:os'
 import { publishPackagingInputs } from './prepared-packaging.mjs'
@@ -81,6 +81,14 @@ test('npm run builder forwards an apostrophe path to the wrapper verbatim', () =
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }
+})
+
+test('tokenless packs admit --publish never and a null GitHub publisher', () => {
+  const inputs = { formats: ['nsis'], target: 'win32-x64' }
+  assert.doesNotThrow(() => validatePreparedBuilderArgs(
+    ['--win', 'nsis', '--publish', 'never', '-c.publish=null'],
+    inputs
+  ))
 })
 
 test('source builds hand every child the builder heap without rewriting inherited NODE_OPTIONS', () => {
