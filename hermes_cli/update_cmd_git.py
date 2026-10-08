@@ -14,6 +14,12 @@ from pathlib import Path
 from typing import Optional
 
 from hermes_cli._subprocess_compat import windows_hide_flags
+from hermes_cli.product_feed import (
+    is_upstream_repository,
+    product_https_url,
+    product_repo_urls,
+    product_repository,
+)
 
 logger = logging.getLogger("hermes_cli.update_cmd")  # log-record parity with the origin module
 
@@ -26,7 +32,7 @@ _ORPHAN_RESCUE_REF_MAX_AGE_DAYS = 30
 _GIT_TEXT_KW = dict(capture_output=True, text=True, encoding="utf-8", errors="replace",
                    creationflags=windows_hide_flags())
 _BAR = "=" * 68
-_UPSTREAM_ADD_CMD = "git remote add upstream https://github.com/NousResearch/hermes-agent.git"
+_UPSTREAM_ADD_CMD = f"git remote add upstream {product_https_url()}"
 
 
 def _git_ok(git_cmd, args, cwd, **kw) -> bool:
@@ -237,13 +243,8 @@ def _print_parked_branch_kept_notice(current_branch: str, target_branch: str, un
     )
 
 
-OFFICIAL_REPO_URLS = {
-    "https://github.com/NousResearch/hermes-agent.git",
-    "git@github.com:NousResearch/hermes-agent.git",
-    "https://github.com/NousResearch/hermes-agent",
-    "git@github.com:NousResearch/hermes-agent",
-}
-OFFICIAL_REPO_URL = "https://github.com/NousResearch/hermes-agent.git"
+OFFICIAL_REPO_URLS = set(product_repo_urls())
+OFFICIAL_REPO_URL = product_https_url()
 SKIP_UPSTREAM_PROMPT_FILE = ".skip_upstream_prompt"
 
 
@@ -253,8 +254,14 @@ def _get_origin_url(git_cmd: list[str], cwd: Path) -> Optional[str]:
 
 
 def _is_fork(origin_url: Optional[str]) -> bool:
-    """Check if the origin remote points to a fork (not the official repo)."""
+    """Check if the origin remote points to a fork (not the official product repo).
+
+    A checkout whose origin is still Hermes is a mis-pointed Dragon install, not
+    a fork — user updates must follow Dragon, never pull NousResearch/hermes-agent.
+    """
     if not origin_url:
+        return False
+    if is_upstream_repository(origin_url):
         return False
 
     def _norm(url: str) -> str:
@@ -307,8 +314,8 @@ def _offer_upstream_remote(git_cmd: list[str], cwd: Path, *, assume_yes: bool, i
     ``--yes`` means "don't block", not "mutate my remotes", so a non-interactive skip is NOT persisted."""
     from hermes_cli.update_cmd import _add_upstream_remote, _mark_skip_upstream_prompt
     print(
-        "\nℹ Your fork is not tracking the official Hermes repository.\n"
-        "  This means you may miss updates from NousResearch/hermes-agent.\n"
+        f"\nℹ Your fork is not tracking the official {product_repository()} repository.\n"
+        f"  This means you may miss updates from {product_repository()}.\n"
     )
     if assume_yes or (input_fn is None and not (sys.stdin.isatty() and sys.stdout.isatty())):
         print(f"  Skipping upstream setup (non-interactive run).\n  Add it later with: {_UPSTREAM_ADD_CMD}")
@@ -329,7 +336,7 @@ def _offer_upstream_remote(git_cmd: list[str], cwd: Path, *, assume_yes: bool, i
     if not _add_upstream_remote(git_cmd, cwd):
         print("  ✗ Failed to add upstream remote. Skipping upstream sync.")
         return False
-    print("  ✓ Added upstream: https://github.com/NousResearch/hermes-agent.git")
+    print(f"  ✓ Added upstream: {OFFICIAL_REPO_URL}")
     return True
 
 

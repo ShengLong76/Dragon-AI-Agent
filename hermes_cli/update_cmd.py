@@ -1565,10 +1565,16 @@ def _cmd_update_impl(args, gateway_mode: bool):
         _heal_stale_shallow_checkout(_m().PROJECT_ROOT, branch)
 
         print("→ Fetching updates...")
+        from hermes_cli.product_feed import fetch_remote_for_origin
+
+        origin_url = _m()._get_origin_url(git_cmd, _m().PROJECT_ROOT)
+        fetch_remote = fetch_remote_for_origin(origin_url)
+        if fetch_remote != "origin":
+            print("  Origin points at Hermes upstream; fetching Dragon AI instead.")
         if release_sha:
-            fetch_args = ["fetch", "--no-tags", "origin", target_ref]
+            fetch_args = ["fetch", "--no-tags", fetch_remote, target_ref]
         else:
-            fetch_args = ["fetch", "origin", _check.tracking_refspec("origin", branch)]
+            fetch_args = ["fetch", fetch_remote, _check.tracking_refspec("origin", branch)]
         from hermes_cli.gitlock import fetch_with_partial_clone_recovery, is_partial_clone_pack_objects_crash
         # Marking the unmarked packs clears the git 2.53+ partial-clone pack-objects crash (#124272).
         fetch_result = fetch_with_partial_clone_recovery(

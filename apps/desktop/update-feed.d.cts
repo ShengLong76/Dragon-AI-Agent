@@ -10,6 +10,15 @@ interface DarwinFeed {
   allowPrerelease: boolean
 }
 
+interface ProductFeed {
+  productName: string
+  productRepository: string
+  upstreamRepository: string
+  githubReleasesHtml: string
+  publicAssetsBase: string | null
+  protectedPaths: string[]
+}
+
 /**
  * Feed layout contract shared by the desktop runtime and the release
  * pipeline. `light` selects the Light-variant feed directory.
@@ -20,8 +29,22 @@ declare function darwinFeed(channel: string, light?: boolean): DarwinFeed
 /** Validate and canonicalize the public updater feed base URL. */
 declare function feedBaseUrl(raw: string | undefined): string | undefined
 
+/** Packaged feed origin: only the product-feed CDN, never a leftover Hermes R2 URL. */
+declare function packagedFeedBaseUrl(envUrl?: string): string | undefined
+
+declare function productRepository(): string
+declare function upstreamRepository(): string
+declare function isProductRepository(repository?: string | null): boolean
+declare function isUpstreamRepository(repository?: string | null): boolean
+
 declare const contract: {
   darwinFeed: typeof darwinFeed
   feedBaseUrl: typeof feedBaseUrl
+  packagedFeedBaseUrl: typeof packagedFeedBaseUrl
+  productFeed: ProductFeed
+  productRepository: typeof productRepository
+  upstreamRepository: typeof upstreamRepository
+  isProductRepository: typeof isProductRepository
+  isUpstreamRepository: typeof isUpstreamRepository
 }
 export = contract
