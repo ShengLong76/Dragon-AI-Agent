@@ -73,10 +73,11 @@ def dispatch_desktop_build(tag: str, gh_repo: str | None) -> bool:
     canary = _CANARY_TAG_RE.fullmatch(tag) is not None
     if not canary and not STABLE_TAG_RE.fullmatch(tag):
         raise ValueError("Expected an exact stable or canary release tag")
-    workflow = "desktop-bundled-release.yml" if canary else "stable-release.yml"
-    cmd = ["gh", "workflow", "run", workflow, "--ref", "main" if canary else tag,
+    dragon = _is_dragon_github_repo(gh_repo)
+    workflow = "desktop-bundled-release.yml" if (canary or dragon) else "stable-release.yml"
+    cmd = ["gh", "workflow", "run", workflow, "--ref", "main" if (canary or dragon) else tag,
            "-f", f"tag={tag}"]
-    if canary:
+    if canary or dragon:
         cmd += ["-f", "upload_release=true"]
     if gh_repo:
         cmd += ["--repo", gh_repo]
@@ -86,7 +87,7 @@ def dispatch_desktop_build(tag: str, gh_repo: str | None) -> bool:
         print(f"    Start it manually: {' '.join(cmd)}")
         return False
 
-    dispatch_ref = (_default_branch(gh_repo) or "main") if canary else tag
+    dispatch_ref = (_default_branch(gh_repo) or "main") if (canary or dragon) else tag
     cmd[cmd.index("--ref") + 1] = dispatch_ref
 
     result = subprocess.run(
@@ -302,7 +303,12 @@ def get_pr_number(subject: str) -> str | None:
 
 
 def _product_feed() -> dict:
-    return json.loads((REPO_ROOT / "branding" / "product-feed.json").read_text(encoding="utf-8-sig"))
+    path = REPO_ROOT / "branding" / "product-feed.json"
+    if path.is_file():
+        return json.loads(path.read_text(encoding="utf-8-sig"))
+    # Canary git fixtures point REPO_ROOT at an empty tmp tree.
+    from hermes_cli.product_feed import load_product_feed
+    return load_product_feed()
 
 
 def generate_changelog(commits, tag_name, semver, repo_url=None,
@@ -481,6 +487,102 @@ def _resume_canary(tag: str, remote: str, repository: str, *, notes_file: Path |
     print(f"The draft is at {draft_url}.")
 
 
+def _is_dragon_github_repo(gh_repo: str | None) -> bool:
+    # Read the product feed from the installed package, not REPO_ROOT — canary
+    # tests point REPO_ROOT at an empty tmp tree that has no branding/.
+    from hermes_cli.product_feed import load_product_feed, product_repository
+    if load_product_feed().get("publicAssetsBase"):
+        return False
+    return bool(gh_repo) and gh_repo.lower() == product_repository().lower()
+
+
+def _resume_dragon_latest(tag: str, version: str, remote: str, repository: str,
+                          *, notes_file: Path | None = None) -> None:
+    """Draft a Dragon AI GitHub release and start the Windows builder.
+
+    Leaves the release as a draft. James publishes it to make latest.yml live.
+    """
+    from scripts.dragon.desktop_release import release_title
+
+    view = subprocess.run(
+        ["gh", "release", "view", tag, "--repo", repository, "--json", "tagName,isDraft,url,name"],
+        cwd=str(REPO_ROOT), capture_output=True, text=True, encoding="utf-8",
+    )
+    title = release_title(version)
+    if view.returncode != 0:
+        create = [
+            "gh", "release", "create", tag, "--repo", repository,
+            "--verify-tag", "--draft", "--title", title,
+        ]
+        create.extend(["--notes-file", str(notes_file)] if notes_file else ["--generate-notes"])
+        created = subprocess.run(
+            create, cwd=str(REPO_ROOT), capture_output=True, text=True, encoding="utf-8",
+        )
+        if created.returncode != 0:
+            raise ValueError(created.stderr.strip() or "Dragon draft could not be created")
+        draft_url = created.stdout.strip()
+    else:
+        release = json.loads(view.stdout)
+        if release.get("tagName") != tag or release.get("isDraft") is not True:
+            raise ValueError(f"{tag} is already published — bump apps/desktop/package.json to cut a new latest")
+        if "Hermes Agent" in str(release.get("name") or ""):
+            subprocess.run(
+                ["gh", "release", "edit", tag, "--repo", repository, "--title", title],
+                cwd=str(REPO_ROOT), capture_output=True, text=True, encoding="utf-8",
+            )
+        draft_url = release.get("url") or ""
+
+    if not dispatch_desktop_build(tag, repository):
+        raise SystemExit(1)
+    print(f"Resumed Dragon desktop release for {tag}.")
+    print(f"Workflow: https://github.com/{repository}/actions/workflows/desktop-bundled-release.yml")
+    print("Wait for that workflow to finish. It attaches the Windows Setup exe to the draft.")
+    print(f"The draft is at {draft_url}. Publish it after review to make GitHub latest live.")
+
+
+def cmd_dragon_latest(args, push_remote: str, gh_repo: str) -> None:
+    """GitHub main is the only latest: draft v{desktop version} and build Setup.exe."""
+    version = json.loads((REPO_ROOT / "apps/desktop/package.json").read_text(encoding="utf-8-sig"))["version"]
+    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+        raise ValueError(f"apps/desktop/package.json version must be X.Y.Z, got {version!r}")
+    tag_name = f"v{version}"
+    head = git("rev-parse", "HEAD")
+    existing = git_result("rev-parse", "--verify", "--quiet", f"refs/tags/{tag_name}")
+    if existing.returncode == 0:
+        if git("rev-parse", f"{tag_name}^{{commit}}") != head:
+            print(f"✓ {tag_name} already receipts another commit — bump apps/desktop/package.json.")
+            return
+        if args.publish:
+            _resume_dragon_latest(tag_name, version, push_remote, gh_repo)
+        else:
+            print(f"✓ {tag_name} already exists — nothing to do.")
+        return
+
+    prev = get_last_canary_tag() or tag_name
+    commits = get_commits(since_tag=prev)
+    changelog = generate_changelog(
+        commits, tag_name, version, prev_tag=prev if commits else None,
+        first_release=False, no_changelog=args.no_changelog,
+    )
+    if not args.publish:
+        print(changelog)
+        print("\nDry run complete. To publish the draft + build, add --publish")
+        return
+
+    tagged = git_result("tag", "-a", tag_name, "-m", f"{_product_feed()['productName']} {tag_name}")
+    if tagged.returncode != 0:
+        print(f"✗ Failed to create tag {tag_name}: {tagged.stderr.strip()}")
+        sys.exit(1)
+    pushed = git_result("push", push_remote, f"refs/tags/{tag_name}")
+    if pushed.returncode != 0:
+        print(f"✗ Failed to push {tag_name}: {pushed.stderr.strip()}")
+        sys.exit(1)
+    notes = REPO_ROOT / ".release_notes.md"
+    notes.write_text(changelog, encoding="utf-8")
+    _resume_dragon_latest(tag_name, version, push_remote, gh_repo, notes_file=notes)
+    notes.unlink(missing_ok=True)
+
+
 def cmd_canary(args) -> None:
     """--canary: tag + draft a canary source identity.
 
@@ -506,6 +608,9 @@ def cmd_canary(args) -> None:
     gh_repo = remote_github_repo(push_remote)
     if not gh_repo:
         raise ValueError("Canary publication requires a GitHub repository remote")
+    if _is_dragon_github_repo(gh_repo):
+        cmd_dragon_latest(args, push_remote, gh_repo)
+        return
     prev_canary = get_last_canary_tag()
     if prev_canary:
         head = git("rev-parse", "HEAD")

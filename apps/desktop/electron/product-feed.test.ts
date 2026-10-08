@@ -32,12 +32,10 @@ test('the packaged updater feed is Dragon GitHub Releases, never Hermes', (): vo
   delete process.env.CLOUDFLARE_R2_PUBLIC_URL
   process.env.HERMES_PAYLOAD_TAG = 'v0.28.0+canary.20260818T000000Z'
   process.env.HERMES_DESKTOP_VARIANT = 'bundled'
-  const config: { publish: Array<{ provider: string; owner?: string; repo?: string; url?: string }> } =
+  const config: { publish: null | Array<{ provider: string; url?: string }> } =
     require('../electron-builder.config.cjs')
 
-  assert.ok(Array.isArray(config.publish))
-  assert.equal(config.publish[0]?.provider, 'github')
-  assert.equal(config.publish[0]?.owner, 'ShengLong76')
-  assert.equal(config.publish[0]?.repo, 'Dragon-AI-Agent')
-  assert.equal(config.publish[0]?.url, undefined)
+  // A github publish provider instantiates GitHubPublisher and demands a token.
+  // Dragon bakes app-update.yml in after-pack instead.
+  assert.equal(config.publish, null)
 })

@@ -35,7 +35,7 @@ export class MacStrategy implements UpdaterStrategy {
     const result = await this.deps.updater.checkForUpdates()
 
     if (!result) {
-      throw new Error('The macOS updater is not active for this app.')
+      throw new Error('The packaged updater is not active for this app.')
     }
 
     if (this.deps.expectedVersion && result.updateInfo.version !== this.deps.expectedVersion) {
@@ -82,7 +82,7 @@ export class MacStrategy implements UpdaterStrategy {
 
           const files = await this.deps.updater.downloadUpdate()
           await this.deps.verifyDownload?.(files)
-          this.deps.emitProgress({ stage: 'prepare', message: 'Verifying the signed macOS update.', percent: null })
+          this.deps.emitProgress({ stage: 'prepare', message: 'Verifying the signed Dragon AI update.', percent: null })
           await this.deps.prepareInstall()
           await stop()
           this.deps.emitProgress({

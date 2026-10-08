@@ -96,7 +96,12 @@ def _build_prepared(prepared, builder_args: list[str], variant: str | None) -> N
     if request.release_epoch is not None:
         env["HERMES_RELEASE_EPOCH"] = str(request.release_epoch)
     desktop = repo / "apps/desktop"
-    targets = {"win32": ["--win", "msix"], "darwin": ["--mac", "dmg", "zip"], "linux": ["--linux", "AppImage"]}[sys.platform]
+    from scripts.dragon.desktop_release import windows_builder_targets
+    targets = {
+        "win32": windows_builder_targets(),
+        "darwin": ["--mac", "dmg", "zip"],
+        "linux": ["--linux", "AppImage"],
+    }[sys.platform]
     package_args = ["--prepared", str(prepared.packager), "--native-deps", str(prepared.native),
                     *targets, f"-c.extraMetadata.version={request.version}"]
     run([node, "scripts/run-electron-builder.mjs", "--validate-only", *package_args, *builder_args],
@@ -129,7 +134,8 @@ def _build_prepared(prepared, builder_args: list[str], variant: str | None) -> N
              "--stamp", str(desktop / "build/install-stamp.json"), "--native-deps", str(prepared.native),
              "--out", str(desktop / "dist")], cwd=repo, env=env)
         version_args = []
-        if sys.platform == "win32" and request.channel_request is None and request.tag is not None:
+        if (sys.platform == "win32" and request.channel_request is None and request.tag is not None
+                and targets == ["--win", "msix"]):
             script = "const m=require('./scripts/msix-shared.mjs');console.log(m.nativeQuad(process.argv[1], Number(process.env.HERMES_RELEASE_EPOCH)))"
             quad = capture([node, "-e", script, request.tag], repo, env)
             version_args = [f'-c.extraMetadata.shortVersion={quad}', f'-c.extraMetadata.shortVersionWindows={quad}']

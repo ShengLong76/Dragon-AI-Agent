@@ -58,11 +58,13 @@ def test_archive_gate_uses_bootstrap_python_and_trusted_exact_revision():
     # a skipped archive (disposable/termux runs) must not skip the builds.
     validate = release["validate"]
     (archive,) = [s for s in validate["steps"] if s.get("run") == "python3 -m scripts.ci.archive_inputs"]
+    r2 = {"CLOUDFLARE_R2_ACCESS_KEY_ID": "id"}
     for dispatch, inputs in DOWNLOADABLE_DISPATCHES.items():
-        assert gate(archive["if"], inputs, {}, job_if=False), dispatch
+        assert gate(archive["if"], inputs, {}, job_if=False, env=r2), dispatch
+        assert not gate(archive["if"], inputs, {}, job_if=False, env={"CLOUDFLARE_R2_ACCESS_KEY_ID": ""}), dispatch
     for skipped in ({"disposable_run": "98765"}, {"disposable_channel": "native-preview"},
                     {"release-phase": "publish"}, {"release-phase": "promote"}):
-        assert not gate(archive["if"], {**DOWNLOADABLE_DISPATCHES["tag"], **skipped}, {}, job_if=False), skipped
+        assert not gate(archive["if"], {**DOWNLOADABLE_DISPATCHES["tag"], **skipped}, {}, job_if=False, env=r2), skipped
     assert R2_ENV <= archive["env"].keys()
     assert validate["environment"] == "release-signing"
     checkout = validate["steps"][0]
