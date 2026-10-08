@@ -26,7 +26,7 @@ _FEED_PATH = Path(__file__).resolve().parents[2] / "branding" / "product-feed.js
 
 
 def _product_name() -> str:
-    return json.loads(_FEED_PATH.read_text(encoding="utf-8"))["productName"]
+    return json.loads(_FEED_PATH.read_text(encoding="utf-8-sig"))["productName"]
 # A fetch refspec may hold one ``*``; the parsers filter what the globs over-match.
 _ATTEMPT_GLOBS = ("rc.*", "abandoned-rc.*")
 

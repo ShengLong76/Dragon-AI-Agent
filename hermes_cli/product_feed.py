@@ -21,7 +21,7 @@ _GITHUB_ORIGIN = re.compile(
 
 @lru_cache(maxsize=1)
 def load_product_feed() -> dict:
-    data = json.loads(_FEED_PATH.read_text(encoding="utf-8"))
+    data = json.loads(_FEED_PATH.read_text(encoding="utf-8-sig"))
     if not isinstance(data, dict):
         raise ValueError("branding/product-feed.json must be an object")
     for key in ("productName", "productRepository", "upstreamRepository"):

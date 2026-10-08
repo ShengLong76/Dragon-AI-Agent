@@ -21,7 +21,7 @@ UPSTREAM_REMOTE = "hermes-upstream"
 
 
 def load_feed() -> dict:
-    return json.loads(FEED_PATH.read_text(encoding="utf-8"))
+    return json.loads(FEED_PATH.read_text(encoding="utf-8-sig"))
 
 
 def protected_paths(feed: dict | None = None) -> tuple[str, ...]:
@@ -168,7 +168,7 @@ def _lines(text: str) -> list[str]:
 
 
 def read_list_file(path: Path) -> list[str]:
-    return _lines(path.read_text(encoding="utf-8")) if path.is_file() else []
+    return _lines(path.read_text(encoding="utf-8-sig")) if path.is_file() else []
 
 
 def read_conflicts(repo: Path) -> list[str]:
@@ -221,7 +221,7 @@ def main(argv: list[str] | None = None) -> int:
             sys.stdout.write(text)
         return 0
 
-    report_data = json.loads(Path(args.report).read_text(encoding="utf-8"))
+    report_data = json.loads(Path(args.report).read_text(encoding="utf-8-sig"))
     report = SyncReport(**report_data)
     sys.stdout.write(build_pr_title(report) + "\n---\n" + build_pr_body(report))
     return 0

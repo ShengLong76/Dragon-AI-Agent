@@ -302,7 +302,7 @@ def get_pr_number(subject: str) -> str | None:
 
 
 def _product_feed() -> dict:
-    return json.loads((REPO_ROOT / "branding" / "product-feed.json").read_text(encoding="utf-8"))
+    return json.loads((REPO_ROOT / "branding" / "product-feed.json").read_text(encoding="utf-8-sig"))
 
 
 def generate_changelog(commits, tag_name, semver, repo_url=None,

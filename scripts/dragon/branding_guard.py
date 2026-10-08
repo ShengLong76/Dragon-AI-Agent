@@ -48,7 +48,7 @@ def scan_visible() -> list[str]:
     for path in VISIBLE_SCAN:
         if not path.is_file() or _allowed(path):
             continue
-        text = path.read_text(encoding="utf-8")
+        text = path.read_text(encoding="utf-8-sig")
         for index, line in enumerate(text.splitlines(), 1):
             if BANNED.search(line) and not ATTRIBUTION.search(line):
                 hits.append(f"{path.relative_to(ROOT)}:{index}:{line.strip()}")
@@ -58,7 +58,7 @@ def scan_visible() -> list[str]:
 def check_product_feed() -> list[str]:
     import json
 
-    feed = json.loads(FEED_PATH.read_text(encoding="utf-8"))
+    feed = json.loads(FEED_PATH.read_text(encoding="utf-8-sig"))
     errors = []
     if feed.get("productRepository") != "ShengLong76/Dragon-AI-Agent":
         errors.append("branding/product-feed.json productRepository must be ShengLong76/Dragon-AI-Agent")
