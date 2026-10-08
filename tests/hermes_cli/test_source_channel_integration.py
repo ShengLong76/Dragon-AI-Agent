@@ -171,7 +171,9 @@ def test_unpublished_main_record_keeps_following_the_git_branch(source, monkeypa
     status = source_check.check_for_updates(install_root=source.root, home=source.home, force=True)
     assert "error" not in status, status
     assert status["targetSha"] == source.commits[2]
-    with pytest.raises(ChannelNotFound):
+    # Dragon has no R2 channel records; unpublished non-main channels fall
+    # through to GitHub Releases and fail closed when none exist.
+    with pytest.raises(ValueError, match="No published stable release"):
         source_releases.resolve_source_target("stable", ["git"], source.root)
 
 

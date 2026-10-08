@@ -70,7 +70,6 @@ def test_zip_default_is_dragon_and_refuses_hermes_upstream(monkeypatch):
         raise Stop
 
     monkeypatch.setattr(update_cmd_zip, "_download_and_swap_zip", download)
-    monkeypatch.setattr(update_cmd_zip, "_complete_source_update", lambda request: None)
 
     try:
         update_cmd_zip._update_via_zip(

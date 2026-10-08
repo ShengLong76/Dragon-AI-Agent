@@ -148,7 +148,8 @@ def test_update_and_upstream_network_calls_disable_terminal_prompts(monkeypatch,
     monkeypatch.setattr(subprocess, "run", run)
     update_cmd._git_run(["git"], ["fetch", "origin", "main"], cwd=tmp_path, network=True, check=True)
     assert update_cmd_git._sync_with_upstream_if_needed(["git"], tmp_path, assume_yes=True)
-    assert [args[0] for args, _ in calls] == ["fetch", "fetch", "pull", "push"]
+    network = [args[0] for args, _ in calls if args[0] in {"fetch", "pull", "push"}]
+    assert network == ["fetch", "fetch", "pull", "push"]
     for args, kwargs in calls:
         assert kwargs["stdin"] is subprocess.DEVNULL, args
         env = kwargs["env"]
