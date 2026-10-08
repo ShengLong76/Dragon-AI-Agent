@@ -18,6 +18,7 @@ import { codiconIcon } from '@/components/ui/codicon'
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { HighlightMatches } from '@/components/ui/highlight-matches'
 import { KbdCombo } from '@/components/ui/kbd'
+import { DRAGON_PRODUCT_VERSION, isDragonProductVersion, sanitizeRuntimeVersion } from '@/dragon/product-version'
 import { getHermesConfigRecord, listAllProfileSessions } from '@/hermes'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useI18n } from '@/i18n'
@@ -587,17 +588,25 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
     const backend = connection?.mode === 'remote'
     const apply = backend ? backendApply : clientApply
     const status = backend ? backendStatus : clientStatus
+    const dragonRuntime = isDragonProductVersion(backend ? status?.currentVersion : desktopVersion?.appVersion)
+    const version = backend
+      ? sanitizeRuntimeVersion(status?.currentVersion)
+      : DRAGON_PRODUCT_VERSION
+
+    if (backend && !version) {
+      return t.shell.statusbar.runtimeExternal
+    }
 
     return resolveVersionStatus({
       applying: apply.applying || apply.stage === 'restart',
-      behind: status?.behind ?? 0,
+      behind: dragonRuntime ? (status?.behind ?? 0) : 0,
       copy: t.shell.statusbar,
       remote: backend,
       restarting: apply.stage === 'restart',
-      sha: status?.currentSha?.slice(0, 7) ?? null,
+      sha: dragonRuntime ? (status?.currentSha?.slice(0, 7) ?? null) : null,
       target: backend ? 'backend' : 'client',
-      updateAvailable: status?.updateAvailable,
-      version: backend ? status?.currentVersion : desktopVersion?.appVersion
+      updateAvailable: dragonRuntime ? status?.updateAvailable : false,
+      version
     }).label
   }, [backendApply, backendStatus, clientApply, clientStatus, connection?.mode, desktopVersion?.appVersion, t])
 

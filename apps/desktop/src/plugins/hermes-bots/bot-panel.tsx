@@ -2,8 +2,9 @@
  * The right-sidebar Bot panel: one bot's identity card with Details | Library |
  * Computer | Routines tabs. Double-clicking a roster row (or a pinned tile)
  * opens it on the Computer tab — the bot's VM desktop — rather than a file
- * list. Routines is the cron list. Computer shows the static Screen card;
- * Open live opens the existing live-screen overlay.
+ * list. Routines is the cron list. Computer is the live VM desktop (RFB),
+ * with an honest status when the guest is missing or the runtime has no
+ * display service.
  */
 
 import { atom, Button, cn, Codicon, GlyphSpinner, host, PanelEmpty, useI18n, useQuery, useValue } from '@hermes/plugin-sdk'
@@ -21,7 +22,7 @@ import {
 import { $botMeta, $lastRoster, botSelectionKey } from './data'
 import { botRole, displayName } from './labels'
 import { botRosterMeta, requestForBot } from './routing'
-import { ScreenHero } from './screen-hero'
+import { BotScreenPane } from './screen-pane'
 import { ID } from './shared'
 import { HubSkillsSection } from './skills-hub'
 import type { RosterRow } from './types'
@@ -97,11 +98,7 @@ export function BotPanelPane() {
       <div className="mt-2 min-h-0 flex-1 overflow-hidden">
         {
           {
-            computer: (
-              <div className="h-full overflow-y-auto px-3 pt-1 pb-3">
-                <ScreenHero bot={bot} meta={meta} />
-              </div>
-            ),
+            computer: <BotScreenPane bot={bot} />,
             details: <BotDetails bot={bot} description={meta?.description || bot.description || ''} />,
             library: (
               <div className="h-full overflow-y-auto px-3 py-2">

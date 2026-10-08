@@ -15,6 +15,7 @@ import { $paneVisible } from '@/components/pane-shell/tree/store'
 import { Badge } from '@/components/ui/badge'
 import { Codicon } from '@/components/ui/codicon'
 import { GlyphSpinner } from '@/components/ui/glyph-spinner'
+import { DRAGON_PRODUCT_VERSION, isDragonProductVersion, sanitizeRuntimeVersion } from '@/dragon/product-version'
 import { useI18n } from '@/i18n'
 import { displayPath, pathLeaf } from '@/lib/display-path'
 import {
@@ -388,19 +389,22 @@ export function useStatusbarItems({
 
   const clientVersionItem = useMemo<StatusbarItem>(() => {
     const applying = updateApply.applying || updateApply.stage === 'restart'
+    // Product chip is Dragon's version. Git-behind / sha from a foreign
+    // (Hermes) checkout must not paint as if they were the desktop app.
+    const dragonRuntime = isDragonProductVersion(desktopVersion?.appVersion)
 
     const status = resolveVersionStatus({
       applying,
       applyMessage: updateApply.message,
-      behind: updateStatus?.behind ?? 0,
-      branch: updateStatus?.branch,
+      behind: dragonRuntime ? (updateStatus?.behind ?? 0) : 0,
+      branch: dragonRuntime ? updateStatus?.branch : undefined,
       copy,
       remote: connection?.mode === 'remote',
       restarting: updateApply.stage === 'restart',
-      sha: updateStatus?.currentSha?.slice(0, 7) ?? null,
+      sha: dragonRuntime ? (updateStatus?.currentSha?.slice(0, 7) ?? null) : null,
       target: 'client',
-      updateAvailable: updateStatus?.updateAvailable,
-      version: desktopVersion?.appVersion
+      updateAvailable: dragonRuntime ? updateStatus?.updateAvailable : false,
+      version: DRAGON_PRODUCT_VERSION
     })
 
     return {
@@ -436,6 +440,21 @@ export function useStatusbarItems({
     }
 
     const applying = backendUpdateApply.applying || backendUpdateApply.stage === 'restart'
+    const runtimeVersion = sanitizeRuntimeVersion(statusSnapshot?.version)
+
+    if (!runtimeVersion) {
+      return {
+        hidden: false,
+        icon: <Hash className="size-3" />,
+        id: 'version-backend',
+        label: copy.runtimeExternal,
+        lockedVisible: true,
+        onSelect: () => openUpdateOverlayFor('backend'),
+        title: copy.runtimeExternal,
+        toggleLabel: copy.toggleBackendVersion,
+        variant: 'action'
+      }
+    }
 
     const status = resolveVersionStatus({
       applying,
@@ -446,7 +465,7 @@ export function useStatusbarItems({
       restarting: backendUpdateApply.stage === 'restart',
       target: 'backend',
       updateAvailable: backendUpdateStatus?.updateAvailable,
-      version: statusSnapshot?.version
+      version: runtimeVersion
     })
 
     return {

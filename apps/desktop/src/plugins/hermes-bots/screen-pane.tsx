@@ -38,6 +38,7 @@ import {
   screenStateFor,
   setScreenLease,
   setScreenStatus,
+  setScreenError,
   setScreenUnavailable,
   setScreenViewer
 } from './screen-state'
@@ -118,11 +119,15 @@ export function BotScreenPane({ bot }: { bot: RosterRow }) {
       setScreenStatus(bot, next, request)
       setError(null)
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+
       if (isDisplayUnavailable(err)) {
         setScreenUnavailable(bot)
+      } else {
+        setScreenError(bot, message)
       }
 
-      setError(err instanceof Error ? err.message : String(err))
+      setError(message)
     }
   }, [bot])
 
@@ -414,15 +419,34 @@ export function BotScreenPane({ bot }: { bot: RosterRow }) {
   )
 
   if (state?.unavailable) {
-    // A managed (Hermes Cloud) backend cannot be self-updated: its release is the platform's
+    // A managed backend cannot be self-updated: its release is the platform's
     // choice, so say Screen has not reached it yet instead of an update instruction (#120852).
-    const description = isManagedBackend(bot) ? t.screen.portalUnavailableManaged : t.screen.portalUnavailable
+    const description = isManagedBackend(bot) ? t.screen.portalUnavailableManaged : t.screen.unavailableLocalBody
 
     return <EmptyState description={description} title={t.screen.unavailableTitle} />
   }
 
   if (status && !status.supported) {
-    return <EmptyState description={t.screen.unsupportedBody} title={t.screen.unsupportedTitle} />
+    return <EmptyState description={status.blocker || t.screen.unsupportedBody} title={t.screen.unsupportedTitle} />
+  }
+
+  if (!status) {
+    const failed = error || state?.error
+
+    return (
+      <div className="grid min-h-48 place-items-center p-6 text-center" data-computer-status={failed ? 'error' : 'checking'}>
+        <div className="flex max-w-md flex-col items-center gap-2">
+          {failed ? null : <GlyphSpinner />}
+          <div className="text-sm font-medium">{failed ? t.screen.statusFailedTitle : t.screen.checkingTitle}</div>
+          <div className="text-xs text-muted-foreground">{failed || t.screen.checkingBody}</div>
+          {failed ? (
+            <Button onClick={() => void refresh()} size="sm">
+              {t.screen.retry}
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    )
   }
 
   if (status && !status.installed) {
@@ -516,7 +540,7 @@ export function BotScreenPane({ bot }: { bot: RosterRow }) {
             data-remote-screen: tells the ⌘W close-tab router this is NOT a local terminal tab —
             the chord belongs to the remote desktop, nothing local should close. */}
         <div className="absolute inset-0" data-remote-screen="" data-terminal="" ref={canvasHost} />
-        {conn === 'attaching' ? (
+        {conn === 'attaching' || conn === 'idle' ? (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs text-white/70">
             <GlyphSpinner /> {t.screen.attaching}
           </div>

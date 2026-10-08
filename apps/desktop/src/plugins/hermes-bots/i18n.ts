@@ -389,6 +389,11 @@ type BotsMessages = {
     /** Managed runtimes (Hermes Cloud): updates are the platform's job, not the user's. */
     portalUnavailableManaged: string
     unavailableTitle: string
+    unavailableLocalBody: string
+    checkingTitle: string
+    checkingBody: string
+    statusFailedTitle: string
+    retry: string
     autoOpenMenu: string
     autoOpenOnToast: (name: string) => string
     autoOpenOffToast: (name: string) => string
@@ -829,6 +834,12 @@ const en: BotsMessages = {
     portalUnavailable: 'Update the bot\u2019s Dragon AI to use Screen',
     portalUnavailableManaged: 'Screen is not available on this managed Dragon AI release yet',
     unavailableTitle: 'Screen needs a newer Dragon AI',
+    unavailableLocalBody:
+      'This runtime has no Computer service. Use the Dragon AI backend that shipped with this app, not a separate older checkout.',
+    checkingTitle: 'Starting computer…',
+    checkingBody: "Asking this bot's runtime for its desktop.",
+    statusFailedTitle: 'Computer is not available',
+    retry: 'Retry',
     autoOpenMenu: 'Open Screen when the bot uses it',
     autoOpenOnToast: name => `${name}’s Screen opens when it starts using its desktop`,
     autoOpenOffToast: name => `${name}’s Screen stays closed until you open it`,
@@ -1269,6 +1280,12 @@ const ja: BotsMessages = {
     portalUnavailable: 'Screen を使うにはボットの Dragon AI を更新してください',
     portalUnavailableManaged: 'この管理された Dragon AI リリースではまだ Screen を利用できません',
     unavailableTitle: 'Screen には新しい Dragon AI が必要です',
+    unavailableLocalBody:
+      'このランタイムには Computer サービスがありません。別の古いチェックアウトではなく、このアプリ同梱の Dragon AI バックエンドを使ってください。',
+    checkingTitle: 'コンピュータを起動しています…',
+    checkingBody: 'このボットのランタイムにデスクトップを問い合わせています。',
+    statusFailedTitle: 'コンピュータを利用できません',
+    retry: '再試行',
     autoOpenMenu: 'ボットが画面を使い始めたら Screen を開く',
     autoOpenOnToast: name => `${name} がデスクトップを使い始めると Screen が開きます`,
     autoOpenOffToast: name => `${name} の Screen は手動で開くまで閉じたままです`,
@@ -1694,6 +1711,12 @@ const zh: BotsMessages = {
     portalUnavailable: '更新机器人的 Dragon AI 以使用屏幕',
     portalUnavailableManaged: '此托管 Dragon AI 版本尚不支持屏幕',
     unavailableTitle: '屏幕需要更新版的 Dragon AI',
+    unavailableLocalBody:
+      '此运行时没有 Computer 服务。请使用本应用附带的 Dragon AI 后端，而不是另一个较旧的检出。',
+    checkingTitle: '正在启动计算机…',
+    checkingBody: '正在向该机器人的运行时查询桌面。',
+    statusFailedTitle: '计算机不可用',
+    retry: '重试',
     autoOpenMenu: '机器人使用屏幕时自动打开',
     autoOpenOnToast: name => `${name} 开始使用桌面时会自动打开屏幕`,
     autoOpenOffToast: name => `${name} 的屏幕将保持关闭，直到你手动打开`,
@@ -2119,6 +2142,12 @@ const zhHant: BotsMessages = {
     portalUnavailable: '更新機器人的 Dragon AI 以使用螢幕',
     portalUnavailableManaged: '此託管 Dragon AI 版本尚不支援螢幕',
     unavailableTitle: '螢幕需要較新版的 Dragon AI',
+    unavailableLocalBody:
+      '此執行環境沒有 Computer 服務。請使用本應用附帶的 Dragon AI 後端，而不是另一個較舊的簽出。',
+    checkingTitle: '正在啟動電腦…',
+    checkingBody: '正在向此機器人的執行環境查詢桌面。',
+    statusFailedTitle: '電腦無法使用',
+    retry: '重試',
     autoOpenMenu: '機器人使用螢幕時自動開啟',
     autoOpenOnToast: name => `${name} 開始使用桌面時會自動開啟螢幕`,
     autoOpenOffToast: name => `${name} 的螢幕將保持關閉，直到你手動開啟`,
