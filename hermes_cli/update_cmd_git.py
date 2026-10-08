@@ -19,6 +19,7 @@ from hermes_cli.product_feed import (
     product_https_url,
     product_repo_urls,
     product_repository,
+    should_skip_upstream_remote,
 )
 
 logger = logging.getLogger("hermes_cli.update_cmd")  # log-record parity with the origin module
@@ -351,6 +352,9 @@ def _sync_with_upstream_if_needed(git_cmd: list[str], cwd: Path, *, assume_yes: 
     """
     from hermes_cli.update_cmd import _count_commits_between, _has_upstream_remote, _no_prompt_git_kwargs, _should_skip_upstream_prompt
     from hermes_cli.update_cmd_check import tracking_refspec
+    if should_skip_upstream_remote(_git_stdout(git_cmd, ["remote", "get-url", "upstream"], cwd)):
+        print("→ Ignoring Hermes upstream remote; user updates come from Dragon AI.")
+        return False
     if not _has_upstream_remote(git_cmd, cwd) and (
         _should_skip_upstream_prompt() or not _offer_upstream_remote(git_cmd, cwd, assume_yes=assume_yes, input_fn=input_fn)
     ):
@@ -421,7 +425,7 @@ _FETCH_FAILURE_RULES = (
     # key (or lack of one) was the cause (#82169).
     (lambda s: "Permission denied (publickey)" in s or "Host key verification failed" in s,
      "✗ SSH authentication failed — check your SSH key is added to GitHub, or switch"
-     " `origin` to HTTPS: `git remote set-url origin https://github.com/NousResearch/hermes-agent.git`."),
+     f" `origin` to HTTPS: `git remote set-url origin {product_https_url()}`."),
 )
 
 

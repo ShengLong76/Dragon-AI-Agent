@@ -163,9 +163,20 @@ def collect_report(
     )
 
 
+def _lines(text: str) -> list[str]:
+    return [line.strip() for line in text.splitlines() if line.strip()]
+
+
+def read_list_file(path: Path) -> list[str]:
+    return _lines(path.read_text(encoding="utf-8")) if path.is_file() else []
+
+
 def read_conflicts(repo: Path) -> list[str]:
-    result = _git(repo, "diff", "--name-only", "--diff-filter=U")
-    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    """Unmerged paths, or files that still contain conflict markers after a commit."""
+    unmerged = _lines(_git(repo, "diff", "--name-only", "--diff-filter=U").stdout)
+    if unmerged:
+        return unmerged
+    return _lines(_git(repo, "grep", "-l", "^<<<<<<< ").stdout)
 
 
 def read_changed(repo: Path, base: str) -> list[str]:
@@ -184,17 +195,23 @@ def main(argv: list[str] | None = None) -> int:
     describe.add_argument("--repo", type=Path, default=ROOT)
     describe.add_argument("--base", default="main")
     describe.add_argument("--upstream-sha", required=True)
+    describe.add_argument("--conflicts-file", type=Path)
     describe.add_argument("--out", type=Path)
     args = parser.parse_args(argv)
 
     feed = load_feed()
     if args.cmd == "describe":
+        conflicts = (
+            read_list_file(args.conflicts_file)
+            if args.conflicts_file
+            else read_conflicts(args.repo)
+        )
         report = collect_report(
             repo=args.repo,
             upstream_repository=feed["upstreamRepository"],
             upstream_sha=args.upstream_sha,
             base_branch=args.base,
-            conflicts=read_conflicts(args.repo),
+            conflicts=conflicts,
             changed_paths=read_changed(args.repo, args.base),
         )
         text = report.to_json()

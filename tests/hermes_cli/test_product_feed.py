@@ -125,3 +125,16 @@ def test_fetch_compare_branch_skips_hermes_upstream(tmp_path, monkeypatch, capsy
     assert "origin" in fetch_remotes
     assert "NousResearch/hermes-agent" not in json.dumps(calls)
     assert "Ignoring Hermes upstream" in capsys.readouterr().out
+
+
+def test_fork_upstream_sync_skips_hermes_remote(tmp_path, monkeypatch, capsys):
+    from hermes_cli import update_cmd_git
+
+    def fake_stdout(git_cmd, args, cwd, **kwargs):
+        if args[:3] == ["remote", "get-url", "upstream"]:
+            return "https://github.com/NousResearch/hermes-agent.git"
+        return None
+
+    monkeypatch.setattr(update_cmd_git, "_git_stdout", fake_stdout)
+    assert update_cmd_git._sync_with_upstream_if_needed(["git"], tmp_path, assume_yes=True) is False
+    assert "Ignoring Hermes upstream" in capsys.readouterr().out

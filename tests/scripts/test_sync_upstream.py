@@ -47,6 +47,26 @@ def test_conflict_report_is_draft_and_lists_files(tmp_path):
     assert report.upstream_sha[:12] in title
 
 
+def test_read_conflicts_finds_markers_after_commit(tmp_path):
+    import subprocess
+    from scripts.dragon.sync_upstream import read_conflicts, read_list_file
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-b", "main"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "sync@example.invalid"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "Sync"], cwd=repo, check=True)
+    conflicted = repo / "README.md"
+    conflicted.write_text("<<<<<<< HEAD\nDragon\n=======\nHermes\n>>>>>>> upstream\n", encoding="utf-8")
+    subprocess.run(["git", "add", "README.md"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "conflicts remain"], cwd=repo, check=True, capture_output=True)
+    assert read_conflicts(repo) == ["README.md"]
+
+    listed = tmp_path / "conflicts.txt"
+    listed.write_text("apps/desktop/package.json\nREADME.md\n", encoding="utf-8")
+    assert read_list_file(listed) == ["apps/desktop/package.json", "README.md"]
+
+
 def test_clean_merge_is_not_draft(tmp_path):
     report = collect_report(
         repo=tmp_path,

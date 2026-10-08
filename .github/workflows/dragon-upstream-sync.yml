@@ -44,11 +44,18 @@ jobs:
       - name: Cut sync branch from Dragon main and merge
         run: |
           set -euo pipefail
+          if git merge-base --is-ancestor "${UPSTREAM_SHA}" "origin/${DEFAULT_BRANCH}"; then
+            echo "Dragon ${DEFAULT_BRANCH} already contains ${UPSTREAM_SHA}; no sync PR."
+            echo "ALREADY_MERGED=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
           git checkout -B dragon/upstream-sync "origin/${DEFAULT_BRANCH}"
           set +e
           git merge --no-ff --no-edit "${UPSTREAM_SHA}"
           merge_status=$?
           set -e
+          # Capture unmerged paths before the commit clears the index conflict state.
+          git diff --name-only --diff-filter=U > /tmp/dragon-sync-conflicts.txt || true
           if [ "$merge_status" -ne 0 ]; then
             echo "Merge reported conflicts; committing the conflicted tree for a draft PR."
             git add -u
@@ -64,6 +71,7 @@ jobs:
           python3 scripts/dragon/sync_upstream.py describe \
             --base "${DEFAULT_BRANCH}" \
             --upstream-sha "${UPSTREAM_SHA}" \
+            --conflicts-file /tmp/dragon-sync-conflicts.txt \
             --out /tmp/dragon-sync-report.json
           python3 scripts/dragon/sync_upstream.py pr-body \
             --report /tmp/dragon-sync-report.json > /tmp/dragon-sync-pr.txt
@@ -72,9 +80,11 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Push sync branch
+        if: env.ALREADY_MERGED != '1'
         run: git push --force-with-lease origin dragon/upstream-sync
 
       - name: Open or update the review PR
+        if: env.ALREADY_MERGED != '1'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
