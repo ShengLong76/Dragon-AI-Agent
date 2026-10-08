@@ -1260,7 +1260,21 @@ if (process.env.HERMES_DESKTOP_TMPDIR) {
 const HERMES_HOME: string = resolveDesktopHermesHome({
   home: app.getPath('home'),
   directoryExists,
-  readWindowsHome: (): string | null => readWindowsUserEnvVar('DRAGON_AI_CLAUDE_HOME')
+  fileExists,
+  readWindowsHome: (): string | null =>
+    readWindowsUserEnvVar('DRAGON_AI_HOME') || readWindowsUserEnvVar('DRAGON_AI_CLAUDE_HOME'),
+  renameDirectory: (from: string, to: string): void => {
+    fs.renameSync(from, to)
+  },
+  copyDirectory: (from: string, to: string): void => {
+    fs.cpSync(from, to, { recursive: true, force: true })
+  },
+  writeText: (filePath: string, text: string): void => {
+    fs.writeFileSync(filePath, text)
+  },
+  mkdirp: (dir: string): void => {
+    fs.mkdirSync(dir, { recursive: true })
+  }
 })
 
 // Every child (backend, CLI relays, terminals) resolves the same Dragon-owned
@@ -1815,7 +1829,7 @@ Menu.setApplicationMenu(null)
 // Windows toast notifications and the taskbar icon silently break unless an
 // AppUserModelID is set and matches the Start Menu shortcut AUMID that
 // electron-builder derives from build `appId` (PRODUCT_IDENTITY.appId, e.g.
-// ai.dragon.dragon-ai-claude). Stable builds leave IDENTITY_APP_NAME null
+// ai.dragon.dragon-ai). Stable builds leave IDENTITY_APP_NAME null
 // (shared historical userData), so never fall back to the upstream Hermes
 // AUMID — that produced a blank/generic taskbar icon after rebrand.
 // macOS/Linux don't need this, so gate it on Windows.

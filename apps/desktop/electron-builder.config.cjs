@@ -285,6 +285,7 @@ module.exports = {
     createStartMenuShortcut: true,
     shortcutName: displayName,
     uninstallDisplayName: displayName,
+    include: 'packaging/installer.nsh',
     installerIcon: 'assets/icon.ico',
     uninstallerIcon: 'assets/icon.ico',
     installerHeaderIcon: 'assets/icon.ico',

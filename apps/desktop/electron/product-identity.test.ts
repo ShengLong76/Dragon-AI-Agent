@@ -17,10 +17,11 @@ import { afterEach, beforeEach, test, vi } from 'vitest'
 
 import type { applyDesktopIdentity, ProductIdentity } from './product-identity'
 
-type PackagingConfiguration = Omit<Configuration, 'extraMetadata' | 'mac' | 'msix' | 'protocols' | 'win'> & {
+type PackagingConfiguration = Omit<Configuration, 'extraMetadata' | 'mac' | 'msix' | 'nsis' | 'protocols' | 'win'> & {
   extraMetadata: Metadata
   mac: Omit<NonNullable<Configuration['mac']>, 'extendInfo'> & { extendInfo: { CFBundleExecutable: string } }
   msix: NonNullable<Configuration['msix']>
+  nsis: NonNullable<Configuration['nsis']>
   protocols: Protocol[]
   win: NonNullable<Configuration['win']>
 }
@@ -290,7 +291,7 @@ test('nonstable builds cannot claim the official Store package', async (): Promi
 test('store carries the Partner Center MSIX identity and no other variant does', async (): Promise<void> => {
   const store: ProductIdentity = await identityForVariant('store')
   assert.deepEqual(store.storeMsix, {
-    identityName: 'DragonAI.DragonAIClaude',
+    identityName: 'DragonAI.DragonAIAgent',
     publisher: 'CN=EE6D86E4-606F-4E38-B940-AD7248C9D519',
     publisherDisplayName: 'Dragon AI'
   })
@@ -298,4 +299,34 @@ test('store carries the Partner Center MSIX identity and no other variant does',
   for (const v of [undefined, 'bundled', 'light'] as const) {
     assert.equal((await identityForVariant(v)).storeMsix, undefined, `variant ${v} must carry no storeMsix`)
   }
+})
+
+test('packaging and runtime identity never bake Claude into product names or paths', async (): Promise<void> => {
+  const load: () => PackagingConfiguration = (): PackagingConfiguration => {
+    delete require.cache[require.resolve('../electron-builder.config.cjs')]
+    delete require.cache[require.resolve('../product-identity.cjs')]
+
+    return require('../electron-builder.config.cjs')
+  }
+
+  for (const variant of [undefined, 'bundled', 'light', 'store'] as const) {
+    const identity: ProductIdentity = await identityForVariant(variant)
+    for (const field of ['displayName', 'appId', 'appNamePascal', 'artifactNamePascal', 'cliName', 'msixAppIdWithOrg'] as const) {
+      assert.doesNotMatch(identity[field], /claude/i, `${variant ?? 'full'} ${field}`)
+    }
+    if (identity.storeMsix) {
+      assert.doesNotMatch(identity.storeMsix.identityName, /claude/i)
+    }
+  }
+
+  delete process.env.HERMES_DESKTOP_VARIANT
+  const config: PackagingConfiguration = load()
+  assert.equal(config.productName, 'Dragon AI')
+  assert.equal(config.nsis.shortcutName, 'Dragon AI')
+  assert.equal(config.nsis.uninstallDisplayName, 'Dragon AI')
+  assert.equal(config.nsis.include, 'packaging/installer.nsh')
+  assert.match(config.nsis.artifactName, /^DragonAIAgent-Setup-/)
+  assert.doesNotMatch(config.appId, /claude/i)
+  assert.doesNotMatch(config.extraMetadata.name, /claude/i)
+  assert.doesNotMatch(JSON.stringify(config.nsis), /claude/i)
 })
