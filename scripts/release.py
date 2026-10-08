@@ -303,7 +303,12 @@ def get_pr_number(subject: str) -> str | None:
 
 
 def _product_feed() -> dict:
-    return json.loads((REPO_ROOT / "branding" / "product-feed.json").read_text(encoding="utf-8-sig"))
+    path = REPO_ROOT / "branding" / "product-feed.json"
+    if path.is_file():
+        return json.loads(path.read_text(encoding="utf-8-sig"))
+    # Canary git fixtures point REPO_ROOT at an empty tmp tree.
+    from hermes_cli.product_feed import load_product_feed
+    return load_product_feed()
 
 
 def generate_changelog(commits, tag_name, semver, repo_url=None,
@@ -483,10 +488,12 @@ def _resume_canary(tag: str, remote: str, repository: str, *, notes_file: Path |
 
 
 def _is_dragon_github_repo(gh_repo: str | None) -> bool:
-    feed = _product_feed()
-    if feed.get("publicAssetsBase"):
+    # Read the product feed from the installed package, not REPO_ROOT — canary
+    # tests point REPO_ROOT at an empty tmp tree that has no branding/.
+    from hermes_cli.product_feed import load_product_feed, product_repository
+    if load_product_feed().get("publicAssetsBase"):
         return False
-    return bool(gh_repo) and gh_repo.lower() == str(feed["productRepository"]).lower()
+    return bool(gh_repo) and gh_repo.lower() == product_repository().lower()
 
 
 def _resume_dragon_latest(tag: str, version: str, remote: str, repository: str,

@@ -104,9 +104,10 @@ def test_workflow_skips_r2_archive_and_runs_dragon_windows_job():
     assert "dragon-github-only" in str(dragon.get("if") or "")
 
     attach = workflow["jobs"]["dragon-attach-github"]
-    assert "contents: write" in json.dumps(attach.get("permissions") or {"contents": "write"})
+    assert attach.get("permissions", {}).get("contents") == "write"
     script = json.dumps(attach)
     assert "scripts.dragon.desktop_release attach" in script
+    assert "scripts/dragon/desktop_release.py" in WORKFLOW.read_text(encoding="utf-8-sig")
     assert "upload_release" in str(attach.get("if") or "")
     assert "gh release edit" not in script or "--draft" in script
     assert "NousResearch" not in script

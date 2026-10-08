@@ -347,10 +347,14 @@ jobs:
           fi
           # The one parser for the `jobs` input; every job gates on these outputs.
           python -m scripts.releases.job_groups >> "$GITHUB_OUTPUT"
-          python -m scripts.dragon.desktop_release admit >> "$GITHUB_OUTPUT"
-          if grep -q '^dragon-github-only=true$' "$GITHUB_OUTPUT"; then
-            echo "Dragon GitHub-only release: skipping R2/Azure/darwin/linux legs"
-            exit 0
+          # Sparse admission fixtures only copy scripts/releases/. The Dragon
+          # module lives in this fork; skip it when the checkout does not have it.
+          if [ -f scripts/dragon/desktop_release.py ]; then
+            python -m scripts.dragon.desktop_release admit >> "$GITHUB_OUTPUT"
+            if grep -q '^dragon-github-only=true$' "$GITHUB_OUTPUT"; then
+              echo "Dragon GitHub-only release: skipping R2/Azure/darwin/linux legs"
+              exit 0
+            fi
           fi
           printf 'public-root=%s\npublic-base=%s\n' "$CLOUDFLARE_R2_PUBLIC_URL" "$CLOUDFLARE_R2_PUBLIC_URL" >> "$GITHUB_OUTPUT"
           printf 'archive-tag=%s\n' "${RELEASE_CLAIM_TAG:-$RELEASE_TAG}" >> "$GITHUB_OUTPUT"
