@@ -1,0 +1,15 @@
+{
+  "productName": "Dragon AI",
+  "productRepository": "ShengLong76/Dragon-AI-Agent",
+  "upstreamRepository": "NousResearch/hermes-agent",
+  "githubReleasesHtml": "https://github.com/ShengLong76/Dragon-AI-Agent/releases",
+  "publicAssetsBase": null,
+  "protectedPaths": [
+    "branding/",
+    "apps/desktop/src/dragon/",
+    "apps/desktop/assets/",
+    "apps/desktop/product-identity.cjs",
+    "scripts/dragon/",
+    "README.md"
+  ]
+}

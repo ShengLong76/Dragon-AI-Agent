@@ -301,15 +301,23 @@ def get_pr_number(subject: str) -> str | None:
     return None
 
 
-def generate_changelog(commits, tag_name, semver, repo_url="https://github.com/NousResearch/hermes-agent",
+def _product_feed() -> dict:
+    return json.loads((REPO_ROOT / "branding" / "product-feed.json").read_text(encoding="utf-8-sig"))
+
+
+def generate_changelog(commits, tag_name, semver, repo_url=None,
                        prev_tag=None, first_release=False, no_changelog=False):
     """Generate markdown changelog from categorized commits."""
+    feed = _product_feed()
+    product = feed["productName"]
+    if repo_url is None:
+        repo_url = f"https://github.com/{feed['productRepository']}"
     lines = []
 
     # Header
     now = datetime.now()
     date_str = now.strftime("%B %d, %Y")
-    lines.append(f"# Hermes Agent v{semver} ({tag_name})")
+    lines.append(f"# {product} v{semver} ({tag_name})")
     lines.append("")
     lines.append(f"**Release Date:** {date_str}")
     lines.append("")
@@ -323,10 +331,15 @@ def generate_changelog(commits, tag_name, semver, repo_url="https://github.com/N
     # and it points at the run that stopped.
     lines.append("<!-- HERMES_BUILDS_TABLE -->")
     lines.append("")
+    lines.append(
+        f"{product} release notes. Upstream Hermes Agent changes reach users "
+        "only after a sync pull request is approved on this repository."
+    )
+    lines.append("")
 
     if first_release:
         lines.append("> 🎉 **First official release!** This marks the beginning of regular weekly releases")
-        lines.append("> for Hermes Agent. See below for everything included in this initial release.")
+        lines.append(f"> for {product}. See below for everything included in this initial release.")
         lines.append("")
 
     all_authors = set()
@@ -439,7 +452,7 @@ def _resume_canary(tag: str, remote: str, repository: str, *, notes_file: Path |
         create = [
             "gh", "release", "create", tag, "--repo", repository,
             "--verify-tag", "--draft", "--prerelease",
-            "--title", f"Hermes Agent canary {tag}",
+            "--title", f"{_product_feed()['productName']} canary {tag}",
         ]
         create.extend(["--notes-file", str(notes_file)] if notes_file else ["--generate-notes"])
         created = subprocess.run(
@@ -535,7 +548,7 @@ def cmd_canary(args) -> None:
         return
 
     tag_result = git_result(
-        "tag", "-a", tag_name, "-m", f"Hermes Agent canary {date_utc}"
+        "tag", "-a", tag_name, "-m", f"{_product_feed()['productName']} canary {date_utc}"
     )
     if tag_result.returncode != 0:
         print(f"✗ Failed to create tag {tag_name}: {tag_result.stderr.strip()}")

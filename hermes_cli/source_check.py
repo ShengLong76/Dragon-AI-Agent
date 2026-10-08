@@ -17,6 +17,7 @@ import urllib.error
 import urllib.request
 
 from hermes_constants import get_hermes_home
+from hermes_cli.product_feed import is_upstream_repository, product_https_url, update_repository
 from hermes_cli.source_releases import OFFICIAL_REPOSITORY, _GITHUB_ORIGIN, resolve_source_target
 
 logger = logging.getLogger(__name__)
@@ -229,6 +230,8 @@ def _read_checkout(root: Path, git: str, embedded: Optional[str]) -> _Checkout:
     origin = "" if embedded else (_git_stdout(["remote", "get-url", "origin"], cwd=root, git=git) or "")
     match = _GITHUB_ORIGIN.fullmatch(origin)
     repository = OFFICIAL_REPOSITORY if embedded else (match[1] if match else None)
+    if repository:
+        repository = update_repository(repository)
     dirty = False if embedded else bool(_git_stdout(["status", "--porcelain"], cwd=root, git=git))
     return _Checkout(root, git, embedded, head, current_branch, origin, repository, dirty)
 
@@ -290,12 +293,15 @@ def _resolve_channel(result: dict, channel: str, co: _Checkout):
 
 
 def _branch_remote(co: _Checkout, selected_branch: str) -> str:
+    if co.embedded or is_upstream_repository(co.origin):
+        # Hermes remotes are never a user update source; fetch Dragon over HTTPS.
+        return product_https_url()
     official_ssh = (co.repository and co.repository.lower() == OFFICIAL_REPOSITORY.lower()
                     and co.origin.lower().startswith(("git@", "ssh://")))
     # The public official repo does not require the user's SSH credentials.
     # Forks must keep their own origin, including its authentication.
-    return (f"https://github.com/{OFFICIAL_REPOSITORY}.git"
-            if co.embedded or (official_ssh and selected_branch != "main") else "origin")
+    return (product_https_url()
+            if official_ssh and selected_branch != "main" else "origin")
 
 
 def _heal_deleted_branch(branch_config_path: Path, desktop_config: dict) -> None:

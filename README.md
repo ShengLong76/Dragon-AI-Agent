@@ -69,16 +69,27 @@ npm run lint
 npx vitest run
 ```
 
-## Staying in sync with upstream
+## Updates and upstream sync
 
-This fork is based on `NousResearch/hermes-agent@af90026`. Internal module names (`hermes_cli`, `tui_gateway`, …) are kept so upstream changes merge cleanly. Only user-visible strings are rebranded, using a script that rewrites string literals and JSX text and never touches identifiers or storage keys:
+Users get updates **only from this repository**. The desktop app, CLI (`dragon update`), and ZIP fallback all read one feed file: [`branding/product-feed.json`](branding/product-feed.json). That file names `ShengLong76/Dragon-AI-Agent` as the product repository. `NousResearch/hermes-agent` is recorded there as upstream for maintainers, never as an in-app update source.
+
+```
+Hermes upstream → sync PR (weekday schedule or manual) → James approves
+  → main → Dragon release (Desktop Bundled Release / installer) → Dragon updater
+```
+
+- **Upstream sync.** `.github/workflows/dragon-upstream-sync.yml` fetches Hermes's default branch, merges it onto `dragon/upstream-sync` (cut from Dragon `main`), reapplies branding, and opens or updates a pull request. It never auto-merges. If Git reports conflicts, the PR is opened as a draft and lists the conflicting files. Protected Dragon paths (logo, `apps/desktop/src/dragon/`, installer identity, this README) are called out when upstream touched them.
+- **Branding guard.** `python3 scripts/dragon/branding_guard.py` fails CI when user-visible Hermes naming returns. LICENSE / MIT attribution and internal upstream-remote references are allowed.
+- **Release.** After a sync PR (or any change) lands on `main`, the existing Desktop Bundled Release / canary pipeline publishes a Dragon release. Release notes are written as Dragon AI notes (`scripts/release.py`) and summarise reviewed main — they are not a raw Hermes autofix feed.
+- **In-app updater.** Packaged builds publish to GitHub Releases on `ShengLong76/Dragon-AI-Agent`. Source installs follow this repo (or their own GitHub fork). A leftover Hermes `origin` or `upstream` remote is ignored and remapped to Dragon.
 
 ```bash
 python3 scripts/dragon/rebrand_strings.py           # rewrite in place
 python3 scripts/dragon/rebrand_strings.py --check   # fail if any visible upstream naming remains
+python3 scripts/dragon/branding_guard.py            # feed + visible-copy + rebrand check
 ```
 
-Run it after every upstream merge. Dragon-specific code lives in `apps/desktop/src/dragon/` (brand, theme, Teams Marketplace) and `apps/desktop/src/plugins/hermes-bots/` (bot panel, pinned tiles, roster).
+Dragon-specific code lives in `apps/desktop/src/dragon/` (brand, theme, Teams Marketplace) and `apps/desktop/src/plugins/hermes-bots/` (bot panel, pinned tiles, roster). Internal module names (`hermes_cli`, `tui_gateway`, …) stay so upstream merges cleanly.
 
 ## Known limits
 

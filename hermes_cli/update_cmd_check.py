@@ -119,16 +119,27 @@ def fetch_compare_branch(git_cmd: list[str], root: Path, branch: str, depth_args
     """
     if branch == "main":
         # A local probe (~6 ms) spares non-fork installs a failed network fetch (~0.3-1 s).
-        if _git(git_cmd, root, ["remote", "get-url", "upstream"]).returncode == 0:
-            fetch_result = _fetch(git_cmd, root, depth_args, "upstream", branch)
-            if fetch_result.returncode == 0:
-                return fetch_result, f"upstream/{branch}"
+        # Never follow a Hermes ``upstream`` remote — user updates come from Dragon only.
+        upstream = _git(git_cmd, root, ["remote", "get-url", "upstream"])
+        if upstream.returncode == 0:
+            from hermes_cli.product_feed import is_product_repository, should_skip_upstream_remote
+
+            upstream_url = (upstream.stdout or "").strip()
+            if should_skip_upstream_remote(upstream_url):
+                print("→ Ignoring Hermes upstream remote; fetching Dragon AI updates.")
+            elif is_product_repository(upstream_url):
+                fetch_result = _fetch(git_cmd, root, depth_args, "upstream", branch)
+                if fetch_result.returncode == 0:
+                    return fetch_result, f"upstream/{branch}"
     from hermes_cli.gitlock import fetch_with_partial_clone_recovery
-    # Marking the unmarked packs clears the git 2.53+ partial-clone pack-objects crash (#124272).
-    print("→ Fetching from origin...")
+    from hermes_cli.product_feed import fetch_remote_for_origin
+
+    origin_url = (_git(git_cmd, root, ["remote", "get-url", "origin"]).stdout or "").strip()
+    remote = fetch_remote_for_origin(origin_url)
+    print(f"→ Fetching from {'Dragon AI' if remote != 'origin' else 'origin'}...")
     return fetch_with_partial_clone_recovery(
         lambda gc, a: _git(gc, root, a, **_uc()._no_prompt_git_kwargs()),
-        git_cmd, ["fetch", *depth_args, "origin", tracking_refspec("origin", branch)], root), f"origin/{branch}"
+        git_cmd, ["fetch", *depth_args, remote, tracking_refspec("origin", branch)], root), f"origin/{branch}"
 
 
 def repair_shallow_grafts(root: Path) -> None:

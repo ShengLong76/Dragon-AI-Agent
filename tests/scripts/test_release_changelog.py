@@ -14,4 +14,6 @@ def test_no_changelog_keeps_the_frame_without_commit_sections():
 
     assert "Something" not in body and "@dev" not in body
     assert "<!-- HERMES_BUILDS_TABLE -->" in body
+    assert "# Dragon AI v1.2.4" in body
+    assert "sync pull request" in body
     assert "https://github.com/o/r/compare/v1.2.3...rc.1-v1.2.4" in body
