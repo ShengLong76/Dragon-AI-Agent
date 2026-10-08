@@ -12,11 +12,13 @@ import {
 } from './product-version'
 
 const here = dirname(fileURLToPath(import.meta.url))
+const desktopRoot = resolve(here, '../..')
+const repoRoot = resolve(desktopRoot, '../..')
 
 describe('Dragon product version', () => {
   it('reads the desktop package version and matches the product feed', () => {
-    const desktop = JSON.parse(readFileSync(resolve(here, '../../package.json'), 'utf8')) as { version: string }
-    const feed = JSON.parse(readFileSync(resolve(here, '../../../branding/product-feed.json'), 'utf8')) as {
+    const desktop = JSON.parse(readFileSync(resolve(desktopRoot, 'package.json'), 'utf8')) as { version: string }
+    const feed = JSON.parse(readFileSync(resolve(repoRoot, 'branding/product-feed.json'), 'utf8')) as {
       productVersion: string
     }
 

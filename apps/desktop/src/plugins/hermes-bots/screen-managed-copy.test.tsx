@@ -35,6 +35,7 @@ vi.mock('./routing', () => {
   return { botConnectionRoute: () => route, resolveBotConnectionRoute: () => ({ status: 'resolved', route }) }
 })
 vi.mock('./data', () => ({ botSelectionKey: (bot: RosterRow) => bot.name }))
+vi.mock('./screen-open', () => ({ openBotScreen: vi.fn() }))
 vi.mock('./i18n', () => ({
   useBots: () => ({
     screen: {

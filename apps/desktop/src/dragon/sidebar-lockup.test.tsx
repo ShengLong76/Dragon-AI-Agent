@@ -45,6 +45,6 @@ describe('empty-state lockup face', () => {
     expect(label.compareDocumentPosition(screen.getByText(DRAGON_PRODUCT.wordmark)) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
 
     expect(DRAGON_SIDEBAR_CHROME_HEIGHT).toBe(DRAGON_LOCKUP_HEIGHT + DRAGON_MARKETPLACE_ROW_HEIGHT + DRAGON_TABS_HEIGHT)
-    expect(document.querySelector('[data-dragon-lockup]')?.className).toContain('flex-col')
+    expect(document.querySelector('div[data-dragon-lockup]')?.className).toContain('flex-col')
   })
 })
