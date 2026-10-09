@@ -25,9 +25,9 @@ from typing import Callable, Mapping, Optional
 # Identity the packaged app claims for its window: electron-builder bakes product-identity.cjs's
 # `appId` into extraMetadata.desktopName, and Electron hands that string to the compositor
 # verbatim (Wayland app_id, CHROME_DESKTOP). GNOME links a window to a launcher by StartupWMClass
-# or by a `<app_id>.desktop` file name, so the entry has to carry the same id — under the old
-# "hermes.desktop" name a packaged launch matches neither rung and lands on the placeholder icon.
-APP_ID = "com.nousresearch.hermes"
+# or by a `<app_id>.desktop` file name, so the entry has to carry the same id — under a
+# mismatched name a packaged launch matches neither rung and lands on the placeholder icon.
+APP_ID = "ai.dragon.dragon-ai-claude"
 DESKTOP_ENTRY_NAME = f"{APP_ID}.desktop"
 THEMED_ICON_NAME = "dragon"
 DESKTOP_ENTRY_DISPLAY_NAME = "Dragon AI"

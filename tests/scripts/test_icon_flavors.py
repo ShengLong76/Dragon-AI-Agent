@@ -5,6 +5,7 @@ import itertools
 import math
 import os
 import shutil
+from collections import Counter
 from pathlib import Path
 import struct
 import subprocess
@@ -99,16 +100,18 @@ def frames(path):
 
 
 def tile_color(image):
-    # The flavor background is the tile fill. Tiles carry an inward contrasting
-    # border (black or white) and the artwork sits above the centre, both of
-    # which LANCZOS smears across tiny frames — so read the most chromatic pixel
-    # of the tile's lower half instead of one fixed coordinate: on a flavored
-    # tile that is the fill colour, on a stable tile every candidate is grey.
+    # The flavor background is the plate fill. The Dragon mark is a color
+    # portrait in the centre, so "most chromatic pixel of the lower half"
+    # would read the navy art instead of the canary/commit tile. Sample a
+    # thin inward band at the left of the silhouette, outside the art inset.
     x0, y0, x1, y1 = image.getchannel("A").point(lambda a: 255 if a >= 128 else 0).getbbox()
-    pixels = [rgba[:3] for rgba in image.crop((x0, (y0 + y1) // 2, x1, y1)).getdata() if rgba[3] >= 128]
-    # Saturation weighted by chroma: a near-black anti-aliased edge pixel has high HSV
-    # saturation but almost no colour, the fill has both.
-    return max(pixels, key=lambda rgb: max(rgb) - min(rgb))
+    width, height = x1 - x0, y1 - y0
+    inset = max(1, width // 16)
+    band = image.crop((x0 + inset, y0 + height // 3, x0 + inset + max(1, inset), y1 - height // 3))
+    pixels = [rgba[:3] for rgba in band.getdata() if rgba[3] >= 128]
+    if not pixels:
+        pixels = [rgba[:3] for rgba in image.crop((x0, (y0 + y1) // 2, x1, y1)).getdata() if rgba[3] >= 128]
+    return Counter(pixels).most_common(1)[0][0]
 
 
 def is_dark_tile(path):
