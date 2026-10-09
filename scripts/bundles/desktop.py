@@ -121,6 +121,10 @@ def _build_prepared(prepared, builder_args: list[str], variant: str | None) -> N
             raise ValueError("payload dependencies were not prepared")
         if finish_native(prepared.payload, {"tui": products / "tui", "web": products / "web"}):
             raise RuntimeError("prepared payload assembly failed")
+        # Native prepare must keep uv-cache for publish_prepared. NSIS extraResources
+        # must not: those trees overflow the upgrade temp path. Strip after assemble.
+        from scripts.bundles.windows_payload import maybe_seal_windows_desktop_payload
+        maybe_seal_windows_desktop_payload(request.target, prepared.payload)
     from scripts.bundles.desktop_prepare import require_source
     require_source(repo, request.commit)
     # The admitted checkout stays clean across the whole build: packaging reads

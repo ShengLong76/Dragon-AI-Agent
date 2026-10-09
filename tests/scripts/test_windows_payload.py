@@ -13,7 +13,9 @@ from scripts.bundles.windows_payload import (
     finalize_windows_payload,
     iter_overlong_cache_paths,
     iter_overlong_payload_paths,
+    maybe_seal_windows_desktop_payload,
     nsis_upgrade_path,
+    prepared_payload_root,
     robust_rmtree,
     strip_payload_caches,
 )
@@ -100,3 +102,23 @@ def test_robust_rmtree_clears_readonly_files(tmp_path):
 
 def test_robust_rmtree_missing_path_is_a_no_op(tmp_path):
     robust_rmtree(tmp_path / "does-not-exist")
+
+
+def test_prepared_payload_root_strips_the_admitted_suffix(tmp_path):
+    prepared = tmp_path / "agent-payload.prepared.json"
+    assert prepared_payload_root(prepared) == tmp_path / "agent-payload"
+
+
+def test_desktop_windows_seal_strips_uv_cache_after_prepare(tmp_path):
+    payload = tmp_path / "agent-payload"
+    (payload / "uv-cache" / "wheels").mkdir(parents=True)
+    (payload / "uv-cache" / "wheels" / "a.whl").write_bytes(b"w")
+    (payload / "venv" / "lib" / "pkg").mkdir(parents=True)
+    (payload / "venv" / "lib" / "pkg" / "mod.py").write_text("x=1\n", encoding="utf-8")
+    prepared = tmp_path / "agent-payload.prepared.json"
+    assert maybe_seal_windows_desktop_payload("darwin-arm64", prepared) is None
+    assert (payload / "uv-cache").is_dir()
+    stripped = maybe_seal_windows_desktop_payload("win32-x64", prepared)
+    assert stripped is not None and stripped["dirs"] >= 1
+    assert not (payload / "uv-cache").exists()
+    assert (payload / "venv" / "lib" / "pkg" / "mod.py").is_file()

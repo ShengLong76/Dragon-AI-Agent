@@ -231,7 +231,7 @@ def _prepare_native(*, out: Path, ref: str, source: Path, cache: Path,
 
     # Build + sync INSIDE the staged repo: the editable project install
     # must point at the payload's own tree, not this checkout.
-    from scripts.bundles.windows_payload import finalize_windows_payload, robust_rmtree
+    from scripts.bundles.windows_payload import robust_rmtree
 
     venv_dir = out / "venv"
     if venv_dir.exists():
@@ -252,12 +252,24 @@ def _prepare_native(*, out: Path, ref: str, source: Path, cache: Path,
     write_features(features, out)
     print(f"✓ enabled-features.json ({len(features)} extras recorded)")
 
-    # Do not ship uv-cache or __pycache__/*.pyc. NSIS upgrades park the
-    # previous payload under %TEMP% and abort if any relocated path exceeds
-    # MAX_PATH (~250). Those two trees dominate packaged path length.
+    # Ship the full uv cache (build-only sdist sources and wheel ZIPs are
+    # already excluded by stage_uv_cache). publish_prepared requires this
+    # tree. Windows NSIS extraResources strip it later — see desktop.py.
     payload_cache = out / "uv-cache"
     if payload_cache.exists():
         robust_rmtree(payload_cache)
+    src_cache = cache
+    if src_cache.is_dir():
+        print(f"  uv-cache: copying {src_cache} → payload...", flush=True)
+        stage_uv_cache(src_cache, payload_cache)
+        pruned = prune_uv_cache_to_lock(payload_cache, repo_dir)
+        print(
+            f"✓ uv-cache (lock-scoped: pruned {pruned} stale entries; "
+            "offline rebuilds resolve from shipped wheels)",
+            flush=True,
+        )
+    else:
+        raise InstallError("uv-cache", "runtime dependency cache is missing")
 
     bad = _arch_guard(store_dir)
     for line in bad:
@@ -275,9 +287,9 @@ def _prepare_native(*, out: Path, ref: str, source: Path, cache: Path,
         Path(os.path.relpath(repo_dir, site)).as_posix() + "\n", encoding="utf-8")
     from scripts.bundles.payload import relativize_links
     relativize_links(out)
-    # Skip bake_bytecode: it writes read-only __pycache__/*.pyc whose
-    # nested site-packages paths already blow MAX_PATH on NSIS upgrade.
-    finalize_windows_payload(out)
+    from scripts.bundles.bytecode import bake_bytecode
+    baked = bake_bytecode(out, python_bin)
+    print(f"✓ baked bytecode ({baked['modules']} modules, unchecked-hash, read-only caches)")
     inputs = AgentInputs(
         project=repo_dir / "pyproject.toml", code=repo_dir, repo="hermes-agent",
         placement="contained", target=current_target(), python=python_bin,

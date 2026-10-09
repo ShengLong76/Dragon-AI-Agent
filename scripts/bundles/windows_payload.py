@@ -110,11 +110,27 @@ def strip_payload_caches(root: Path) -> dict[str, int]:
     return {"dirs": removed_dirs, "files": removed_files}
 
 
+def prepared_payload_root(prepared: Path) -> Path:
+    """Directory admitted by ``<name>.prepared.json`` (same stem, no suffix)."""
+    prepared = Path(prepared)
+    name = prepared.name
+    if not name.endswith(".prepared.json"):
+        raise ValueError("native prepared path must end with .prepared.json")
+    return prepared.with_name(name.removesuffix(".prepared.json"))
+
+
 def finalize_windows_payload(root: Path) -> dict[str, int]:
     """Strip caches then enforce the NSIS path budget. Call after staging."""
     stripped = strip_payload_caches(root)
     assert_payload_windows_paths(root)
     return stripped
+
+
+def maybe_seal_windows_desktop_payload(target: str, prepared: Path) -> dict[str, int] | None:
+    """After ``finish_native``, strip NSIS-hostile caches from Windows extraResources."""
+    if not str(target).startswith("win32-"):
+        return None
+    return finalize_windows_payload(prepared_payload_root(prepared))
 
 
 def _win_long(path: Path) -> str:
