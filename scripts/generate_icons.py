@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-"""Generate every app icon in the repo from the nous-girl art + platform backgrounds.
+"""Generate every app icon in the repo from the Dragon artwork + platform backgrounds.
 
 Usage (from repo root):
     node scripts/generate-icons.mjs           # write
     node scripts/generate-icons.mjs --check   # verify structure
 
 Sources of truth — two axes, composed per target:
-  Girl art (vector):  assets/nous-girl-black.svg  (black positive space)
-                      assets/nous-girl-white.svg  (white positive space)
-                      straight from the Nous brand kit (Inkscape exports,
-                      5487^2 viewBox, one path each).
+  Dragon art (raster): branding/dragon-logo.png (canonical low-poly mark)
+                       assets/dragon-logo.png   (copy for isolated checkouts)
+                       Never nous-girl / hermes.png / hermes-sprite sources.
 
   Backgrounds (per platform surface, light/dark):
                       assets/backgrounds/squircle-light.svg   white rounded
@@ -18,28 +17,27 @@ Sources of truth — two axes, composed per target:
                       assets/backgrounds/squircle-mac-dark.svg    mac HIG grid
 
   The master SVGs (assets/icon-master.svg light, assets/icon-master-dark.svg
-  dark) are GENERATED artifacts — squircle background + scaled girl artwork.
+  dark) are GENERATED artifacts — squircle background + scaled dragon artwork.
   The light master drives every squircle target;
   the dark master drives the dark-appearance targets. macOS is the exception:
   its icns targets render from an in-memory mac master that puts the same
   squircle on Apple's 824x824 (r=185.4) grid — centered in 1024 with 100px
   margins — so the icon matches the size of Apple-template neighbors.
   macOS 26 additionally gets apps/desktop/assets/icon.icon, an Icon Composer
-  package of canvas-filling layers (girl light/dark, plus a grayscale mono
+  package of canvas-filling layers (dragon light/dark, plus a grayscale mono
   layer for Clear and Tinted) that the system masks into its own squircle;
   electron-builder compiles it to Assets.car next to the .icns, which
   macOS <= 15 keeps showing.
 
 Desktop build identity comes from HERMES_PAYLOAD_TAG / HERMES_BUILD_COMMIT:
 Canary uses yellow/dark-yellow backgrounds. Commit builds use red/dark-red
-and a seven-character SHA badge. The girl and tile geometry do not change.
+and a seven-character SHA badge. The dragon and tile geometry do not change.
 Only apps/desktop outputs use this identity. Website, bootstrap, dashboard,
 and the shared master SVGs retain the default brand.
 
-The girl's position and uniform scale are registered to the reference artwork.
-She is clipped only to the outer rounded silhouette. Only nodes near her bottom
-edge are dragged down (past the edge, or to the ring when BORDER_ENABLED); the
-fitted face and hair stay fixed. Standalone wordmarks remain centered.
+The dragon is centered on the tile and clipped to the outer rounded silhouette.
+Vector portrait tests may still drag path nodes; raster dragon art is not
+reshaped. Standalone wordmarks remain centered.
 
 GENERATED OUTPUTS ARE COMMITTED. Regular builds and installs consume them and
 never render; flavored release bundles (canary/commit) render to a product dir.
@@ -63,25 +61,25 @@ Outputs (99 files):
   apps/desktop/assets/icon-dark.icns                  16..1024 (real ICNS)
   apps/desktop/packaging/dmg-volume.icns                 16..1024, from assets/dmg-volume.png (DMG volume)
   apps/desktop/assets/icon.icon/icon.json             Icon Composer manifest (macOS 26)
-  apps/desktop/assets/icon.icon/Assets/art-*.png      1024 girl (+ commit badge), light/dark
+  apps/desktop/assets/icon.icon/Assets/art-*.png      1024 dragon (+ commit badge), light/dark
   apps/desktop/assets/icon.icon/Assets/mono.png       1024 Clear/Tinted material (grayscale + opacity)
   apps/bootstrap-installer/src-tauri/icons/icon.icon/**  same package, unbranded (Tauri bundle.icon)
   apps/desktop/assets/appx/<Logo>[.scale-N].png       MSIX logos at 100/125/150/200/400% (wide: squircle centered)
   apps/desktop/assets/appx/Square44x44Logo.targetsize-N[_altform-(light)unplated].png
                                                       taskbar/Start bitmaps 16..256; unplated = dark tile
   apps/desktop/public/apple-touch-icon.png            1024x1024 squircle
-  apps/desktop/public/nous-girl.png                   256x256 squircle, black girl (light mark)
-  apps/desktop/public/nous-girl-dark.png              256x256 squircle, white girl (dark mark)
+  apps/desktop/public/dragon.png                      256x256 squircle, color dragon (light mark)
+  apps/desktop/public/dragon-dark.png                 256x256 squircle, color dragon (dark mark)
   apps/bootstrap-installer/src-tauri/icons/32x32.png       32x32
   apps/bootstrap-installer/src-tauri/icons/128x128.png     128x128
   apps/bootstrap-installer/src-tauri/icons/128x128@2x.png  256x256
   apps/bootstrap-installer/src-tauri/icons/icon.ico        16,32,64,128,256
   apps/bootstrap-installer/src-tauri/icons/icon.icns       16..1024
-  apps/bootstrap-installer/public/nous-girl.png   256x256 squircle mark (light)
-  website/static/img/logo.png                     1772x1799 girl alone, transparent (light)
-  website/static/img/logo-dark.png                1772x1799 girl alone, transparent (dark)
-  website/static/img/nous-logo.png                150x150 on white (opaque)
-  website/static/img/nous-logo-dark.png           150x150 on #0d1117 (opaque)
+  apps/bootstrap-installer/public/dragon.png      256x256 squircle mark (light)
+  website/static/img/logo.png                     1772x1799 dragon alone, transparent (light)
+  website/static/img/logo-dark.png                1772x1799 dragon alone, transparent (dark)
+  website/static/img/dragon-logo.png              150x150 on white (opaque)
+  website/static/img/dragon-logo-dark.png         150x150 on #0d1117 (opaque)
   website/static/img/favicon-16x16.png            16x16
   website/static/img/favicon-32x32.png            32x32
   website/static/img/apple-touch-icon.png         180x180
@@ -93,6 +91,7 @@ Outputs (99 files):
 from __future__ import annotations
 
 import argparse
+import base64
 import io
 import json
 import math
@@ -132,24 +131,31 @@ BORDER_ENABLED = False
 # 1024ths of the tile) so the outline crops her instead of leaving a gap.
 EDGE_OVERSHOOT = 48 / 1024
 
-# Portrait boxes fitted to the reference at equal visible tile width, with
-# uniform scaling about the tile center followed by an up-left translation.
-# Keep their y coordinate: bottom anchoring would undo the registration.
+# Portrait boxes: the dragon is centered on each tile with an 8% inset.
+# Vector portrait tests still read these as GIRL_BOXES.
+_ART_INSET = 82.0
+_ART_SIZE = 1024.0 - 2 * _ART_INSET
+_MAC_INSET = 166.0
+_MAC_SIZE = 1024.0 - 2 * _MAC_INSET
 GIRL_BOXES = {
-    "squircle-light.svg": (72.149433, 104.703674, 872.767801, 872.767801),
-    "squircle-dark.svg": (72.149433, 104.703674, 872.767801, 872.767801),
-    # Mac: the girl scaled 1.06x about the plate center; the plate stays on the
-    # 824 grid, but a white tile with a ring reads small beside full-color peers.
-    "squircle-mac-light.svg": (140.19, 164.44, 744.68, 744.68),
-    "squircle-mac-dark.svg": (140.19, 164.44, 744.68, 744.68),
+    "squircle-light.svg": (_ART_INSET, _ART_INSET, _ART_SIZE, _ART_SIZE),
+    "squircle-dark.svg": (_ART_INSET, _ART_INSET, _ART_SIZE, _ART_SIZE),
+    "squircle-mac-light.svg": (_MAC_INSET, _MAC_INSET, _MAC_SIZE, _MAC_SIZE),
+    "squircle-mac-dark.svg": (_MAC_INSET, _MAC_INSET, _MAC_SIZE, _MAC_SIZE),
 }
 # The macOS 26 layered icon's canvas is the plate itself (the system maps it
 # onto the 824 grid), so the same mac portrait lands in plate coordinates.
 _mx, _my, _mw, _mh = GIRL_BOXES["squircle-mac-light.svg"]
 _plate = 1024.0 / 824.0
 GIRL_BOXES["icon.icon"] = ((_mx - 100.0) * _plate, (_my - 100.0) * _plate, _mw * _plate, _mh * _plate)
-# The brand-kit SVG canvas (both girl svgs share this viewBox).
+# Historic girl-SVG canvas. Raster dragon art uses its own pixel bbox.
 GIRL_VIEWBOX = 5487.0615
+BANNED_ICON_SOURCE = re.compile(r"nous-girl|nous-logo|hermes\.png|hermes-sprite|hermes-frame", re.I)
+DRAGON_SOURCE_RELATIVE = (
+    "branding/dragon-logo.png",
+    "assets/dragon-logo.png",
+    "apps/desktop/assets/icon.png",
+)
 
 # ─── MSIX (Windows) asset catalog ───────────────────────────────────────────
 # The manifest names only the base files; Windows resolves each through
@@ -227,16 +233,16 @@ CHECK_SIZES: dict[str, tuple[str, tuple[int, int]]] = {
     "apps/desktop/assets/icon.icon/Assets/art-light.png": ("PNG", (1024, 1024)),
     "apps/desktop/assets/icon.icon/Assets/art-dark.png": ("PNG", (1024, 1024)),
     "apps/desktop/public/apple-touch-icon.png": ("PNG", (1024, 1024)),
-    "apps/desktop/public/nous-girl.png": ("PNG", (256, 256)),
-    "apps/desktop/public/nous-girl-dark.png": ("PNG", (256, 256)),
+    "apps/desktop/public/dragon.png": ("PNG", (256, 256)),
+    "apps/desktop/public/dragon-dark.png": ("PNG", (256, 256)),
     "apps/bootstrap-installer/src-tauri/icons/32x32.png": ("PNG", (32, 32)),
     "apps/bootstrap-installer/src-tauri/icons/128x128.png": ("PNG", (128, 128)),
     "apps/bootstrap-installer/src-tauri/icons/128x128@2x.png": ("PNG", (256, 256)),
-    "apps/bootstrap-installer/public/nous-girl.png": ("PNG", (256, 256)),
+    "apps/bootstrap-installer/public/dragon.png": ("PNG", (256, 256)),
     "website/static/img/logo.png": ("PNG", (1772, 1799)),
     "website/static/img/logo-dark.png": ("PNG", (1772, 1799)),
-    "website/static/img/nous-logo.png": ("PNG", (150, 150)),
-    "website/static/img/nous-logo-dark.png": ("PNG", (150, 150)),
+    "website/static/img/dragon-logo.png": ("PNG", (150, 150)),
+    "website/static/img/dragon-logo-dark.png": ("PNG", (150, 150)),
     "website/static/img/favicon-16x16.png": ("PNG", (16, 16)),
     "website/static/img/favicon-32x32.png": ("PNG", (32, 32)),
     "website/static/img/apple-touch-icon.png": ("PNG", (180, 180)),
@@ -258,15 +264,15 @@ TARGETS: list[tuple[str, str, object]] = [
     ("apps/desktop/assets/icon.icon/icon.json", "icon_manifest", None),
     *([("apps/desktop/assets/icon.icon/Assets/border-light.png", "icon_border", "#000000"),
        ("apps/desktop/assets/icon.icon/Assets/border-dark.png", "icon_border", "#ffffff")] if BORDER_ENABLED else []),
-    ("apps/desktop/assets/icon.icon/Assets/art-light.png", "icon_art", "black"),
-    ("apps/desktop/assets/icon.icon/Assets/art-dark.png", "icon_art", "white"),
+    ("apps/desktop/assets/icon.icon/Assets/art-light.png", "icon_art", "color"),
+    ("apps/desktop/assets/icon.icon/Assets/art-dark.png", "icon_art", "color"),
     ("apps/desktop/assets/icon.icon/Assets/mono.png", "icon_mono", None),
     *APPX_TARGETS,
     ("apps/desktop/public/apple-touch-icon.png", "png", 1024),
     # The dev-run Dock icon (app.dock.setIcon): same mac grid as the icns.
     ("apps/desktop/assets/icon-mac.png", "png_mac", 1024),
-    ("apps/desktop/public/nous-girl.png", "girl_light", 256),
-    ("apps/desktop/public/nous-girl-dark.png", "girl_dark", 256),
+    ("apps/desktop/public/dragon.png", "girl_light", 256),
+    ("apps/desktop/public/dragon-dark.png", "girl_dark", 256),
     ("apps/bootstrap-installer/src-tauri/icons/32x32.png", "png", 32),
     ("apps/bootstrap-installer/src-tauri/icons/128x128.png", "png", 128),
     ("apps/bootstrap-installer/src-tauri/icons/128x128@2x.png", "png", 256),
@@ -275,14 +281,14 @@ TARGETS: list[tuple[str, str, object]] = [
     # Tauri's bundler compiles an Icon Composer package from `bundle.icon`
     # (actool >= 26) into Assets.car; the unbranded twin of the desktop package.
     ("apps/bootstrap-installer/src-tauri/icons/icon.icon/icon.json", "icon_manifest", None),
-    ("apps/bootstrap-installer/src-tauri/icons/icon.icon/Assets/art-light.png", "icon_art", "black"),
-    ("apps/bootstrap-installer/src-tauri/icons/icon.icon/Assets/art-dark.png", "icon_art", "white"),
+    ("apps/bootstrap-installer/src-tauri/icons/icon.icon/Assets/art-light.png", "icon_art", "color"),
+    ("apps/bootstrap-installer/src-tauri/icons/icon.icon/Assets/art-dark.png", "icon_art", "color"),
     ("apps/bootstrap-installer/src-tauri/icons/icon.icon/Assets/mono.png", "icon_mono", None),
-    ("apps/bootstrap-installer/public/nous-girl.png", "girl_light", 256),
+    ("apps/bootstrap-installer/public/dragon.png", "girl_light", 256),
     ("website/static/img/logo.png", "logo", None),
     ("website/static/img/logo-dark.png", "logo_dark", None),
-    ("website/static/img/nous-logo.png", "png_white", 150),
-    ("website/static/img/nous-logo-dark.png", "png_dark_white", 150),
+    ("website/static/img/dragon-logo.png", "png_white", 150),
+    ("website/static/img/dragon-logo-dark.png", "png_dark_white", 150),
     ("website/static/img/favicon-16x16.png", "png", 16),
     ("website/static/img/favicon-32x32.png", "png", 32),
     ("website/static/img/apple-touch-icon.png", "png", 180),
@@ -291,7 +297,45 @@ TARGETS: list[tuple[str, str, object]] = [
     ("web/public/favicon.ico", "ico", [16, 32, 48]),
 ]
 
-# ─── girl art extraction ────────────────────────────────────────────────────
+# ─── dragon art extraction ──────────────────────────────────────────────────
+
+def refuse_banned_icon_source(path: Path) -> Path:
+    """Generated icons may not derive from leftover Nous/Hermes artwork."""
+    if BANNED_ICON_SOURCE.search(path.name) or BANNED_ICON_SOURCE.search(path.as_posix()):
+        raise ValueError(f"generated icons must not derive from Hermes/Nous artwork: {path}")
+    return path
+
+
+def resolve_dragon_art(source: Path) -> Path:
+    """First committed Dragon mark under the source tree. Never a nous/hermes file."""
+    for rel in DRAGON_SOURCE_RELATIVE:
+        path = source / rel
+        if path.is_file():
+            return refuse_banned_icon_source(path)
+    raise FileNotFoundError(
+        "Dragon artwork not found; expected branding/dragon-logo.png or assets/dragon-logo.png"
+    )
+
+
+def _raster_source(art: object, girl: str) -> Path | None:
+    girls = getattr(art, "girls", None)
+    if not isinstance(girls, dict) or girl not in girls:
+        return None
+    path = Path(girls[girl])
+    return path if path.suffix.lower() in {".png", ".webp"} else None
+
+
+def _silhouette(image: Image.Image, ink: tuple[int, int, int, int]) -> Image.Image:
+    out = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    out.paste(Image.new("RGBA", image.size, ink), (0, 0), image.getchannel("A"))
+    return out
+
+
+def _png_data_uri(image: Image.Image) -> str:
+    buf = io.BytesIO()
+    image.save(buf, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+
 
 class IconArt:
     """One generation's rendering inputs and caches; never writes to source."""
@@ -301,42 +345,56 @@ class IconArt:
         self.source = source
         self.colors = colors
         self.commit = commit
-        self.girls = {color: assets / f"nous-girl-{color}.svg" for color in ("black", "white")}
+        self.dragon = resolve_dragon_art(source)
+        self.girls = {name: self.dragon for name in ("black", "white", "color")}
         self.backgrounds = assets / "backgrounds"
         self.paths: dict[str, str] = {}
         self.bboxes: dict[str, tuple[float, float, float, float]] = {}
-        self.master = compose_svg(self, "black", "squircle-light.svg")
-        self.master_dark = compose_svg(self, "white", "squircle-dark.svg")
+        self.master = compose_svg(self, "color", "squircle-light.svg")
+        self.master_dark = compose_svg(self, "color", "squircle-dark.svg")
         # macOS icons sit on Apple's 824-on-1024 grid, not the full-bleed
         # squircle: same art, mac-grid backgrounds, icns targets only.
-        self.master_mac = compose_svg(self, "black", "squircle-mac-light.svg")
-        self.master_mac_dark = compose_svg(self, "white", "squircle-mac-dark.svg")
+        self.master_mac = compose_svg(self, "color", "squircle-mac-light.svg")
+        self.master_mac_dark = compose_svg(self, "color", "squircle-mac-dark.svg")
         # Badge-free twins for direct renders below BADGE_MIN_SIZE.
-        self.master_small = compose_svg(self, "black", "squircle-light.svg", badge=False)
-        self.master_dark_small = compose_svg(self, "white", "squircle-dark.svg", badge=False)
+        self.master_small = compose_svg(self, "color", "squircle-light.svg", badge=False)
+        self.master_dark_small = compose_svg(self, "color", "squircle-dark.svg", badge=False)
 
 
 def girl_path(art: IconArt, girl: str) -> str:
     """The girl `<path>` element with editor metadata stripped (resvg rejects
-    undeclared inkscape/sodipodi prefixes)."""
+    undeclared inkscape/sodipodi prefixes). Raster dragon art has no path."""
     if girl not in art.paths:
-        src = art.girls[girl].read_text(encoding="utf-8-sig")
-        m = re.search(r"<path\b.*?/>", src, re.S)
-        assert m, f"no <path> found in {art.girls[girl].name}"
+        src = art.girls[girl]
+        if src.suffix.lower() in {".png", ".webp"}:
+            raise ValueError(f"raster icon art has no SVG path: {src.name}")
+        refuse_banned_icon_source(src)
+        text = src.read_text(encoding="utf-8-sig")
+        m = re.search(r"<path\b.*?/>", text, re.S)
+        assert m, f"no <path> found in {src.name}"
         path = re.sub(r'\s+(inkscape|sodipodi):[a-zA-Z-]+="[^"]*"', "", m.group(0))
         art.paths[girl] = path
     return art.paths[girl]
 
 
 def girl_bbox(art: IconArt, girl: str) -> tuple[float, float, float, float]:
-    """Art bounding box in the girl SVG's coordinate space, measured by
+    """Art bounding box in the source's coordinate space, measured by
     rendering once and taking the alpha bbox (robust to art changes)."""
     if girl not in art.bboxes:
-        data = resvg_py.svg_to_bytes(svg_path=str(art.girls[girl]), width=512, height=512)
-        im = Image.open(io.BytesIO(data))
-        bx, by, bx2, by2 = im.getchannel("A").point(lambda v: 255 if v > 0 else 0).getbbox()
-        s = GIRL_VIEWBOX / 512.0
-        art.bboxes[girl] = (bx * s, by * s, (bx2 - bx) * s, (by2 - by) * s)
+        raster = _raster_source(art, girl)
+        if raster is not None:
+            refuse_banned_icon_source(raster)
+            im = Image.open(raster).convert("RGBA")
+            box = im.getchannel("A").point(lambda v: 255 if v > 0 else 0).getbbox()
+            assert box, f"no opaque pixels in {raster.name}"
+            bx, by, bx2, by2 = box
+            art.bboxes[girl] = (float(bx), float(by), float(bx2 - bx), float(by2 - by))
+        else:
+            data = resvg_py.svg_to_bytes(svg_path=str(art.girls[girl]), width=512, height=512)
+            im = Image.open(io.BytesIO(data))
+            bx, by, bx2, by2 = im.getchannel("A").point(lambda v: 255 if v > 0 else 0).getbbox()
+            s = GIRL_VIEWBOX / 512.0
+            art.bboxes[girl] = (bx * s, by * s, (bx2 - bx) * s, (by2 - by) * s)
     return art.bboxes[girl]
 
 
@@ -344,14 +402,28 @@ def girl_layer(
     art: IconArt, girl: str, box: tuple[float, float, float, float],
     *, align: str = "xMidYMid",
 ) -> str:
-    """Nested-svg layer: girl art (bbox as viewBox) placed into `box` — the
-    box's aspect is preserved via 'meet', so the girl never distorts."""
+    """Nested-svg layer: art (bbox as viewBox) placed into `box` — the
+    box's aspect is preserved via 'meet', so the mark never distorts."""
     bx, by, bw, bh = girl_bbox(art, girl)
     x, y, w, h = box
+    raster = _raster_source(art, girl)
+    if raster is not None:
+        refuse_banned_icon_source(raster)
+        image = Image.open(raster).convert("RGBA")
+        if girl == "black":
+            image = _silhouette(image, (0, 0, 0, 255))
+        elif girl == "white":
+            image = _silhouette(image, (255, 255, 255, 255))
+        cropped = image.crop((int(bx), int(by), int(bx + bw), int(by + bh)))
+        inner = f'<image href="{_png_data_uri(cropped)}" width="{bw}" height="{bh}"/>'
+        view_box = f"0 0 {bw} {bh}"
+    else:
+        inner = girl_path(art, girl)
+        view_box = f"{bx} {by} {bw} {bh}"
     return (
-        f'<svg x="{x}" y="{y}" width="{w}" height="{h}" viewBox="{bx} {by} {bw} {bh}" '
+        f'<svg x="{x}" y="{y}" width="{w}" height="{h}" viewBox="{view_box}" '
         f'preserveAspectRatio="{align} meet">\n'
-        f"    {girl_path(art, girl)}\n"
+        f"    {inner}\n"
         "  </svg>"
     )
 
@@ -458,9 +530,13 @@ def drag_bottom_nodes(path: ET.Element, *, cutoff: float, band: float, distance:
 
 
 def portrait_layer(art: IconArt, girl: str, bg: str, join_bottom: float) -> ET.Element:
-    """The registered girl with her lowest nodes dragged down to `join_bottom`
-    (the border's inner edge) so hair meets the ring instead of floating."""
+    """Registered art on the tile. Vector portraits still drag their lowest
+    nodes to `join_bottom`; raster dragon art is centered and left intact."""
     box = GIRL_BOXES[bg]
+    if _raster_source(art, girl) is not None:
+        portrait = ET.fromstring(girl_layer(art, girl, box, align="xMidYMid"))
+        portrait.set("overflow", "visible")
+        return portrait
     portrait = ET.fromstring(girl_layer(art, girl, box, align="xMidYMax"))
     _, y, portrait_width, portrait_height = box
     _, by, bw, bh = girl_bbox(art, girl)
@@ -506,7 +582,7 @@ def compose_svg(art: IconArt, girl: str, bg: str, *, badge: bool = True) -> str:
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}">\n'
         f'  <defs><clipPath id="icon-silhouette">{clip}</clipPath></defs>\n'
         f"  {inner.strip()}\n"
-        f'  <g clip-path="url(#icon-silhouette)">{badge_svg}{ET.tostring(portrait, encoding="unicode")}</g>\n'
+        f'  <g clip-path="url(#icon-silhouette)">{ET.tostring(portrait, encoding="unicode")}{badge_svg}</g>\n'
         "</svg>\n"
     )
 
@@ -639,8 +715,8 @@ def icon_art_svg(art: IconArt, girl: str) -> str:
     badge = f"  {commit_layer(art.commit, bg)}\n" if art.commit else ""
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {ICON_CANVAS} {ICON_CANVAS}">\n'
-        f"{badge}"
         f"  {ET.tostring(portrait, encoding='unicode')}\n"
+        f"{badge}"
         "</svg>\n"
     )
 
@@ -673,7 +749,7 @@ def icon_mono_image(art: IconArt) -> Image.Image:
         return layer
 
     out = Image.new("RGBA", (ICON_CANVAS, ICON_CANVAS), (0, 0, 0, 0))
-    paints = [(coverage(icon_art_svg(art, "black")), MONO_INK), (coverage(icon_art_svg(art, "white")), (1.0, 1.0))]
+    paints = [(coverage(icon_art_svg(art, "color")), MONO_INK)]
     if BORDER_ENABLED:
         paints.append((coverage(icon_border_svg("#ffffff")), MONO_RING))
     for alpha, (tone, opacity) in paints:
@@ -770,22 +846,19 @@ def save_png(img: Image.Image, buf: io.BytesIO) -> None:
 
 
 def girl_mark(art: IconArt, kind: str, size: int) -> Image.Image:
-    """The girl in the app-icon squircle (BrandMark asset) — the mark IS the
-    icon shape. girl_light: black girl on white squircle.  girl_dark: white
-    girl on #0d1117 squircle."""
-    if kind == "girl_light":
-        girl, bg = "black", "squircle-light.svg"
-    else:
-        girl, bg = "white", "squircle-dark.svg"
-    return render_svg(compose_svg(art, girl, bg), size)
+    """The dragon in the app-icon squircle (BrandMark asset) — the mark IS the
+    icon shape. girl_light: color dragon on white squircle. girl_dark: color
+    dragon on #0d1117 squircle."""
+    bg = "squircle-light.svg" if kind == "girl_light" else "squircle-dark.svg"
+    return render_svg(compose_svg(art, "color", bg), size)
 
 
 def build_logo_image(art: IconArt, dark: bool = False) -> Image.Image:
-    """1772x1799 wordmark: the girl alone on transparency (no frame), centered.
-    Light = black girl, dark = white girl — the consuming surface's background
-    (navbar light/dark) shows through."""
+    """1772x1799 wordmark: the dragon alone on transparency (no frame), centered.
+    Light = full-color dragon, dark = white silhouette — the consuming surface's
+    background (navbar light/dark) shows through."""
     W, H = 1772, 1799
-    svg = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}">\n  {girl_layer(art, "white" if dark else "black", (0, 0, W, H))}\n</svg>\n'
+    svg = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}">\n  {girl_layer(art, "white" if dark else "color", (0, 0, W, H))}\n</svg>\n'
     return render_svg(svg, (W, H))
 
 
@@ -946,8 +1019,8 @@ def cmd_check(source: Path, out: Path) -> int:
     for rel in (
         "apps/desktop/assets/icon.png",
         "apps/desktop/assets/icon-dark.png",
-        "apps/desktop/public/nous-girl.png",
-        "apps/desktop/public/nous-girl-dark.png",
+        "apps/desktop/public/dragon.png",
+        "apps/desktop/public/dragon-dark.png",
         "apps/desktop/public/apple-touch-icon.png",
     ):
         path = out / rel

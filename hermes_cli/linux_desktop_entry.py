@@ -29,6 +29,8 @@ from typing import Callable, Mapping, Optional
 # "hermes.desktop" name a packaged launch matches neither rung and lands on the placeholder icon.
 APP_ID = "com.nousresearch.hermes"
 DESKTOP_ENTRY_NAME = f"{APP_ID}.desktop"
+THEMED_ICON_NAME = "dragon"
+DESKTOP_ENTRY_DISPLAY_NAME = "Dragon AI"
 
 # Entry name written before the app-id rename; a successful install converts it into a hidden
 # alias (NoDisplay=true) so pre-rename taskbar pins keep resolving (see _alias_legacy_desktop_entry).
@@ -582,9 +584,9 @@ def render_desktop_entry(exec_command: str, icon: str) -> str:
     return (
         "[Desktop Entry]\n"
         "Type=Application\n"
-        "Name=Hermes\n"
-        "GenericName=Hermes Desktop\n"
-        "Comment=Launch Hermes Desktop\n"
+        f"Name={DESKTOP_ENTRY_DISPLAY_NAME}\n"
+        f"GenericName={DESKTOP_ENTRY_DISPLAY_NAME}\n"
+        f"Comment=Launch {DESKTOP_ENTRY_DISPLAY_NAME}\n"
         f"Exec={exec_command}\n"
         f"Icon={icon}\n"
         "Terminal=false\n"
@@ -663,7 +665,7 @@ def _hicolor_subdir(dimensions: Optional[tuple[int, int]]) -> str:
 
 
 def _hicolor_icon_dest(subdir: str) -> Path:
-    return _xdg_data_home() / "icons" / "hicolor" / subdir / "apps" / "hermes.png"
+    return _xdg_data_home() / "icons" / "hicolor" / subdir / "apps" / f"{THEMED_ICON_NAME}.png"
 
 
 def _remove_stale_scalable_icon() -> bool:
@@ -723,7 +725,7 @@ def _write_hicolor_pngs(files: dict[str, bytes]) -> bool:
 
 
 def _install_icon_to_hicolor(icon: Path) -> bool:
-    """Install the app icon into the user's hicolor tree so ``Icon=hermes`` resolves without an
+    """Install the app icon into the user's hicolor tree so ``Icon=dragon`` resolves without an
     absolute checkout path. Raster PNGs go to indexed fixed-size dirs, never ``scalable``."""
     try:
         raw = icon.read_bytes()
@@ -827,9 +829,9 @@ def install_desktop_entry(project_root: Path) -> Optional[Path]:
     # Prefer the themed name: the icon is COPIED into the hicolor tree, so the entry outlives the
     # checkout (an absolute Icon= path breaks when the checkout moves). Absolute path only when
     # the copy is impossible (read-only tree); themed name when the checkout has no icon at all.
-    icon_value = str(icon) if icon.is_file() else "hermes"
+    icon_value = str(icon) if icon.is_file() else THEMED_ICON_NAME
     if icon.is_file() and _install_icon_to_hicolor(icon):
-        icon_value = "hermes"
+        icon_value = THEMED_ICON_NAME
     contents = render_desktop_entry(exec_command, icon_value)
 
     try:

@@ -93,8 +93,7 @@ website/
 assets/
 !assets/
 assets/*
-!assets/nous-girl-black.svg
-!assets/nous-girl-white.svg
+!assets/dragon-logo.png
 !assets/dmg-volume.png
 !assets/backgrounds/
 !assets/backgrounds/**
