@@ -27,11 +27,19 @@ def test_nsis_prefix_is_the_documented_worst_case():
 
 
 def test_path_check_fails_on_a_realistic_elevenlabs_style_pyc(tmp_path):
-    rel = (
-        "venv/Lib/site-packages/elevenlabs/conversational_ai/conversation/"
-        "__pycache__/client.cpython-312.pyc"
+    # Field abort was a nested vendor pyc once NSIS parked the install in
+    # %TEMP%. Build a leaf in that tree that actually overflows the 250-char
+    # budget with our documented prefix (a short ``client.pyc`` does not).
+    rel_dir = (
+        "venv/Lib/site-packages/elevenlabs/conversational_ai/conversation/__pycache__"
     )
-    victim = tmp_path / Path(*rel.split("/"))
+    leaf = "conversation_initiation_client_data_config.cpython-312.pyc"
+    while True:
+        relative = f"{rel_dir}/{leaf}"
+        if len(nsis_upgrade_path(relative)) > WINDOWS_PACKAGED_PATH_LIMIT:
+            break
+        leaf = "x" + leaf
+    victim = tmp_path / Path(*relative.split("/"))
     victim.parent.mkdir(parents=True)
     victim.write_bytes(b"pyc")
     overlong = iter_overlong_payload_paths(tmp_path)

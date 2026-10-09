@@ -104,7 +104,11 @@ def ensure_sandbox_image(
     """
     if _inspect_image(run_capture, docker_exe, desired):
         return desired
-    if _pull_image(run_capture, docker_exe, desired) and _inspect_image(run_capture, docker_exe, desired):
+    # Local-only tags (``dragon-sandbox:desktop``) have no registry; pulling
+    # them is a guaranteed miss. Registry refs (ghcr / Docker Hub) are pulled.
+    if "/" in desired and _pull_image(run_capture, docker_exe, desired) and _inspect_image(
+        run_capture, docker_exe, desired
+    ):
         return desired
     candidates = list(pull_candidates or (PUBLISHED_SANDBOX_IMAGE, UPSTREAM_SANDBOX_IMAGE))
     for candidate in candidates:
