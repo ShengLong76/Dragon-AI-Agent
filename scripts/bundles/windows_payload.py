@@ -40,6 +40,15 @@ def nsis_upgrade_path(relative: str) -> str:
     return NSIS_UPGRADE_PREFIX + PAYLOAD_INSTALL_PREFIX + "\\" + rel
 
 
+def _is_cache_relative(relative: str) -> bool:
+    """uv-cache / ``__pycache__`` / bytecode — the trees NSIS actually trips on."""
+    parts = relative.replace("\\", "/").split("/")
+    if any(part in CACHE_DIR_NAMES for part in parts):
+        return True
+    name = parts[-1] if parts else ""
+    return Path(name).suffix in BYTECODE_SUFFIXES
+
+
 def iter_overlong_payload_paths(root: Path) -> list[tuple[str, int]]:
     """``(relative_posix, nsis_path_len)`` for every file that would overflow."""
     root = Path(root)
@@ -56,14 +65,24 @@ def iter_overlong_payload_paths(root: Path) -> list[tuple[str, int]]:
     return overlong
 
 
+def iter_overlong_cache_paths(root: Path) -> list[tuple[str, int]]:
+    """Overlong leftovers we can strip: uv-cache, ``__pycache__``, ``*.pyc``/``*.pyo``."""
+    return [(rel, n) for rel, n in iter_overlong_payload_paths(root) if _is_cache_relative(rel)]
+
+
 def assert_payload_windows_paths(root: Path) -> None:
-    """Fail closed if any packaged path would exceed the NSIS upgrade budget."""
-    overlong = iter_overlong_payload_paths(root)
+    """Fail closed if leftover cache/bytecode paths would overflow NSIS.
+
+    Third-party source files (``lark_oapi`` and similar) can already exceed the
+    budget; those predate this check and must not abort every native bundle.
+    The durable upgrade fix is refusing to *ship* uv-cache / ``__pycache__``.
+    """
+    overlong = iter_overlong_cache_paths(root)
     if not overlong:
         return
     sample = ", ".join(f"{rel} ({n})" for rel, n in overlong[:8])
     raise ValueError(
-        f"{len(overlong)} packaged path(s) exceed {WINDOWS_PACKAGED_PATH_LIMIT} chars "
+        f"{len(overlong)} packaged cache path(s) exceed {WINDOWS_PACKAGED_PATH_LIMIT} chars "
         f"under a realistic NSIS upgrade temp root ({sample})"
     )
 
