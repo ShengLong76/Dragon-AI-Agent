@@ -32,7 +32,7 @@ import {
 import { avatarColor, botAppearance, BotFace } from './avatar'
 import { isBackfilledFacePng } from './avatar-image'
 import { BotContextMenu } from './bot-context-menu'
-import { openBotPanel } from './bot-panel'
+import { openBotPanel, selectBotInPanel } from './bot-panel'
 import {
   $botChatFocused,
   $focusedBotOwner,
@@ -213,8 +213,12 @@ export function BotRow({ bot, onDelete, onEdit, onGroup, onNewSection, showHandl
   }
 
   // Rows and Active Now share the exact-owner open path; only that path may
-  // activate a source and resolve the canonical Bot Chat.
-  const open = () => void openRosterBot(bot)
+  // activate a source and resolve the canonical Bot Chat. The right pane
+  // follows this click immediately; double-click is what jumps to Computer.
+  const open = () => {
+    selectBotInPanel(bot)
+    void openRosterBot(bot)
+  }
 
   // DRAG lives on the row button itself: it already takes pointer events, so
   // the click that opens the bot and the drag that files it are one element's

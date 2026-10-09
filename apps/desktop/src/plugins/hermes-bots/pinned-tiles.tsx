@@ -1,8 +1,9 @@
 /**
  * The pinned-bot strip at the top of the Bots tab: big circular avatars with
  * the bot's name and role badge, like a messenger's pinned conversations.
- * A click opens the bot's chat; a double-click opens its computer in the
- * right-side Bot panel. Right-click is the same bot menu the list rows use,
+ * A click opens the bot's chat and updates the right-side Bot panel to that
+ * bot. A double-click opens its computer in that panel. Right-click is the
+ * same bot menu the list rows use,
  * so Edit and Unpin stay available after a bot leaves the list for this strip.
  */
 
@@ -10,7 +11,7 @@ import { cn, useValue } from '@hermes/plugin-sdk'
 
 import { avatarColor, botAppearance, BotFace } from './avatar'
 import { BotContextMenu } from './bot-context-menu'
-import { openBotPanel } from './bot-panel'
+import { openBotPanel, selectBotInPanel } from './bot-panel'
 import { $selectedRosterKey } from './bot-state'
 import { $botMeta, botRosterKey } from './data'
 import { botRole, displayName } from './labels'
@@ -66,7 +67,10 @@ export function PinnedBotTiles({
                 selectedKey === key && 'bg-(--ui-row-active-background)'
               )}
               data-roster-key={key}
-              onClick={() => void openRosterBot(bot)}
+              onClick={() => {
+                selectBotInPanel(bot)
+                void openRosterBot(bot)
+              }}
               onDoubleClick={() => openBotPanel(bot, 'computer')}
               type="button"
             >

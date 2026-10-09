@@ -1,10 +1,10 @@
 /**
  * The right-sidebar Bot panel: one bot's identity card with Details | Library |
- * Computer | Routines tabs. Double-clicking a roster row (or a pinned tile)
- * opens it on the Computer tab — the bot's VM desktop — rather than a file
- * list. Routines is the cron list. Computer is the live VM desktop (RFB),
- * with an honest status when the guest is missing or the runtime has no
- * display service.
+ * Computer | Routines tabs. A single click on a roster row (or a pinned tile)
+ * selects that bot and updates this pane immediately, keeping the current tab.
+ * Double-click opens the Computer tab — the bot's VM desktop. Routines is the
+ * cron list. Computer is the live VM desktop (RFB), with an honest status
+ * when the guest is missing or the runtime has no display service.
  */
 
 import { atom, Button, cn, Codicon, GlyphSpinner, host, PanelEmpty, useI18n, useQuery, useValue } from '@hermes/plugin-sdk'
@@ -38,6 +38,13 @@ export function openBotPanel(bot: RosterRow, tab: BotPanelTab = 'computer') {
   host.revealPane(BOT_PANEL_PANE_ID)
 }
 
+/** Select this bot in the right pane without forcing the Computer tab. */
+export function selectBotInPanel(bot: RosterRow) {
+  const current = $botPanel.get()
+  $botPanel.set({ key: botSelectionKey(bot), tab: current?.tab ?? 'computer' })
+  host.revealPane(BOT_PANEL_PANE_ID)
+}
+
 const TABS: { id: BotPanelTab; label: string }[] = [
   { id: 'details', label: 'Details' },
   { id: 'library', label: 'Library' },
@@ -54,7 +61,7 @@ export function BotPanelPane() {
   if (!panel || !bot) {
     return (
       <PanelEmpty
-        description="Double-click a bot in the Bots tab to open its computer, details, library, and routines here."
+        description="Click a bot in the Bots tab to open its details, library, computer, and routines here. Double-click to jump to its computer."
         icon="hubot"
         title="No bot open"
       />
@@ -98,7 +105,7 @@ export function BotPanelPane() {
       <div className="mt-2 min-h-0 flex-1 overflow-hidden">
         {
           {
-            computer: <BotScreenPane bot={bot} />,
+            computer: <BotScreenPane bot={bot} key={botSelectionKey(bot)} />,
             details: <BotDetails bot={bot} description={meta?.description || bot.description || ''} />,
             library: (
               <div className="h-full overflow-y-auto px-3 py-2">
