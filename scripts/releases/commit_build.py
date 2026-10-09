@@ -34,12 +34,43 @@ def require_pushed(commit: str, remote: str, repo: Path | None = None, *, run=ou
         raise ValueError(f"Commit {commit} is not reachable from a pushed branch or tag on {remote}")
 
 
+_SEMVER = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
+
+
+def _semver(value: object) -> str | None:
+    return value if isinstance(value, str) and _SEMVER.fullmatch(value) else None
+
+
+def _show_file(run, repo: Path | None, commit: str, relative: str) -> str | None:
+    try:
+        return run(["git", "show", f"{commit}:{relative}"], repo)
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return None
+
+
 def version_at(repo: Path | None, commit: str, *, run=output) -> str:
+    """Commit packaging version: Dragon productVersion, else package.json, else pyproject."""
     require_commit(commit)
+    raw = _show_file(run, repo, commit, "branding/product-feed.json")
+    if raw is not None:
+        try:
+            version = _semver(json.loads(raw).get("productVersion"))
+        except (json.JSONDecodeError, TypeError, AttributeError):
+            version = None
+        if version:
+            return version
+    raw = _show_file(run, repo, commit, "apps/desktop/package.json")
+    if raw is not None:
+        try:
+            version = _semver(json.loads(raw).get("version"))
+        except (json.JSONDecodeError, TypeError, AttributeError):
+            version = None
+        if version:
+            return version
     document = tomllib.loads(run(["git", "show", f"{commit}:pyproject.toml"], repo))
     version = document["project"]["version"]
-    if not isinstance(version, str) or not re.fullmatch(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", version):
-        raise ValueError("Commit packaging requires project.version=X.Y.Z")
+    if not _semver(version):
+        raise ValueError("Commit packaging requires a product version X.Y.Z")
     return version
 
 

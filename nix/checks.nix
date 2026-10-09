@@ -186,9 +186,9 @@ json.dump(sorted(leaf_paths(DEFAULT_CONFIG)), sys.stdout, indent=2)
 
           desktop = Path('${self'.packages.desktop}/share')
           dist = desktop / 'hermes-desktop/dist'
-          launcher = desktop / 'icons/hicolor/1024x1024/apps/hermes.png'
+          launcher = desktop / 'icons/hicolor/1024x1024/apps/dragon.png'
           for path in [launcher, dist / 'apple-touch-icon.png',
-                       dist / 'nous-girl.png', dist / 'nous-girl-dark.png',
+                       dist / 'dragon.png', dist / 'dragon-dark.png',
                        Path('${self'.packages.web}/favicon.ico')]:
               with Image.open(path) as image:
                   image.load()

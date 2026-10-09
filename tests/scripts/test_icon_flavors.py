@@ -5,6 +5,7 @@ import itertools
 import math
 import os
 import shutil
+from collections import Counter
 from pathlib import Path
 import struct
 import subprocess
@@ -28,6 +29,10 @@ def generate(tmp_path_factory):
     foreign.mkdir()
     (foreign / "sitecustomize.py").write_text("raise SystemExit('foreign interpreter path leaked')\n", encoding="utf-8")
     shutil.copytree(ROOT / "assets", source / "assets")
+    branding = ROOT / "branding" / "dragon-logo.png"
+    if branding.is_file():
+        (source / "branding").mkdir()
+        shutil.copy2(branding, source / "branding" / "dragon-logo.png")
     from scripts.build.icon_environment import prepare_icon_environment
     python = prepare_icon_environment(ROOT, root / "runtime", root / "cache")
     node = shutil.which("node")
@@ -95,16 +100,18 @@ def frames(path):
 
 
 def tile_color(image):
-    # The flavor background is the tile fill. Tiles carry an inward contrasting
-    # border (black or white) and the artwork sits above the centre, both of
-    # which LANCZOS smears across tiny frames — so read the most chromatic pixel
-    # of the tile's lower half instead of one fixed coordinate: on a flavored
-    # tile that is the fill colour, on a stable tile every candidate is grey.
+    # The flavor background is the plate fill. The Dragon mark is a color
+    # portrait in the centre, so "most chromatic pixel of the lower half"
+    # would read the navy art instead of the canary/commit tile. Sample a
+    # thin inward band at the left of the silhouette, outside the art inset.
     x0, y0, x1, y1 = image.getchannel("A").point(lambda a: 255 if a >= 128 else 0).getbbox()
-    pixels = [rgba[:3] for rgba in image.crop((x0, (y0 + y1) // 2, x1, y1)).getdata() if rgba[3] >= 128]
-    # Saturation weighted by chroma: a near-black anti-aliased edge pixel has high HSV
-    # saturation but almost no colour, the fill has both.
-    return max(pixels, key=lambda rgb: max(rgb) - min(rgb))
+    width, height = x1 - x0, y1 - y0
+    inset = max(1, width // 16)
+    band = image.crop((x0 + inset, y0 + height // 3, x0 + inset + max(1, inset), y1 - height // 3))
+    pixels = [rgba[:3] for rgba in band.getdata() if rgba[3] >= 128]
+    if not pixels:
+        pixels = [rgba[:3] for rgba in image.crop((x0, (y0 + y1) // 2, x1, y1)).getdata() if rgba[3] >= 128]
+    return Counter(pixels).most_common(1)[0][0]
 
 
 def is_dark_tile(path):
@@ -256,7 +263,7 @@ def manifest_fills(package):
     assert "border" not in layers, "the ring is disabled everywhere"
     # A fixed "image-name" makes actool ignore the per-appearance images, so
     # the art layer picks its image through specializations only, with a dark
-    # one (else dark mode shows the black girl on the dark fill). Clear and
+    # one (else dark mode shows the light plate art on the dark fill). Clear and
     # Tinted come from the single mono layer, shown only under "tinted" while
     # the art layer hides there.
     art, mono = layers["art"], layers["mono"]
@@ -272,32 +279,30 @@ def manifest_fills(package):
 
 
 def test_layered_macos_icon_mono_layer_and_flavor_stays_in_the_fill(generate, monkeypatch):
-    """macOS 26 masks the layers itself. The girl is dragged past the plate edge
-    so the mask crops her (no gap below), the mono layer is one image of two
-    materials — near-black frosted ink and white — so nothing stacks, and build
-    flavors recolour the fill in icon.json only; the layers never change."""
+    """macOS 26 masks the layers itself. The dragon is centered on the plate,
+    the mono layer is the frosted-ink coverage of that mark, and build flavors
+    recolour the fill in icon.json only; unbadged layers never change."""
     module = load_generator(monkeypatch)
     stable = generate("v1.2.3") / "apps/desktop/assets" / LAYERED_ICON
     canary = generate("v1.2.3+canary.20260911T010203Z") / "apps/desktop/assets" / LAYERED_ICON
     commit = generate(commit="0123456" + "a" * 33) / "apps/desktop/assets" / LAYERED_ICON
 
     canvas = module.ICON_CANVAS
-    for name in ("art-light.png", "art-dark.png"):
-        layer = Image.open(stable / "Assets" / name).convert("RGBA")
+    light_art = Image.open(stable / "Assets" / "art-light.png").convert("RGBA")
+    dark_art = Image.open(stable / "Assets" / "art-dark.png").convert("RGBA")
+    for name, layer in (("art-light.png", light_art), ("art-dark.png", dark_art)):
         assert layer.size == (canvas, canvas)
-        bottom_row = layer.crop((0, canvas - 1, canvas, canvas)).getchannel("A").getbbox()
-        assert bottom_row is not None, f"{name}: the girl must reach the plate edge"
+        assert layer.getchannel("A").getbbox() is not None, f"{name}: dragon art is missing"
+        cx, cy = canvas // 2, canvas // 2
+        assert layer.getpixel((cx, cy))[3] > 200, f"{name}: dragon must occupy the plate center"
+    assert light_art.tobytes() == dark_art.tobytes()
     mono = Image.open(stable / "Assets" / "mono.png").convert("RGBA")
     ink_tone = round(module.MONO_INK[0] * 255)
     tones = {px[0] for px in mono.getdata() if px[3] > 127}
-    assert tones == {ink_tone, 255}, tones
-    light_art = Image.open(stable / "Assets" / "art-light.png").convert("RGBA")
-    dark_art = Image.open(stable / "Assets" / "art-dark.png").convert("RGBA")
+    assert tones == {ink_tone}, tones
     for x, y in ((canvas // 2, canvas // 2), (canvas // 3, canvas // 3), (2 * canvas // 3, canvas // 2)):
         px = mono.getpixel((x, y))
-        if dark_art.getpixel((x, y))[3] > 200:      # the girl's white parts stay white and opaque
-            assert px[:3] == (255, 255, 255) and px[3] == 255, (x, y, px)
-        elif light_art.getpixel((x, y))[3] > 200:   # her black parts become the frosted ink
+        if light_art.getpixel((x, y))[3] > 200:
             assert px[0] == ink_tone and abs(px[3] - round(module.MONO_INK[1] * 255)) <= 1, (x, y, px)
 
     for name in ("art-light.png", "art-dark.png", "mono.png"):

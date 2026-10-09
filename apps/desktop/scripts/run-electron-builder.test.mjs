@@ -83,12 +83,41 @@ test('npm run builder forwards an apostrophe path to the wrapper verbatim', () =
   }
 })
 
-test('tokenless packs admit --publish never and a null GitHub publisher', () => {
+test('strict spawn uses --publish never and does not pass a null publisher', async () => {
+  const source = path.resolve(import.meta.dirname, '../../..')
+  const out = fs.mkdtempSync(path.join(os.tmpdir(), 'builder-publish-'))
+  try {
+    const electron = path.join(out, 'electron.zip')
+    fs.writeFileSync(electron, 'fixture archive')
+    const toolsets = { sevenZip: path.join(out, 'sevenZip'), icons: path.join(out, 'icons') }
+    for (const dir of Object.values(toolsets)) fs.mkdirSync(dir)
+    const manifest = await publishPackagingInputs({ source, out, target: `${process.platform}-${process.arch}`, formats: ['dir'], electron, toolsets })
+    const nativeDeps = path.join(out, 'native')
+    fs.mkdirSync(path.join(nativeDeps, 'node-pty'), { recursive: true })
+    fs.writeFileSync(path.join(nativeDeps, 'node-pty/package.json'), '{}')
+    recordNativeInputs({ source, out: nativeDeps, platform: process.platform, arch: process.arch })
+    const spawned = []
+    const spawn = (_node, args) => { spawned.push(args); return { status: 0 } }
+    assert.equal(runElectronBuilder(['--prepared', manifest, '--native-deps', nativeDeps, '--dir'], { spawn }), 0)
+    assert.equal(spawned.length, 1)
+    const args = spawned[0]
+    assert.equal(args[args.indexOf('--publish') + 1], 'never')
+    assert.ok(!args.some(arg => String(arg).includes('publish=null')))
+  } finally {
+    fs.rmSync(out, { recursive: true, force: true })
+  }
+})
+
+test('tokenless packs admit --publish never without a null publisher override', () => {
   const inputs = { formats: ['nsis'], target: 'win32-x64' }
   assert.doesNotThrow(() => validatePreparedBuilderArgs(
-    ['--win', 'nsis', '--publish', 'never', '-c.publish=null'],
+    ['--win', 'nsis', '--publish', 'never'],
     inputs
   ))
+  assert.throws(() => validatePreparedBuilderArgs(
+    ['--win', 'nsis', '--publish', 'never', '-c.publish=null'],
+    inputs
+  ), /not admitted/)
 })
 
 test('source builds hand every child the builder heap without rewriting inherited NODE_OPTIONS', () => {
