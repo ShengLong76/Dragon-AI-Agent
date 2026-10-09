@@ -5,6 +5,7 @@ import { DRAGON_LOGO_SRC } from '@/components/brand-mark'
 import { cn } from '@/lib/utils'
 
 import { DRAGON_PRODUCT } from './brand'
+import { DRAGON_PRODUCT_VERSION, dragonProductVersionLabel } from './product-version'
 import { DRAGON_LOCKUP_HEIGHT, DRAGON_MARKETPLACE_ROW_HEIGHT, DRAGON_TITLEBAR_CLUSTER_NUDGE } from './sidebar-chrome'
 import { openTeamsMarketplace } from './teams/store'
 
@@ -39,11 +40,20 @@ export function DragonSidebarLockup() {
           src={DRAGON_LOGO_SRC}
         />
         <div className="min-w-0 leading-none">
-          <div
-            className="dragon-wordmark truncate text-[1.0625rem] font-bold tracking-[0.01em] text-foreground"
-            data-dragon-wordmark=""
-          >
-            {DRAGON_PRODUCT.wordmark}
+          <div className="flex min-w-0 items-baseline gap-2">
+            <div
+              className="dragon-wordmark truncate text-[1.0625rem] font-bold tracking-[0.01em] text-foreground"
+              data-dragon-wordmark=""
+            >
+              {DRAGON_PRODUCT.wordmark}
+            </div>
+            <span
+              aria-label={`${DRAGON_PRODUCT.name} ${dragonProductVersionLabel()}`}
+              className="shrink-0 text-[0.625rem] font-medium tabular-nums tracking-wide text-(--ui-text-tertiary)"
+              data-dragon-version=""
+            >
+              {dragonProductVersionLabel(DRAGON_PRODUCT_VERSION)}
+            </span>
           </div>
           {DRAGON_PRODUCT.edition ? (
             <div className="mt-1 truncate text-[0.625rem] font-semibold uppercase tracking-[0.24em] text-(--ui-text-tertiary)">

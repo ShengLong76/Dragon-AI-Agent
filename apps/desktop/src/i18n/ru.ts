@@ -3648,6 +3648,7 @@ export const ru = defineLocale({
       connectionSshTooltip: host => `SSH · ${host}`,
       connectionRemoteTooltip: host => `Удалённый · ${host}`,
       backendLabel: version => `бэкенд v${version}`,
+      runtimeExternal: 'Среда · внешняя',
       commit: sha => `коммит ${sha}`,
       branch: branch => `ветка ${branch}`,
       closeCommandCenter: 'Закрыть командный центр',

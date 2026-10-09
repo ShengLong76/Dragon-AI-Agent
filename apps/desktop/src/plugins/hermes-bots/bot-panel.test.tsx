@@ -1,8 +1,6 @@
 /**
  * The bot profile pane is Details | Library | Computer | Routines.
- * Computer reuses the scheduled-jobs Screen card (thumbnail, green dot,
- * Screen, Live · bot in control, Open live →). Open live calls openBotScreen.
- * Routines is the cron list only — no screen card.
+ * Computer is the live VM desktop. Routines is the cron list only.
  */
 
 import type * as HermesSdk from '@hermes/plugin-sdk'
@@ -11,10 +9,9 @@ import { act, cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { translateBots } from './i18n-test-helper'
-import type { BotMeta, RosterRow } from './types'
+import type { RosterRow } from './types'
 
-const { openBotScreen, request, requestProfile } = vi.hoisted(() => ({
-  openBotScreen: vi.fn(),
+const { request, requestProfile } = vi.hoisted(() => ({
   request: vi.fn(),
   requestProfile: vi.fn()
 }))
@@ -29,19 +26,8 @@ vi.mock('@hermes/plugin-sdk', async importOriginal => {
   }
 })
 
-vi.mock('./screen-open', () => ({ openBotScreen }))
-vi.mock('./screen-hero', () => ({
-  ScreenHero: ({ bot, meta }: { bot: RosterRow; meta?: BotMeta | null }) => (
-    <button
-      aria-label="Screen: Live · bot in control"
-      onClick={() => openBotScreen(bot, meta ?? null)}
-      type="button"
-    >
-      <span>Screen</span>
-      <span>Live · bot in control</span>
-      <span>Open live</span>
-    </button>
-  )
+vi.mock('./screen-pane', () => ({
+  BotScreenPane: () => <div>bot-computer</div>
 }))
 vi.mock('./skills-hub', () => ({ HubSkillsSection: () => <div>library-skills</div> }))
 
@@ -84,16 +70,7 @@ describe('the bot profile pane has four tabs and keeps Computer', () => {
     expect(screen.getByRole('tab', { name: 'Routines' })).toBeTruthy()
     expect(screen.queryByRole('tab', { name: 'Scheduled Jobs' })).toBeNull()
     expect(screen.queryByText('Take over')).toBeNull()
-    expect(screen.getByText('Screen')).toBeTruthy()
-    expect(screen.getByText('Live · bot in control')).toBeTruthy()
-    expect(screen.getByText('Open live')).toBeTruthy()
-
-    await act(async () => {
-      screen.getByRole('button', { name: 'Screen: Live · bot in control' }).click()
-    })
-
-    expect(openBotScreen).toHaveBeenCalledTimes(1)
-    expect(openBotScreen).toHaveBeenCalledWith(expect.objectContaining({ name: 'research' }), null)
+    expect(screen.getByText('bot-computer')).toBeTruthy()
 
     await act(async () => {
       screen.getByRole('tab', { name: 'Details' }).click()
@@ -116,16 +93,13 @@ describe('the bot profile pane has four tabs and keeps Computer', () => {
 
     expect(await screen.findByRole('button', { name: 'New cron' })).toBeTruthy()
     expect(await screen.findByText('No scheduled jobs yet')).toBeTruthy()
-    expect(screen.queryByRole('button', { name: /Open live/i })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Screen: Live · bot in control' })).toBeNull()
-    expect(screen.queryByText('Live · bot in control')).toBeNull()
+    expect(screen.queryByText('bot-computer')).toBeNull()
     expect(screen.getByRole('tab', { name: 'Computer' })).toBeTruthy()
 
     await act(async () => {
       screen.getByRole('tab', { name: 'Computer' }).click()
     })
 
-    expect(screen.getByRole('button', { name: 'Screen: Live · bot in control' })).toBeTruthy()
-    expect(screen.getByText('Open live')).toBeTruthy()
+    expect(screen.getByText('bot-computer')).toBeTruthy()
   })
 })

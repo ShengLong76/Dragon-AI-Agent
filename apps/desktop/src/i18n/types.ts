@@ -3937,6 +3937,7 @@ export interface Translations {
       connectionSshTooltip: (host: string) => string
       connectionRemoteTooltip: (host: string) => string
       backendLabel: (version: string) => string
+      runtimeExternal: string
       commit: (sha: string) => string
       branch: (branch: string) => string
       closeCommandCenter: string

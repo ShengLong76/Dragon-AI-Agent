@@ -6,6 +6,7 @@ scheduled sync workflow is the only path that may fetch Hermes.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from hermes_cli.product_feed import (
     fetch_remote_for_origin,
@@ -14,6 +15,7 @@ from hermes_cli.product_feed import (
     load_product_feed,
     product_https_url,
     product_repository,
+    product_version,
     should_skip_upstream_remote,
     update_repository,
     upstream_repository,
@@ -31,6 +33,9 @@ def test_product_feed_names_dragon_and_keeps_hermes_as_upstream_only():
     assert OFFICIAL_REPOSITORY == product_repository()
     assert OFFICIAL_REPO_URL == product_https_url()
     assert feed["publicAssetsBase"] is None
+    assert feed["productVersion"] == product_version()
+    desktop = json.loads((Path(__file__).resolve().parents[2] / "apps" / "desktop" / "package.json").read_text(encoding="utf-8"))
+    assert product_version() == desktop["version"]
 
 
 def test_hermes_remotes_are_not_a_user_update_source():

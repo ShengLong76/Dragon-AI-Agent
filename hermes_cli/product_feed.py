@@ -27,11 +27,19 @@ def load_product_feed() -> dict:
     for key in ("productName", "productRepository", "upstreamRepository"):
         if not isinstance(data.get(key), str) or not data[key].strip():
             raise ValueError(f"branding/product-feed.json missing {key}")
+    version = data.get("productVersion")
+    if not isinstance(version, str) or not version.strip():
+        raise ValueError("branding/product-feed.json missing productVersion")
     return data
 
 
 def product_name() -> str:
     return load_product_feed()["productName"]
+
+
+def product_version() -> str:
+    """Dragon product version (desktop + feed). Not the Python runtime git describe."""
+    return load_product_feed()["productVersion"]
 
 
 def product_repository() -> str:

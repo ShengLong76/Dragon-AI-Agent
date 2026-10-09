@@ -5118,6 +5118,7 @@ export const esOverrides = {
       connectionSshTooltip: host => `SSH · ${host}`,
       connectionRemoteTooltip: host => `Remoto · ${host}`,
       backendLabel: version => `backend v${version}`,
+      runtimeExternal: 'Runtime · externo',
       commit: sha => `commit ${sha}`,
       branch: branch => `rama ${branch}`,
       closeCommandCenter: 'Cerrar Centro de comandos',

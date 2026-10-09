@@ -7,6 +7,7 @@ upstream remote used by the sync workflow.
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import subprocess
 import sys
@@ -56,8 +57,6 @@ def scan_visible() -> list[str]:
 
 
 def check_product_feed() -> list[str]:
-    import json
-
     feed = json.loads(FEED_PATH.read_text(encoding="utf-8-sig"))
     errors = []
     if feed.get("productRepository") != "ShengLong76/Dragon-AI-Agent":
@@ -66,6 +65,13 @@ def check_product_feed() -> list[str]:
         errors.append("branding/product-feed.json upstreamRepository must remain NousResearch/hermes-agent")
     if feed.get("publicAssetsBase") not in (None, ""):
         errors.append("branding/product-feed.json publicAssetsBase must stay empty until Dragon owns a CDN")
+    version = feed.get("productVersion")
+    if not isinstance(version, str) or not version.strip():
+        errors.append("branding/product-feed.json productVersion must be the Dragon product version")
+    else:
+        desktop = json.loads((ROOT / "apps" / "desktop" / "package.json").read_text(encoding="utf-8-sig"))
+        if desktop.get("version") != version:
+            errors.append("branding/product-feed.json productVersion must match apps/desktop/package.json version")
     return errors
 
 
