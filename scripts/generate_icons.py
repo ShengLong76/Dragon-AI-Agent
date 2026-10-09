@@ -97,6 +97,7 @@ import json
 import math
 import os
 import re
+import shutil
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -942,9 +943,48 @@ def build_art(source: Path) -> tuple[IconArt, IconArt]:
     return art, art
 
 
+def output_is_independent(source: Path, out: Path) -> bool:
+    """True when wiping --out cannot delete the checkout source tree.
+
+    In-tree product dirs (apps/desktop/build/products/icons) must still wipe:
+    that is the leak that shipped leftover nous-girl / hermes artwork. Refuse
+    only when --out *is* the source root or an ancestor of it (tests pass
+    --out=tmp and --source=tmp/child).
+    """
+    src = source.resolve()
+    dest = out.resolve()
+    if src == dest:
+        return False
+    try:
+        src.relative_to(dest)
+        return False
+    except ValueError:
+        return True
+
+
+def reset_generated_output(source: Path, out: Path) -> None:
+    """Wipe a previous generate so stale nous/girl/hermes files cannot leak."""
+    if not output_is_independent(source, out):
+        return
+    if out.exists():
+        shutil.rmtree(out)
+    out.mkdir(parents=True)
+
+
+def prune_unlisted_outputs(source: Path, out: Path) -> None:
+    """Delete leftovers that are no longer in TARGETS after a generate."""
+    if not output_is_independent(source, out) or not out.exists():
+        return
+    listed = {out / rel for rel, _kind, _arg in TARGETS}
+    for path in out.rglob("*"):
+        if path.is_file() and path not in listed:
+            path.unlink()
+
+
 def cmd_write(source: Path, out: Path) -> int:
     """Return failure when any target cannot be generated or verified."""
     art, desktop_art = build_art(source)
+    reset_generated_output(source, out)
     written = 0
     failures = 0
     for rel, kind, arg in TARGETS:
@@ -957,6 +997,7 @@ def cmd_write(source: Path, out: Path) -> int:
         except Exception as exc:  # noqa: BLE001 - report all, then fail
             failures += 1
             print(f"  !! {rel}: FAILED ({exc})")
+    prune_unlisted_outputs(source, out)
     print(f"[write] wrote {written}/{len(TARGETS)} files")
 
     print("\n[verify]")

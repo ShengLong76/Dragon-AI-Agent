@@ -76,6 +76,20 @@ test('product outputs exclude the source tree except supported generated destina
   }
 })
 
+test('a leftover Hermes product marker is accepted and replaced with the Dragon marker', async () => {
+  const base = fixture()
+  const source = path.join(base, 'source')
+  mkdirSync(source)
+  const out = path.join(base, 'product')
+  put(out, '.hermes-product', 'hermes-frontend-product-v1\n')
+  put(out, 'hermes-build.json', '{"schema":1}\n')
+  expect(productOutput(source, out, []).out).toBe(out)
+  await withProduct(out, product => put(product, 'new.txt', 'rebuilt'))
+  expect(existsSync(path.join(out, '.hermes-product'))).toBe(false)
+  expect(readFileSync(path.join(out, '.dragon-product'), 'utf8')).toBe('dragon-frontend-product-v1\n')
+  expect(existsSync(path.join(out, 'new.txt'))).toBe(true)
+})
+
 test('publication replaces only builder-owned directories and rechecks ownership after compilation', async () => {
   const base = fixture()
   const source = path.join(base, 'source')

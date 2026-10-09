@@ -15,6 +15,7 @@ const path = require('node:path')
 const feedContract = require('./update-feed.cjs')
 const { createMacSigner } = require('./scripts/mac-sign.mjs')
 
+const productIdentity = require('./product-identity.cjs')
 const {
   light,
   store,
@@ -23,11 +24,11 @@ const {
   appId,
   appNamePascal,
   artifactNamePascal,
-  windowsExecutableName,
   channel,
   msixAppIdWithOrg,
   token
-} = require('./product-identity.cjs')
+} = productIdentity
+const windowsIdentity = productIdentity.finalizeIdentity(productIdentity.flavorIdentity, 'win32')
 
 // `storeMsix` is optional on the identity type but guaranteed present when
 // `store` is true (product-identity.cjs spreads it only in that branch).
@@ -230,8 +231,8 @@ module.exports = {
     ]
   },
   win: {
-    executableName: windowsExecutableName,
-    legalTrademarks: displayName,
+    executableName: windowsIdentity.windowsExecutableName,
+    legalTrademarks: windowsIdentity.displayName,
     target: ['nsis'],
     // The updaters' relaunch waiter is PowerShell run outside the package. The
     // sealed payload's snapshot omits scripts/, so it ships as a resource
@@ -282,8 +283,9 @@ module.exports = {
     allowToChangeInstallationDirectory: true,
     createDesktopShortcut: false,
     createStartMenuShortcut: true,
-    shortcutName: displayName,
-    uninstallDisplayName: displayName,
+    guid: windowsIdentity.nsisGuid,
+    shortcutName: windowsIdentity.displayName,
+    uninstallDisplayName: windowsIdentity.displayName,
     installerIcon: 'assets/icon.ico',
     uninstallerIcon: 'assets/icon.ico',
     installerHeaderIcon: 'assets/icon.ico',

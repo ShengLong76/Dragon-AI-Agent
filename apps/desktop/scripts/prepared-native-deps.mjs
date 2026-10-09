@@ -70,6 +70,11 @@ export function copyNativeTree({ nativeDeps, out }) {
   fs.rmSync(helpers, { recursive: true, force: true })
   const preparedHelpers = path.join(nativeDeps, 'native')
   fs.cpSync(nativeDeps, destination, { recursive: true, dereference: true,
-    filter: file => file !== preparedHelpers })
+    filter: file => {
+      const base = path.basename(file)
+      return file !== preparedHelpers
+        && base !== '.dragon-product' && base !== '.hermes-product'
+        && base !== 'dragon-build.json' && base !== 'hermes-build.json'
+    } })
   if (fs.existsSync(preparedHelpers)) fs.cpSync(preparedHelpers, helpers, { recursive: true, dereference: true })
 }

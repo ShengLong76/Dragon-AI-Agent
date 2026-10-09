@@ -17,6 +17,8 @@ interface ProductIdentity {
   cliName: string
   /** OS-level app identity w/ org prefix. e.g. "NousResearch.HermesLight" */
   msixAppIdWithOrg: string
+  /** Stable NSIS uninstall GUID shared by every Windows Dragon AI build. */
+  nsisGuid: string
   /** R2 identity token on channel builds; absent on legacy products. */
   readonly token?: string
   /** Channel subscription for channel builds; legacy electron-updater label otherwise. Stable tags:
@@ -31,5 +33,12 @@ interface ProductIdentity {
   }
 }
 
-declare const identity: ProductIdentity
+interface ProductIdentityModule extends ProductIdentity {
+  finalizeIdentity(current: ProductIdentity, platform?: string): ProductIdentity
+  packagingPlatform(argv?: readonly string[], platform?: string): string
+  flavorIdentity: ProductIdentity
+  WINDOWS_NSIS_GUID: string
+}
+
+declare const identity: ProductIdentityModule
 export = identity

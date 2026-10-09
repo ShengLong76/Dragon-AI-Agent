@@ -182,6 +182,23 @@ test('checkDistBuilt fails when a chunk is not valid ES module syntax', () => {
   }
 })
 
+test('checkDistBuilt fails when leftover Hermes/Nous artwork lands in dist', () => {
+  const { tempRoot, distDir } = makeDist(d => {
+    fs.writeFileSync(path.join(d, 'index.html'), '<!doctype html>', 'utf8')
+    fs.mkdirSync(path.join(d, 'assets'))
+    fs.writeFileSync(path.join(d, 'assets', 'index-abc123.js'), 'console.log(1)', 'utf8')
+    fs.writeFileSync(path.join(d, 'nous-girl.png'), 'not brand artwork')
+  })
+  try {
+    const result = checkDistBuilt(distDir)
+    assert.equal(result.ok, false)
+    assert.match(result.error, /nous-girl\.png/)
+    assert.match(result.error, /nous\|girl\|hermes/)
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
 test('checkDistBuilt passes when every chunk parses as an ES module', () => {
   const { tempRoot, distDir } = makeDist(d => {
     fs.writeFileSync(path.join(d, 'index.html'), '<!doctype html>', 'utf8')
