@@ -1,22 +1,17 @@
 /**
- * The Skills Hub picker embeds the real hub page in an iframe; the page posts
- * `{type:'hermes-skill-pick'}` back and the plugin installs via skills.manage.
+ * The Skills Hub picker embeds a local Dragon-branded catalog (never the
+ * upstream docs page headed "Hermes Agent"). Cards post
+ * `{type:'hermes-skill-pick'}` and the plugin installs via skills.manage.
  *
- * The handler used to check only `event.origin`, so ANY window on the hub
- * origin — an OAuth popup that had navigated back there, for instance — could
- * drive an install while the picker was open, and whatever string it sent
- * reached skills.manage as the install identifier. Picks are now pinned to OUR
- * frame's contentWindow and the identifier is charset-checked.
+ * Picks are pinned to OUR frame's contentWindow and the identifier is
+ * charset-checked.
  */
 
 import type * as HermesSdk from '@hermes/plugin-sdk'
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { translateBots } from './i18n-test-helper'
-
-const HUB_ORIGIN = 'https://hermes-agent.nousresearch.com'
-const FALLBACK_HUB_ORIGIN = 'https://nousresearch.github.io'
 
 const mocks = vi.hoisted(() => ({
   notify: vi.fn(),
@@ -66,7 +61,7 @@ function postPick(data: PickMessage, options: { origin?: string; source?: null |
   window.dispatchEvent(
     new MessageEvent('message', {
       data,
-      origin: options.origin ?? HUB_ORIGIN,
+      origin: options.origin ?? window.location.origin,
       source: options.source ?? null
     })
   )
@@ -82,115 +77,41 @@ function routedInstallCalls() {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  // Opening the hub browser now HEAD-probes the primary picker URL; default to
-  // a healthy probe so every non-fallback test stays hermetic and offline.
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }))
 })
 
 afterEach(() => {
   cleanup()
-  vi.unstubAllGlobals()
 })
 
 describe('hub pick messages', () => {
-  it('uses GitHub Pages when the Vercel hub probe is unavailable', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
-
+  it('embeds a Dragon-branded local catalog, not the Hermes docs site', () => {
     const frame = openHubBrowser()
+    const page = frame.getAttribute('srcdoc') || ''
 
-    await waitFor(() =>
-      expect(frame.getAttribute('src')).toBe(`${FALLBACK_HUB_ORIGIN}/hermes-agent/docs/skills?embed=picker`)
-    )
+    expect(frame.getAttribute('src')).toBeNull()
+    expect(page).toContain('Dragon AI')
+    expect(page).toContain('dragon-agent')
+    expect(page).not.toContain('Hermes Agent')
+    expect(page).not.toContain('hermes-agent.nousresearch.com')
+    expect(page).not.toContain('nousresearch.github.io')
+    expect(screen.getByText('Dragon AI Skills Hub')).toBeTruthy()
   })
 
-  it('uses GitHub Pages when the probe request fails', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('network error')))
-
-    const frame = openHubBrowser()
-
-    await waitFor(() =>
-      expect(frame.getAttribute('src')).toBe(`${FALLBACK_HUB_ORIGIN}/hermes-agent/docs/skills?embed=picker`)
-    )
-  })
-
-  it('uses GitHub Pages when the probe hangs past its deadline', async () => {
-    vi.useFakeTimers()
-    // AbortSignal.timeout's internal timer bypasses vi's fake clock — route it
-    // through setTimeout so the deadline is deterministic here.
-    vi.spyOn(AbortSignal, 'timeout').mockImplementation(ms => {
-      const controller = new AbortController()
-      setTimeout(() => controller.abort(new DOMException('Timed out', 'TimeoutError')), ms)
-
-      return controller.signal
-    })
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(
-        (_url: string, options: RequestInit) =>
-          new Promise((_resolve, reject) => {
-            options.signal?.addEventListener('abort', () =>
-              reject(new DOMException('The user aborted a request.', 'AbortError'))
-            )
-          })
-      )
-    )
-
-    try {
-      const frame = openHubBrowser()
-
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(8_000)
-      })
-
-      expect(frame.getAttribute('src')).toBe(`${FALLBACK_HUB_ORIGIN}/hermes-agent/docs/skills?embed=picker`)
-    } finally {
-      vi.restoreAllMocks()
-      vi.useRealTimers()
-    }
-  })
-
-  it('keeps the Vercel picker when the probe succeeds', async () => {
-    const frame = openHubBrowser()
-
-    await waitFor(() => expect(frame.getAttribute('src')).toBe(`${HUB_ORIGIN}/docs/skills?embed=picker`))
-  })
-
-  it('accepts an install message from the fallback picker frame', () => {
+  it('accepts an install message from the local picker frame', () => {
     const frame = openHubBrowser()
 
     postPick(
-      { identifier: 'nous/web-research', name: 'Web Research', type: 'hermes-skill-pick' },
-      { origin: FALLBACK_HUB_ORIGIN, source: frame.contentWindow }
+      { identifier: 'dragon-agent', name: 'dragon-agent', type: 'hermes-skill-pick' },
+      { source: frame.contentWindow }
     )
 
-    expect(installCalls()).toEqual([['skills.manage', { action: 'install', query: 'nous/web-research' }]])
+    expect(installCalls()).toEqual([['skills.manage', { action: 'install', query: 'dragon-agent' }]])
   })
 
-  it('pins the hub frame to the required sandbox and clipboard posture (#91612)', async () => {
+  it('pins the hub frame to a script-only sandbox', () => {
     const frame = openHubBrowser()
 
-    // Same-origin (the hub's own routing), scripts, and popups — external
-    // links then reach the OS browser via the main-process window-open
-    // delegation, never as a popup window.
-    expect(frame.getAttribute('sandbox')).toBe(
-      'allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox'
-    )
-    // The Copy controls write to the clipboard; the session permission
-    // handlers grant clipboard-sanitized-write only to the hub origins.
-    expect(frame.getAttribute('allow')).toBe('clipboard-write')
-  })
-
-  it('installs the picked skill when it comes from our own frame', () => {
-    const frame = openHubBrowser()
-
-    postPick(
-      { identifier: 'nous/web-research', name: 'Web Research', type: 'hermes-skill-pick' },
-      {
-        source: frame.contentWindow
-      }
-    )
-
-    expect(installCalls()).toEqual([['skills.manage', { action: 'install', query: 'nous/web-research' }]])
+    expect(frame.getAttribute('sandbox')).toBe('allow-scripts allow-same-origin')
   })
 
   it('routes an existing source-scoped bot install through its owner connection', async () => {
@@ -214,7 +135,7 @@ describe('hub pick messages', () => {
     const frame = container.querySelector('iframe') as HTMLIFrameElement
 
     postPick(
-      { identifier: 'nous/web-research', name: 'Web Research', type: 'hermes-skill-pick' },
+      { identifier: 'dragon-agent', name: 'dragon-agent', type: 'hermes-skill-pick' },
       { source: frame.contentWindow }
     )
 
@@ -231,7 +152,7 @@ describe('hub pick messages', () => {
         {
           action: 'install',
           profile: 'backend-worker',
-          query: 'nous/web-research'
+          query: 'dragon-agent'
         }
       ]
     ])
@@ -241,9 +162,8 @@ describe('hub pick messages', () => {
   it('regression: ignores a same-origin window that is NOT the picker frame', () => {
     openHubBrowser()
 
-    // Same origin, different window — the OAuth-popup shape of the hole.
     postPick(
-      { identifier: 'nous/web-research', name: 'Web Research', type: 'hermes-skill-pick' },
+      { identifier: 'dragon-agent', name: 'dragon-agent', type: 'hermes-skill-pick' },
       {
         source: window
       }
@@ -256,7 +176,7 @@ describe('hub pick messages', () => {
     const frame = openHubBrowser()
 
     postPick(
-      { identifier: 'nous/web-research', name: 'Web Research', type: 'hermes-skill-pick' },
+      { identifier: 'dragon-agent', name: 'dragon-agent', type: 'hermes-skill-pick' },
       {
         origin: 'https://evil.example',
         source: frame.contentWindow
@@ -273,17 +193,15 @@ describe('hub pick messages', () => {
       postPick({ identifier, name: 'Web Research', type: 'hermes-skill-pick' }, { source: frame.contentWindow })
     }
 
-    // The empty identifier falls back to `name`, which is also off-charset.
     expect(installCalls()).toEqual([])
   })
 
   it('ignores messages that are not a skill pick', () => {
     const frame = openHubBrowser()
 
-    postPick({ identifier: 'nous/web-research', type: 'oauth-callback' }, { source: frame.contentWindow })
-    postPick({ identifier: 'nous/web-research', type: 'hermes-skill-pick' }, { source: frame.contentWindow })
+    postPick({ identifier: 'dragon-agent', type: 'oauth-callback' }, { source: frame.contentWindow })
+    postPick({ identifier: 'dragon-agent', type: 'hermes-skill-pick' }, { source: frame.contentWindow })
 
-    // The second has no `name`, so it is not a complete pick either.
     expect(installCalls()).toEqual([])
   })
 
@@ -292,7 +210,7 @@ describe('hub pick messages', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /hide the hub browser/i }))
     postPick(
-      { identifier: 'nous/web-research', name: 'Web Research', type: 'hermes-skill-pick' },
+      { identifier: 'dragon-agent', name: 'dragon-agent', type: 'hermes-skill-pick' },
       {
         source: frame.contentWindow
       }

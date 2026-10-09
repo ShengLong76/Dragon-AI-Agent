@@ -10,6 +10,7 @@ import sys
 from pathlib import Path, PurePath
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
+from agent.skill_aliases import canonical_skill_name, skill_name_equivalents
 from hermes_constants import (
     get_config_path,
     get_skills_dir,
@@ -253,9 +254,10 @@ def _home_relative(p: Path) -> Path:
     return p if p.is_absolute() else get_hermes_home() / p
 
 
-# Never disableable: `hermes-agent` is the agent's own operating manual and the
-# system prompt points at it unconditionally.
-ESSENTIAL_SKILLS: frozenset = frozenset({"hermes-agent"})
+# Never disableable: `dragon-agent` is the agent's own operating manual (legacy
+# `hermes-agent` id stays essential so old config.yaml disable lists cannot
+# strip it after the rebrand).
+ESSENTIAL_SKILLS: frozenset = frozenset({"dragon-agent", "hermes-agent"})
 
 
 def get_disabled_skill_names(platform: str | None = None) -> Set[str]:
@@ -460,7 +462,7 @@ def resolve_skill_catalog(entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]
     for i, e in enumerate(out):
         skill_dir = Path(e["path"]).parent
         e["relative_path"] = skill_dir.relative_to(e["root"]).as_posix()
-        for alias in {str(e["name"]), skill_dir.name, e["relative_path"]}:
+        for alias in {str(e["name"]), skill_dir.name, e["relative_path"], *skill_name_equivalents(str(e["name"]))}:
             owners.setdefault(alias, []).append(i)
     winner: Dict[str, Optional[int]] = {}
     for alias, idxs in owners.items():
@@ -652,7 +654,7 @@ def normalize_skill_lookup_name(identifier: str) -> str:
         return raw_identifier
     identifier_path = Path(raw_identifier).expanduser()
     if not identifier_path.is_absolute():
-        return raw_identifier.lstrip("/")
+        return canonical_skill_name(raw_identifier.lstrip("/"))
     # Resolve the primary root via tools.skills_tool at CALL time: tests patch
     # ``tools.skills_tool.SKILLS_DIR`` and skill_view() enforces ``_skills_dir()``
     # (which follows the live profile-scoped HERMES_HOME), so normalization

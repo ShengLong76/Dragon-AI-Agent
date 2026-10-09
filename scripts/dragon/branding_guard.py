@@ -30,6 +30,7 @@ ALLOWED_PATH_PREFIXES = (
 # User-visible surfaces the rebrand script already owns, plus README.
 VISIBLE_SCAN = [
     ROOT / "README.md",
+    ROOT / "apps/desktop/src/plugins/hermes-bots/skills-hub.tsx",
 ]
 
 BANNED = re.compile(r"\bHermes Agent\b|\bHermes Desktop\b|\bHermes Cloud\b")

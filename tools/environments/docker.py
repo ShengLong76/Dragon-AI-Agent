@@ -18,7 +18,6 @@ import sys
 import tempfile
 import threading
 import time
-import uuid
 from pathlib import Path
 from typing import Optional
 
@@ -751,15 +750,23 @@ class DockerEnvironment(BaseEnvironment):
         task_label = _sanitize_label_value(task_id)
         self._labels = {
             "hermes-agent": "1",
+            "dragon-agent": "1",
             "hermes-task-id": task_label,
             "hermes-profile": profile_name,
             _EGRESS_LABEL_KEY: egress_label}
         # Explicit sharing opts into the first creator's settings. Otherwise,
         # changed image/mount/home configuration must start a fresh container.
+        from tools.environments.sandbox_image import fingerprint_alias_images
+
+        mount_fingerprint_args = [*writable_args, *volume_args]
         if not shared_container_key:
-            self._labels[_ENVIRONMENT_LABEL_KEY] = _reuse_environment_fingerprint(
-                image=image, mount_args=[*writable_args, *volume_args],
-                hermes_home=str(get_hermes_home()))
+            self._environment_label_aliases = [
+                _reuse_environment_fingerprint(
+                    image=alias, mount_args=mount_fingerprint_args,
+                    hermes_home=str(get_hermes_home()))
+                for alias in fingerprint_alias_images(image)
+            ]
+            self._labels[_ENVIRONMENT_LABEL_KEY] = self._environment_label_aliases[0]
         # Saved for container recreation on "No such container" recovery.
         self._image = image
         self._image_pinned = image_pinned
@@ -933,8 +940,10 @@ class DockerEnvironment(BaseEnvironment):
         # (nikolaik base -> hermes-sandbox:desktop) must not replace a sandbox someone has state in;
         # keep it and let the CLI / Screen pane ask. Same rule Modal (snapshot wins) and Daytona
         # (labeled sandbox wins) already apply.
+        from tools.environments.sandbox_image import images_are_equivalent
+
         actual_image = self._container_image(container_id)
-        if actual_image is not None and actual_image != self._image:
+        if actual_image is not None and not images_are_equivalent(actual_image, self._image):
             if not self._image_pinned:
                 logger.warning(
                     "Existing container %s runs image %s; the default docker_image is now %s. Keeping "
@@ -989,9 +998,24 @@ class DockerEnvironment(BaseEnvironment):
             container_id[:12], task_label, profile_name, state)
         return True
 
-    def _image_available_locally(self) -> bool:
-        """True once ``self._image`` is in the local image store, pulling it when it is not. Called BEFORE a
-        container replacement removes anything: a pull that fails must leave the old sandbox intact."""
+    def _ensure_sandbox_image(self) -> bool:
+        """Resolve a Dragon/alias sandbox tag locally (pull + retag). Other pins pull as-is."""
+        from tools.environments.sandbox_image import (
+            DEFAULT_SANDBOX_IMAGE,
+            SANDBOX_IMAGE_ALIASES,
+            ensure_sandbox_image,
+        )
+        if self._image in SANDBOX_IMAGE_ALIASES:
+            try:
+                self._image = ensure_sandbox_image(
+                    self._docker_exe,
+                    DEFAULT_SANDBOX_IMAGE if not self._image_pinned else self._image,
+                    run_capture=run_capture,
+                )
+                return True
+            except RuntimeError as exc:
+                logger.warning("Docker: %s", exc)
+                return False
         try:
             probe = run_capture([self._docker_exe, "image", "inspect", self._image, "--format", "{{.Id}}"],
                                 timeout=30)
@@ -1002,6 +1026,11 @@ class DockerEnvironment(BaseEnvironment):
         except (subprocess.SubprocessError, OSError) as e:
             logger.warning("Docker: could not pull %s: %s", self._image, e)
             return False
+
+    def _image_available_locally(self) -> bool:
+        """True once ``self._image`` is in the local image store, pulling it when it is not. Called BEFORE a
+        container replacement removes anything: a pull that fails must leave the old sandbox intact."""
+        return self._ensure_sandbox_image()
 
     def _start_container(self, container_id: str) -> Exception | None:
         """``docker start`` a stopped container; returns the failure instead of raising."""
@@ -1032,7 +1061,10 @@ class DockerEnvironment(BaseEnvironment):
         """Start a fresh container and return its id. A failed ``docker run`` (exit 125, timeout
         mid-pull) can leave a "Created" orphan the exited-only reaper never catches, so it is
         removed by name before re-raising."""
-        container_name = f"hermes-{uuid.uuid4().hex[:8]}"
+        from tools.environments.sandbox_image import new_container_name
+
+        self._ensure_sandbox_image()
+        container_name = new_container_name()
         run_cmd = self._run_command(
             container_name, container_workdir(cwd, getattr(self, "host_cwd_mount", None)))
         logger.debug("Starting container: %s", ' '.join(run_cmd))
@@ -1152,7 +1184,10 @@ class DockerEnvironment(BaseEnvironment):
                 logger.error("Recovery: no saved image name, cannot recreate container")
                 return False
             try:
-                new_name = f"hermes-{uuid.uuid4().hex[:8]}"
+                from tools.environments.sandbox_image import new_container_name
+
+                self._ensure_sandbox_image()
+                new_name = new_container_name()
                 result = run_capture(
                     self._run_command(
                         new_name,
@@ -1245,17 +1280,37 @@ class DockerEnvironment(BaseEnvironment):
         reused after ``hermes egress disable`` (baked-in proxy env and CA mounts), and every
         container this class creates carries the label. The ``{{.Label "key"}}`` template
         function is Docker-only — podman ps exits 125 on it — so the probe never uses it (#99213)."""
-        filters = [
+        base_filters = [
             "--filter", "label=hermes-agent=1",
             "--filter", f"label=hermes-task-id={task_label}",
             "--filter", f"label=hermes-profile={profile_label}",
             "--filter", f"label={_EGRESS_LABEL_KEY}={egress_label}"]
-        if environment_label := self._labels.get(_ENVIRONMENT_LABEL_KEY):
-            filters.extend(["--filter", f"label={_ENVIRONMENT_LABEL_KEY}={environment_label}"])
-        result = _docker_query(
-            [self._docker_exe, "ps", "-a", *filters, "--format", "{{.ID}}\t{{.State}}"], timeout=10,
-            fail="docker ps probe failed: %s — will start a fresh container",
-            nonzero="docker ps probe returned %d: %s — will start a fresh container")
+        environment_labels = [
+            label for label in (
+                *getattr(self, "_environment_label_aliases", ()),
+                self._labels.get(_ENVIRONMENT_LABEL_KEY),
+            )
+            if label
+        ]
+        # Dedup while preserving order: current Dragon hash first, then leftover
+        # hermes-sandbox hashes so an existing Computer-pane container is reused.
+        seen_labels: list[str] = []
+        for label in environment_labels:
+            if label not in seen_labels:
+                seen_labels.append(label)
+        if not seen_labels and self._labels.get(_ENVIRONMENT_LABEL_KEY) is None:
+            seen_labels = [None]
+        result = None
+        for environment_label in seen_labels or [None]:
+            filters = list(base_filters)
+            if environment_label:
+                filters.extend(["--filter", f"label={_ENVIRONMENT_LABEL_KEY}={environment_label}"])
+            result = _docker_query(
+                [self._docker_exe, "ps", "-a", *filters, "--format", "{{.ID}}\t{{.State}}"], timeout=10,
+                fail="docker ps probe failed: %s — will start a fresh container",
+                nonzero="docker ps probe returned %d: %s — will start a fresh container")
+            if result is not None and result.stdout.strip():
+                break
         if result is None:
             return None
         # Multiple matches can happen after a crash mid-cleanup: prefer a running

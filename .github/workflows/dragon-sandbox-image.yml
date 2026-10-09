@@ -1,0 +1,73 @@
+name: Dragon sandbox desktop image
+
+# Local tag is dragon-sandbox:desktop. This workflow publishes
+# ghcr.io/shenglong76/dragon-sandbox:desktop from the same Dockerfile as
+# the upstream desktop sandbox (no agent code). The runtime falls back to
+# nousresearch/hermes-sandbox:desktop and retags locally when GHCR is empty.
+
+on:
+  pull_request:
+    paths:
+      - docker/sandbox-desktop.Dockerfile
+      - docker/sandbox-desktop-smoke.sh
+      - .github/workflows/dragon-sandbox-image.yml
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Push to GHCR (rolls :desktop)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: dragon-sandbox-image-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  IMAGE_NAME: ghcr.io/shenglong76/dragon-sandbox
+
+jobs:
+  build:
+    if: github.repository == 'ShengLong76/Dragon-AI-Agent'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a # v7.0.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Build
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        with:
+          context: .
+          file: docker/sandbox-desktop.Dockerfile
+          platforms: linux/amd64
+          tags: ${{ env.IMAGE_NAME }}:test
+          load: true
+
+      - name: Smoke
+        run: docker/sandbox-desktop-smoke.sh ${{ env.IMAGE_NAME }}:test
+
+      - name: Log in to GHCR
+        if: github.event_name == 'workflow_dispatch' && inputs.publish
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish :desktop
+        if: github.event_name == 'workflow_dispatch' && inputs.publish
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        with:
+          context: .
+          file: docker/sandbox-desktop.Dockerfile
+          platforms: linux/amd64
+          tags: ${{ env.IMAGE_NAME }}:desktop
+          push: true
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}

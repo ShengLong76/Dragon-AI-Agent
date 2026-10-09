@@ -9,7 +9,7 @@ metadata:
   hermes:
     tags: [orchestration, fan-out, subagents, delegation, verification, migration, audit, research, campaign]
     category: autonomous-ai-agents
-    related_skills: [hermes-agent, simplify-code]
+    related_skills: [dragon-agent, simplify-code]
 when_to_use:
   - A task is too big for one context window AND you can describe the split (per-file, per-endpoint, per-source, per-record)
   - You want orchestration codified as a re-runnable script plus a shared brief, not improvised turn by turn

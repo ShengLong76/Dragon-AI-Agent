@@ -2,13 +2,13 @@
 name: claude-code
 description: "Delegate coding to Claude Code CLI (features, PRs)."
 version: 2.2.1
-author: Hermes Agent + Teknium
+author: Dragon AI
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [Coding-Agent, Claude, Anthropic, Code-Review, Refactoring, PTY, Automation]
-    related_skills: [codex, hermes-agent, opencode]
+    related_skills: [codex, dragon-agent, opencode]
 ---
 
 # Claude Code — Hermes Orchestration Guide
@@ -740,7 +740,7 @@ Use `/context` in interactive mode to see a colored grid of context usage. Key t
 11. **`--bare` skips OAuth** — requires `ANTHROPIC_API_KEY` env var or an `apiKeyHelper` in settings.
 12. **Context degradation is real** — AI output quality measurably degrades above 70% context window usage. Monitor with `/context` and proactively `/compact`.
 
-## Rules for Hermes Agents
+## Rules for Dragon AI agents
 
 1. **Prefer print mode (`-p`) for single tasks** — cleaner, no dialog handling, structured output
 2. **Use tmux for multi-turn interactive work** — the only reliable way to orchestrate the TUI
