@@ -87,7 +87,7 @@ describe('sidebar click updates the right pane', () => {
     expect($botPanel.get()).toEqual({ key: 'beta', tab: 'computer' })
     expect(openRosterBot).toHaveBeenCalledWith(beta)
     expect(revealPane).toHaveBeenCalled()
-    expect(screen.getByText('beta')).toBeTruthy()
+    expect(document.querySelector('[data-slot="dragon-bot-panel"]')?.textContent).toContain('Beta')
   })
 
   it('single-click on a pinned tile updates the same pane', () => {
