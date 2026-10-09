@@ -90,6 +90,18 @@ it('puts the full-resolution .icns back after electron-builder packaged the laye
   }
 })
 
+it('fails packaging when leftover Hermes artwork is in asar.unpacked/dist', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'dragon-leak-pack-'))
+  try {
+    const linuxCtx = { appOutDir: root, electronPlatformName: 'linux' }
+    await seedPackagedMain(linuxCtx)
+    await writeFile(path.join(`${resolvePackagedAsarPath(linuxCtx)}.unpacked`, 'dist', 'nous-girl.png'), 'stale')
+    await expect(configuredHook(linuxCtx)).rejects.toThrow(/nous-girl/)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
 it('leaves Linux alone and reports a missing framework without failing packaging', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'hermes-locale-pack-'))
   const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})

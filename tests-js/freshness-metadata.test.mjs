@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, renameSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { expect, test } from 'vitest'
@@ -57,6 +57,12 @@ test('OS file-manager metadata landing in hashed trees never invalidates a recor
     // ...while a genuine prepared-input change still invalidates.
     writeFileSync(path.join(prepared, 'icon.ico'), 'changed icon')
     expect(productCurrent({ source, product: 'web', out, prepared: { icons: prepared } })).toBe(false)
+    writeFileSync(path.join(prepared, 'icon.ico'), 'icon')
+    const withPreparedAgain = buildInputs(source, 'web', { icons: prepared })
+    recordProduct({ source, product: 'web', out, inputs: withPreparedAgain })
+    renameSync(path.join(out, 'dragon-build.json'), path.join(out, 'hermes-build.json'))
+    expect(readFileSync(path.join(out, 'hermes-build.json'), 'utf8')).toContain('"schema":1')
+    expect(productCurrent({ source, product: 'web', out, prepared: { icons: prepared } })).toBe(true)
   } finally {
     rmSync(source, { recursive: true, force: true })
     rmSync(out, { recursive: true, force: true })

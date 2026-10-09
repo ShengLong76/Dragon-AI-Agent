@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process'
-import { cpSync, existsSync, readdirSync } from 'node:fs'
+import { cpSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { bundleElectronMain } from '../../apps/desktop/scripts/bundle-electron-main.mjs'
 import { checkDistBuilt } from '../../apps/desktop/scripts/assert-dist-built.mjs'
+import { findForbiddenShippedAssets, isForbiddenShippedAsset } from '../../apps/desktop/scripts/forbidden-shipped-assets.mjs'
 import { classifyNativeBinary } from '../../apps/desktop/scripts/stage-native-deps.mjs'
 import { copyNativeTree } from '../../apps/desktop/scripts/prepared-native-deps.mjs'
 import { frontendArgs, isMain, productOutput, withProduct, workspaceTool } from './frontend-common.mjs'
@@ -44,8 +45,21 @@ export async function buildDesktop({ source, out, icons, stamp, nativeDeps, type
   await withProduct(out, async (product, scratch) => {
     const publicDir = join(scratch, 'public')
     const sourcePublic = join(source, app, 'public')
-    if (existsSync(sourcePublic)) cpSync(sourcePublic, publicDir, { recursive: true })
-    cpSync(publicIcons, publicDir, { recursive: true })
+    const copyPublic = from => {
+      if (!existsSync(from)) return
+      cpSync(from, publicDir, {
+        recursive: true,
+        filter: src => {
+          if (statSync(src).isDirectory()) return true
+          return !isForbiddenShippedAsset(relative(from, src))
+        },
+      })
+    }
+    copyPublic(sourcePublic)
+    copyPublic(publicIcons)
+    for (const leaked of findForbiddenShippedAssets(publicDir)) {
+      rmSync(join(publicDir, leaked), { force: true })
+    }
     if (typecheck) {
       const ts = workspaceTool(source, app, 'typescript')
       execFileSync(process.execPath, [join(dirname(ts), 'tsc.js'), '-p', join(source, app, 'tsconfig.json'),

@@ -45,6 +45,60 @@ def test_svg_readers_accept_bom_without_rewriting_assets(tmp_path, monkeypatch, 
         module.background_inner(art, path.name)
 
 
+def test_independent_output_is_wiped_before_generate(tmp_path, monkeypatch):
+    monkeypatch.setitem(sys.modules, "resvg_py", ModuleType("resvg_py"))
+    script = Path(__file__).resolve().parents[2] / "scripts" / "generate_icons.py"
+    spec = importlib.util.spec_from_file_location("icon_generator_wipe_under_test", script)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    source = tmp_path / "source"
+    source.mkdir()
+    out = tmp_path / "products" / "icons"
+    leftover = out / "apps/desktop/public/nous-girl.png"
+    leftover.parent.mkdir(parents=True)
+    leftover.write_bytes(b"stale last-night artwork")
+    (out / "website/static/img/nous-logo.png").parent.mkdir(parents=True)
+    (out / "website/static/img/nous-logo.png").write_bytes(b"stale logo")
+    image = io.BytesIO()
+    Image.new("RGBA", (2, 2), (0, 0, 0, 0)).save(image, "PNG")
+    monkeypatch.setattr(module, "TARGETS", [("apps/desktop/public/apple-touch-icon.png", "png", "icon")])
+    monkeypatch.setattr(module, "target_bytes", lambda *_: image.getvalue())
+    monkeypatch.setattr(sys, "argv", [str(script), "--source", str(source), "--out", str(out)])
+    try:
+        module.main()
+    except SystemExit as stopped:
+        assert stopped.code == 0
+    assert (out / "apps/desktop/public/apple-touch-icon.png").is_file()
+    assert not leftover.exists()
+    assert not (out / "website/static/img/nous-logo.png").exists()
+
+
+def test_in_tree_product_icons_dir_is_wiped_before_generate(tmp_path, monkeypatch):
+    """apps/desktop/build/products/icons lives under source and still must wipe."""
+    monkeypatch.setitem(sys.modules, "resvg_py", ModuleType("resvg_py"))
+    script = Path(__file__).resolve().parents[2] / "scripts" / "generate_icons.py"
+    spec = importlib.util.spec_from_file_location("icon_generator_in_tree_wipe_under_test", script)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    source = tmp_path / "checkout"
+    source.mkdir()
+    out = source / "apps/desktop/build/products/icons"
+    leftover = out / "apps/desktop/public/nous-girl.png"
+    leftover.parent.mkdir(parents=True)
+    leftover.write_bytes(b"stale last-night artwork")
+    image = io.BytesIO()
+    Image.new("RGBA", (2, 2), (0, 0, 0, 0)).save(image, "PNG")
+    monkeypatch.setattr(module, "TARGETS", [("apps/desktop/public/apple-touch-icon.png", "png", "icon")])
+    monkeypatch.setattr(module, "target_bytes", lambda *_: image.getvalue())
+    monkeypatch.setattr(sys, "argv", [str(script), "--source", str(source), "--out", str(out)])
+    try:
+        module.main()
+    except SystemExit as stopped:
+        assert stopped.code == 0
+    assert (out / "apps/desktop/public/apple-touch-icon.png").is_file()
+    assert not leftover.exists()
+
+
 @pytest.mark.parametrize("failure", [None, "render", "directory", "verify"])
 def test_write_status_includes_every_target(tmp_path, monkeypatch, capsys, failure):
     # The renderer is build-only. This test injects failures at its byte boundary.

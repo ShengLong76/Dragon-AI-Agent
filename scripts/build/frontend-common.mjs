@@ -29,9 +29,20 @@ function contains(parent, child) {
   return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative))
 }
 
-const productMarker = '.hermes-product'
-const productOwner = 'hermes-frontend-product-v1\n'
+const productMarker = '.dragon-product'
+const legacyProductMarker = '.hermes-product'
+const productOwner = 'dragon-frontend-product-v1\n'
+const legacyProductOwner = 'hermes-frontend-product-v1\n'
 const developerOutputs = ['ui-tui/dist', 'hermes_cli/web_dist', 'apps/desktop/dist', 'apps/desktop/build/native-deps']
+
+function ownedProductMarker(out) {
+  for (const [name, owner] of [[productMarker, productOwner], [legacyProductMarker, legacyProductOwner]]) {
+    const marker = path.join(out, name)
+    if (lstatSync(marker, { throwIfNoEntry: false })?.isFile() && readFileSync(marker, 'utf8') === owner) {
+      return marker
+    }
+  }
+}
 
 function developerOutput(source, out) {
   return source && developerOutputs.some(name => path.resolve(out) === path.join(path.resolve(source), name))
@@ -45,8 +56,7 @@ function requireOwnedOutput(out, source) {
   // These exact npm destinations belong to their compiler. Other paths require
   // explicit ownership before an existing directory can be replaced.
   if (developerOutput(source, out)) return
-  const marker = path.join(out, productMarker)
-  if (!lstatSync(marker, { throwIfNoEntry: false })?.isFile() || readFileSync(marker, 'utf8') !== productOwner) {
+  if (!ownedProductMarker(out)) {
     throw new Error(`Output already exists and is not builder-owned; choose a fresh output directory: ${out}`)
   }
 }

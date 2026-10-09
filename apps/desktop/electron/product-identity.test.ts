@@ -17,10 +17,11 @@ import { afterEach, beforeEach, test, vi } from 'vitest'
 
 import type { applyDesktopIdentity, ProductIdentity } from './product-identity'
 
-type PackagingConfiguration = Omit<Configuration, 'extraMetadata' | 'mac' | 'msix' | 'protocols' | 'win'> & {
+type PackagingConfiguration = Omit<Configuration, 'extraMetadata' | 'mac' | 'msix' | 'nsis' | 'protocols' | 'win'> & {
   extraMetadata: Metadata
   mac: Omit<NonNullable<Configuration['mac']>, 'extendInfo'> & { extendInfo: { CFBundleExecutable: string } }
   msix: NonNullable<Configuration['msix']>
+  nsis: NonNullable<Configuration['nsis']> & { guid: string }
   protocols: Protocol[]
   win: NonNullable<Configuration['win']>
 }
@@ -39,14 +40,28 @@ afterEach((): void => {
   vi.resetModules()
 })
 
-async function identityForVariant(variant: string | undefined): Promise<ProductIdentity> {
+function loadIdentityModule(): {
+  flavorIdentity: ProductIdentity
+  finalizeIdentity: (identity: ProductIdentity, platform?: string) => ProductIdentity
+  packagingPlatform: (argv?: readonly string[], platform?: string) => string
+  WINDOWS_NSIS_GUID: string
+} {
+  delete require.cache[require.resolve('../product-identity.cjs')]
+  return require('../product-identity.cjs')
+}
+
+function flavorForVariant(variant: string | undefined): ProductIdentity {
   if (variant === undefined) {
     delete process.env.HERMES_DESKTOP_VARIANT
   } else {
     process.env.HERMES_DESKTOP_VARIANT = variant
   }
 
-  delete require.cache[require.resolve('../product-identity.cjs')]
+  return loadIdentityModule().flavorIdentity
+}
+
+async function identityForVariant(variant: string | undefined): Promise<ProductIdentity> {
+  flavorForVariant(variant)
   vi.resetModules()
 
   return (await import('./product-identity')).PRODUCT_IDENTITY
@@ -87,9 +102,9 @@ test('baked runtime identity never evaluates ambient build selectors', async ():
 })
 
 test('nonstable runtime pins userData before the app name can change', async (): Promise<void> => {
-  const stable: ProductIdentity = await identityForVariant('bundled')
+  const stable: ProductIdentity = flavorForVariant('bundled')
   process.env.HERMES_PAYLOAD_TAG = 'v0.28.0+canary.20260818T000000Z'
-  const canary: ProductIdentity = await identityForVariant('bundled')
+  const canary: ProductIdentity = flavorForVariant('bundled')
   const runtime: { applyDesktopIdentity: typeof applyDesktopIdentity } = await import('./product-identity')
   const root: string = fs.mkdtempSync(path.join(os.tmpdir(), 'identity-userdata-'))
   const paths: Record<string, string> = { appData: root, userData: path.join(root, 'Hermes') }
@@ -130,7 +145,7 @@ test.each([
     channel: string,
     canaryChannel: string
   ): Promise<void> => {
-    const stable: ProductIdentity = await identityForVariant(variant)
+    const stable: ProductIdentity = flavorForVariant(variant)
     assert.equal(stable.displayName, display)
     assert.equal(stable.channel, channel)
     assert.equal(stable.light, variant === 'light')
@@ -144,12 +159,12 @@ test.each([
     ] as const) {
       process.env.HERMES_PAYLOAD_TAG = tag
       process.env.HERMES_BUILD_COMMIT = commit
-      const current: ProductIdentity = await identityForVariant(variant)
+      const current: ProductIdentity = flavorForVariant(variant)
       assert.equal(current.channel, expectedChannel)
       assert.equal(current.cliName, expectedCli)
       assert.equal(current.windowsExecutableName, expectedCli)
       assert.equal(current.artifactNamePascal, stable.artifactNamePascal)
-      assert.deepEqual(current, await identityForVariant(variant))
+      assert.deepEqual(current, flavorForVariant(variant))
 
       if (commit) {
         assert.equal(current.displayName, `${display} ${commit.slice(0, 7)}`)
@@ -177,15 +192,15 @@ test.each([
 
     process.env.HERMES_BUILD_COMMIT = 'not-a-sha'
     process.env.HERMES_PAYLOAD_TAG = 'v1.2.3'
-    assert.deepEqual(await identityForVariant(variant), stable)
+    assert.deepEqual(flavorForVariant(variant), stable)
   }
 )
 
 test('light and bundled retain distinct OS markers from the full client', async (): Promise<void> => {
-  const full: ProductIdentity = await identityForVariant(undefined)
+  const full: ProductIdentity = flavorForVariant(undefined)
 
   for (const variant of ['bundled', 'light']) {
-    const other: ProductIdentity = await identityForVariant(variant)
+    const other: ProductIdentity = flavorForVariant(variant)
 
     for (const field of ['displayName', 'appId', 'appNamePascal'] as const) {
       assert.notEqual(other[field], full[field])
@@ -207,7 +222,8 @@ test('packaging isolates boot metadata and executable names without renaming rel
     return require('../electron-builder.config.cjs')
   }
 
-  const stableIdentity: ProductIdentity = await identityForVariant('bundled')
+  const { finalizeIdentity, packagingPlatform } = loadIdentityModule()
+  const stableIdentity: ProductIdentity = flavorForVariant('bundled')
   const stable: PackagingConfiguration = load()
   assert.equal(stable.extraMetadata.productName || pkg.productName, pkg.productName)
 
@@ -218,14 +234,25 @@ test('packaging isolates boot metadata and executable names without renaming rel
   for (const build of ['canary', 'abcdef1234567890abcdef1234567890abcdef12']) {
     process.env.HERMES_PAYLOAD_TAG = build === 'canary' ? 'v0.28.0+canary.20260818T000000Z' : ''
     process.env.HERMES_BUILD_COMMIT = build === 'canary' ? '' : build
-    const identity: ProductIdentity = await identityForVariant('bundled')
+    const flavor: ProductIdentity = flavorForVariant('bundled')
+    const identity: ProductIdentity = finalizeIdentity(flavor, packagingPlatform())
+    const windows: ProductIdentity = finalizeIdentity(flavor, 'win32')
     const config: PackagingConfiguration = load()
     // Electron bootstrap gives productName precedence over name. appId alone
     // changes neither its early userData lookup nor its single-instance lock.
-    assert.equal(config.extraMetadata.productName, identity.displayName)
+    // Windows (and `electron-builder --win`) collapse flavor into the shared
+    // Dragon AI install, so extraMetadata.productName stays the package default.
+    if (identity.appNamePascal !== identity.artifactNamePascal) {
+      assert.equal(config.extraMetadata.productName, identity.displayName)
+      assert.notEqual(config.extraMetadata.name, stableIdentity.appNamePascal)
+    } else {
+      assert.equal(config.extraMetadata.productName, undefined)
+    }
     assert.equal(config.extraMetadata.name, identity.appNamePascal)
-    assert.notEqual(config.extraMetadata.name, stableIdentity.appNamePascal)
-    assert.equal(config.win.executableName, identity.windowsExecutableName)
+    assert.equal(config.win.executableName, windows.windowsExecutableName)
+    assert.equal(config.nsis.guid, windows.nsisGuid)
+    assert.equal(config.nsis.shortcutName, windows.displayName)
+    assert.equal(config.nsis.uninstallDisplayName, windows.displayName)
 
     const {
       AppInfo
@@ -239,7 +266,7 @@ test('packaging isolates boot metadata and executable names without renaming rel
 
     // Windows packaging, afterPack, rollback preservation and final signing
     // all consume this resolved name, not the display name.
-    assert.equal(appInfo.productFilename, identity.windowsExecutableName)
+    assert.equal(appInfo.productFilename, windows.windowsExecutableName)
     assert.equal(config.mac.extendInfo.CFBundleExecutable, config.executableName)
     assert.equal(config.artifactName, stable.artifactName)
     assert.equal(config.msix.customManifestPath, 'build/msix-manifest.xml')
@@ -285,6 +312,62 @@ test('nonstable builds cannot claim the official Store package', async (): Promi
   delete process.env.HERMES_PAYLOAD_TAG
   process.env.HERMES_BUILD_COMMIT = 'abcdef1234567890abcdef1234567890abcdef12'
   await assert.rejects(identityForVariant('store'), /Store.*stable/)
+})
+
+test('Windows commit, canary, bundled and channel builds share the stable Dragon AI install', async (): Promise<void> => {
+  const { finalizeIdentity, packagingPlatform, WINDOWS_NSIS_GUID } = loadIdentityModule()
+
+  assert.equal(WINDOWS_NSIS_GUID, 'b3558a90-7aa1-5a89-862f-0f6a264a6466')
+  assert.equal(packagingPlatform(['node', 'electron-builder', '--win', 'nsis'], 'linux'), 'win32')
+  assert.equal(packagingPlatform(['node', 'electron-builder', '--mac'], 'linux'), 'linux')
+  assert.equal(packagingPlatform(['node', 'electron-builder'], 'win32'), 'win32')
+
+  const stable: ProductIdentity = flavorForVariant(undefined)
+  const bundled: ProductIdentity = flavorForVariant('bundled')
+  process.env.HERMES_PAYLOAD_TAG = 'v0.28.0+canary.20260818T000000Z'
+  const canary: ProductIdentity = flavorForVariant('bundled')
+  process.env.HERMES_PAYLOAD_TAG = ''
+  process.env.HERMES_BUILD_COMMIT = 'abcdef1234567890abcdef1234567890abcdef12'
+  const commit: ProductIdentity = flavorForVariant('bundled')
+
+  const load: () => PackagingConfiguration = (): PackagingConfiguration => {
+    delete require.cache[require.resolve('../electron-builder.config.cjs')]
+    return require('../electron-builder.config.cjs')
+  }
+
+  assert.equal(load().nsis.guid, WINDOWS_NSIS_GUID)
+
+  for (const current of [stable, bundled, canary, commit]) {
+    const windows: ProductIdentity = finalizeIdentity(current, 'win32')
+    assert.equal(windows.displayName, 'Dragon AI')
+    assert.equal(windows.appId, 'ai.dragon.dragon-ai-claude')
+    assert.equal(windows.windowsExecutableName, 'Dragon AI')
+    assert.equal(windows.cliName, 'dragon')
+    assert.equal(windows.nsisGuid, WINDOWS_NSIS_GUID)
+    assert.equal(windows.appNamePascal, current.artifactNamePascal)
+    assert.equal(windows.token, undefined)
+    const runtime: { applyDesktopIdentity: typeof applyDesktopIdentity } = await import('./product-identity')
+    assert.equal(
+      runtime.applyDesktopIdentity(
+        {
+          getPath: (): string => assert.fail('Windows Dragon AI userData must stay historical'),
+          setPath: (): void => assert.fail('Windows Dragon AI userData must stay historical'),
+          setName: (): void => assert.fail('Windows Dragon AI name must stay historical')
+        },
+        windows
+      ),
+      null
+    )
+  }
+
+  process.env.HERMES_PAYLOAD_TAG = 'v0.28.0+canary.20260818T000000Z'
+  process.env.HERMES_BUILD_COMMIT = ''
+  const light: ProductIdentity = finalizeIdentity(flavorForVariant('light'), 'win32')
+  assert.equal(light.displayName, 'Dragon AI Light')
+  assert.equal(light.appId, 'ai.dragon.dragon-ai-claude-light')
+  assert.equal(light.windowsExecutableName, 'Dragon AI Light')
+  assert.equal(light.cliName, 'dragon-light')
+  assert.equal(light.nsisGuid, WINDOWS_NSIS_GUID)
 })
 
 test('store carries the Partner Center MSIX identity and no other variant does', async (): Promise<void> => {
