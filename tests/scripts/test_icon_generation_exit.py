@@ -61,7 +61,9 @@ def test_independent_output_is_wiped_before_generate(tmp_path, monkeypatch):
     (out / "website/static/img/nous-logo.png").write_bytes(b"stale logo")
     image = io.BytesIO()
     Image.new("RGBA", (2, 2), (0, 0, 0, 0)).save(image, "PNG")
+    art = SimpleNamespace()
     monkeypatch.setattr(module, "TARGETS", [("apps/desktop/public/apple-touch-icon.png", "png", "icon")])
+    monkeypatch.setattr(module, "build_art", lambda _source: (art, art))
     monkeypatch.setattr(module, "target_bytes", lambda *_: image.getvalue())
     monkeypatch.setattr(sys, "argv", [str(script), "--source", str(source), "--out", str(out)])
     try:
@@ -88,7 +90,9 @@ def test_in_tree_product_icons_dir_is_wiped_before_generate(tmp_path, monkeypatc
     leftover.write_bytes(b"stale last-night artwork")
     image = io.BytesIO()
     Image.new("RGBA", (2, 2), (0, 0, 0, 0)).save(image, "PNG")
+    art = SimpleNamespace()
     monkeypatch.setattr(module, "TARGETS", [("apps/desktop/public/apple-touch-icon.png", "png", "icon")])
+    monkeypatch.setattr(module, "build_art", lambda _source: (art, art))
     monkeypatch.setattr(module, "target_bytes", lambda *_: image.getvalue())
     monkeypatch.setattr(sys, "argv", [str(script), "--source", str(source), "--out", str(out)])
     try:
