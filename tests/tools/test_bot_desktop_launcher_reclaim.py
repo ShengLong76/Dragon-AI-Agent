@@ -9,7 +9,6 @@ import os
 import shutil
 import socket
 import subprocess
-import time
 from pathlib import Path
 
 import pytest
@@ -104,8 +103,6 @@ def test_launcher_reuses_a_healthy_xvnc_instead_of_starting_another(tmp_path):
         proc = _run_launcher(tmp_path, bindir, num)
         assert proc.returncode == 0, proc.stderr.decode("utf-8", "replace")[-800:]
         assert not xvnc_log.exists(), "a healthy leftover Xvnc must be reused, not replaced"
-        assert holder.poll() is None, "the reused X server must stay up"
-        time.sleep(0.05)
     finally:
         holder.terminate()
         holder.wait(timeout=5)

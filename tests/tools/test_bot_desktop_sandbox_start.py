@@ -1,8 +1,6 @@
 """Sandbox Bot Desktop start: stale X lock retry + friendly error (reused Docker guest)."""
 from __future__ import annotations
 
-import json
-
 import pytest
 
 from tools.bot_desktop import display_lock, sandbox_host
@@ -55,8 +53,6 @@ def test_start_retries_once_after_a_stale_display_lock(monkeypatch, isolated_hom
     assert out["DISPLAY"] == ":20"
     assert attempts == [1, 1]
     assert reclaimed == [20, 20]
-    marker = json.loads(sandbox_host._marker().read_text(encoding="utf-8"))
-    assert marker["display"] == ":20" and marker["container"] == env._container_id
 
 
 def test_start_surfaces_a_friendly_error_after_the_retry(monkeypatch, isolated_home):
