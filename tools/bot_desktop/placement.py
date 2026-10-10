@@ -15,11 +15,13 @@
 
 ``resolve()`` is pure config + backend-class + host-capability reasoning: it never starts a sandbox.
 ``terminal_environment()`` does acquire the environment (creating the container if needed) because a
-screen cannot exist before the sandbox does. A Linux-guest fallback uses a dedicated task id so it
-does not replace the profile's local terminal.
+screen cannot exist before the sandbox does. A Linux-guest fallback uses a dedicated, profile-scoped
+task id so it does not replace the profile's local terminal and does not share one container across
+bots on a multiplexed (``primary-shared``) backend.
 """
 from __future__ import annotations
 
+import hashlib
 import logging
 import sys
 import threading
@@ -33,10 +35,29 @@ GATEWAY = "gateway"
 TERMINAL = "terminal"
 REFUSED = "refused"
 _STREAM_BACKENDS = ("docker", "ssh", "singularity")
-# Dedicated ``_active_environments`` key so a Windows/macOS Computer tab can
-# bring up ``nousresearch/hermes-sandbox:desktop`` without flipping the
-# profile's configured ``terminal.backend``.
+# Dedicated ``_active_environments`` prefix so a Windows/macOS Computer tab can
+# bring up ``dragon-sandbox:desktop`` without flipping the profile's configured
+# ``terminal.backend``. The live key MUST include the served profile — a
+# multiplexed Desktop backend (``primary-shared``) handles every bot in one
+# process, and a single unscoped ``bot-desktop-guest`` slot made Lead Scout
+# adopt Researcher's container (and its :20), so ``ensure_sandbox_image`` never ran.
 LINUX_GUEST_TASK_ID = "bot-desktop-guest"
+
+
+def linux_guest_task_id() -> str:
+    """``_active_environments`` key for THIS profile's Computer-tab Linux guest."""
+    from hermes_cli.profiles import get_active_profile_name
+    from hermes_constants import hermes_home_key
+
+    key = hermes_home_key()
+    profile = get_active_profile_name() or "default"
+    digest = hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
+    return f"{LINUX_GUEST_TASK_ID}:{profile}:{digest}"
+
+
+def is_linux_guest_task_id(task_id: str) -> bool:
+    """True for the unscoped legacy key or any per-profile ``bot-desktop-guest:…`` slot."""
+    return task_id == LINUX_GUEST_TASK_ID or task_id.startswith(LINUX_GUEST_TASK_ID + ":")
 
 
 @dataclass(frozen=True)
@@ -118,17 +139,19 @@ def _linux_guest_paths(config: dict) -> tuple[str, Optional[str]]:
 
 
 def _linux_guest_environment(*, create: bool) -> Optional[Any]:
-    """A Docker ``hermes-sandbox:desktop`` guest for Computer tab on a non-Linux host.
+    """A Docker ``dragon-sandbox:desktop`` guest for Computer tab on a non-Linux host.
 
-    Registered under ``LINUX_GUEST_TASK_ID`` so it never replaces the profile's local
-    terminal environment. ``create=False`` is a cache/status probe and must not pull
-    or start a container.
+    Registered under :func:`linux_guest_task_id` so it never replaces the profile's
+    local terminal and never shares another bot's guest on a multiplexed host.
+    ``create=False`` is a cache/status probe and must not pull or start a container.
+    ``create=True`` with no cached guest calls ``_create_configured_env``, which is
+    the path that runs ``ensure_sandbox_image`` (inspect → GHCR → upstream + retag).
     """
     from hermes_cli.config_defaults import DEFAULT_SANDBOX_IMAGE
     from tools import terminal_tool as tt
     from tools.terminal_tool_lifecycle import _create_configured_env
 
-    task_id = LINUX_GUEST_TASK_ID
+    task_id = linux_guest_task_id()
     with tt._env_lock:
         env = tt._active_environments.get(task_id)
     if env is not None or not create:

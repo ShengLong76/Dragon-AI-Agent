@@ -32,6 +32,7 @@ import {
 } from './screen-connection'
 import { ScreenInstallCard } from './screen-install'
 import { openBotScreen } from './screen-open'
+import { friendlyScreenStartError } from './screen-start-error'
 import {
   $screenState,
   beginScreenStatusRequest,
@@ -348,11 +349,12 @@ export function BotScreenPane({ bot }: { bot: RosterRow }) {
       setScreenStatus(bot, next)
       setConn('idle')
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      const raw = err instanceof Error ? err.message : String(err)
+      setError(friendlyScreenStartError(raw, t.screen.startFailedLeftoverDisplay))
     } finally {
       setBusy(false)
     }
-  }, [bot])
+  }, [bot, t.screen.startFailedLeftoverDisplay])
 
   // The pending default-image switch: both answers pin an image server-side, so the card
   // disappears after either; approve leaves the container to be recreated on next terminal use.
@@ -488,7 +490,7 @@ export function BotScreenPane({ bot }: { bot: RosterRow }) {
             {busy ? <GlyphSpinner /> : <Codicon name="play" />}
             {t.screen.start}
           </Button>
-          {error ? <div className="text-xs text-red-500">{error}</div> : null}
+          {error ? <div className="max-w-md text-xs text-red-500">{error}</div> : null}
         </div>
       </div>
     )

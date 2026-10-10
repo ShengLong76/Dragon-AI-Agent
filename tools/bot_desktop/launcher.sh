@@ -40,21 +40,6 @@ mkdir -p "$XDG_CONFIG_HOME/xfce4/xfconf/xfce-perchannel-xml" "$XDG_CONFIG_HOME/a
 export DISPLAY=":$HERMES_BD_DISPLAY_NUM"
 export XAUTHORITY="$HERMES_BD_XAUTH"
 
-# Stale lock files from a crashed server block restart; a lock whose pid is alive belongs to a
-# running server (another profile may have taken this number) and is never touched — Xvnc then
-# fails to start on it and runtime.py reports that instead of us disrupting the other desktop.
-rm -f "$HERMES_BD_SOCKET"
-# no-tmp: ok — the X11 protocol fixes its lock and socket under /tmp; this is not our scratch dir
-xlock="/tmp/.X${HERMES_BD_DISPLAY_NUM}-lock"
-if [[ -e "$xlock" ]] && ! kill -0 "$(tr -d ' ' < "$xlock" 2>/dev/null)" 2>/dev/null; then
-  rm -f "$xlock" "/tmp/.X11-unix/X${HERMES_BD_DISPLAY_NUM}"  # no-tmp: ok — X11 display socket, fixed by the protocol
-fi
-: > "$XAUTHORITY"; chmod 600 "$XAUTHORITY"
-# The cookie goes in on stdin, not argv: a command line is readable by every local user via ps.
-xauth -q -f "$XAUTHORITY" source - <<COOKIE
-add $DISPLAY MIT-MAGIC-COOKIE-1 $(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
-COOKIE
-
 # ---- look: dark theme from whatever the host ships (first match wins), Hermes wallpaper ----
 pick_theme() { local d t; for t in "$@"; do for d in /usr/share/themes "$HOME/.themes"; do [[ -d "$d/$t" ]] && { echo "$t"; return; }; done; done; echo "$1"; }
 pick_icons() { local d t; for t in "$@"; do for d in /usr/share/icons "$HOME/.icons"; do [[ -d "$d/$t" ]] && { echo "$t"; return; }; done; done; echo "$1"; }
@@ -250,6 +235,61 @@ fi
 # Tests seed the config tree on a fake PATH and stop here (no X server needed).
 [[ -n "${HERMES_BD_SEED_ONLY:-}" ]] && exit 0
 
+# ---- leftover X lock / socket from a reused sandbox ----
+# A lock whose pid is alive is NOT enough: after a container restart that pid is often some
+# other process, and Xvnc then dies 'Server is already active for display N'. Reclaim only
+# when the pid is not an X server and the X11 socket is not actually bound. A healthy
+# leftover server is reused when we can still reach its RFB socket; in a sandbox we own
+# :N (HERMES_BD_OWN_DISPLAY=1) and replace a server we cannot use instead of failing.
+# no-tmp: ok — the X11 protocol fixes its lock and socket under /tmp
+_HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+xlock="/tmp/.X${HERMES_BD_DISPLAY_NUM}-lock"
+xsock="/tmp/.X11-unix/X${HERMES_BD_DISPLAY_NUM}"
+_RECLAIM=cleared
+if [[ -f "$_HERE/display_lock.py" ]] && command -v python3 >/dev/null 2>&1; then
+  _RECLAIM="$(python3 "$_HERE/display_lock.py" reclaim "$HERMES_BD_DISPLAY_NUM" 2>/dev/null || echo cleared)"
+else
+  _pid="$(tr -d ' \n' < "$xlock" 2>/dev/null || true)"
+  _healthy=0
+  if [[ "$_pid" =~ ^[0-9]+$ ]] && kill -0 "$_pid" 2>/dev/null; then
+    _comm="$(cat /proc/$_pid/comm 2>/dev/null || true)"
+    case "$_comm" in Xvnc|Xorg|X|Xtigervnc) _healthy=1 ;; esac
+    if [[ "$_healthy" -eq 0 ]]; then
+      _cmd="$(tr '\0' ' ' < /proc/$_pid/cmdline 2>/dev/null || true)"
+      [[ "$_cmd" == *Xvnc* || "$_cmd" == *Xorg* ]] && _healthy=1
+    fi
+  fi
+  if [[ "$_healthy" -eq 0 ]] && grep -qE "/tmp/\.X11-unix/X${HERMES_BD_DISPLAY_NUM}( |$)" /proc/net/unix 2>/dev/null; then
+    _healthy=1
+  fi
+  if [[ "$_healthy" -eq 1 ]]; then
+    _RECLAIM=reuse
+  else
+    rm -f "$xlock" "$xsock"
+    _RECLAIM=cleared
+  fi
+fi
+
+_start_xvnc=1
+if [[ "$_RECLAIM" == reuse ]]; then
+  _exist="$(tr -d ' \n' < "$xlock" 2>/dev/null || true)"
+  if [[ -S "$HERMES_BD_SOCKET" ]] && xdpyinfo -display "$DISPLAY" >/dev/null 2>&1; then
+    echo "reusing existing X server on $DISPLAY (pid ${_exist:-unknown})" >&2
+    XVNC_PID="${_exist:-}"
+    _start_xvnc=0
+  elif [[ -n "${HERMES_BD_OWN_DISPLAY:-}" && "$_exist" =~ ^[0-9]+$ ]]; then
+    echo "existing X server on $DISPLAY is not usable; replacing it" >&2
+    kill "$_exist" 2>/dev/null || true
+    sleep 0.2
+    rm -f "$xlock" "$xsock" "$HERMES_BD_SOCKET"
+  else
+    echo "Xvnc did not become ready" >&2
+    exit 1
+  fi
+else
+  rm -f "$HERMES_BD_SOCKET"
+fi
+
 # ---- X server + RFB (TigerVNC Xvnc), Unix socket only ----
 # SecurityTypes None is safe ONLY because -rfbport -1 disables TCP and the 0600 socket is reachable
 # only by processes running as this user (the gateway's WebSocket bridge does the real authentication;
@@ -257,16 +297,29 @@ fi
 # -SendCutText=0: watchers must never receive the holder's clipboard; -AcceptCutText stays on so
 # paste INTO the screen keeps working. -MaxCutText caps a client cut-text at 256 KiB — the same bound
 # the bridge enforces (tools/bot_desktop/rfb_filter.py _MAX_CUT_TEXT); keep the two in sync.
-Xvnc "$DISPLAY" -geometry "$GEOM" -depth "$DEPTH" -dpi 96 \
-  -rfbport -1 -rfbunixpath "$HERMES_BD_SOCKET" -rfbunixmode 0600 \
-  -SecurityTypes None -AlwaysShared -AcceptSetDesktopSize -FrameRate 30 -SendCutText=0 -MaxCutText 262144 \
-  -desktop "hermes:$HERMES_BD_PROFILE" -auth "$XAUTHORITY" -nolisten tcp \
-  -Log '*:stderr:30' 2> >(grep -v --line-buffered 'Could not resolve keysym' >&2) &
-XVNC_PID=$!
-trap 'kill "$XVNC_PID" 2>/dev/null || true' EXIT
+if [[ "$_start_xvnc" -eq 1 ]]; then
+  : > "$XAUTHORITY"; chmod 600 "$XAUTHORITY"
+  # The cookie goes in on stdin, not argv: a command line is readable by every local user via ps.
+  xauth -q -f "$XAUTHORITY" source - <<COOKIE
+add $DISPLAY MIT-MAGIC-COOKIE-1 $(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+COOKIE
+  Xvnc "$DISPLAY" -geometry "$GEOM" -depth "$DEPTH" -dpi 96 \
+    -rfbport -1 -rfbunixpath "$HERMES_BD_SOCKET" -rfbunixmode 0600 \
+    -SecurityTypes None -AlwaysShared -AcceptSetDesktopSize -FrameRate 30 -SendCutText=0 -MaxCutText 262144 \
+    -desktop "hermes:$HERMES_BD_PROFILE" -auth "$XAUTHORITY" -nolisten tcp \
+    -Log '*:stderr:30' 2> >(grep -v --line-buffered 'Could not resolve keysym' >&2) &
+  XVNC_PID=$!
+fi
+if [[ -n "${XVNC_PID:-}" ]]; then
+  trap 'kill "$XVNC_PID" 2>/dev/null || true' EXIT
+fi
 for _ in $(seq 1 100); do
   xdpyinfo -display "$DISPLAY" >/dev/null 2>&1 && break
-  kill -0 "$XVNC_PID" 2>/dev/null || { echo "Xvnc exited during startup" >&2; exit 1; }
+  if [[ -n "${XVNC_PID:-}" ]]; then
+    kill -0 "$XVNC_PID" 2>/dev/null || { echo "Xvnc exited during startup" >&2; exit 1; }
+  else
+    echo "Xvnc exited during startup" >&2; exit 1
+  fi
   sleep 0.1
 done
 xdpyinfo -display "$DISPLAY" >/dev/null 2>&1 || { echo "Xvnc did not become ready" >&2; exit 1; }

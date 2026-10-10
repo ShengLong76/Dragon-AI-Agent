@@ -233,7 +233,11 @@ def _x_socket_bound(num: int) -> bool:
 
 def _display_in_use(num: int) -> bool:
     """A live X server owns ``:num``: its lock file names a running pid, or its X11 socket is bound. A lock
-    left by a crashed server (dead pid, no socket) does not count, so the number can be reclaimed."""
+    left by a crashed server (dead pid, no socket) does not count, so the number can be reclaimed.
+
+    Allocation stays conservative (any live lock pid). Reclaim in ``display_lock`` is the precise check
+    that a recycled non-X pid is stale — used at Xvnc start, not when picking a number.
+    """
     pid = _x_lock_pid(num)
     return (pid is not None and _pid_alive(pid)) or _x_socket_bound(num)
 
