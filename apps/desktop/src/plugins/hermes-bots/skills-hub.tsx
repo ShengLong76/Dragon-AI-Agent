@@ -8,6 +8,8 @@
 import { Button, Codicon, host, Input, useI18n } from '@hermes/plugin-sdk'
 import { useEffect, useRef, useState } from 'react'
 
+import { ADD_TO_AGENT_LABEL, DRAGON_FEATURED_SKILLS, HYPERFRAMES_HUB_SKILL } from '@/lib/dragon-hub-catalog'
+
 import { useBots } from './i18n'
 import { requestForBot } from './routing'
 import type { RosterRow } from './types'
@@ -16,6 +18,12 @@ import type { RosterRow } from './types'
 // that page still carries the old product heading. Cards post
 // {type: 'hermes-skill-pick'} (internal message name) back to this frame;
 // we validate source + charset and install via skills.manage.
+
+const FEATURED_HUB_SKILLS = DRAGON_FEATURED_SKILLS.map(skill => ({
+  description: skill.description,
+  identifier: skill.identifier,
+  name: skill.name
+}))
 
 const DRAGON_HUB_PAGE = `<!DOCTYPE html>
 <html lang="en">
@@ -35,14 +43,10 @@ const DRAGON_HUB_PAGE = `<!DOCTYPE html>
 </head>
 <body>
   <h1>Dragon AI</h1>
-  <p>Bundled skills for this agent. Use search in the panel to install more from the catalog.</p>
+  <p>Featured skills for this bot — one click adds the skill to this profile. Search below for more from the catalog.</p>
   <div id="cards"></div>
   <script>
-    const skills = [
-      { name: 'dragon-agent', description: 'Use, configure, theme, extend, and orchestrate Dragon AI.' },
-      { name: 'dragon-agent-skill-authoring', description: 'Author in-repo SKILL.md files: frontmatter and structure.' },
-      { name: 'inspecting-dragon-desktop-dom', description: 'Read the live Dragon AI desktop DOM/CSS over CDP.' }
-    ];
+    const skills = ${JSON.stringify(FEATURED_HUB_SKILLS)};
     const root = document.getElementById('cards');
     for (const skill of skills) {
       const row = document.createElement('div');
@@ -51,7 +55,7 @@ const DRAGON_HUB_PAGE = `<!DOCTYPE html>
       row.querySelector('strong').textContent = skill.name;
       row.querySelector('span').textContent = skill.description;
       row.querySelector('button').addEventListener('click', () => {
-        parent.postMessage({ type: 'hermes-skill-pick', name: skill.name, identifier: skill.name }, '*');
+        parent.postMessage({ type: 'hermes-skill-pick', name: skill.name, identifier: skill.identifier || skill.name }, '*');
       });
       root.appendChild(row);
     }
@@ -206,6 +210,31 @@ export function HubSkillsSection({ bot, onInstalled }: HubSkillsSectionProps) {
         >
           {browseHub ? h.pickerHide : h.pickerBrowse}
         </Button>
+      </div>
+      <div className="flex items-center gap-2 rounded-lg border border-(--ui-stroke-secondary) px-2.5 py-2">
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[0.75rem] font-medium">{HYPERFRAMES_HUB_SKILL.name}</div>
+          <div className="line-clamp-2 text-[0.65rem] leading-4 text-(--ui-text-quaternary)">
+            {HYPERFRAMES_HUB_SKILL.description}
+          </div>
+        </div>
+        {installed[HYPERFRAMES_HUB_SKILL.name] || installed[HYPERFRAMES_HUB_SKILL.identifier] ? (
+          <span className="flex shrink-0 items-center gap-0.5 text-[0.65rem] text-(--ui-text-tertiary)">
+            <Codicon name="check" size="0.65rem" />
+            {h.installed}
+          </span>
+        ) : (
+          <Button
+            aria-label={`${ADD_TO_AGENT_LABEL}: ${HYPERFRAMES_HUB_SKILL.name}`}
+            className="shrink-0 px-2 font-semibold"
+            disabled={installing !== null}
+            onClick={() => void install(HYPERFRAMES_HUB_SKILL.identifier, HYPERFRAMES_HUB_SKILL.name)}
+            size="sm"
+            variant="secondary"
+          >
+            {installing === HYPERFRAMES_HUB_SKILL.name ? '…' : ADD_TO_AGENT_LABEL}
+          </Button>
+        )}
       </div>
       {browseHub ? (
         <div className="grid gap-1">

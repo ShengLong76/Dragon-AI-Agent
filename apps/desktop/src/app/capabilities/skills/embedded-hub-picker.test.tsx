@@ -78,4 +78,15 @@ describe('EmbeddedHubPicker', () => {
     expect(screen.queryByRole('button', { name: '+ Add to this Agent: dragon-agent' })).toBeNull()
     expect(installHubSkill).not.toHaveBeenCalled()
   })
+
+  it('offers HyperFrames as a featured one-click add with the umbrella identifier', async () => {
+    render(<EmbeddedHubPicker installedNames={new Set()} profile="listing-writer" />)
+
+    expect(screen.getByText('HyperFrames — make videos from HTML')).toBeTruthy()
+    expect(screen.getByText(/Apache-2\.0/)).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: '+ Add to this Agent: HyperFrames — make videos from HTML' }))
+
+    await waitFor(() => expect(installHubSkill).toHaveBeenCalledWith('heygen-com/hyperframes', 'listing-writer'))
+  })
 })

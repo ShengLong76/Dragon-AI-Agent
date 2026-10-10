@@ -84,6 +84,14 @@ afterEach(() => {
 })
 
 describe('hub pick messages', () => {
+  it('pins a standalone HyperFrames one-click add on every bot', () => {
+    render(<HubSkillsSection />)
+
+    expect(screen.getByText('HyperFrames — make videos from HTML')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '+ Add to this Agent: HyperFrames — make videos from HTML' }))
+    expect(installCalls()).toEqual([['skills.manage', { action: 'install', query: 'heygen-com/hyperframes' }]])
+  })
+
   it('embeds a Dragon-branded local catalog, not the Hermes docs site', () => {
     const frame = openHubBrowser()
     const page = frame.getAttribute('srcdoc') || ''
@@ -91,6 +99,9 @@ describe('hub pick messages', () => {
     expect(frame.getAttribute('src')).toBeNull()
     expect(page).toContain('Dragon AI')
     expect(page).toContain('dragon-agent')
+    expect(page).toContain('HyperFrames — make videos from HTML')
+    expect(page).toContain('heygen-com/hyperframes')
+    expect(page).toContain('Apache-2.0')
     expect(page).not.toContain('Hermes Agent')
     expect(page).not.toContain('hermes-agent.nousresearch.com')
     expect(page).not.toContain('nousresearch.github.io')
@@ -106,6 +117,21 @@ describe('hub pick messages', () => {
     )
 
     expect(installCalls()).toEqual([['skills.manage', { action: 'install', query: 'dragon-agent' }]])
+  })
+
+  it('one-click adds HyperFrames to the chosen bot via the umbrella identifier', () => {
+    const frame = openHubBrowser()
+
+    postPick(
+      {
+        identifier: 'heygen-com/hyperframes',
+        name: 'HyperFrames — make videos from HTML',
+        type: 'hermes-skill-pick'
+      },
+      { source: frame.contentWindow }
+    )
+
+    expect(installCalls()).toEqual([['skills.manage', { action: 'install', query: 'heygen-com/hyperframes' }]])
   })
 
   it('pins the hub frame to a script-only sandbox', () => {

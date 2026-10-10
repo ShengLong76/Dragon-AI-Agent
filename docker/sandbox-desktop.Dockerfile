@@ -26,10 +26,15 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # Everyday tools the nikolaik base lacks (checked 2026-09: no jq, rg, fd, tmux,
 # less, vim/nano, zip, rsync, tree, procps beyond ps). Kept to what agents reach
 # for from a shell; language toolchains come from the base.
+#
+# ffmpeg: HyperFrames (HTML → deterministic MP4) encodes through ffmpeg. The
+# renderer also needs Node >= 22 (this image is nodejs26) and headed Chromium
+# (Playwright, below). Prefer running HyperFrames inside this sandbox, not on
+# the Windows Dragon host.
 RUN apt-get -o Acquire::Retries=3 update && \
     apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
         jq ripgrep fd-find tmux less nano vim-tiny zip rsync tree procps htop \
-        file bsdextrautils ca-certificates locales sudo && \
+        file bsdextrautils ca-certificates locales sudo ffmpeg && \
     ln -sf /usr/bin/fdfind /usr/local/bin/fd && \
     rm -rf /var/lib/apt/lists/*
 

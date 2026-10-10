@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 import { $gateway } from '@/store/gateway'
 import { notify, notifyError } from '@/store/notifications'
 
-import { type MarketplaceTeam, seatProfileName, seatSoul, TEAMS_CATALOG } from './catalog'
+import { type MarketplaceTeam, seatProfileName, seatSkillIdentifiers, seatSoul, TEAMS_CATALOG } from './catalog'
 import { getEccWorkflowStatus, runEccWorkflowAction } from './ecc-actions'
 import { $teamsMarketplaceOpen, closeTeamsMarketplace } from './store'
 import {
@@ -82,6 +82,22 @@ async function installTeam(team: MarketplaceTeam, onProgress: (done: number) => 
         }
       }
     })
+
+    for (const skill of seatSkillIdentifiers(seat)) {
+      try {
+        await gateway.request('skills.manage', {
+          action: 'install',
+          query: skill,
+          profile: name
+        })
+      } catch (error) {
+        const detail = error instanceof Error ? error.message.slice(0, 200) : ''
+        notify({
+          kind: 'warning',
+          message: `Installed ${seat.title}, but could not add ${skill}. Add it from Skills Hub after Node 22+ is available in this bot's sandbox.${detail ? ` ${detail}` : ''}`
+        })
+      }
+    }
 
     done += 1
     onProgress(done)
