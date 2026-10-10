@@ -136,8 +136,8 @@ describe('the bot profile pane has four tabs and keeps Computer', () => {
       fireEvent.doubleClick(document.querySelector('[data-slot="soul-preview"]')!)
     })
 
-    const editor = await screen.findByLabelText('SOUL.md')
-    expect(editor).toHaveValue('# Researcher persona')
+    const editor = await screen.findByLabelText('SOUL.md') as HTMLTextAreaElement
+    expect(editor.value).toBe('# Researcher persona')
     expect(document.querySelector('[data-slot="soul-editor"]')).toBeTruthy()
 
     await act(async () => {
@@ -193,5 +193,72 @@ describe('the bot profile pane has four tabs and keeps Computer', () => {
     })
     expect(notifyError.mock.calls[0][1]).toBe('Could not save SOUL.md')
     expect(document.querySelector('[data-slot="soul-editor"]')).toBeTruthy()
+  })
+
+  it('toasts and stays open when the write is acknowledged but not applied', async () => {
+    request.mockImplementation(async (method: string) => {
+      if (method === 'profiles.describe') {
+        return { soul: '# Researcher persona' }
+      }
+
+      if (method === 'profiles.configure') {
+        return { ok: true, applied: { soul: false } }
+      }
+
+      return { jobs: [], scoped: 'research' }
+    })
+
+    renderPanel()
+
+    await act(async () => {
+      screen.getByRole('tab', { name: 'Details' }).click()
+    })
+    await screen.findByText('# Researcher persona')
+    await act(async () => {
+      fireEvent.doubleClick(document.querySelector('[data-slot="soul-preview"]')!)
+    })
+    await act(async () => {
+      fireEvent.click(await screen.findByRole('button', { name: 'Save' }))
+    })
+
+    await waitFor(() => {
+      expect(notify).toHaveBeenCalledWith(expect.objectContaining({ kind: 'error', message: 'Could not save SOUL.md' }))
+    })
+    expect(notifyError).not.toHaveBeenCalled()
+    expect(document.querySelector('[data-slot="soul-editor"]')).toBeTruthy()
+    expect((screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('asks before discarding unsaved SOUL.md edits', async () => {
+    renderPanel()
+
+    await act(async () => {
+      screen.getByRole('tab', { name: 'Details' }).click()
+    })
+    await screen.findByText('# Researcher persona')
+    await act(async () => {
+      fireEvent.doubleClick(document.querySelector('[data-slot="soul-preview"]')!)
+    })
+
+    const editor = await screen.findByLabelText('SOUL.md')
+    await act(async () => {
+      fireEvent.change(editor, { target: { value: '# Unsaved' } })
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    })
+
+    expect(await screen.findByText('Discard unsaved changes?')).toBeTruthy()
+    expect(document.querySelector('[data-slot="soul-editor"]')).toBeTruthy()
+    expect((editor as HTMLTextAreaElement).value).toBe('# Unsaved')
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Discard' }))
+    })
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-slot="soul-editor"]')).toBeNull()
+    })
+    expect(request).not.toHaveBeenCalledWith('profiles.configure', expect.anything())
   })
 })

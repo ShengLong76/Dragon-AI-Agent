@@ -108,7 +108,13 @@ export function BotPanelPane() {
         {
           {
             computer: <BotScreenPane bot={bot} key={botSelectionKey(bot)} />,
-            details: <BotDetails bot={bot} description={meta?.description || bot.description || ''} />,
+            details: (
+              <BotDetails
+                bot={bot}
+                description={meta?.description || bot.description || ''}
+                key={botSelectionKey(bot)}
+              />
+            ),
             library: (
               <div className="h-full overflow-y-auto px-3 py-2">
                 <HubSkillsSection bot={bot} />

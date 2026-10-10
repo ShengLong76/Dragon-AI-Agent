@@ -21,7 +21,7 @@ import {
   useI18n,
   useQueryClient
 } from '@hermes/plugin-sdk'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { botSelectionKey } from './data'
 import { useBots } from './i18n'
@@ -29,7 +29,7 @@ import { requestForBot } from './routing'
 import { ID } from './shared'
 import type { RosterRow } from './types'
 
-const MessageTextContent = typeof sdk === 'undefined' ? undefined : sdk.MessageTextContent
+const { MessageTextContent }: Partial<Pick<typeof sdk, 'MessageTextContent'>> = sdk
 
 export function botSoulQueryKey(bot: RosterRow) {
   return [ID, 'soul', botSelectionKey(bot)] as const
@@ -54,12 +54,19 @@ export function SoulEditorDialog({ bot, initialContent, onClose, open }: SoulEdi
   const [preview, setPreview] = useState(false)
   const [busy, setBusy] = useState(false)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
+  const wasOpen = useRef(false)
 
   useEffect(() => {
     if (!open) {
+      wasOpen.current = false
       return
     }
 
+    if (wasOpen.current) {
+      return
+    }
+
+    wasOpen.current = true
     setDraft(initialContent)
     setPreview(false)
     setBusy(false)

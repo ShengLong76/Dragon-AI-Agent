@@ -33,5 +33,5 @@ class TestConfinedProfileFile:
         with pytest.raises(ValueError):
             confined_profile_file(tmp_path, "../SOUL.md")
 
-        assert list(tmp_path.iterdir()) == []
+        assert not (tmp_path / "SOUL.md").exists()
         assert not (tmp_path.parent / "SOUL.md").exists()

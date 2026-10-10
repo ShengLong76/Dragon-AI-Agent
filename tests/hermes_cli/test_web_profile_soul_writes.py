@@ -158,12 +158,12 @@ class TestSoulReadReportsPresence:
 
 
 class TestSoulWriteStaysInProfile:
-    @pytest.mark.parametrize("name", ["..", "../outside", "a/b"])
-    def test_put_rejects_traversal_profile_name(self, client, profile_dir: Path, name: str):
-        r = client.put(f"/api/profiles/{name}/soul", json={"content": "# escaped\n"})
+    def test_put_rejects_encoded_traversal_profile_name(self, client, profile_dir: Path):
+        # A raw ``../`` segment is resolved by the HTTP client before FastAPI
+        # sees it (405 on a different route). The encoded form is the one a
+        # crafted client would send as the {name} parameter.
+        r = client.put("/api/profiles/%2e%2e/soul", json={"content": "# escaped\n"})
 
-        assert r.status_code in (400, 404)
+        assert r.status_code == 400, r.text
         assert not (profile_dir.parent / "SOUL.md").exists()
-        assert list(profile_dir.glob("SOUL.md")) == [] or (
-            profile_dir / "SOUL.md"
-        ).read_text(encoding="utf-8") != "# escaped\n"
+        assert not (profile_dir / "SOUL.md").exists()
