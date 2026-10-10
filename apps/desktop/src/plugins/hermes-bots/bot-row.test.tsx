@@ -6,10 +6,10 @@
  * warms exactly one bot and only once a pointer is actually over it — and a
  * source-scoped row pre-dials its OWN source rather than the active gateway.
  *
- * Opening is delegated whole: the row hands its exact roster row to
- * openRosterBot and does nothing else. It never activates a connection
- * itself, which is what keeps a remote row from resolving into the same-named
- * local bot.
+ * Opening is delegated to openRosterBot for the canonical chat. The same
+ * click also selects the bot in the right-side panel. The row never
+ * activates a connection itself, which is what keeps a remote row from
+ * resolving into the same-named local bot.
  *
  * Ported from tests/profile-prewarm.test.mjs, which sliced BotRow out of the
  * old plugin.js bundle and rendered it against a hand-built jsx stub.

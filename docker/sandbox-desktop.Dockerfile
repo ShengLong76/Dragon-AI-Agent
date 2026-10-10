@@ -26,10 +26,15 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # Everyday tools the nikolaik base lacks (checked 2026-09: no jq, rg, fd, tmux,
 # less, vim/nano, zip, rsync, tree, procps beyond ps). Kept to what agents reach
 # for from a shell; language toolchains come from the base.
+#
+# ffmpeg: HyperFrames (HTML → deterministic MP4) encodes through ffmpeg. The
+# renderer also needs Node >= 22 (this image is nodejs26) and headed Chromium
+# (Playwright, below). Prefer running HyperFrames inside this sandbox, not on
+# the Windows Dragon host.
 RUN apt-get -o Acquire::Retries=3 update && \
     apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
         jq ripgrep fd-find tmux less nano vim-tiny zip rsync tree procps htop \
-        file bsdextrautils ca-certificates locales sudo && \
+        file bsdextrautils ca-certificates locales sudo ffmpeg && \
     ln -sf /usr/bin/fdfind /usr/local/bin/fd && \
     rm -rf /var/lib/apt/lists/*
 
@@ -85,6 +90,10 @@ RUN echo "pn ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/pn && chmod 0440 /etc/sudo
 
 # Runtime dir for dbus/Xvnc; containers have no logind to create it. Both /tmp
 # paths above are fixed by the X11 protocol / seeded per container, never shared.
+# A reused guest keeps /tmp/.X<N>-lock after Xvnc exits; tools/bot_desktop/launcher.sh
+# and display_lock.py reclaim that leftover (or reuse a still-healthy server)
+# before starting Xvnc again. Do not add an image entrypoint that starts Xvnc —
+# the gateway copies the launcher in at Start screen.
 ENV XDG_RUNTIME_DIR=/tmp/hermes-runtime
 # Dockerfile ENV reaches `docker exec` only. When this image is the target of the
 # ssh backend (sshd added on top), a login session gets its environment from PAM,

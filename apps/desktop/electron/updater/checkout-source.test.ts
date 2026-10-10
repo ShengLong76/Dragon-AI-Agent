@@ -12,6 +12,9 @@ import * as updaterProcess from '../updater-process'
 
 import { type CheckoutStrategyDeps, createCheckoutStrategy } from './checkout'
 import { readSourceUpdate, type SourceUpdate } from './checkout-source'
+import feedContract from '../../update-feed.cjs'
+
+const officialRepository: string = feedContract.productRepository()
 
 const execute: typeof execFile.__promisify__ = promisify(execFile)
 const repository: string = path.resolve(import.meta.dirname, '../../../..')
@@ -109,7 +112,7 @@ function channelRecord(channel: 'stable' | 'canary', sequence: number): FixtureR
   return {
     schema: 1,
     name: channel,
-    repository: 'NousResearch/hermes-agent',
+    repository: officialRepository,
     policy: channel === 'stable' ? 'stable-release' : 'canary-release',
     state: 'active',
     revision: 1,
@@ -159,7 +162,7 @@ function buildManifest(
       schema: 1,
       buildId: id,
       channel,
-      repository: 'NousResearch/hermes-agent',
+      repository: officialRepository,
       commit: sha,
       sourceVersion: tag.replace(/^v/, '').split('+')[0],
       releaseTag: tag,
@@ -257,12 +260,12 @@ it('carries each install channel from Python publication checks into the source 
         })
       )
       responses.set(`/${manifestKey(channel)}`, body)
-      responses.set(`/repos/NousResearch/hermes-agent/releases/tags/${tags[channel]}`, {
+      responses.set(`/repos/${officialRepository}/releases/tags/${tags[channel]}`, {
         tag_name: tags[channel],
         draft: false,
         prerelease: channel === 'canary'
       })
-      responses.set(`/repos/NousResearch/hermes-agent/commits/${tags[channel]}`, { sha })
+      responses.set(`/repos/${officialRepository}/commits/${tags[channel]}`, { sha })
     }
 
     responses.set('/releases/stable/release-candidates.json', { tag: tags.stable, commit: commits[1] })
@@ -272,7 +275,7 @@ it('carries each install channel from Python publication checks into the source 
       JSON.stringify({
         schema: 1,
         name: 'main',
-        repository: 'NousResearch/hermes-agent',
+        repository: officialRepository,
         policy: 'source-branch',
         state: 'active',
         revision: 1,

@@ -316,8 +316,10 @@ def test_running_revision_is_not_applied_to_an_explicit_target(installation, mon
     assert check_for_updates(install_root=linked, home=home)["currentSha"] == head
     # Default invocation retains the Nix revision probe even without a Git checkout.
     monkeypatch.setattr("hermes_cli.config.get_project_root", lambda: home)
-    responses[MAIN_CHANNEL] = (200, source_channel("main", "NousResearch/hermes-agent"))
-    responses["/repos/NousResearch/hermes-agent/commits/main"] = (200, "e" * 40)
+    from hermes_cli.product_feed import product_repository
+    official = product_repository()
+    responses[MAIN_CHANNEL] = (200, source_channel("main", official))
+    responses[f"/repos/{official}/commits/main"] = (200, "e" * 40)
     assert check_for_updates(home=home)["behind"] == 0
 
 
@@ -450,7 +452,9 @@ def test_embedded_revision_keeps_https_ref_advertisement_recovery(installation, 
     monkeypatch.setenv("HERMES_REVISION", head)
     monkeypatch.setattr("hermes_cli.config.get_project_root", lambda: home)
     monkeypatch.setattr("hermes_cli.config.detect_install_method", lambda root: "nix")
-    responses[MAIN_CHANNEL] = (200, source_channel("main", "NousResearch/hermes-agent"))
+    from hermes_cli.product_feed import product_https_url, product_repository
+    official = product_repository()
+    responses[MAIN_CHANNEL] = (200, source_channel("main", official))
     original = subprocess.run
     probes = []
 
@@ -463,7 +467,7 @@ def test_embedded_revision_keeps_https_ref_advertisement_recovery(installation, 
     monkeypatch.setattr(subprocess, "run", advertise)
     assert check_for_updates(home=home)["behind"] == 0
     assert len(probes) == 1
-    assert "https://github.com/NousResearch/hermes-agent.git" in probes[0][0]
+    assert product_https_url() in probes[0][0]
     assert probes[0][1]["stdin"] == subprocess.DEVNULL
     assert probes[0][1]["env"]["GIT_TERMINAL_PROMPT"] == "0"
 
@@ -487,16 +491,24 @@ def test_malformed_optional_changelog_and_cache_do_not_hide_the_update(installat
                         f"/repos/fixture/fork/compare/{head}...{'a' * 40}"] * 2
 
 
-@pytest.mark.parametrize("repository,heals", [("NousResearch/hermes-agent", True), ("fixture/fork", False)])
+@pytest.mark.parametrize("repository,heals", [
+    ("ShengLong76/Dragon-AI-Agent", True),
+    ("NousResearch/hermes-agent", True),
+    ("fixture/fork", False),
+])
 def test_official_ssh_healing_uses_public_https_without_retargeting_forks(installation, monkeypatch, repository, heals):
+    from hermes_cli.product_feed import product_https_url, product_repository, update_repository
     from hermes_cli.source_check import check_for_updates
     root, linked, home, base, head, responses, requests, git = installation
     git("remote", "set-url", "origin", f"git@github.com:{repository}.git")
-    git("config", f"url.{root.as_uri()}.insteadOf", "https://github.com/NousResearch/hermes-agent.git")
+    git("config", f"url.{root.as_uri()}.insteadOf", product_https_url())
+    resolved = update_repository(repository) if repository != "fixture/fork" else repository
     monkeypatch.setenv("GIT_SSH_COMMAND", "false")
     branch_file = home / "desktop-update.json"
     branch_file.write_text(json.dumps({"branch": "deleted"}))
-    responses[f"/repos/{repository}/commits/main"] = (200, head)
+    responses[f"/repos/{resolved}/commits/main"] = (200, head)
+    if repository == product_repository() or repository == "NousResearch/hermes-agent":
+        assert resolved == product_repository()
     status = check_for_updates(install_root=linked, home=home, branch_config_path=branch_file)
     assert status["branch"] == ("main" if heals else "deleted")
     assert json.loads(branch_file.read_text())["branch"] == status["branch"]
@@ -504,6 +516,22 @@ def test_official_ssh_healing_uses_public_https_without_retargeting_forks(instal
         assert status["behind"] == 0
     else:
         assert status["error"] == "fetch-failed"
+
+
+def test_hermes_origin_checks_dragon_not_upstream(installation):
+    from hermes_cli.product_feed import product_repository
+    from hermes_cli.source_check import check_for_updates
+
+    root, linked, home, base, head, responses, requests, git = installation
+    git("remote", "set-url", "origin", "https://github.com/NousResearch/hermes-agent.git")
+    repo = product_repository()
+    responses[f"/repos/{repo}/commits/main"] = (200, head)
+    status = check_for_updates(install_root=root, home=home)
+    assert status["supported"] is True
+    assert status.get("error") is None
+    assert status["behind"] == 0
+    assert not any("NousResearch/hermes-agent" in path for path in requests)
+    assert any(path.startswith(f"/repos/{repo}/") for path in requests)
 
 
 def github_authorizations(installation, path):

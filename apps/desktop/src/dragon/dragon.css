@@ -9,7 +9,9 @@
   src: url('../fonts/Syne-Variable.woff2') format('woff2');
 }
 
-.dragon-wordmark {
+/* Title-bar product name. The empty-state lockup reuses this face. */
+.dragon-wordmark,
+[data-slot='aui_intro'] .wordmark {
   font-family: 'Syne', var(--font-sans, system-ui), sans-serif;
 }
 

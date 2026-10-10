@@ -2,7 +2,7 @@
 name: box
 description: Box manages cloud files, sharing, search, and metadata.
 version: 1.0.0
-author: Chris Kim (iskysun96), Hermes Agent
+author: Chris Kim (iskysun96), Dragon AI
 license: MIT
 platforms: [linux, macos, windows]
 prerequisites:

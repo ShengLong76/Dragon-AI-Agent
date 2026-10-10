@@ -32,6 +32,7 @@ import {
   $screenState,
   beginScreenStatusRequest,
   screenStateFor,
+  setScreenError,
   setScreenLease,
   setScreenStatus,
   setScreenUnavailable
@@ -119,10 +120,16 @@ export function useScreenPortalState(bot: RosterRow) {
         }
       })
       .catch((error: unknown) => {
-        // An older Hermes without display.* is a settled answer (hide the surface);
-        // an offline bot is transient and stays in its unknown state.
-        if (!cancelled && isDisplayUnavailable(error)) {
+        // An older runtime without display.* is a settled answer;
+        // any other failure must stay visible so the Computer pane is not a black box.
+        if (cancelled) {
+          return
+        }
+
+        if (isDisplayUnavailable(error)) {
           setScreenUnavailable(bot)
+        } else {
+          setScreenError(bot, error instanceof Error ? error.message : String(error))
         }
       })
 

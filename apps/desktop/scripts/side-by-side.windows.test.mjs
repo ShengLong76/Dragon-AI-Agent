@@ -199,12 +199,12 @@ foreach ($asset in @(@('Square44x44Logo.png',44,44), @('Square150x150Logo.png',1
     console.log(`SDK pack/unpack PASS ${label}: ${name} ${version}; aliases=${aliases.join(',')}`)
   }
   const [stable, canary, update, a, b] = rows
-  check(new Set([stable, canary, a, b].map(row => row.name)).size === 4, 'Flavor package identities collide')
-  check(new Set([stable, canary, a, b].flatMap(row => row.aliases)).size === 8, 'Flavor execution aliases collide')
-  check(canary.name === update.name && canary.name !== stable.name, 'Canary upgrade does not stay in its own family')
+  check(new Set([stable, canary, a, b].map(row => row.name)).size === 1, 'Windows flavors must share one Dragon AI package identity')
+  check(new Set([stable, canary, a, b].flatMap(row => row.aliases)).size === 2, 'Windows flavors must share Dragon AI CLI aliases')
+  check(canary.name === update.name && canary.name === stable.name, 'Canary upgrade must stay on the Dragon AI family')
   check(canary.version.localeCompare(update.version, undefined, { numeric: true }) < 0, 'Canary version does not increase')
   const channelRows = rows.filter(row => row.label.startsWith('channel-'))
-  check(channelRows.every(row => row.name === channelRows[0].name && row.name !== stable.name), 'Channel update identity changed or collides with stable')
+  check(channelRows.every(row => row.name === stable.name), 'Channel Windows builds must upgrade the Dragon AI family')
   for (let index = 1; index < channelRows.length; index++) {
     check(channelRows[index - 1].version.localeCompare(channelRows[index].version, undefined, { numeric: true }) < 0, 'Channel version did not increase across rollover')
   }

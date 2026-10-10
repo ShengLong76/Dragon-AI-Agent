@@ -19,6 +19,8 @@ const getUsageAnalytics = vi.fn()
 const getProfiles = vi.fn()
 const getSkillContent = vi.fn()
 const getOfficialSkills = vi.fn()
+const getSkillHubSources = vi.fn()
+const searchSkillsHub = vi.fn()
 
 // Partial mock: keep the real module (CapabilitiesView pulls in @/store/profile,
 // whose import-time subscription calls setApiRequestProfile) and stub only the
@@ -36,7 +38,10 @@ vi.mock('@/hermes', async importOriginal => ({
   getUsageAnalytics: (days: number, profile?: null | string) => getUsageAnalytics(days, profile),
   getProfiles: () => getProfiles(),
   getSkillContent: (name: string, profile?: null | string) => getSkillContent(name, profile),
-  getOfficialSkills: (profile?: null | string) => getOfficialSkills(profile)
+  getOfficialSkills: (profile?: null | string) => getOfficialSkills(profile),
+  getSkillHubSources: (profile?: null | string) => getSkillHubSources(profile),
+  searchSkillsHub: (query: string, source?: string, limit?: number, profile?: null | string) =>
+    searchSkillsHub(query, source, limit, profile)
 }))
 
 // Notifications hit nanostores/timers we don't care about here.
@@ -103,6 +108,8 @@ beforeEach(() => {
   getToolsetConfig.mockResolvedValue({ has_category: true, active_provider: null, providers: [] })
   getUsageAnalytics.mockResolvedValue({ tools: [] })
   getOfficialSkills.mockResolvedValue({ skills: [] })
+  getSkillHubSources.mockResolvedValue({ featured: [], installed: {}, index_available: true, sources: [] })
+  searchSkillsHub.mockResolvedValue({ results: [], source_counts: {}, timed_out: [], installed: {} })
   getSkillContent.mockResolvedValue({
     name: 'web-research',
     path: '/skills/web-research/SKILL.md',
@@ -262,37 +269,23 @@ describe('CapabilitiesView toolset management', { timeout: 60_000 }, () => {
   })
 
   it('hub picker refuses to reinstall an already-installed skill', async () => {
-    const { notify } = await import('@/store/notifications')
+    const { installHubSkill } = await import('@/store/hub-actions')
     const { EmbeddedHubPicker } = await import('./skills/embedded-hub-picker')
 
-    render(<EmbeddedHubPicker installedNames={new Set(['web-research'])} profile={null} />)
+    render(<EmbeddedHubPicker installedNames={new Set(['dragon-agent'])} profile={null} />)
 
-    // The picker is expanded by default — the hub iframe is live on mount.
-    expect(document.querySelector('iframe')).toBeTruthy()
-
-    await act(async () => {
-      window.dispatchEvent(
-        new MessageEvent('message', {
-          data: { type: 'hermes-skill-pick', name: 'web-research', identifier: 'web-research' },
-          origin: 'https://hermes-agent.nousresearch.com'
-        })
-      )
-    })
-
-    // Refused with an informational toast, no install action spawned.
-    await waitFor(() =>
-      expect(vi.mocked(notify)).toHaveBeenCalledWith(
-        expect.objectContaining({ title: expect.stringContaining('web-research') })
-      )
-    )
+    expect(document.querySelector('iframe')).toBeNull()
+    expect(screen.getByText('Dragon AI Skills Hub')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: '+ Add to this Agent: dragon-agent' })).toBeNull()
+    expect(vi.mocked(installHubSkill)).not.toHaveBeenCalled()
   })
 
-  it('mounts the hub iframe lazily and keeps it (hidden) across tab switches', async () => {
-    // On a non-Skills tab the docs-site iframe must not exist at all — an
-    // eagerly mounted hub is exactly the Capabilities lag bug.
+  it('mounts the native hub pane lazily and keeps it (hidden) across tab switches', async () => {
+    // On a non-Skills tab the hub pane must not exist at all — an eagerly
+    // mounted catalog is the Capabilities lag bug the lazy mount prevents.
     await renderSkills() // ?tab=toolsets
     await screen.findByRole('switch', { name: 'Turn Web Search toolset off' })
-    expect(document.querySelector('iframe')).toBeNull()
+    expect(document.querySelector('[data-catalog-pane="capabilities-hub"]')).toBeNull()
     cleanup()
 
     // Embedded mode drives tabs through local state (the route hooks are
@@ -307,19 +300,19 @@ describe('CapabilitiesView toolset management', { timeout: 60_000 }, () => {
       )
     })
 
-    const iframe = document.querySelector('iframe')
-    expect(iframe).toBeTruthy()
-    expect(iframe!.closest('section')!.classList.contains('hidden')).toBe(false)
+    const pane = document.querySelector('[data-catalog-pane="capabilities-hub"]')
+    expect(pane).toBeTruthy()
+    expect(pane!.classList.contains('hidden')).toBe(false)
+    expect(document.querySelector('iframe')).toBeNull()
 
-    // Switch to Tools → the iframe STAYS mounted (no docs-site reload on the
-    // next visit) but its section is fully hidden, so nothing from the hub
-    // can paint over the toolsets UI.
+    // Switch to Tools → the pane STAYS mounted (no catalog reload on the
+    // next visit) but its section is fully hidden.
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /Tools/ }))
     })
-    const kept = document.querySelector('iframe')
+    const kept = document.querySelector('[data-catalog-pane="capabilities-hub"]')
     expect(kept).toBeTruthy()
-    expect(kept!.closest('section')!.classList.contains('hidden')).toBe(true)
+    expect(kept!.classList.contains('hidden')).toBe(true)
   })
 
   it('shows a vision explainer that deep-links to Settings → Models', async () => {

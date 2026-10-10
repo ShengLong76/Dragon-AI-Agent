@@ -342,8 +342,9 @@ For an ordinary package of that desktop build, use the workspace's
 `dist:win`, `dist:mac`, `dist:linux`, or `pack` command. Those commands do not
 replace the complete tagged build described above.
 
-Icons are generated from `assets/nous-girl-*.svg` and `assets/backgrounds/`.
-`node scripts/generate-icons.mjs` renders them with the Hermes runtime Python
+Icons are generated from `branding/dragon-logo.png` (copied as
+`assets/dragon-logo.png`) and `assets/backgrounds/`.
+`node scripts/generate-icons.mjs` renders them with the Dragon runtime Python
 (`HERMES_PYTHON`, else `python` on PATH); Pillow and resvg-py are core
 dependencies. Generated PNG/ICO/ICNS files are not source assets.
 

@@ -42,7 +42,8 @@ def snapshot(repo: Path, ref: str, destination: Path, exclude: tuple[str, ...] =
             ["git", "archive", "--format=tar", "--output", str(archive), ref, "--", *pathspecs],
             cwd=repo, check=True)
         if destination.exists():
-            shutil.rmtree(destination)
+            from scripts.bundles.windows_payload import robust_rmtree
+            robust_rmtree(destination)
         destination.mkdir(parents=True)
         with tarfile.open(archive) as source:
             source.extractall(destination, filter="data")

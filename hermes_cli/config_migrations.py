@@ -683,6 +683,26 @@ def _migrate_to_49(results: Dict[str, Any], quiet: bool) -> None:
             print("  ✓ Cleared TERMINAL_VERCEL_RUNTIME from .env (was the old default; the image is used instead)")
 
 
+def _migrate_to_50(results: Dict[str, Any], quiet: bool) -> None:
+    # 49 → 50: the container sandbox default is the local Dragon tag. A saved value still
+    # equal to the previous Nous default is the template copied, not a pin: drop it so the
+    # file follows dragon-sandbox:desktop. Runtime treats the two tags as the same image
+    # and keeps an existing hermes-* sandbox until the user approves a switch.
+    from hermes_cli.config_defaults import DEFAULT_SANDBOX_IMAGE, PREVIOUS_DEFAULT_SANDBOX_IMAGE
+    for key, old in (
+        ("docker_image", PREVIOUS_DEFAULT_SANDBOX_IMAGE),
+        ("modal_image", PREVIOUS_DEFAULT_SANDBOX_IMAGE),
+        ("daytona_image", PREVIOUS_DEFAULT_SANDBOX_IMAGE),
+        ("singularity_image", f"docker://{PREVIOUS_DEFAULT_SANDBOX_IMAGE}"),
+    ):
+        _rewrite_stale_default(
+            section="terminal", key=key, old=old, new=None,
+            added=f"terminal.{key} unset (follows the default, {DEFAULT_SANDBOX_IMAGE})",
+            message=f"  ✓ terminal.{key}: was the previous default; now follows the default sandbox image "
+                    f"({DEFAULT_SANDBOX_IMAGE})",
+        )(results, quiet)
+
+
 MIGRATIONS: Tuple[Tuple[int, Callable[[Dict[str, Any], bool], None]], ...] = (
     (12, _migrate_to_12),
     (13, _migrate_to_13),
@@ -814,6 +834,8 @@ MIGRATIONS: Tuple[Tuple[int, Callable[[Dict[str, Any], bool], None]], ...] = (
     (48, _migrate_to_48),
     # 48 → 49: the seeded Vercel runtime pin is dropped so fresh sandboxes use the managed image (see _migrate_to_49).
     (49, _migrate_to_49),
+    # 49 → 50: a saved previous-default sandbox image is dropped so the file follows dragon-sandbox:desktop.
+    (50, _migrate_to_50),
 )
 
 #: Steps triggered by a legacy key or identifier (a renamed or retired key, a removed plugin or

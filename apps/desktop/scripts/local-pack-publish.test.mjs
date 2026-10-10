@@ -45,3 +45,12 @@ test('the pack script pins an explicit publish policy', () => {
   assert.match(pack, /--dir\b/)
   assert.match(pack, /--publish\s+never\b/)
 })
+
+test('local Windows packs do not require a GitHub token to finish', () => {
+  const { validatePreparedBuilderArgs } = require('./run-electron-builder.mjs')
+  for (const key of ['GH_TOKEN', 'GITHUB_TOKEN', 'GITLAB_TOKEN', 'KEYGEN_TOKEN', 'BITBUCKET_TOKEN']) vi.stubEnv(key, '')
+  assert.doesNotThrow(() => validatePreparedBuilderArgs(
+    ['--win', 'nsis', '--publish', 'never', '-c.publish=null'],
+    { formats: ['nsis'], target: 'win32-x64' }
+  ))
+})

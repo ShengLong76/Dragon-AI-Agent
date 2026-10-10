@@ -1482,6 +1482,8 @@ class TestCuaEnvironmentScrubbing:
                        return_value="cua-driver"), \
                  patch("tools.computer_use.cua_backend_driver._resolve_mcp_invocation",
                        return_value=("cua-driver", ["mcp"])), \
+                 patch("tools.computer_use.cua_backend.sandbox_mcp_invocation",
+                       return_value=None), \
                  patch("mcp.StdioServerParameters", side_effect=capture_env), \
                  patch("mcp.client.stdio.stdio_client") as mock_stdio, \
                  patch("mcp.ClientSession") as mock_session_class:

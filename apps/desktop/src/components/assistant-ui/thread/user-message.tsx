@@ -148,8 +148,9 @@ export async function resolveAgentAvatar(handle: string): Promise<null | string>
       const profiles = res?.profiles ?? []
       let profile = profiles.find(p => p.name.toLowerCase() === key)
 
-      // 'hermes' is the conventional alias for the primary profile.
-      if (!profile && key === 'hermes') {
+      // 'main' is the Dragon alias for the primary profile; 'hermes' is the
+      // retired handle still present in older transcripts.
+      if (!profile && (key === 'main' || key === 'hermes')) {
         profile = profiles.find(p => p.name === 'default')
       }
 

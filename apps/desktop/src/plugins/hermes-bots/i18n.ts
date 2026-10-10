@@ -103,6 +103,17 @@ type BotsMessages = {
     created: (name: string) => string
     createdOn: (name: string, target: string) => string
   }
+  soulEditor: {
+    title: string
+    description: (profile: string) => string
+    hint: string
+    edit: string
+    preview: string
+    discardTitle: string
+    discardDescription: string
+    discard: string
+    saveFailed: string
+  }
   roster: {
     search: string
     searchPlaceholder: string
@@ -389,6 +400,11 @@ type BotsMessages = {
     /** Managed runtimes (Hermes Cloud): updates are the platform's job, not the user's. */
     portalUnavailableManaged: string
     unavailableTitle: string
+    unavailableLocalBody: string
+    checkingTitle: string
+    checkingBody: string
+    statusFailedTitle: string
+    retry: string
     autoOpenMenu: string
     autoOpenOnToast: (name: string) => string
     autoOpenOffToast: (name: string) => string
@@ -400,6 +416,7 @@ type BotsMessages = {
     imageSwitchApprove: string
     imageSwitchKeep: string
     start: string
+    startFailedLeftoverDisplay: string
     attaching: string
     streamLost: string
     reconnect: string
@@ -556,6 +573,17 @@ const en: BotsMessages = {
     updated: name => `${name} updated`,
     created: name => `Bot "${name}" created`,
     createdOn: (name, target) => `Bot "${name}" created on ${target}`
+  },
+  soulEditor: {
+    title: 'Edit SOUL.md',
+    description: profile => `Persona instructions for ${profile}.`,
+    hint: 'Double-click to edit',
+    edit: 'Edit',
+    preview: 'Preview',
+    discardTitle: 'Discard unsaved changes?',
+    discardDescription: 'Your edits to SOUL.md will be lost.',
+    discard: 'Discard',
+    saveFailed: 'Could not save SOUL.md'
   },
   roster: {
     search: 'Search bots and group chats',
@@ -829,6 +857,12 @@ const en: BotsMessages = {
     portalUnavailable: 'Update the bot\u2019s Dragon AI to use Screen',
     portalUnavailableManaged: 'Screen is not available on this managed Dragon AI release yet',
     unavailableTitle: 'Screen needs a newer Dragon AI',
+    unavailableLocalBody:
+      'This runtime has no Computer service. Use the Dragon AI backend that shipped with this app, not a separate older checkout.',
+    checkingTitle: 'Starting computer…',
+    checkingBody: "Asking this bot's runtime for its desktop.",
+    statusFailedTitle: 'Computer is not available',
+    retry: 'Retry',
     autoOpenMenu: 'Open Screen when the bot uses it',
     autoOpenOnToast: name => `${name}’s Screen opens when it starts using its desktop`,
     autoOpenOffToast: name => `${name}’s Screen stays closed until you open it`,
@@ -841,6 +875,8 @@ const en: BotsMessages = {
     imageSwitchApprove: 'Switch image',
     imageSwitchKeep: 'Keep current image',
     start: 'Start screen',
+    startFailedLeftoverDisplay:
+      'The sandbox screen could not start. A leftover display from a previous run was still in the container — click Start screen again.',
     attaching: 'Connecting to the screen\u2026',
     streamLost: 'Screen stream ended',
     reconnect: 'Reconnect',
@@ -995,6 +1031,17 @@ const ja: BotsMessages = {
     updated: name => `${name} を更新しました`,
     created: name => `ボット「${name}」を作成しました`,
     createdOn: (name, target) => `${target} にボット「${name}」を作成しました`
+  },
+  soulEditor: {
+    title: 'SOUL.md を編集',
+    description: profile => `${profile} のペルソナ指示。`,
+    hint: 'ダブルクリックで編集',
+    edit: '編集',
+    preview: 'プレビュー',
+    discardTitle: '未保存の変更を破棄しますか？',
+    discardDescription: 'SOUL.md への編集内容は失われます。',
+    discard: '破棄',
+    saveFailed: 'SOUL.md を保存できませんでした'
   },
   roster: {
     search: 'ボットとグループチャットを検索',
@@ -1269,6 +1316,12 @@ const ja: BotsMessages = {
     portalUnavailable: 'Screen を使うにはボットの Dragon AI を更新してください',
     portalUnavailableManaged: 'この管理された Dragon AI リリースではまだ Screen を利用できません',
     unavailableTitle: 'Screen には新しい Dragon AI が必要です',
+    unavailableLocalBody:
+      'このランタイムには Computer サービスがありません。別の古いチェックアウトではなく、このアプリ同梱の Dragon AI バックエンドを使ってください。',
+    checkingTitle: 'コンピュータを起動しています…',
+    checkingBody: 'このボットのランタイムにデスクトップを問い合わせています。',
+    statusFailedTitle: 'コンピュータを利用できません',
+    retry: '再試行',
     autoOpenMenu: 'ボットが画面を使い始めたら Screen を開く',
     autoOpenOnToast: name => `${name} がデスクトップを使い始めると Screen が開きます`,
     autoOpenOffToast: name => `${name} の Screen は手動で開くまで閉じたままです`,
@@ -1281,6 +1334,8 @@ const ja: BotsMessages = {
     imageSwitchApprove: 'イメージを切り替える',
     imageSwitchKeep: '現在のイメージを使い続ける',
     start: '画面を起動',
+    startFailedLeftoverDisplay:
+      'サンドボックスの画面を起動できませんでした。前回の実行のディスプレイロックがコンテナに残っていました。もう一度「画面を起動」をクリックしてください。',
     attaching: '画面に接続中…',
     streamLost: '画面ストリームが終了しました',
     reconnect: '再接続',
@@ -1430,6 +1485,17 @@ const zh: BotsMessages = {
     updated: name => `已更新 ${name}`,
     created: name => `已创建机器人“${name}”`,
     createdOn: (name, target) => `已在 ${target} 上创建机器人“${name}”`
+  },
+  soulEditor: {
+    title: '编辑 SOUL.md',
+    description: profile => `${profile} 的人格指令。`,
+    hint: '双击以编辑',
+    edit: '编辑',
+    preview: '预览',
+    discardTitle: '放弃未保存的更改？',
+    discardDescription: '对 SOUL.md 的编辑将丢失。',
+    discard: '放弃',
+    saveFailed: '无法保存 SOUL.md'
   },
   roster: {
     search: '搜索机器人和群聊',
@@ -1694,6 +1760,12 @@ const zh: BotsMessages = {
     portalUnavailable: '更新机器人的 Dragon AI 以使用屏幕',
     portalUnavailableManaged: '此托管 Dragon AI 版本尚不支持屏幕',
     unavailableTitle: '屏幕需要更新版的 Dragon AI',
+    unavailableLocalBody:
+      '此运行时没有 Computer 服务。请使用本应用附带的 Dragon AI 后端，而不是另一个较旧的检出。',
+    checkingTitle: '正在启动计算机…',
+    checkingBody: '正在向该机器人的运行时查询桌面。',
+    statusFailedTitle: '计算机不可用',
+    retry: '重试',
     autoOpenMenu: '机器人使用屏幕时自动打开',
     autoOpenOnToast: name => `${name} 开始使用桌面时会自动打开屏幕`,
     autoOpenOffToast: name => `${name} 的屏幕将保持关闭，直到你手动打开`,
@@ -1706,6 +1778,8 @@ const zh: BotsMessages = {
     imageSwitchApprove: '切换镜像',
     imageSwitchKeep: '保留当前镜像',
     start: '启动屏幕',
+    startFailedLeftoverDisplay:
+      '无法启动沙箱屏幕。上次运行留下的显示锁仍在容器中 — 请再次点击“启动屏幕”。',
     attaching: '正在连接屏幕…',
     streamLost: '屏幕流已结束',
     reconnect: '重新连接',
@@ -1855,6 +1929,17 @@ const zhHant: BotsMessages = {
     updated: name => `已更新 ${name}`,
     created: name => `已建立機器人「${name}」`,
     createdOn: (name, target) => `已在 ${target} 上建立機器人「${name}」`
+  },
+  soulEditor: {
+    title: '編輯 SOUL.md',
+    description: profile => `${profile} 的人格指令。`,
+    hint: '按兩下以編輯',
+    edit: '編輯',
+    preview: '預覽',
+    discardTitle: '捨棄未儲存的變更？',
+    discardDescription: '對 SOUL.md 的編輯將會遺失。',
+    discard: '捨棄',
+    saveFailed: '無法儲存 SOUL.md'
   },
   roster: {
     search: '搜尋機器人和群組聊天',
@@ -2119,6 +2204,12 @@ const zhHant: BotsMessages = {
     portalUnavailable: '更新機器人的 Dragon AI 以使用螢幕',
     portalUnavailableManaged: '此託管 Dragon AI 版本尚不支援螢幕',
     unavailableTitle: '螢幕需要較新版的 Dragon AI',
+    unavailableLocalBody:
+      '此執行環境沒有 Computer 服務。請使用本應用附帶的 Dragon AI 後端，而不是另一個較舊的簽出。',
+    checkingTitle: '正在啟動電腦…',
+    checkingBody: '正在向此機器人的執行環境查詢桌面。',
+    statusFailedTitle: '電腦無法使用',
+    retry: '重試',
     autoOpenMenu: '機器人使用螢幕時自動開啟',
     autoOpenOnToast: name => `${name} 開始使用桌面時會自動開啟螢幕`,
     autoOpenOffToast: name => `${name} 的螢幕將保持關閉，直到你手動開啟`,
@@ -2131,6 +2222,8 @@ const zhHant: BotsMessages = {
     imageSwitchApprove: '切換映像',
     imageSwitchKeep: '保留目前映像',
     start: '啟動螢幕',
+    startFailedLeftoverDisplay:
+      '無法啟動沙箱螢幕。上次執行留下的顯示鎖定仍在容器中 — 請再按一次「啟動螢幕」。',
     attaching: '正在連線至螢幕…',
     streamLost: '螢幕串流已結束',
     reconnect: '重新連線',

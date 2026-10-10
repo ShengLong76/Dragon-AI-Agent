@@ -753,7 +753,8 @@ def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) 
     skills_prompt = _skills_prompt(agent)
     # Skill-pointer variant requires BOTH skill_view AND the hermes-agent skill
     # in the rendered index (pure string check — inherits the index's stability).
-    if "skill_view" in (agent.valid_tool_names or set()) and "- hermes-agent:" in skills_prompt:
+    if "skill_view" in (agent.valid_tool_names or set()) and (
+            "- dragon-agent:" in skills_prompt or "- hermes-agent:" in skills_prompt):
         stable_parts[_help_guidance_slot] = HERMES_AGENT_HELP_GUIDANCE
     stable_parts.extend(_alibaba_identity_part(agent))
     # Pinned skills are per-agent constants (resolved once), so they live in the stable prefix.

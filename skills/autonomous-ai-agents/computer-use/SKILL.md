@@ -2,7 +2,7 @@
 name: computer-use
 description: "Drive the desktop background-first; escalate on signal."
 version: 2.1.0
-author: Francesco Bonacci (f-trycua), Hermes Agent
+author: Francesco Bonacci (f-trycua), Dragon AI
 license: MIT
 platforms: [macos, windows, linux]
 metadata:

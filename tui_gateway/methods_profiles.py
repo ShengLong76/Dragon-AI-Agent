@@ -394,7 +394,12 @@ def _(rid, params: dict) -> dict:
     if isinstance(params.get("ui_meta"), dict):
         _configure_ui_meta(profile_dir, params, applied)
     if isinstance(params.get("soul"), str):
-        applied["soul"] = _best_effort(lambda: (profile_dir / "SOUL.md").write_text(params["soul"], encoding="utf-8"))
+        def _write_soul():
+            from hermes_cli.profiles import confined_profile_file
+            from utils import atomic_write_text
+            soul_path = confined_profile_file(profile_dir, "SOUL.md")
+            atomic_write_text(soul_path, params["soul"], preserve_mode=True, create_mode=0o644)
+        applied["soul"] = _best_effort(_write_soul)
     if isinstance(params.get("description"), str):
         write_meta = _lazy("hermes_cli.profiles", "write_profile_meta")
         applied["description"] = _best_effort(lambda: write_meta(

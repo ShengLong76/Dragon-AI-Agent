@@ -150,20 +150,63 @@ def cua_driver_child_env(base_env: Optional[Dict[str, str]] = None) -> Dict[str,
         env[_CUA_NATIVE_WAYLAND_ENV_VAR] = "1"
     return env
 
+HOST_CONTROL_OFF_ERROR = (
+    "computer_use will not control this machine's desktop "
+    "(computer_use.host_control is off, the default). "
+    "Use the bot's sandbox screen, or set computer_use.host_control: true."
+)
+
+
+def host_control_enabled() -> bool:
+    """True only when config explicitly opts in to driving the gateway host's seat."""
+    return bool(_computer_use_cfg().get("host_control", False))
+
+
+def resolve_computer_use_target() -> str:
+    """Where computer_use may act: ``sandbox`` or ``host``.
+
+    A sandbox-placed (or still-marked) desktop always wins. The host seat is
+    used only for a running gateway Bot Desktop (Linux Xvnc for this profile)
+    or when ``computer_use.host_control`` is on. Otherwise this raises — a
+    Windows host cua-driver must never list the user's real apps because
+    the container screen exists or host control is off.
+    """
+    from tools.bot_desktop import placement, runtime as _bd_runtime
+    from tools.bot_desktop import sandbox_host
+
+    where = placement.resolve()
+    if where.where == placement.REFUSED:
+        raise RuntimeError(where.reason)
+    if where.where == placement.TERMINAL:
+        return "sandbox"
+    if sandbox_host._read_marker():
+        return "sandbox"
+    if _bd_runtime.is_running() and _bd_runtime.published_env().get("DISPLAY"):
+        return "host"
+    if host_control_enabled():
+        return "host"
+    raise RuntimeError(HOST_CONTROL_OFF_ERROR)
+
+
 def sandbox_mcp_invocation() -> Optional[Tuple[Tuple[str, List[str]], Dict[str, str]]]:
     """``((command, args), child_env)`` spawning ``cua-driver mcp`` INSIDE the terminal backend when the Bot
     Desktop is placed there (the driver in the sandbox image drives the sandbox's own screen); None on a
     gateway-hosted desktop, where the local driver is used. Placement is the authority: a ``terminal``
     placement gets its screen started here and a ``refused`` one raises — the host driver is never the
-    fallback for a sandbox whose screen is down."""
-    from tools.bot_desktop import placement, runtime as _bd_runtime
-    if _bd_runtime.tool_placement() == placement.GATEWAY:
+    fallback for a sandbox whose screen is down. Host cua-driver is also refused when
+    ``computer_use.host_control`` is off and no gateway Bot Desktop is running.
+    """
+    if resolve_computer_use_target() != "sandbox":
         return None
+    from tools.bot_desktop import runtime as _bd_runtime
+    # Starts the sandbox screen when placement is terminal. A leftover marker
+    # still publishes DISPLAY if the setting later moved to gateway.
+    _bd_runtime.tool_placement()
     published = _bd_runtime.published_env()
     if not published.get("DISPLAY"):
         raise RuntimeError("the screen inside the terminal backend's sandbox is gone; start it again")
     from tools.bot_desktop import sandbox_host
-    env = _bd_runtime._sandbox_env(create=True)
+    env = _bd_runtime._owned_sandbox_env() or _bd_runtime._sandbox_env(create=True)
     if env is None:
         raise RuntimeError("the terminal backend's sandbox is not running, so there is nowhere to run cua-driver")
     command, args = sandbox_host.cua_mcp_invocation(env, _bd_runtime._profile_name(),
@@ -282,7 +325,12 @@ class CuaDriverBackend(_CaptureMixin, _InputMixin, ComputerUseBackend):
         # binary (if any) is not the one that will run, so neither its acquisition nor its contract
         # matters. On the host, runtime acquisition is on-demand, never the explicit install command
         # (which may elevate for host setup and bypass the lazy-install gate).
-        if sandbox_mcp_invocation() is not None:
+        from tools.bot_desktop import placement as _placement
+        from tools.bot_desktop import sandbox_host as _sandbox_host
+        # Contract only: a sandbox-placed (or still-marked) desktop does not
+        # need the host binary. Host-seat policy is enforced when the session
+        # actually spawns the driver (``sandbox_mcp_invocation``).
+        if _placement.resolve().where == _placement.TERMINAL or _sandbox_host._read_marker():
             contract = {"ready": True}
         else:
             if not os.environ.get(_CUA_DRIVER_CMD_ENV, "").strip():

@@ -61,7 +61,12 @@ export function isDisplayUnavailable(error: unknown): boolean {
 
   const message = typeof record?.message === 'string' ? record.message.toLowerCase() : ''
 
-  return message.includes('method not found') || message.includes('method-not-found')
+  return (
+    message.includes('method not found') ||
+    message.includes('method-not-found') ||
+    message.includes('unknown method') ||
+    message.includes('no such method')
+  )
 }
 
 /** The bot's backend is a Portal-managed runtime (Hermes Cloud): its Hermes is updated by the

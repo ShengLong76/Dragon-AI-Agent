@@ -442,6 +442,26 @@ def get_profile_dir(name: str) -> Path:
     return _get_profiles_root() / canon
 
 
+def confined_profile_file(profile_dir: Path, filename: str) -> Path:
+    """Resolve *filename* under *profile_dir* and refuse any escape.
+
+    Profile-owned documents such as SOUL.md must be written through this so a
+    crafted name cannot land outside the profile directory.
+    """
+    name = str(filename or "")
+    if not name or name in {".", ".."} or "/" in name or "\\" in name:
+        raise ValueError(f"Invalid profile file name {filename!r}")
+    root = Path(profile_dir).resolve()
+    target = (root / name).resolve()
+    try:
+        target.relative_to(root)
+    except ValueError as exc:
+        raise ValueError(f"{name} is outside the profile directory") from exc
+    if target.name != name:
+        raise ValueError(f"{name} is outside the profile directory")
+    return target
+
+
 def profile_exists(name: str) -> bool:
     """Check whether a live (non-tombstoned) profile directory exists."""
     try:

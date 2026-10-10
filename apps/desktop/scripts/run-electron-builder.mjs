@@ -160,7 +160,8 @@ export function runElectronBuilder(args, { spawn = spawnSync } = {}) {
   if (inputs.dmgbuild) env.CUSTOM_DMGBUILD_PATH = inputs.dmgbuild
   if (inputs.windows?.dotnetRoot) env.DOTNET_ROOT = inputs.windows.dotnetRoot
   const result = spawn(process.execPath, [...preloads, path.join(builder, bin), ...args,
-    '--config', 'electron-builder.config.cjs', '--publish', 'never', `-c.electronDist=${inputs.electron}`,
+    '--config', 'electron-builder.config.cjs', '--publish', 'never',
+    `-c.electronDist=${inputs.electron}`,
     ...toolsetArguments(inputs)], { cwd: app, stdio: 'inherit', env })
   if (result.error) throw result.error
   return result.status ?? 1
