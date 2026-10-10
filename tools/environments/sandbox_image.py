@@ -3,12 +3,12 @@
 The Computer pane and docker terminal backend used to start ``hermes-<id>``
 containers from ``nousresearch/hermes-sandbox:desktop``. Dragon AI ships a
 local ``dragon-sandbox:desktop`` tag. If that tag is missing (first run, no
-GHCR publish yet), we pull the upstream desktop image and retag it locally so
-the pane keeps working.
+GHCR publish yet), we pull the published GHCR image or the upstream desktop
+image and retag it locally so the pane keeps working.
 
-Existing ``hermes-*`` containers stay reusable: they still carry
-``hermes-agent=1`` labels, and new containers keep that label plus
-``dragon-agent=1``.
+Never ``docker pull dragon-sandbox:desktop``: that name is a local-only tag
+with no Docker Hub repo, and Hub answers ``pull access denied``. Check local
+existence first, then GHCR, then upstream + ``docker tag``.
 """
 from __future__ import annotations
 
@@ -33,6 +33,17 @@ SANDBOX_IMAGE_ALIASES = frozenset({
     UPSTREAM_SANDBOX_IMAGE,
 })
 
+# Docker Hub / GHCR wording that means "this ref is not ours" — fall through.
+_PULL_FALLTHROUGH_MARKERS = (
+    "pull access denied",
+    "access denied",
+    "not found",
+    "repository does not exist",
+    "manifest unknown",
+    "unauthorized",
+    "requested access to the resource is denied",
+)
+
 
 def new_container_name() -> str:
     return f"{CONTAINER_NAME_PREFIX}{uuid.uuid4().hex[:8]}"
@@ -43,6 +54,15 @@ def is_managed_container_name(name: str) -> bool:
     return bool(name) and (
         name.startswith(CONTAINER_NAME_PREFIX) or name.startswith(LEGACY_CONTAINER_NAME_PREFIX)
     )
+
+
+def is_registry_ref(image: str) -> bool:
+    """True when *image* names a registry path (``ghcr.io/...`` / ``org/name``).
+
+    Bare tags such as ``dragon-sandbox:desktop`` have no registry; pulling them
+    hits Docker Hub as library/dragon-sandbox and gets access-denied.
+    """
+    return "/" in (image or "")
 
 
 def images_are_equivalent(left: str, right: str) -> bool:
@@ -62,6 +82,21 @@ def fingerprint_alias_images(image: str) -> tuple[str, ...]:
     return (image,)
 
 
+def _result_text(result) -> str:
+    if result is None:
+        return ""
+    if isinstance(result, BaseException):
+        return str(result)
+    parts = [getattr(result, "stderr", ""), getattr(result, "stdout", ""), str(result)]
+    return " ".join(str(part or "") for part in parts)
+
+
+def is_pull_fallthrough(result) -> bool:
+    """True when a failed pull is a missing/denied image, not a Docker crash."""
+    text = _result_text(result).lower()
+    return any(marker in text for marker in _PULL_FALLTHROUGH_MARKERS)
+
+
 def _inspect_image(run_capture, docker_exe: str, image: str) -> bool:
     try:
         probe = run_capture(
@@ -72,11 +107,23 @@ def _inspect_image(run_capture, docker_exe: str, image: str) -> bool:
 
 
 def _pull_image(run_capture, docker_exe: str, image: str) -> bool:
+    if not is_registry_ref(image):
+        logger.info("Docker: not pulling local-only tag %s (no registry)", image)
+        return False
     try:
         pull = run_capture([docker_exe, "pull", image], timeout=900)
-        return pull.returncode == 0
+        if pull.returncode == 0:
+            return True
+        if is_pull_fallthrough(pull):
+            logger.info("Docker: %s not pullable (%s); falling through", image, (pull.stderr or "").strip())
+        else:
+            logger.warning("Docker: could not pull %s: %s", image, (pull.stderr or pull.stdout or "").strip())
+        return False
     except (OSError, Exception) as exc:
-        logger.warning("Docker: could not pull %s: %s", image, exc)
+        if is_pull_fallthrough(exc):
+            logger.info("Docker: %s not pullable (%s); falling through", image, exc)
+        else:
+            logger.warning("Docker: could not pull %s: %s", image, exc)
         return False
 
 
@@ -98,15 +145,16 @@ def ensure_sandbox_image(
 ) -> str:
     """Return a locally-available image name for *desired*.
 
-    Order: already local → pull *desired* → pull published/upstream and retag
-    as *desired*. Raises RuntimeError only when nothing can be pulled; callers
-    that must keep an existing container should catch that.
+    Order: ``docker image inspect`` *desired* → (registry refs only) pull
+    *desired* → inspect/pull each published/upstream candidate and ``docker tag``
+    as *desired*. Local-only tags are never pulled. ``pull access denied`` and
+    ``not found`` fall through to the next candidate. Raises RuntimeError only
+    when nothing can be made local; callers that must keep an existing
+    container should catch that.
     """
     if _inspect_image(run_capture, docker_exe, desired):
         return desired
-    # Local-only tags (``dragon-sandbox:desktop``) have no registry; pulling
-    # them is a guaranteed miss. Registry refs (ghcr / Docker Hub) are pulled.
-    if "/" in desired and _pull_image(run_capture, docker_exe, desired) and _inspect_image(
+    if is_registry_ref(desired) and _pull_image(run_capture, docker_exe, desired) and _inspect_image(
         run_capture, docker_exe, desired
     ):
         return desired
@@ -114,8 +162,10 @@ def ensure_sandbox_image(
     for candidate in candidates:
         if candidate == desired:
             continue
-        available = _inspect_image(run_capture, docker_exe, candidate) or _pull_image(
-            run_capture, docker_exe, candidate)
+        available = _inspect_image(run_capture, docker_exe, candidate)
+        if not available:
+            available = _pull_image(run_capture, docker_exe, candidate) and _inspect_image(
+                run_capture, docker_exe, candidate)
         if not available:
             continue
         if _retag(run_capture, docker_exe, candidate, desired):

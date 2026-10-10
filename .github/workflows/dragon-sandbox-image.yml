@@ -6,6 +6,12 @@ name: Dragon sandbox desktop image
 # nousresearch/hermes-sandbox:desktop and retags locally when GHCR is empty.
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - docker/sandbox-desktop.Dockerfile
+      - docker/sandbox-desktop-smoke.sh
+      - .github/workflows/dragon-sandbox-image.yml
   pull_request:
     paths:
       - docker/sandbox-desktop.Dockerfile
@@ -53,7 +59,7 @@ jobs:
         run: docker/sandbox-desktop-smoke.sh ${{ env.IMAGE_NAME }}:test
 
       - name: Log in to GHCR
-        if: github.event_name == 'workflow_dispatch' && inputs.publish
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish)
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           registry: ghcr.io
@@ -61,7 +67,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish :desktop
-        if: github.event_name == 'workflow_dispatch' && inputs.publish
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish)
         uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
           context: .

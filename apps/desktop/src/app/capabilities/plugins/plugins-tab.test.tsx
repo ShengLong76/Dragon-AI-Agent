@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { $pluginDecisions, $pluginRecords, dropPlugin, patchPlugin, publishPlugin } from '@/contrib/plugins-store'
+import { listPluginCatalog } from '@/lib/plugin-catalog'
 import { queryClient } from '@/lib/query-client'
 import { $agentPlugins, $agentPluginsStatus } from '@/store/agent-plugins'
 import { $confirmRequest, settleConfirm } from '@/store/confirm'
@@ -11,6 +12,27 @@ import { $pluginInstallRequest, closePluginInstallRequest } from '@/store/plugin
 import { $connection } from '@/store/session'
 
 import { PluginsTab } from './plugins-tab'
+
+function catalogEntry(predicate?: (entry: ReturnType<typeof listPluginCatalog>[number]) => boolean) {
+  const rows = listPluginCatalog()
+  const match = predicate ? rows.find(predicate) : rows[0]
+
+  if (!match) {
+    throw new Error('bundled plugin catalog snapshot is empty')
+  }
+
+  return match
+}
+
+function addCatalogCard(name: string, title?: string) {
+  const search = screen.getByLabelText('Search')
+
+  fireEvent.change(search, { target: { value: name } })
+
+  const label = `+ Add to this Agent: ${title || name}`
+
+  fireEvent.click(screen.getByRole('button', { name: label }))
+}
 
 const requestGateway = vi.fn(async () => ({ plugins: [] }))
 
@@ -225,35 +247,24 @@ describe('PluginsTab', () => {
     )
   })
 
-  it('opens the dual-target install modal from a catalog pick message', async () => {
-    render(<PluginsTab profile="workbot" />)
+  it('opens the dual-target install modal from a native catalog card', async () => {
+    const entry = catalogEntry(row => !row.subdir)
 
-    window.dispatchEvent(
-      new MessageEvent('message', {
-        data: {
-          name: 'weather-plugin',
-          repo: 'https://github.com/example/weather-plugin',
-          sha: 'a'.repeat(40),
-          subdir: '',
-          tier: 'community',
-          type: 'hermes-plugin-pick'
-        },
-        origin: 'https://hermes-agent.nousresearch.com'
-      })
-    )
+    render(<PluginsTab profile="workbot" />)
+    addCatalogCard(entry.name, entry.title || entry.name)
 
     await waitFor(() => {
       const request = $pluginInstallRequest.get()
 
       expect(request).not.toBeNull()
-      expect(request?.catalogName).toBe('weather-plugin')
-      expect(request?.repo).toBe('https://github.com/example/weather-plugin')
+      expect(request?.catalogName).toBe(entry.name)
+      expect(request?.repo).toBe(entry.repo)
       expect(request?.profile).toBe('workbot')
-      expect(request?.sha).toBe('a'.repeat(40))
+      expect(request?.sha).toBe(entry.sha)
     })
   })
 
-  it('ignores pick messages from foreign origins', () => {
+  it('ignores leftover hub pick messages — install is click-driven', () => {
     render(<PluginsTab profile={null} />)
 
     window.dispatchEvent(
@@ -263,7 +274,7 @@ describe('PluginsTab', () => {
           repo: 'https://github.com/evil/evil-plugin',
           type: 'hermes-plugin-pick'
         },
-        origin: 'https://evil.example.com'
+        origin: 'https://hermes-agent.nousresearch.com'
       })
     )
 
@@ -323,22 +334,13 @@ describe('PluginsTab', () => {
   })
 
   it('appends the subdir fragment for multi-plugin repos', async () => {
-    render(<PluginsTab profile={null} />)
+    const entry = catalogEntry(row => Boolean(row.subdir))
 
-    window.dispatchEvent(
-      new MessageEvent('message', {
-        data: {
-          name: 'nested-plugin',
-          repo: 'https://github.com/example/plugins-monorepo',
-          subdir: 'nested-plugin',
-          type: 'hermes-plugin-pick'
-        },
-        origin: 'https://hermes-agent.nousresearch.com'
-      })
-    )
+    render(<PluginsTab profile={null} />)
+    addCatalogCard(entry.name, entry.title || entry.name)
 
     await waitFor(() => {
-      expect($pluginInstallRequest.get()?.repo).toBe('https://github.com/example/plugins-monorepo#nested-plugin')
+      expect($pluginInstallRequest.get()?.repo).toBe(`${entry.repo}#${entry.subdir}`)
     })
   })
 
@@ -657,13 +659,15 @@ describe('PluginsTab catalog UX', () => {
   })
 
   it('refuses a catalog pick that is already installed and current', async () => {
+    const entry = catalogEntry()
+
     $agentPlugins.set([
       {
-        catalog_name: 'demo-weather',
+        catalog_name: entry.name,
         description: '',
-        installed_sha: 'a'.repeat(40),
-        key: 'demo-weather',
-        name: 'demo-weather',
+        installed_sha: entry.sha ?? 'a'.repeat(40),
+        key: entry.name,
+        name: entry.name,
         source: 'git',
         status: 'enabled',
         update_available: false,
@@ -673,30 +677,22 @@ describe('PluginsTab catalog UX', () => {
 
     render(<PluginsTab profile={null} />)
 
-    window.dispatchEvent(
-      new MessageEvent('message', {
-        data: {
-          name: 'demo-weather',
-          repo: 'https://github.com/example/demo-weather',
-          type: 'hermes-plugin-pick'
-        },
-        origin: 'https://hermes-agent.nousresearch.com'
-      })
-    )
+    fireEvent.change(screen.getByLabelText('Search'), { target: { value: entry.name } })
 
-    // The modal must NOT open — the pick is refused with a toast.
-    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(screen.queryByRole('button', { name: `+ Add to this Agent: ${entry.title || entry.name}` })).toBeNull()
     expect($pluginInstallRequest.get()).toBeNull()
   })
 
   it('still opens the modal for an installed pick when an update is available', async () => {
+    const entry = catalogEntry()
+
     $agentPlugins.set([
       {
-        catalog_name: 'demo-weather',
+        catalog_name: entry.name,
         description: '',
-        installed_sha: 'a'.repeat(40),
-        key: 'demo-weather',
-        name: 'demo-weather',
+        installed_sha: entry.sha ?? 'a'.repeat(40),
+        key: entry.name,
+        name: entry.name,
         source: 'git',
         status: 'enabled',
         update_available: true,
@@ -705,17 +701,7 @@ describe('PluginsTab catalog UX', () => {
     ])
 
     render(<PluginsTab profile={null} />)
-
-    window.dispatchEvent(
-      new MessageEvent('message', {
-        data: {
-          name: 'demo-weather',
-          repo: 'https://github.com/example/demo-weather',
-          type: 'hermes-plugin-pick'
-        },
-        origin: 'https://hermes-agent.nousresearch.com'
-      })
-    )
+    addCatalogCard(entry.name, entry.title || entry.name)
 
     await waitFor(() => expect($pluginInstallRequest.get()).not.toBeNull())
   })

@@ -72,7 +72,7 @@ export function CapabilitiesView({
 
   const [query, setQuery] = useState('')
 
-  // Keep the docs iframe alive after the first Skills visit.
+  // Keep the native hub pane alive after the first Skills visit.
   const [hubMounted, setHubMounted] = useState(mode === 'skills')
 
   if (mode === 'skills' && !hubMounted) {

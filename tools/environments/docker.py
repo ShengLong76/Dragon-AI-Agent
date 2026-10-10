@@ -1044,12 +1044,19 @@ class DockerEnvironment(BaseEnvironment):
         """``docker run -d`` argv for a fresh ``sleep infinity`` container (idle reaper handles
         lifetime). s6-overlay images already provide PID 1, so ``--init`` is skipped for them."""
         label_args = [arg for k, v in self._labels.items() for arg in ("--label", f"{k}={v}")]
+        from tools.environments.sandbox_image import SANDBOX_IMAGE_ALIASES
+
+        # Alias tags are made local by ensure_sandbox_image. `--pull never`
+        # stops `docker run dragon-sandbox:desktop` from hitting Docker Hub
+        # (library/dragon-sandbox → pull access denied) when ensure failed.
+        pull_policy = ["--pull", "never"] if self._image in SANDBOX_IMAGE_ALIASES else []
         return [
             # tini/catatonit as PID 1 reaps zombie children — but s6-overlay images already provide their
             # own /init PID 1, so adding --init there creates two competing inits and breaks startup
             # (#34628).
             self._docker_exe, "run", "-d",
             *([] if self._image_uses_s6_init or self._snap_compat else ["--init"]),
+            *pull_policy,
             "--name", name,
             *label_args,
             "-w", workdir,
@@ -1063,7 +1070,10 @@ class DockerEnvironment(BaseEnvironment):
         removed by name before re-raising."""
         from tools.environments.sandbox_image import new_container_name
 
-        self._ensure_sandbox_image()
+        if not self._ensure_sandbox_image():
+            raise RuntimeError(
+                f"sandbox image {self._image} is not available locally and fallback pull failed"
+            )
         container_name = new_container_name()
         run_cmd = self._run_command(
             container_name, container_workdir(cwd, getattr(self, "host_cwd_mount", None)))
@@ -1186,7 +1196,9 @@ class DockerEnvironment(BaseEnvironment):
             try:
                 from tools.environments.sandbox_image import new_container_name
 
-                self._ensure_sandbox_image()
+                if not self._ensure_sandbox_image():
+                    logger.error("Recovery: sandbox image is not available locally")
+                    return False
                 new_name = new_container_name()
                 result = run_capture(
                     self._run_command(
