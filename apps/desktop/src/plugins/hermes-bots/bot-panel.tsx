@@ -20,11 +20,13 @@ import {
   useRoutines
 } from './cron'
 import { $botMeta, $lastRoster, botSelectionKey } from './data'
+import { useBots } from './i18n'
 import { botRole, displayName } from './labels'
 import { botRosterMeta, requestForBot } from './routing'
 import { BotScreenPane } from './screen-pane'
 import { ID } from './shared'
 import { HubSkillsSection } from './skills-hub'
+import { botSoulQueryKey, SoulEditorDialog } from './soul-editor-dialog'
 import type { RosterRow } from './types'
 
 export type BotPanelTab = 'computer' | 'details' | 'library' | 'routines'
@@ -121,14 +123,17 @@ export function BotPanelPane() {
 }
 
 function BotDetails({ bot, description }: { bot: RosterRow; description: string }) {
+  const b = useBots()
   const { data: soul, isLoading: soulLoading } = useQuery({
-    queryKey: [ID, 'soul', botSelectionKey(bot)],
+    queryKey: botSoulQueryKey(bot),
     queryFn: async () => {
       const res = (await requestForBot(bot, 'profiles.describe', { name: bot.name })) as { soul?: string }
 
       return res.soul || ''
     }
   })
+  const [editing, setEditing] = useState(false)
+  const content = soul || ''
 
   return (
     <div className="h-full overflow-y-auto px-3 pb-4">
@@ -140,18 +145,28 @@ function BotDetails({ bot, description }: { bot: RosterRow; description: string 
         <dt className="text-(--ui-text-tertiary)">Description</dt>
         <dd className="leading-5 text-(--ui-text-secondary)">{description || '—'}</dd>
       </dl>
-      <section className="px-1 pt-3">
-        <div className="pb-1.5 text-[0.8125rem] font-semibold">SOUL.md</div>
+      <section
+        className="group cursor-text px-1 pt-3"
+        data-slot="soul-preview"
+        onDoubleClick={() => !soulLoading && setEditing(true)}
+      >
+        <div className="flex items-baseline justify-between gap-2 pb-1.5">
+          <div className="text-[0.8125rem] font-semibold">SOUL.md</div>
+          <span className="text-[0.65rem] text-(--ui-text-quaternary) opacity-0 transition-opacity group-hover:opacity-100">
+            {b.soulEditor.hint}
+          </span>
+        </div>
         {soulLoading ? (
           <div className="flex justify-center py-4">
             <GlyphSpinner className="text-(--ui-text-tertiary)" spinner="breathe" />
           </div>
         ) : (
-          <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-md border border-(--ui-stroke-secondary) bg-(--ui-bg-tertiary)/40 px-2.5 py-2 font-mono text-[0.75rem] leading-5 text-(--ui-text-secondary)">
-            {soul || ''}
+          <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-md border border-(--ui-stroke-secondary) bg-(--ui-bg-tertiary)/40 px-2.5 py-2 font-mono text-[0.75rem] leading-5 text-(--ui-text-secondary) transition-colors group-hover:border-(--ui-stroke-primary)">
+            {content}
           </pre>
         )}
       </section>
+      <SoulEditorDialog bot={bot} initialContent={content} onClose={() => setEditing(false)} open={editing} />
     </div>
   )
 }

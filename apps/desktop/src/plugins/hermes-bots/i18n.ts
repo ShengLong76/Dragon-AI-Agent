@@ -103,6 +103,17 @@ type BotsMessages = {
     created: (name: string) => string
     createdOn: (name: string, target: string) => string
   }
+  soulEditor: {
+    title: string
+    description: (profile: string) => string
+    hint: string
+    edit: string
+    preview: string
+    discardTitle: string
+    discardDescription: string
+    discard: string
+    saveFailed: string
+  }
   roster: {
     search: string
     searchPlaceholder: string
@@ -562,6 +573,17 @@ const en: BotsMessages = {
     created: name => `Bot "${name}" created`,
     createdOn: (name, target) => `Bot "${name}" created on ${target}`
   },
+  soulEditor: {
+    title: 'Edit SOUL.md',
+    description: profile => `Persona instructions for ${profile}.`,
+    hint: 'Double-click to edit',
+    edit: 'Edit',
+    preview: 'Preview',
+    discardTitle: 'Discard unsaved changes?',
+    discardDescription: 'Your edits to SOUL.md will be lost.',
+    discard: 'Discard',
+    saveFailed: 'Could not save SOUL.md'
+  },
   roster: {
     search: 'Search bots and group chats',
     searchPlaceholder: 'Search bots and group chats…',
@@ -1007,6 +1029,17 @@ const ja: BotsMessages = {
     created: name => `ボット「${name}」を作成しました`,
     createdOn: (name, target) => `${target} にボット「${name}」を作成しました`
   },
+  soulEditor: {
+    title: 'SOUL.md を編集',
+    description: profile => `${profile} のペルソナ指示。`,
+    hint: 'ダブルクリックで編集',
+    edit: '編集',
+    preview: 'プレビュー',
+    discardTitle: '未保存の変更を破棄しますか？',
+    discardDescription: 'SOUL.md への編集内容は失われます。',
+    discard: '破棄',
+    saveFailed: 'SOUL.md を保存できませんでした'
+  },
   roster: {
     search: 'ボットとグループチャットを検索',
     searchPlaceholder: 'ボットとグループチャットを検索…',
@@ -1448,6 +1481,17 @@ const zh: BotsMessages = {
     created: name => `已创建机器人“${name}”`,
     createdOn: (name, target) => `已在 ${target} 上创建机器人“${name}”`
   },
+  soulEditor: {
+    title: '编辑 SOUL.md',
+    description: profile => `${profile} 的人格指令。`,
+    hint: '双击以编辑',
+    edit: '编辑',
+    preview: '预览',
+    discardTitle: '放弃未保存的更改？',
+    discardDescription: '对 SOUL.md 的编辑将丢失。',
+    discard: '放弃',
+    saveFailed: '无法保存 SOUL.md'
+  },
   roster: {
     search: '搜索机器人和群聊',
     searchPlaceholder: '搜索机器人和群聊…',
@@ -1878,6 +1922,17 @@ const zhHant: BotsMessages = {
     updated: name => `已更新 ${name}`,
     created: name => `已建立機器人「${name}」`,
     createdOn: (name, target) => `已在 ${target} 上建立機器人「${name}」`
+  },
+  soulEditor: {
+    title: '編輯 SOUL.md',
+    description: profile => `${profile} 的人格指令。`,
+    hint: '按兩下以編輯',
+    edit: '編輯',
+    preview: '預覽',
+    discardTitle: '捨棄未儲存的變更？',
+    discardDescription: '對 SOUL.md 的編輯將會遺失。',
+    discard: '捨棄',
+    saveFailed: '無法儲存 SOUL.md'
   },
   roster: {
     search: '搜尋機器人和群組聊天',

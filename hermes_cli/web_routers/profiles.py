@@ -990,7 +990,11 @@ async def delete_profile_endpoint(name: str):
 
 @router.get("/api/profiles/{name}/soul")
 async def get_profile_soul(name: str):
-    soul_path = _resolve_profile_dir(name) / "SOUL.md"
+    from hermes_cli.profiles import confined_profile_file
+    try:
+        soul_path = confined_profile_file(_resolve_profile_dir(name), "SOUL.md")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     def _run():
         # Probe and read in one hop (two round-trips would widen the check/read window).
         if not soul_path.exists():
@@ -1005,7 +1009,11 @@ async def get_profile_soul(name: str):
 
 @router.put("/api/profiles/{name}/soul")
 async def update_profile_soul(name: str, body: ProfileSoulUpdate):
-    soul_path = _resolve_profile_dir(name) / "SOUL.md"
+    from hermes_cli.profiles import confined_profile_file
+    try:
+        soul_path = confined_profile_file(_resolve_profile_dir(name), "SOUL.md")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     def _run():
         from utils import atomic_write_text
