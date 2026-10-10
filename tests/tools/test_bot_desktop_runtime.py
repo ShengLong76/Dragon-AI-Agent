@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import contextlib
+import os
 import re
+import sys
 import threading
 import time
-import sys
 from pathlib import Path
 
 import pytest
@@ -112,6 +113,15 @@ def test_recorded_display_held_by_a_live_server_is_not_reused(tmp_path, monkeypa
     assert runtime._allocate_display() != 37
     live.clear()
     assert runtime._allocate_display() == 37, "a free recorded number is reclaimed"
+
+
+def test_recycled_lock_pid_that_is_not_an_x_server_does_not_own_the_display(tmp_path, monkeypatch):
+    """A reused sandbox's leftover lock names some other live pid. That must not pin the number."""
+    monkeypatch.setattr(runtime, "_X_LOCK_DIR", tmp_path / "xlocks")
+    (tmp_path / "xlocks").mkdir()
+    (tmp_path / "xlocks" / ".X20-lock").write_text(f"{os.getpid()}\n", encoding="utf-8")
+    monkeypatch.setattr(runtime, "_X_UNIX_TABLE", tmp_path / "missing")
+    assert runtime._display_in_use(20) is False
 
 
 def test_live_server_without_its_lock_file_still_owns_the_display(tmp_path, monkeypatch):

@@ -85,6 +85,10 @@ RUN echo "pn ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/pn && chmod 0440 /etc/sudo
 
 # Runtime dir for dbus/Xvnc; containers have no logind to create it. Both /tmp
 # paths above are fixed by the X11 protocol / seeded per container, never shared.
+# A reused guest keeps /tmp/.X<N>-lock after Xvnc exits; tools/bot_desktop/launcher.sh
+# and display_lock.py reclaim that leftover (or reuse a still-healthy server)
+# before starting Xvnc again. Do not add an image entrypoint that starts Xvnc —
+# the gateway copies the launcher in at Start screen.
 ENV XDG_RUNTIME_DIR=/tmp/hermes-runtime
 # Dockerfile ENV reaches `docker exec` only. When this image is the target of the
 # ssh backend (sshd added on top), a login session gets its environment from PAM,

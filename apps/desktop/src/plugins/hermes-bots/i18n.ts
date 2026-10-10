@@ -416,6 +416,7 @@ type BotsMessages = {
     imageSwitchApprove: string
     imageSwitchKeep: string
     start: string
+    startFailedLeftoverDisplay: string
     attaching: string
     streamLost: string
     reconnect: string
@@ -874,6 +875,8 @@ const en: BotsMessages = {
     imageSwitchApprove: 'Switch image',
     imageSwitchKeep: 'Keep current image',
     start: 'Start screen',
+    startFailedLeftoverDisplay:
+      'The sandbox screen could not start. A leftover display from a previous run was still in the container — click Start screen again.',
     attaching: 'Connecting to the screen\u2026',
     streamLost: 'Screen stream ended',
     reconnect: 'Reconnect',
@@ -1331,6 +1334,8 @@ const ja: BotsMessages = {
     imageSwitchApprove: 'イメージを切り替える',
     imageSwitchKeep: '現在のイメージを使い続ける',
     start: '画面を起動',
+    startFailedLeftoverDisplay:
+      'サンドボックスの画面を起動できませんでした。前回の実行のディスプレイロックがコンテナに残っていました。もう一度「画面を起動」をクリックしてください。',
     attaching: '画面に接続中…',
     streamLost: '画面ストリームが終了しました',
     reconnect: '再接続',
@@ -1773,6 +1778,8 @@ const zh: BotsMessages = {
     imageSwitchApprove: '切换镜像',
     imageSwitchKeep: '保留当前镜像',
     start: '启动屏幕',
+    startFailedLeftoverDisplay:
+      '无法启动沙箱屏幕。上次运行留下的显示锁仍在容器中 — 请再次点击“启动屏幕”。',
     attaching: '正在连接屏幕…',
     streamLost: '屏幕流已结束',
     reconnect: '重新连接',
@@ -2215,6 +2222,8 @@ const zhHant: BotsMessages = {
     imageSwitchApprove: '切換映像',
     imageSwitchKeep: '保留目前映像',
     start: '啟動螢幕',
+    startFailedLeftoverDisplay:
+      '無法啟動沙箱螢幕。上次執行留下的顯示鎖定仍在容器中 — 請再按一次「啟動螢幕」。',
     attaching: '正在連線至螢幕…',
     streamLost: '螢幕串流已結束',
     reconnect: '重新連線',

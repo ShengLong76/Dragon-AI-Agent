@@ -210,29 +210,84 @@ def published_env(env: Any, profile: str) -> Dict[str, str]:
     return _published(env, _remote_dir(env, profile))
 
 
+def _run_display_lock(env: Any, action: str, num: int = 20) -> str:
+    """Run ``display_lock.py`` inside ``env`` (reclaim or clear ``:num``)."""
+    src = Path(__file__).with_name("display_lock.py").read_bytes()
+    try:
+        proc = streams.run_in(
+            env, ["python3", "-", action, str(int(num))], user=_user_for(env), timeout=15, stdin=src
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        logger.warning("sandbox display lock %s failed: %s", action, exc)
+        return "cleared"
+    out = (proc.stdout or b"").decode("utf-8", "replace").strip().splitlines()
+    return out[-1] if out else "cleared"
+
+
+def _reclaim_sandbox_display(env: Any, num: int = 20) -> str:
+    """Drop a stale ``:num`` lock/socket inside ``env``, or leave a healthy X server alone."""
+    return _run_display_lock(env, "reclaim", num)
+
+
+def _clear_sandbox_display(env: Any, num: int = 20) -> str:
+    """Unlink ``:num``'s lock and socket after we have signalled the desktop (stop / retry)."""
+    return _run_display_lock(env, "clear", num)
+
+
 def start(env: Any, profile: str, *, geometry: str, wait_seconds: float = 20.0,
           browser_exec: Optional[str] = None, browser_exec_line: Optional[str] = None) -> Dict[str, str]:
     """Bring the screen up inside ``env`` (idempotent); returns the published env. Raises RuntimeError naming
-    the blocker."""
+    the blocker.
+
+    A reused Docker guest keeps ``/tmp/.X<N>-lock`` after the previous Xvnc died. The first attempt
+    reclaims that leftover; a stale-lock failure is retried once before a friendly error is raised.
+    """
+    from tools.bot_desktop.display_lock import (
+        format_sandbox_start_error,
+        is_retryable_sandbox_start_error,
+    )
+
     rdir = _remote_dir(env, profile)
     live = _published(env, rdir)
     if live.get("DISPLAY"):
         # Adopting a screen the sandbox kept while this host's state was lost (fresh HERMES_HOME, a stop()
         # whose kill missed): without the marker, status/thumbnail/stop would not know it is ours.
         return _record(env, rdir, profile, live)
-    stop(env, profile)  # a dead launcher may have left Xvnc holding :20; the relaunch needs it gone
     missing = missing_binaries(env)
     if missing:
         raise RuntimeError(
             f"Bot Desktop needs {', '.join(missing)} inside the terminal backend's sandbox. The configured image "
             f"does not have them; use {SANDBOX_IMAGE_HINT} (the default sandbox base plus the desktop stack) as "
             f"terminal.docker_image / modal_image / singularity_image, or set bot_desktop.placement: gateway.")
+    last_error: Optional[BaseException] = None
+    for attempt in (1, 2):
+        stop(env, profile)  # a dead launcher may have left Xvnc holding :20; the relaunch needs it gone
+        _reclaim_sandbox_display(env, 20)
+        try:
+            return _attempt_start(env, profile, rdir, geometry=geometry, wait_seconds=wait_seconds,
+                                  browser_exec=browser_exec, browser_exec_line=browser_exec_line)
+        except RuntimeError as exc:
+            last_error = exc
+            if attempt == 1 and is_retryable_sandbox_start_error(str(exc)):
+                logger.warning("sandbox desktop start failed on a leftover display lock; reclaiming and retrying once")
+                continue
+            if is_retryable_sandbox_start_error(str(exc)) or "did not publish" in str(exc).lower():
+                raise RuntimeError(format_sandbox_start_error(wait_seconds, str(exc))) from exc
+            raise
+    raise RuntimeError(format_sandbox_start_error(wait_seconds, str(last_error)))
+
+
+def _attempt_start(env: Any, profile: str, rdir: str, *, geometry: str, wait_seconds: float,
+                   browser_exec: Optional[str], browser_exec_line: Optional[str]) -> Dict[str, str]:
+    """Seed the launcher into ``rdir`` and wait until it publishes DISPLAY. Caller already stopped leftovers."""
     user = _user_for(env)
-    launcher = (Path(__file__).with_name("launcher.sh").read_bytes())
+    launcher = Path(__file__).with_name("launcher.sh").read_bytes()
     wallpaper = Path(__file__).with_name("wallpaper.png").read_bytes()
+    lock_py = Path(__file__).with_name("display_lock.py").read_bytes()
     seed = (
         f"set -e; rm -rf {shlex.quote(rdir)}; mkdir -p {shlex.quote(rdir)}; cd {shlex.quote(rdir)};"
         f" echo {shlex.quote(base64.b64encode(launcher).decode())} | base64 -d > launcher.sh;"
+        f" echo {shlex.quote(base64.b64encode(lock_py).decode())} | base64 -d > display_lock.py;"
         f" echo {shlex.quote(base64.b64encode(wallpaper).decode())} | base64 -d > wallpaper.png;"
         " chmod 0700 . launcher.sh"
     )
@@ -244,6 +299,7 @@ def start(env: Any, profile: str, *, geometry: str, wait_seconds: float = 20.0,
         "HERMES_BD_PROFILE": profile, "HERMES_BD_DISPLAY_NUM": str(num), "HERMES_BD_SOCKET": f"{rdir}/rfb.sock",
         "HERMES_BD_XAUTH": f"{rdir}/Xauthority", "HERMES_BD_ENV_FILE": f"{rdir}/env",
         "HERMES_BD_CONFIG_HOME": f"{rdir}/xdg", "HERMES_BD_GEOMETRY": geometry, "HERMES_BD_WALLPAPER": f"{rdir}/wallpaper.png",
+        "HERMES_BD_OWN_DISPLAY": "1",
     }
     if browser_exec and browser_exec_line:
         child_env["HERMES_BD_BROWSER_EXEC"] = browser_exec
@@ -267,7 +323,7 @@ def start(env: Any, profile: str, *, geometry: str, wait_seconds: float = 20.0,
     tail = streams.run_in(env, ["tail", "-c", "2000", f"{rdir}/launcher.log"], user=user, timeout=10).stdout
     stop(env, profile)
     raise RuntimeError(f"sandbox desktop did not publish its display within {wait_seconds:.0f}s:\n"
-                       f"{tail.decode('utf-8', 'replace')}")
+                       f"{(tail or b'').decode('utf-8', 'replace')}")
 
 
 def _record(env: Any, rdir: str, profile: str, live: Dict[str, str]) -> Dict[str, str]:
@@ -294,6 +350,7 @@ rm -f {q}/env {q}/launcher.pid {q}/rfb.sock
 [ "$live" = 1 ]
 """
     proc = streams.run_in(env, ["bash", "-c", script], user=_user_for(env), timeout=30)
+    _clear_sandbox_display(env, 20)
     _marker().unlink(missing_ok=True)
     return proc.returncode == 0
 
