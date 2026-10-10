@@ -5,13 +5,14 @@
 
 import type * as HermesSdk from '@hermes/plugin-sdk'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, cleanup, render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { translateBots } from './i18n-test-helper'
-import type { RosterRow } from './types'
 
-const { request, requestProfile } = vi.hoisted(() => ({
+const { notify, notifyError, request, requestProfile } = vi.hoisted(() => ({
+  notify: vi.fn(),
+  notifyError: vi.fn(),
   request: vi.fn(),
   requestProfile: vi.fn()
 }))
@@ -21,7 +22,7 @@ vi.mock('@hermes/plugin-sdk', async importOriginal => {
 
   return {
     ...sdk,
-    host: { ...sdk.host, request, requestProfile, revealPane: vi.fn() },
+    host: { ...sdk.host, notify, notifyError, request, requestProfile, revealPane: vi.fn() },
     usePluginI18n: () => translateBots
   }
 })
@@ -33,6 +34,10 @@ vi.mock('./skills-hub', () => ({ HubSkillsSection: () => <div>library-skills</di
 
 const { $botPanel, BotPanelPane } = await import('./bot-panel')
 const { $lastRoster } = await import('./data')
+
+beforeAll(() => {
+  Element.prototype.scrollIntoView = vi.fn()
+})
 
 function renderPanel() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -46,11 +51,25 @@ function renderPanel() {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  const respond = async (method: string) =>
-    method === 'profiles.describe' ? { soul: '# Researcher persona' } : { jobs: [], scoped: 'research' }
+  let soul = '# Researcher persona'
+  const respond = async (method: string, params?: { soul?: string }) => {
+    if (method === 'profiles.describe') {
+      return { soul }
+    }
 
-  request.mockImplementation(async (method: string) => respond(method))
-  requestProfile.mockImplementation(async (_route: unknown, method: string) => respond(method))
+    if (method === 'profiles.configure') {
+      soul = params?.soul ?? soul
+
+      return { ok: true, applied: { soul: true } }
+    }
+
+    return { jobs: [], scoped: 'research' }
+  }
+
+  request.mockImplementation(async (method: string, params?: { soul?: string }) => respond(method, params))
+  requestProfile.mockImplementation(async (_route: unknown, method: string, params?: { soul?: string }) =>
+    respond(method, params)
+  )
   $lastRoster.set([{ connectionId: 'local', description: 'Looks things up', name: 'research' }])
   $botPanel.set({ key: 'research', tab: 'computer' })
 })
@@ -101,5 +120,145 @@ describe('the bot profile pane has four tabs and keeps Computer', () => {
     })
 
     expect(screen.getByText('bot-computer')).toBeTruthy()
+  })
+
+  it('opens a SOUL.md editor on double-click and saves through profiles.configure', async () => {
+    renderPanel()
+
+    await act(async () => {
+      screen.getByRole('tab', { name: 'Details' }).click()
+    })
+
+    expect(await screen.findByText('# Researcher persona')).toBeTruthy()
+    expect(screen.getByText('Double-click to edit')).toBeTruthy()
+
+    await act(async () => {
+      fireEvent.doubleClick(document.querySelector('[data-slot="soul-preview"]')!)
+    })
+
+    const editor = await screen.findByLabelText('SOUL.md') as HTMLTextAreaElement
+    expect(editor.value).toBe('# Researcher persona')
+    expect(document.querySelector('[data-slot="soul-editor"]')).toBeTruthy()
+
+    await act(async () => {
+      fireEvent.change(editor, { target: { value: '# Updated persona' } })
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    })
+
+    await waitFor(() => {
+      expect(request).toHaveBeenCalledWith(
+        'profiles.configure',
+        expect.objectContaining({
+          name: 'research',
+          soul: '# Updated persona'
+        })
+      )
+    })
+    expect(await screen.findByText('# Updated persona')).toBeTruthy()
+    expect(document.querySelector('[data-slot="soul-editor"]')).toBeNull()
+    expect(notifyError).not.toHaveBeenCalled()
+  })
+
+  it('toasts when saving SOUL.md fails', async () => {
+    request.mockImplementation(async (method: string) => {
+      if (method === 'profiles.describe') {
+        return { soul: '# Researcher persona' }
+      }
+
+      if (method === 'profiles.configure') {
+        throw new Error('disk full')
+      }
+
+      return { jobs: [], scoped: 'research' }
+    })
+
+    renderPanel()
+
+    await act(async () => {
+      screen.getByRole('tab', { name: 'Details' }).click()
+    })
+    await screen.findByText('# Researcher persona')
+
+    await act(async () => {
+      fireEvent.doubleClick(document.querySelector('[data-slot="soul-preview"]')!)
+    })
+    await act(async () => {
+      fireEvent.click(await screen.findByRole('button', { name: 'Save' }))
+    })
+
+    await waitFor(() => {
+      expect(notifyError).toHaveBeenCalled()
+    })
+    expect(notifyError.mock.calls[0][1]).toBe('Could not save SOUL.md')
+    expect(document.querySelector('[data-slot="soul-editor"]')).toBeTruthy()
+  })
+
+  it('toasts and stays open when the write is acknowledged but not applied', async () => {
+    request.mockImplementation(async (method: string) => {
+      if (method === 'profiles.describe') {
+        return { soul: '# Researcher persona' }
+      }
+
+      if (method === 'profiles.configure') {
+        return { ok: true, applied: { soul: false } }
+      }
+
+      return { jobs: [], scoped: 'research' }
+    })
+
+    renderPanel()
+
+    await act(async () => {
+      screen.getByRole('tab', { name: 'Details' }).click()
+    })
+    await screen.findByText('# Researcher persona')
+    await act(async () => {
+      fireEvent.doubleClick(document.querySelector('[data-slot="soul-preview"]')!)
+    })
+    await act(async () => {
+      fireEvent.click(await screen.findByRole('button', { name: 'Save' }))
+    })
+
+    await waitFor(() => {
+      expect(notify).toHaveBeenCalledWith(expect.objectContaining({ kind: 'error', message: 'Could not save SOUL.md' }))
+    })
+    expect(notifyError).not.toHaveBeenCalled()
+    expect(document.querySelector('[data-slot="soul-editor"]')).toBeTruthy()
+    expect((screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('asks before discarding unsaved SOUL.md edits', async () => {
+    renderPanel()
+
+    await act(async () => {
+      screen.getByRole('tab', { name: 'Details' }).click()
+    })
+    await screen.findByText('# Researcher persona')
+    await act(async () => {
+      fireEvent.doubleClick(document.querySelector('[data-slot="soul-preview"]')!)
+    })
+
+    const editor = await screen.findByLabelText('SOUL.md')
+    await act(async () => {
+      fireEvent.change(editor, { target: { value: '# Unsaved' } })
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    })
+
+    expect(await screen.findByText('Discard unsaved changes?')).toBeTruthy()
+    expect(document.querySelector('[data-slot="soul-editor"]')).toBeTruthy()
+    expect((editor as HTMLTextAreaElement).value).toBe('# Unsaved')
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Discard' }))
+    })
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-slot="soul-editor"]')).toBeNull()
+    })
+    expect(request).not.toHaveBeenCalledWith('profiles.configure', expect.anything())
   })
 })
