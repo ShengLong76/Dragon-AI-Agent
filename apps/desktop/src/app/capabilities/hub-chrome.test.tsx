@@ -33,6 +33,8 @@ describe('Dragon hub chrome', () => {
     expect(document.body.textContent).not.toContain('hermes-agent.nousresearch.com')
     expect(document.body.textContent).not.toContain('nousresearch.github.io')
     expect(screen.getByText('dragon-agent')).toBeTruthy()
+    expect(screen.getByText('HyperFrames — make videos from HTML')).toBeTruthy()
+    expect(screen.getByRole('button', { name: '+ Add to this Agent: HyperFrames — make videos from HTML' })).toBeTruthy()
   })
 
   it('renders a native plugin catalog with Dragon chrome and no upstream iframe', () => {

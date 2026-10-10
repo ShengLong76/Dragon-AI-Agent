@@ -7,13 +7,34 @@
  */
 
 export interface HubCatalogSkill {
+  /** Extra installed names that should mark this card Installed. */
+  aliases?: readonly string[]
   description: string
   identifier: string
   name: string
   source?: string
 }
 
+/** HyperFrames umbrella id — Skills Hub one-click add + team seat install. */
+export const HYPERFRAMES_IDENTIFIER = 'heygen-com/hyperframes'
+
+export const HYPERFRAMES_HUB_SKILL: HubCatalogSkill = {
+  aliases: ['hyperframes', 'heygen-com/hyperframes'],
+  description:
+    'Standalone skill — add to any bot on its own. Make videos from HTML. Installs the HyperFrames core skill set (router /hyperframes) into this bot. Separate from the Marketing team pack and Listing Writer. Apache-2.0 — HeyGen, https://github.com/heygen-com/hyperframes. Needs Node 22+, Chrome, and ffmpeg; prefer the bot Linux sandbox.',
+  identifier: HYPERFRAMES_IDENTIFIER,
+  name: 'HyperFrames — make videos from HTML',
+  source: 'github'
+}
+
+export function isHyperFramesIdentifier(identifier: string): boolean {
+  const key = identifier.trim().toLowerCase().replace(/\/+$/, '')
+
+  return key === HYPERFRAMES_IDENTIFIER || key === 'hyperframes' || key === 'hyperframes/hyperframes'
+}
+
 export const DRAGON_FEATURED_SKILLS: readonly HubCatalogSkill[] = [
+  HYPERFRAMES_HUB_SKILL,
   {
     description: 'Use, configure, theme, extend, and orchestrate Dragon AI.',
     identifier: 'dragon-agent',
@@ -61,6 +82,7 @@ export function mergeHubCatalogSkills(
 
     seen.add(key)
     out.push({
+      aliases: row.aliases,
       description: row.description || '',
       identifier: row.identifier || row.name,
       name: row.name || row.identifier,
@@ -72,5 +94,7 @@ export function mergeHubCatalogSkills(
 }
 
 export function matchesInstalled(skill: HubCatalogSkill, installed: ReadonlySet<string>): boolean {
-  return installed.has(skill.name) || installed.has(skill.identifier) || installed.has(hubSkillKey(skill))
+  const keys = [skill.name, skill.identifier, hubSkillKey(skill), ...(skill.aliases ?? [])]
+
+  return keys.some(key => key.length > 0 && installed.has(key))
 }
