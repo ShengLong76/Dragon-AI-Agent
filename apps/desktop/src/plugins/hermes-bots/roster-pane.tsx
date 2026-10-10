@@ -161,18 +161,18 @@ export function sessionOwnsWorkspace(): boolean {
   return active === undefined ? $botChatFocused.get() : Boolean(active)
 }
 
-/** A real bot chat owns the center. Cronjobs are BOT-scoped, so this — not
- *  mere Bot Mode visibility — is what may seat the Cronjobs tile: beside a
- *  group chat it would describe whichever profile the socket happens to be
- *  homed on. */
+/** A real bot chat owns the center. Cron jobs are BOT-scoped, so this — not
+ *  mere Bot Mode visibility — is what may scope Routines: beside a group
+ *  chat it would describe whichever profile the socket happens to be homed
+ *  on. */
 export function botChatOwnsWorkspace(): boolean {
   return $botsPaneVisible.get() && !$groupChatWorkspace.get() && Boolean($openBotChat.get() || sessionOwnsWorkspace())
 }
 
 /** An opened bot chat stops owning the center once focus leaves it (closed,
  *  or another session took over). Without this $openBotChat would keep
- *  claiming ownership for a chat nobody is reading, and the bot-scoped
- *  Cronjobs tile would stay seated beside an unrelated surface.
+ *  claiming ownership for a chat nobody is reading, and bot-scoped
+ *  Routines would stay scoped to an unrelated surface.
  *
  *  The legacy newChat fallback has no registry id to compare — a draft with no
  *  focused session is still that bot's draft, so it only yields once some

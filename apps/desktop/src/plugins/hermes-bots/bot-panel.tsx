@@ -16,6 +16,7 @@ import {
   CreateRoutineDialog,
   RoutineDetailDialog,
   RoutineRow,
+  routineFilterHint,
   selectRoutineJobs,
   useRoutines
 } from './cron'
@@ -45,6 +46,11 @@ export function selectBotInPanel(bot: RosterRow) {
   const current = $botPanel.get()
   $botPanel.set({ key: botSelectionKey(bot), tab: current?.tab ?? 'computer' })
   host.revealPane(BOT_PANEL_PANE_ID)
+}
+
+/** Open this bot's Routines tab — the only cron / scheduled-jobs surface. */
+export function openBotRoutines(bot: RosterRow) {
+  openBotPanel(bot, 'routines')
 }
 
 const TABS: { id: BotPanelTab; label: string }[] = [
@@ -178,21 +184,25 @@ function BotDetails({ bot, description }: { bot: RosterRow; description: string 
 }
 
 function BotRoutines({ bot }: { bot: RosterRow }) {
-  const { data, error, isLoading } = useRoutines(bot)
+  const { data, error, isLoading, refetch } = useRoutines(bot)
   const { t } = useI18n()
+  const b = useBots()
   const [detailJobId, setDetailJobId] = useState<null | string>(null)
   const [createOpen, setCreateOpen] = useState(false)
   const view = selectRoutineJobs(data, error, $lastJobs.get(), bot.name)
   const detailJob = detailJobId ? view.jobs.find(job => job.job_id === detailJobId) || null : null
+  const filterHint = routineFilterHint(view.all, view.jobs)
 
   if (view.live) {
     $lastJobs.set(view.live)
   }
 
+  const openCreate = () => setCreateOpen(true)
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center justify-end px-3 pt-2 pb-1">
-        <Button onClick={() => setCreateOpen(true)} size="xs">
+        <Button onClick={openCreate} size="xs">
           <Codicon name="add" />
           {t.cron.newCron}
         </Button>
@@ -201,6 +211,17 @@ function BotRoutines({ bot }: { bot: RosterRow }) {
         <div className="flex flex-1 items-center justify-center">
           <GlyphSpinner className="text-(--ui-text-tertiary)" spinner="breathe" />
         </div>
+      ) : error && !view.all.length ? (
+        <PanelEmpty
+          action={
+            <Button onClick={() => void refetch()} size="sm" variant="secondary">
+              {t.common.retry}
+            </Button>
+          }
+          description={b.cron.readFailure}
+          icon="warning"
+          title={t.cron.failedLoad}
+        />
       ) : view.jobs.length ? (
         <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
           <div className="grid gap-1.5">
@@ -210,7 +231,16 @@ function BotRoutines({ bot }: { bot: RosterRow }) {
           </div>
         </div>
       ) : (
-        <p className="px-3 py-2 text-xs text-(--ui-text-tertiary)">{t.cron.emptyTitleNew}</p>
+        <PanelEmpty
+          action={
+            <Button onClick={openCreate} size="sm">
+              {t.cron.newCron}
+            </Button>
+          }
+          description={filterHint || t.cron.emptyDescNew}
+          icon="watch"
+          title={t.cron.emptyTitleNew}
+        />
       )}
       <RoutineDetailDialog job={detailJob} onClose={() => setDetailJobId(null)} open={Boolean(detailJob)} />
       <CreateRoutineDialog bot={bot} onClose={() => setCreateOpen(false)} open={createOpen} />

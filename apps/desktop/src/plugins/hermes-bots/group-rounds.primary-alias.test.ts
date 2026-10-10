@@ -21,16 +21,17 @@ vi.mock('./shared', () => ({ getPluginCtx: () => null, ID: 'hermes-bots' }))
 beforeEach(() => $groupChats.set({}))
 
 it('keeps primary handoffs callable in both directions across persisted descriptor shapes', () => {
-  for (const handle of [undefined, 'default', 'hermes']) {
+  for (const handle of [undefined, 'default', 'hermes', 'main']) {
     const original: GroupMember[] = [{ name: 'default', handle }, { name: 'code-farmer' }]
 
     const durable = durableGroupChatMembers(original)
-    expect(durable.map(member => member.handle)).toEqual(['hermes', 'code-farmer'])
+    expect(durable.map(member => member.handle)).toEqual(['main', 'code-farmer'])
 
     for (const members of [original, durable]) {
       for (const [sender, target, senderTag, targetTag] of [
-        ['code-farmer', 'default', 'code-farmer', 'hermes'],
-        ['default', 'code-farmer', 'hermes', 'code-farmer']
+        ['code-farmer', 'default', 'code-farmer', 'main'],
+        ['default', 'code-farmer', 'main', 'code-farmer'],
+        ['code-farmer', 'default', 'code-farmer', 'hermes']
       ]) {
         const targetKey = groupMemberKey(members.find(member => member.name === target)!)
 
@@ -49,7 +50,7 @@ it('keeps primary handoffs callable in both directions across persisted descript
 })
 
 it('keeps qualified remote defaults distinct from the primary alias regardless of roster order', () => {
-  const local: GroupMember = { name: 'default', handle: 'hermes', connectionId: 'local', sourceScoped: true }
+  const local: GroupMember = { name: 'default', handle: 'main', connectionId: 'local', sourceScoped: true }
 
   const remotes: GroupMember[] = ['vera', 'spark'].map(device => ({
     name: 'default',
@@ -62,6 +63,7 @@ it('keeps qualified remote defaults distinct from the primary alias regardless o
   for (const members of [[local, ...remotes], [...remotes].reverse().concat(local)]) {
     for (const descriptors of [members, durableGroupChatMembers(members)]) {
       for (const [tag, key] of [
+        ['main', 'local::default'],
         ['hermes', 'local::default'],
         ['default-vera', 'vera::default'],
         ['default-spark', 'spark::default']

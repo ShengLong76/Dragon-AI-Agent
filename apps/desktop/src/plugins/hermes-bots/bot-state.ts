@@ -3,9 +3,9 @@
  * selected, which owner's chat is on screen, and the per-bot activity
  * watermarks the unread poll compares against.
  *
- * A leaf by design. The roster, the routines tile, the create dialog and the
- * delete path all read and write this, and it reads none of them — so no
- * surface has to import a sibling surface to know what is selected.
+ * A leaf by design. The roster, the bot panel Routines tab, the create
+ * dialog and the delete path all read and write this, and it reads none of
+ * them — so no surface has to import a sibling surface to know what is selected.
  */
 
 import { atom, host } from '@hermes/plugin-sdk'
@@ -32,7 +32,7 @@ export const lastToastedPreview = new Map<string, string>()
 // hidden:true / REST PATCH /api/sessions/{id}). Older gateways ignore the flag and the
 // sessions simply stay visible there.
 
-/** Bot the Routines tile is scoped to. Follows the live gateway profile
+/** Bot the Routines tab is scoped to. Follows the live gateway profile
  *  (the bot you're actually chatting with) and roster clicks. */
 export const $selectedBot = atom('default')
 
@@ -53,9 +53,8 @@ export const $botsPaneVisible = atom(false)
  *  identity preference. */
 export const $openBotChat = atom<{ key: string; openedRegistryId: string; openedSessionId?: string } | null>(null)
 export { $pendingBotOpen } from './shared'
-/** A session owns the main workspace. The roster highlight and the Cronjobs
- *  lifecycle both key off this rather than reading host.state conditionally
- *  from render. */
+/** A session owns the main workspace. The roster highlight keys off this
+ *  rather than reading host.state conditionally from render. */
 export const $botChatFocused = atom(false)
 
 export function saveSelectedRosterBot(bot: RosterRow) {
