@@ -320,8 +320,10 @@ them. Their wrappers stay unpainted. Both voices own a rounded fill from the
 existing palette: the user bubble on the right uses `--dt-user-bubble` (`#2f2f2f`
 in dark, the lighter graphite), the agent bubble on the left uses
 `--dt-assistant-bubble` (`#1b1b1b` in dark). Both corners are a literal
-`1.25rem` so `--radius-scalar` cannot flatten them. HUD mode keeps both fills
-transparent.
+`1.25rem` so `--radius-scalar` cannot flatten them. Bubbles hug `max-content`
+and wrap at `min(80%, 36rem)` of the full-width transcript row — never a nested
+fit-content ancestor, which collapses to the longest word. HUD mode keeps both
+fills transparent.
 Clipping follows the pinned prompt and its live height without changing layout,
 so glass and message-bubble transparency do not reveal scrolling text.
 
