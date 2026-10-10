@@ -19,7 +19,8 @@ def _copy(source: Path, destination: Path, *, replace: bool = False) -> None:
     if destination.resolve().is_relative_to(source.resolve()) or source.resolve().is_relative_to(destination.resolve()):
         raise ValueError(f"output must not be inside copied input: {source}")
     if replace and destination.exists():
-        shutil.rmtree(destination)
+        from scripts.bundles.windows_payload import robust_rmtree
+        robust_rmtree(destination)
     destination.parent.mkdir(parents=True, exist_ok=True)
     if source.is_dir():
         shutil.copytree(source, destination, symlinks=True, dirs_exist_ok=True,

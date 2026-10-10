@@ -335,7 +335,8 @@ def prepare_in_worker(request: BuildRequest) -> Path:
     if icon_environment.exists():
         if icon_environment.is_symlink():
             raise ValueError("icon environment must be preparation-owned, not a symlink")
-        shutil.rmtree(icon_environment)
+        from scripts.bundles.windows_payload import robust_rmtree
+        robust_rmtree(icon_environment)
     icon_python = prepare_icon_environment(request.source, icon_environment, request.cache / "python/build")
     native = request.source / "apps/desktop/build/native-deps"
     run([str(node), "apps/desktop/scripts/stage-native-deps.mjs", "--source", str(request.source),

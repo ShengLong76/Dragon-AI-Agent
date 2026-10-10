@@ -87,9 +87,11 @@ def stage_pm_runtime(root: Path, python: Path, repo: Path, *, offline: bool = Fa
     from pm import stage_manager_runtime
     from scripts.bundles.payload import seal_pm_runtime
 
+    from scripts.bundles.windows_payload import robust_rmtree
+
     destination = root / "pm-runtime"
     if destination.exists():
-        shutil.rmtree(destination)
+        robust_rmtree(destination)
     stage_manager_runtime(python=python, destination=destination, project=repo / "pm", offline=offline, cache=cache)
     seal_pm_runtime(root, python)
 
@@ -136,7 +138,8 @@ def prune_staged_store(store_dir: Path, names: list[str]) -> None:
     keep = facts.entries_in_use()
     for entry in store_dir.iterdir():
         if entry.is_dir() and not entry.name.startswith(".") and entry.name not in keep:
-            shutil.rmtree(entry)
+            from scripts.bundles.windows_payload import robust_rmtree
+            robust_rmtree(entry)
 
 
 def prepare_native(*, out: Path, ref: str, source: Path, cache: Path,
@@ -163,6 +166,17 @@ def _prepare_native(*, out: Path, ref: str, source: Path, cache: Path,
                     tools: Path | None, env: dict | None) -> Path:
     from pm import paths
     from pm.package import InstallError
+
+    from scripts.bundles.windows_payload import robust_rmtree
+
+    # In-place rebuilds must clear a previous payload: baked .pyc files are
+    # chmod 0444 and uv-cache trees sit past MAX_PATH, so a plain rmtree
+    # raises Access Denied on Windows.
+    for child in list(out.iterdir()):
+        if child.is_dir():
+            robust_rmtree(child)
+        else:
+            child.unlink(missing_ok=True)
 
     store_dir = out / "tools"
     store_dir.mkdir(parents=True, exist_ok=True)
@@ -217,9 +231,11 @@ def _prepare_native(*, out: Path, ref: str, source: Path, cache: Path,
 
     # Build + sync INSIDE the staged repo: the editable project install
     # must point at the payload's own tree, not this checkout.
+    from scripts.bundles.windows_payload import robust_rmtree
+
     venv_dir = out / "venv"
     if venv_dir.exists():
-        shutil.rmtree(venv_dir)
+        robust_rmtree(venv_dir)
     env = dict(build_env)
     from pm import build_environment
 
@@ -237,18 +253,21 @@ def _prepare_native(*, out: Path, ref: str, source: Path, cache: Path,
     print(f"✓ enabled-features.json ({len(features)} extras recorded)")
 
     # Ship the full uv cache (build-only sdist sources and wheel ZIPs are
-    # already excluded by stage_uv_cache). Any per-install venv rebuild —
-    # plugin extras, feature changes — resolves entirely from the shipped
-    # wheels with zero network access, on every profile of this install.
+    # already excluded by stage_uv_cache). publish_prepared requires this
+    # tree. Windows NSIS extraResources strip it later — see desktop.py.
     payload_cache = out / "uv-cache"
     if payload_cache.exists():
-        shutil.rmtree(payload_cache, ignore_errors=True)
+        robust_rmtree(payload_cache)
     src_cache = cache
     if src_cache.is_dir():
         print(f"  uv-cache: copying {src_cache} → payload...", flush=True)
         stage_uv_cache(src_cache, payload_cache)
         pruned = prune_uv_cache_to_lock(payload_cache, repo_dir)
-        print(f"✓ uv-cache (lock-scoped: pruned {pruned} stale entries; offline rebuilds resolve from shipped wheels)", flush=True)
+        print(
+            f"✓ uv-cache (lock-scoped: pruned {pruned} stale entries; "
+            "offline rebuilds resolve from shipped wheels)",
+            flush=True,
+        )
     else:
         raise InstallError("uv-cache", "runtime dependency cache is missing")
 

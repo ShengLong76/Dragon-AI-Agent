@@ -9,7 +9,10 @@ docs of config.yaml.
 #: user pins one. LEGACY_SANDBOX_IMAGES are the plain defaults that preceded the desktop stack
 #: (the 3.14 pin shipped between the two without a migration); a saved config still holding one
 #: is the template copied, and the config migration unsets it, never a user's own pin.
-DEFAULT_SANDBOX_IMAGE = "nousresearch/hermes-sandbox:desktop"
+DEFAULT_SANDBOX_IMAGE = "dragon-sandbox:desktop"
+# Previous shipped default. Migration 50 drops a saved copy so the file follows
+# the Dragon tag; leftover hermes-sandbox containers are still adopted at runtime.
+PREVIOUS_DEFAULT_SANDBOX_IMAGE = "nousresearch/hermes-sandbox:desktop"
 LEGACY_SANDBOX_IMAGES = ("nikolaik/python-nodejs:python3.11-nodejs20", "nikolaik/python-nodejs:python3.14-nodejs22")
 LEGACY_SANDBOX_IMAGE = LEGACY_SANDBOX_IMAGES[0]
 # Vercel Sandbox managed image (Vercel deprecated its `runtime` presets in Aug 2026).
@@ -2554,7 +2557,7 @@ DEFAULT_CONFIG = {
         #   terminal  always inside the terminal backend (error when it cannot host one).
         #   gateway   always on the gateway host, even with a sandbox terminal: the agent's screen, browser
         #             and computer_use then act OUTSIDE the terminal sandbox. Explicit opt-in.
-        # The sandbox image needs the desktop stack: nousresearch/hermes-sandbox:desktop.
+        # The sandbox image needs the desktop stack: dragon-sandbox:desktop.
         "placement": "auto",
     },
     "computer_use": {
@@ -2734,7 +2737,7 @@ DEFAULT_CONFIG = {
         # Extra ports detection probes for an external llama-server (besides 8080).
         "detect_ports": [],
     },
-    "_config_version": 49,  # Config schema version - bump this when adding new required fields
+    "_config_version": 50,  # Config schema version - bump this when adding new required fields
 }
 
 
