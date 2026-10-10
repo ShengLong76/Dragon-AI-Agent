@@ -32,27 +32,28 @@ _STALE = (
 
 
 def test_start_retries_once_after_a_stale_display_lock(monkeypatch, isolated_home):
-    """A reused sandbox leaves .X20-lock; the first Xvnc dies 'already active'. One reclaim+retry
+    """A reused sandbox leaves .X<N>-lock; the first Xvnc dies 'already active'. One reclaim+retry
     must bring the screen up instead of surfacing the raw Xvnc dump."""
     env = _FakeDocker()
+    num = sandbox_host.sandbox_display_num("default")
     monkeypatch.setattr(sandbox_host, "_published", lambda *a, **k: {})
     monkeypatch.setattr(sandbox_host, "missing_binaries", lambda e: [])
     monkeypatch.setattr(sandbox_host, "stop", lambda *a, **k: True)
     reclaimed: list[int] = []
-    monkeypatch.setattr(sandbox_host, "_reclaim_sandbox_display", lambda e, n=20: reclaimed.append(n) or "cleared")
+    monkeypatch.setattr(sandbox_host, "_reclaim_sandbox_display", lambda e, n: reclaimed.append(n) or "cleared")
     attempts: list[int] = []
 
     def _attempt(*a, **k):
         attempts.append(1)
         if len(attempts) == 1:
             raise RuntimeError(_STALE)
-        return {"DISPLAY": ":20", "XAUTHORITY": "/x"}
+        return {"DISPLAY": f":{num}", "XAUTHORITY": "/x"}
 
     monkeypatch.setattr(sandbox_host, "_attempt_start", _attempt)
     out = sandbox_host.start(env, "default", geometry="1280x800")
-    assert out["DISPLAY"] == ":20"
+    assert out["DISPLAY"] == f":{num}"
     assert attempts == [1, 1]
-    assert reclaimed == [20, 20]
+    assert reclaimed == [num, num]
 
 
 def test_start_surfaces_a_friendly_error_after_the_retry(monkeypatch, isolated_home):
@@ -60,7 +61,7 @@ def test_start_surfaces_a_friendly_error_after_the_retry(monkeypatch, isolated_h
     monkeypatch.setattr(sandbox_host, "_published", lambda *a, **k: {})
     monkeypatch.setattr(sandbox_host, "missing_binaries", lambda e: [])
     monkeypatch.setattr(sandbox_host, "stop", lambda *a, **k: True)
-    monkeypatch.setattr(sandbox_host, "_reclaim_sandbox_display", lambda e, n=20: "cleared")
+    monkeypatch.setattr(sandbox_host, "_reclaim_sandbox_display", lambda e, n: "cleared")
     attempts: list[int] = []
 
     def _attempt(*a, **k):
@@ -82,7 +83,7 @@ def test_start_does_not_retry_an_unrelated_seed_failure(monkeypatch, isolated_ho
     monkeypatch.setattr(sandbox_host, "_published", lambda *a, **k: {})
     monkeypatch.setattr(sandbox_host, "missing_binaries", lambda e: [])
     monkeypatch.setattr(sandbox_host, "stop", lambda *a, **k: True)
-    monkeypatch.setattr(sandbox_host, "_reclaim_sandbox_display", lambda e, n=20: "cleared")
+    monkeypatch.setattr(sandbox_host, "_reclaim_sandbox_display", lambda e, n: "cleared")
     attempts: list[int] = []
 
     def _attempt(*a, **k):
@@ -100,6 +101,6 @@ def test_stop_clears_the_sandbox_display_lock(monkeypatch, isolated_home):
     cleared: list[int] = []
     monkeypatch.setattr(sandbox_host, "_user_for", lambda e: "pn")
     monkeypatch.setattr(sandbox_host.streams, "run_in", lambda *a, **k: type("P", (), {"returncode": 0, "stdout": b""})())
-    monkeypatch.setattr(sandbox_host, "_clear_sandbox_display", lambda e, n=20: cleared.append(n))
+    monkeypatch.setattr(sandbox_host, "_clear_sandbox_display", lambda e, n: cleared.append(n))
     sandbox_host.stop(env, "default")
-    assert cleared == [20]
+    assert cleared == [sandbox_host.sandbox_display_num("default")]

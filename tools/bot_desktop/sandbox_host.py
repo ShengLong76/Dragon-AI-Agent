@@ -15,6 +15,7 @@ socat is not). cua-driver runs the same way: ``cua_mcp_argv()`` is the docker/ss
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import logging
 import shlex
@@ -23,7 +24,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from hermes_constants import get_hermes_home
+from hermes_constants import get_hermes_home, hermes_home_key
 from tools.environments import streams
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,17 @@ logger = logging.getLogger(__name__)
 DESKTOP_USER = "pn"
 _REQUIRED = ("Xvnc", "xfwm4", "xfce4-panel", "xfdesktop", "xfsettingsd", "dbus-run-session", "xauth", "xdpyinfo", "xprop")
 SANDBOX_IMAGE_HINT = "dragon-sandbox:desktop"
+# Same private band as the host runtime. Each bot's guest is its own container, so
+# :20 would be isolated anyway; a stable per-profile number still avoids collision
+# if two profiles ever share a guest (the pre-fix primary-shared leak).
+_DISPLAY_MIN, _DISPLAY_MAX = 20, 89
+
+
+def sandbox_display_num(profile: str) -> int:
+    """Stable X display in the Bot Desktop band for this profile's sandbox."""
+    seed = f"{profile}\0{hermes_home_key()}"
+    n = int(hashlib.sha256(seed.encode("utf-8")).hexdigest(), 16)
+    return _DISPLAY_MIN + (n % (_DISPLAY_MAX - _DISPLAY_MIN + 1))
 
 _RELAY = (
     "import os,socket,sys,threading\n"
@@ -210,7 +222,7 @@ def published_env(env: Any, profile: str) -> Dict[str, str]:
     return _published(env, _remote_dir(env, profile))
 
 
-def _run_display_lock(env: Any, action: str, num: int = 20) -> str:
+def _run_display_lock(env: Any, action: str, num: int) -> str:
     """Run ``display_lock.py`` inside ``env`` (reclaim or clear ``:num``)."""
     src = Path(__file__).with_name("display_lock.py").read_bytes()
     try:
@@ -224,12 +236,12 @@ def _run_display_lock(env: Any, action: str, num: int = 20) -> str:
     return out[-1] if out else "cleared"
 
 
-def _reclaim_sandbox_display(env: Any, num: int = 20) -> str:
+def _reclaim_sandbox_display(env: Any, num: int) -> str:
     """Drop a stale ``:num`` lock/socket inside ``env``, or leave a healthy X server alone."""
     return _run_display_lock(env, "reclaim", num)
 
 
-def _clear_sandbox_display(env: Any, num: int = 20) -> str:
+def _clear_sandbox_display(env: Any, num: int) -> str:
     """Unlink ``:num``'s lock and socket after we have signalled the desktop (stop / retry)."""
     return _run_display_lock(env, "clear", num)
 
@@ -260,12 +272,14 @@ def start(env: Any, profile: str, *, geometry: str, wait_seconds: float = 20.0,
             f"does not have them; use {SANDBOX_IMAGE_HINT} (the default sandbox base plus the desktop stack) as "
             f"terminal.docker_image / modal_image / singularity_image, or set bot_desktop.placement: gateway.")
     last_error: Optional[BaseException] = None
+    num = sandbox_display_num(profile)
     for attempt in (1, 2):
-        stop(env, profile)  # a dead launcher may have left Xvnc holding :20; the relaunch needs it gone
-        _reclaim_sandbox_display(env, 20)
+        stop(env, profile)  # a dead launcher may have left Xvnc holding this display; the relaunch needs it gone
+        _reclaim_sandbox_display(env, num)
         try:
             return _attempt_start(env, profile, rdir, geometry=geometry, wait_seconds=wait_seconds,
-                                  browser_exec=browser_exec, browser_exec_line=browser_exec_line)
+                                  browser_exec=browser_exec, browser_exec_line=browser_exec_line,
+                                  display_num=num)
         except RuntimeError as exc:
             last_error = exc
             if attempt == 1 and is_retryable_sandbox_start_error(str(exc)):
@@ -278,7 +292,8 @@ def start(env: Any, profile: str, *, geometry: str, wait_seconds: float = 20.0,
 
 
 def _attempt_start(env: Any, profile: str, rdir: str, *, geometry: str, wait_seconds: float,
-                   browser_exec: Optional[str], browser_exec_line: Optional[str]) -> Dict[str, str]:
+                   browser_exec: Optional[str], browser_exec_line: Optional[str],
+                   display_num: int) -> Dict[str, str]:
     """Seed the launcher into ``rdir`` and wait until it publishes DISPLAY. Caller already stopped leftovers."""
     user = _user_for(env)
     launcher = Path(__file__).with_name("launcher.sh").read_bytes()
@@ -294,7 +309,7 @@ def _attempt_start(env: Any, profile: str, rdir: str, *, geometry: str, wait_sec
     proc = streams.run_in(env, ["bash", "-c", seed], user=user, timeout=30)
     if proc.returncode != 0:
         raise RuntimeError(f"could not seed the sandbox desktop dir: {proc.stderr.decode('utf-8', 'replace')[-500:]}")
-    num = 20  # one profile per sandbox; the launcher's stale-lock logic handles a leftover :20
+    num = int(display_num)
     child_env = {
         "HERMES_BD_PROFILE": profile, "HERMES_BD_DISPLAY_NUM": str(num), "HERMES_BD_SOCKET": f"{rdir}/rfb.sock",
         "HERMES_BD_XAUTH": f"{rdir}/Xauthority", "HERMES_BD_ENV_FILE": f"{rdir}/env",
@@ -330,13 +345,16 @@ def _record(env: Any, rdir: str, profile: str, live: Dict[str, str]) -> Dict[str
     _marker().parent.mkdir(parents=True, exist_ok=True)
     _marker().write_text(json.dumps({"display": live["DISPLAY"], "dir": rdir, "profile": profile,
                                      **_owner_identity(env)}), encoding="utf-8")
+    # Idle reaper runs unbound on a multiplexed host; the current HERMES_HOME
+    # marker is the launch profile's. Stamp the env so THIS guest stays alive.
+    env._bd_hosts_screen = True
     return live
 
 
 def stop(env: Any, profile: str) -> bool:
     """Kill the launcher's session (Xvnc, dbus, Xfce, anything the desktop spawned) and, as a backstop, every
     process still holding this profile's rfb.sock or Xauthority path (a launcher that lost its pid file left
-    an Xvnc that 'Server is already active for display 20' on the next start). True when something was live."""
+    an Xvnc that 'Server is already active for display N' on the next start). True when something was live."""
     rdir = _remote_dir(env, profile)
     q = shlex.quote(rdir)
     script = f"""
@@ -350,7 +368,8 @@ rm -f {q}/env {q}/launcher.pid {q}/rfb.sock
 [ "$live" = 1 ]
 """
     proc = streams.run_in(env, ["bash", "-c", script], user=_user_for(env), timeout=30)
-    _clear_sandbox_display(env, 20)
+    _clear_sandbox_display(env, sandbox_display_num(profile))
+    env._bd_hosts_screen = False
     _marker().unlink(missing_ok=True)
     return proc.returncode == 0
 
@@ -360,16 +379,23 @@ def hosts_live_screen(task_id: str, env: Any) -> bool:
 
     The terminal idle reaper must not reap that task: watching the pane is not a
     ``terminal`` call, so ``_last_activity`` would otherwise expire and kill the
-    guest (``bot-desktop-guest``) under a viewer who is still looking.
+    guest under a viewer who is still looking.
+
+    The stamp on the env is the multiplex-safe signal (the reaper is unbound, so
+    ``_read_marker()`` is the launch profile's file). Container match covers a
+    guest started before this process stamped.
     """
+    if getattr(env, "_bd_hosts_screen", False):
+        return True
     marker = _read_marker()
     if not marker:
         return False
-    from tools.bot_desktop.placement import LINUX_GUEST_TASK_ID
-    if task_id == LINUX_GUEST_TASK_ID:
-        return True
     container = marker.get("container")
-    return bool(container and container == getattr(env, "_container_id", None))
+    if container and container == getattr(env, "_container_id", None):
+        return True
+    from tools.bot_desktop.placement import LINUX_GUEST_TASK_ID, is_linux_guest_task_id, linux_guest_task_id
+    # Current-profile guest while this profile's marker exists (legacy unscoped id too).
+    return is_linux_guest_task_id(task_id) and task_id in (linux_guest_task_id(), LINUX_GUEST_TASK_ID)
 
 
 def open_rfb_stream(env: Any, profile: str) -> subprocess.Popen:
