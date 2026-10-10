@@ -325,7 +325,12 @@ class CuaDriverBackend(_CaptureMixin, _InputMixin, ComputerUseBackend):
         # binary (if any) is not the one that will run, so neither its acquisition nor its contract
         # matters. On the host, runtime acquisition is on-demand, never the explicit install command
         # (which may elevate for host setup and bypass the lazy-install gate).
-        if sandbox_mcp_invocation() is not None:
+        from tools.bot_desktop import placement as _placement
+        from tools.bot_desktop import sandbox_host as _sandbox_host
+        # Contract only: a sandbox-placed (or still-marked) desktop does not
+        # need the host binary. Host-seat policy is enforced when the session
+        # actually spawns the driver (``sandbox_mcp_invocation``).
+        if _placement.resolve().where == _placement.TERMINAL or _sandbox_host._read_marker():
             contract = {"ready": True}
         else:
             if not os.environ.get(_CUA_DRIVER_CMD_ENV, "").strip():

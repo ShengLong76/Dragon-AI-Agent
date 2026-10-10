@@ -85,8 +85,9 @@ def test_private_start_uses_post_ensure_binary(cua_home, monkeypatch, permission
     manifest_path = cua_home / "capabilities.yaml"
     manifest_path.write_text("version: 3\n", encoding="utf-8")
     monkeypatch.setattr(backend_module, "_computer_use_cfg", lambda: {
-        "capability_manifest": str(manifest_path), "no_overlay": False,
-    })
+            "capability_manifest": str(manifest_path), "no_overlay": False,
+            "host_control": True,
+        })
     if preinstalled:
         previous = record_driver()
         previous.write_text(f"#!{sys.executable}\nprint('{{}}')\n", encoding="utf-8")
@@ -138,6 +139,7 @@ def test_runtime_cannot_bypass_pm_lazy_install_refusal(cua_home, monkeypatch):
     from tools.computer_use.cua_backend import CuaDriverBackend
 
     monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr("tools.computer_use.cua_backend.host_control_enabled", lambda: True)
     backend = CuaDriverBackend()
     with pytest.raises(InstallError, match="lazy installs are disabled"):
         backend.start()
