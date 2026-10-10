@@ -2570,6 +2570,11 @@ DEFAULT_CONFIG = {
         # registers (or repairs) the task at install time — needed to drive Windows over SSH,
         # where Session 0 has no interactive desktop (see the computer-use guide).
         "autostart": False,
+        # Drive THIS machine's seat (Windows UI Automation, macOS AX, the user's real
+        # X session). Off by default: computer_use stays inside the bot's sandbox
+        # screen (docker exec cua-driver on DISPLAY=:N). A gateway-hosted Bot Desktop
+        # (Linux Xvnc for this profile) is the bot's screen, not this toggle.
+        "host_control": False,
         "native_wayland": False,
         # Cap driver screenshot longest edge (pixels) via set_config at session start; shrinks SOM
         # multimodal payloads. 0 disables.
