@@ -1,32 +1,21 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest'
 
-import {
-  HERMES_HUB_FALLBACK_ORIGIN,
-  HERMES_HUB_ORIGIN,
-  isHermesHubClipboardWrite,
-  isHermesHubExternalUrl,
-  isHermesHubOrigin
-} from './hub-iframe-policy'
+import { isHermesHubClipboardWrite, isHermesHubExternalUrl, isHermesHubOrigin } from './hub-iframe-policy'
 import { createWindowOpenHandler, describeDeniedUrl } from './window-open-policy'
 
 describe('hub-iframe-policy predicates', () => {
-  it('admits exactly the two hub origins and nothing else', () => {
-    expect(isHermesHubOrigin(HERMES_HUB_ORIGIN)).toBe(true)
-    expect(isHermesHubOrigin(HERMES_HUB_FALLBACK_ORIGIN)).toBe(true)
-
-    // Opaque sandboxed frames, data URLs, look-alikes, and absent origins
-    // never qualify.
+  it('admits no hub origin — Dragon does not embed the upstream picker', () => {
+    expect(isHermesHubOrigin('https://hermes-agent.nousresearch.com')).toBe(false)
+    expect(isHermesHubOrigin('https://nousresearch.github.io')).toBe(false)
     expect(isHermesHubOrigin('null')).toBe(false)
     expect(isHermesHubOrigin('')).toBe(false)
     expect(isHermesHubOrigin(null)).toBe(false)
     expect(isHermesHubOrigin(undefined)).toBe(false)
-    expect(isHermesHubOrigin('https://hermes-agent.nousresearch.com.evil.example')).toBe(false)
     expect(isHermesHubOrigin('https://evil.example')).toBe(false)
-    expect(isHermesHubOrigin('file://')).toBe(false)
   })
 
-  it('delegates only http/https/mailto external URLs', () => {
+  it('still classifies http/https/mailto as the only external schemes', () => {
     expect(isHermesHubExternalUrl('https://github.com/NousResearch/hermes-agent')).toBe(true)
     expect(isHermesHubExternalUrl('http://example.com/docs')).toBe(true)
     expect(isHermesHubExternalUrl('mailto:support@example.com')).toBe(true)
@@ -37,16 +26,15 @@ describe('hub-iframe-policy predicates', () => {
     expect(isHermesHubExternalUrl('not a url')).toBe(false)
   })
 
-  it('grants clipboard-write to hub origins only', () => {
-    expect(isHermesHubClipboardWrite(HERMES_HUB_ORIGIN)).toBe(true)
-    expect(isHermesHubClipboardWrite(HERMES_HUB_FALLBACK_ORIGIN)).toBe(true)
+  it('grants clipboard-write to no frame', () => {
+    expect(isHermesHubClipboardWrite('https://hermes-agent.nousresearch.com')).toBe(false)
+    expect(isHermesHubClipboardWrite('https://nousresearch.github.io')).toBe(false)
     expect(isHermesHubClipboardWrite('null')).toBe(false)
-    expect(isHermesHubClipboardWrite('https://artifact-preview.invalid')).toBe(false)
     expect(isHermesHubClipboardWrite(null)).toBe(false)
   })
 })
 
-describe('createWindowOpenHandler trusted-hub delegation', () => {
+describe('createWindowOpenHandler', () => {
   const baseDetails = { url: 'https://github.com/NousResearch/hermes-agent' }
 
   it('still denies artifact frames (opaque origin) with NO external open', () => {
@@ -61,53 +49,41 @@ describe('createWindowOpenHandler trusted-hub delegation', () => {
     expect(openExternalUrl).not.toHaveBeenCalled()
   })
 
-  it('delegates a hub-origin http(s) open but still denies the window', () => {
+  it('does not delegate former hub origins — native hub has no iframe carve-out', () => {
     const openExternalUrl = vi.fn()
 
     const handler = createWindowOpenHandler(undefined, {
-      getOpenerOrigin: () => HERMES_HUB_ORIGIN,
+      getOpenerOrigin: () => 'https://hermes-agent.nousresearch.com',
       openExternalUrl
     })
 
     expect(handler(baseDetails)).toEqual({ action: 'deny' })
-    expect(openExternalUrl).toHaveBeenCalledExactlyOnceWith('https://github.com/NousResearch/hermes-agent')
+    expect(openExternalUrl).not.toHaveBeenCalled()
   })
 
-  it('delegates from the fallback (GitHub Pages) hub origin too', () => {
+  it('does not delegate the former GitHub Pages hub origin either', () => {
     const openExternalUrl = vi.fn()
 
     const handler = createWindowOpenHandler(undefined, {
-      getOpenerOrigin: () => HERMES_HUB_FALLBACK_ORIGIN,
+      getOpenerOrigin: () => 'https://nousresearch.github.io',
       openExternalUrl
     })
 
     expect(handler({ url: 'https://docs.example.com/x' })).toEqual({ action: 'deny' })
-    expect(openExternalUrl).toHaveBeenCalledExactlyOnceWith('https://docs.example.com/x')
+    expect(openExternalUrl).not.toHaveBeenCalled()
   })
 
-  it('never delegates file:// or unknown schemes from a hub-origin opener', () => {
+  it('never delegates file:// or unknown schemes', () => {
     const openExternalUrl = vi.fn()
 
     const handler = createWindowOpenHandler(undefined, {
-      getOpenerOrigin: () => HERMES_HUB_ORIGIN,
+      getOpenerOrigin: () => 'https://hermes-agent.nousresearch.com',
       openExternalUrl
     })
 
     expect(handler({ url: 'file:///C:/x.html' })).toEqual({ action: 'deny' })
     expect(handler({ url: 'javascript:alert(1)' })).toEqual({ action: 'deny' })
     expect(handler({ url: 'not a url' })).toEqual({ action: 'deny' })
-    expect(openExternalUrl).not.toHaveBeenCalled()
-  })
-
-  it('never delegates when the opener origin is not exactly the hub', () => {
-    const openExternalUrl = vi.fn()
-
-    const handler = createWindowOpenHandler(undefined, {
-      getOpenerOrigin: () => 'https://hermes-agent.nousresearch.com.evil.example',
-      openExternalUrl
-    })
-
-    expect(handler(baseDetails)).toEqual({ action: 'deny' })
     expect(openExternalUrl).not.toHaveBeenCalled()
   })
 
@@ -125,27 +101,23 @@ describe('createWindowOpenHandler trusted-hub delegation', () => {
 
     expect(throwingProbe(baseDetails)).toEqual({ action: 'deny' })
     expect(openExternalUrl).not.toHaveBeenCalled()
-
-    const throwingOpen = createWindowOpenHandler(undefined, {
-      getOpenerOrigin: () => HERMES_HUB_ORIGIN,
-      openExternalUrl
-    })
-
-    expect(throwingOpen(baseDetails)).toEqual({ action: 'deny' })
   })
 
-  it('a throwing logging observer cannot change the decision or the delegation', () => {
+  it('a throwing logging observer cannot change the decision', () => {
     const openExternalUrl = vi.fn()
 
     const handler = createWindowOpenHandler(
       () => {
         throw new Error('log failed')
       },
-      { getOpenerOrigin: () => HERMES_HUB_ORIGIN, openExternalUrl }
+      {
+        getOpenerOrigin: () => 'https://hermes-agent.nousresearch.com',
+        openExternalUrl
+      }
     )
 
     expect(handler(baseDetails)).toEqual({ action: 'deny' })
-    expect(openExternalUrl).toHaveBeenCalledOnce()
+    expect(openExternalUrl).not.toHaveBeenCalled()
   })
 
   it('without trusted options the handler is side-effect-free deny (CVE-2026-70608 posture)', () => {

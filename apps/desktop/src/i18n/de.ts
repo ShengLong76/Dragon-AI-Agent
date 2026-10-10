@@ -5126,6 +5126,7 @@ export const deOverrides = {
       connectionSshTooltip: host => `SSH · ${host}`,
       connectionRemoteTooltip: host => `Remote · ${host}`,
       backendLabel: version => `Backend v${version}`,
+      runtimeExternal: 'Laufzeit · extern',
       commit: sha => `Commit ${sha}`,
       branch: branch => `Branch ${branch}`,
       closeCommandCenter: 'Command Center schließen',

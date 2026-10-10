@@ -148,9 +148,20 @@ class BuildRequest:
         release_epoch = None
         if tag:
             canary = re.fullmatch(r"v\d+\.\d+\.\d+\+canary\.(20\d{6}T\d{6}Z)", tag)
+            from scripts.dragon.desktop_release import github_only
+            # Dragon latest is a plain vX.Y.Z on GitHub with no Hermes
+            # attempt-ref claim object. Tests that set RELEASE_CLAIM_TAG
+            # still exercise the inherited claim contract.
+            dragon_latest = (
+                github_only()
+                and canary is None
+                and not os.environ.get("RELEASE_CLAIM_TAG", "").strip()
+            )
             if canary:
                 release_epoch = int(datetime.strptime(canary.group(1), "%Y%m%dT%H%M%SZ")
                                     .replace(tzinfo=timezone.utc).timestamp())
+            elif dragon_latest:
+                release_epoch = None
             else:
                 claim_tag = os.environ.get("RELEASE_CLAIM_TAG", "")
                 # The payload version stays plain; the claim must name the same
@@ -324,7 +335,8 @@ def prepare_in_worker(request: BuildRequest) -> Path:
     if icon_environment.exists():
         if icon_environment.is_symlink():
             raise ValueError("icon environment must be preparation-owned, not a symlink")
-        shutil.rmtree(icon_environment)
+        from scripts.bundles.windows_payload import robust_rmtree
+        robust_rmtree(icon_environment)
     icon_python = prepare_icon_environment(request.source, icon_environment, request.cache / "python/build")
     native = request.source / "apps/desktop/build/native-deps"
     run([str(node), "apps/desktop/scripts/stage-native-deps.mjs", "--source", str(request.source),

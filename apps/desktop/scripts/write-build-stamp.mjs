@@ -9,6 +9,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "fs"
 import { resolve, join, relative, posix } from "path"
 import productIdentity from "../product-identity.cjs"
+import feedContract from "../update-feed.cjs"
 import { channelBuildRequest } from "../../../scripts/msix-shared.mjs"
 import { validateBundleEnvironment } from "./bundle-env.mjs"
 import { execFileSync } from "child_process"
@@ -256,7 +257,7 @@ export function buildStampPayload(stamp, env = process.env, platform = process.p
     '': 'self',
     bootstrap: 'self',
     store: 'microsoft-store',
-    bundled: { win32: 'app-installer', darwin: 'electron-updater' }[platform] || 'external',
+    bundled: { win32: feedContract.productFeed.publicAssetsBase ? 'app-installer' : 'electron-updater', darwin: 'electron-updater' }[platform] || 'external',
     light: platform === 'darwin' ? 'electron-updater' : 'external'
   }[variant]
   if (!updateMechanism) throw new Error(`Unknown desktop variant: ${variant}`)

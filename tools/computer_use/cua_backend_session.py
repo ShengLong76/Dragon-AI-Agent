@@ -206,6 +206,10 @@ class _CuaDriverSession:
         # rejection without recursive call_tool re-entry or backend-owned state (#71166).
         self._declared_session_id: Optional[str] = None
         self._transport_generation, self._transport_reset_callback = 0, None
+        # True when MCP stdio is ``docker exec cua-driver`` (or ssh/singularity).
+        # Host CLI refetch must never run in that case — it would list the
+        # gateway machine's windows (Windows UIA) instead of the sandbox :N.
+        self._sandbox_driver = False
 
     async def _lifecycle_coro(self) -> None:
         """Owns the stdio MCP contexts: open, signal ready, block on shutdown, clean up — all in one task."""
@@ -223,13 +227,19 @@ class _CuaDriverSession:
         self._startup_phase = "binary-check"
         try:
             driver_cmd = _driver.resolve_cua_driver_cmd()
-            if not driver_cmd and _cb.sandbox_mcp_invocation() is None:
+            sandbox = _cb.sandbox_mcp_invocation()
+            if not driver_cmd and sandbox is None:
                 raise RuntimeError(_driver.cua_driver_install_hint())
             self._startup_phase = "manifest-discovery"
             daemon = self._embedded_daemon
-            (command, args), child_env = (
-                (daemon.proxy_invocation(), daemon.child_env()) if daemon is not None
-                else _cb.sandbox_mcp_invocation() or (_driver._resolve_mcp_invocation(driver_cmd), _cb.cua_driver_child_env()))
+            self._sandbox_driver = sandbox is not None
+            if sandbox is not None:
+                (command, args), child_env = sandbox
+            elif daemon is not None:
+                (command, args), child_env = daemon.proxy_invocation(), daemon.child_env()
+            else:
+                (command, args), child_env = (
+                    _driver._resolve_mcp_invocation(driver_cmd), _cb.cua_driver_child_env())
             _t_manifest = _time.monotonic()
             # Telemetry policy first (default: disabled), then strip Hermes secrets.
             params = StdioServerParameters(command=command, args=args, env=_sanitize_subprocess_env(child_env))
@@ -449,6 +459,9 @@ class _CuaDriverSession:
             fd, shot_file = _tempfile.mkstemp(prefix="cua_shot_", suffix=".png")
             os.close(fd)
             call_args["screenshot_out_file"] = shot_file
+        if getattr(self, "_sandbox_driver", False):
+            raise RuntimeError(
+                "cua-driver CLI fallback is host-only; the sandbox MCP session is the driver")
         driver_command = _driver.resolve_cua_driver_cmd()
         if not driver_command:
             raise RuntimeError(_driver.cua_driver_install_hint())

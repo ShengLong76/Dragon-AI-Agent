@@ -1,31 +1,21 @@
 /**
- * Capability carve-outs for the embedded Skills Hub iframe ONLY.
+ * Capability carve-outs for an embedded Skills Hub iframe.
  *
- * The Skills Hub picker (Bot Mode) embeds the public docs site
- * (`https://hermes-agent.nousresearch.com/docs/skills?embed=picker`, or the
- * GitHub Pages mirror when Vercel refuses the network). Three default denials
- * make that embed nearly unusable — window.open is killed by the CVE-2026-70608
- * handler, clipboard writes by the session permission handlers, and the frame
- * can drift off the picker URL into the un-embeddable docs site. Every carve-out
- * below is gated on the EXACT hub origin: a sandboxed artifact iframe (opaque
- * origin `null`) or any other guest frame never qualifies.
+ * Dragon's Skills and Plugins hubs are native UI. There is no upstream docs
+ * iframe, so no origin is granted clipboard-write or window.open exceptions.
  */
 
-/** The docs site served from Vercel. */
-export const HERMES_HUB_ORIGIN = 'https://hermes-agent.nousresearch.com'
-/** The equivalent GitHub Pages deployment of the same site. */
-export const HERMES_HUB_FALLBACK_ORIGIN = 'https://nousresearch.github.io'
-
-const HUB_ORIGINS = new Set([HERMES_HUB_ORIGIN, HERMES_HUB_FALLBACK_ORIGIN])
+/** @deprecated No hub iframe is embedded; kept so existing call sites compile. */
+export const HERMES_HUB_ORIGIN = ''
+/** @deprecated No hub iframe is embedded; kept so existing call sites compile. */
+export const HERMES_HUB_FALLBACK_ORIGIN = ''
 
 /**
- * Exact-origin membership — `origin` comes from the frame's own `origin`
- * property (URL parsing), never from a string we control. `new URL(...).origin`
- * is `null` for sandboxed frames and unique for `data:` URLs, so those can
- * never alias the hub.
+ * Exact-origin membership for a trusted hub frame. Always false: Dragon does
+ * not embed the upstream docs picker.
  */
-export function isHermesHubOrigin(origin: string | null | undefined): boolean {
-  return typeof origin === 'string' && HUB_ORIGINS.has(origin)
+export function isHermesHubOrigin(_origin: string | null | undefined): boolean {
+  return false
 }
 
 /** The URL schemes a trusted hub frame may delegate to the OS browser. */
@@ -33,9 +23,8 @@ const HUB_EXTERNAL_SCHEMES = new Set(['http:', 'https:', 'mailto:'])
 
 /**
  * May a trusted-origin window.open request be handed to the audited external
- * opener? http/https/mailto only — the same allowlist `openExternalUrl` in
- * external-open.ts enforces; anything else (file:, javascript:, custom
- * schemes) stays denied with no side effect.
+ * opener? Unused while `isHermesHubOrigin` is false; kept as the protocol
+ * gate if a future first-party embed needs the same shape.
  */
 export function isHermesHubExternalUrl(url: string): boolean {
   try {
@@ -47,8 +36,7 @@ export function isHermesHubExternalUrl(url: string): boolean {
 
 /**
  * May the requesting frame use the Chromium clipboard-sanitized-write
- * permission? Only the exact hub origins, and ONLY the write direction —
- * clipboard reads from embedded web content stay denied everywhere.
+ * permission? Never: there is no embedded hub frame.
  */
 export function isHermesHubClipboardWrite(origin: string | null | undefined): boolean {
   return isHermesHubOrigin(origin)

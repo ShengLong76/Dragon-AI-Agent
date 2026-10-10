@@ -9,6 +9,13 @@ vi.mock('@hermes/plugin-sdk', async () => {
 
   return {
     Codicon: () => null,
+    EmptyState: ({ title, description }: { title: string; description: string }) => (
+      <div>
+        <h2>{title}</h2>
+        <p>{description}</p>
+      </div>
+    ),
+    GlyphSpinner: () => null,
     useValue: useStore,
     resolveSiblingWsUrl: vi.fn(),
     host: { onEvent: vi.fn(onGatewayEvent), requestProfile: vi.fn() }
@@ -34,6 +41,13 @@ vi.mock('./i18n', () => ({
       heroStale: 'Last seen',
       heroSuppressed: 'Hidden while someone has control',
       portalUnavailable: 'Update the bot',
+      portalUnavailableManaged: 'Managed unavailable',
+      unavailableTitle: 'Screen needs a newer Dragon AI',
+      unavailableLocalBody: 'This runtime has no Computer service',
+      unsupportedTitle: 'No Linux guest',
+      unsupportedBody: 'Install Docker Desktop',
+      checkingTitle: 'Starting computer…',
+      checkingBody: 'Asking the runtime',
       heroConnecting: 'Connecting'
     }
   })
@@ -190,7 +204,7 @@ it('captions a suppressed thumbnail as hidden-while-controlled and never ages it
   view.unmount()
 })
 
-it('settles on an older backend without display.*: portal tone is unavailable and the hero renders nothing', async () => {
+it('settles on an older backend without display.*: portal tone is unavailable and the hero explains, not a black box', async () => {
   vi.mocked(host.requestProfile).mockRejectedValue(
     Object.assign(new Error('Method not found: display.status'), { code: -32601 })
   )
@@ -204,7 +218,9 @@ it('settles on an older backend without display.*: portal tone is unavailable an
 
   const view = render(<ScreenHero bot={botA} />)
   await act(async () => {})
-  expect(view.container.firstChild).toBeNull()
+  expect(view.getByText('Screen needs a newer Dragon AI')).toBeTruthy()
+  expect(view.getByText('This runtime has no Computer service')).toBeTruthy()
+  expect(view.container.querySelector('.bg-black')).toBeNull()
   view.unmount()
 })
 

@@ -45,6 +45,64 @@ def test_svg_readers_accept_bom_without_rewriting_assets(tmp_path, monkeypatch, 
         module.background_inner(art, path.name)
 
 
+def test_independent_output_is_wiped_before_generate(tmp_path, monkeypatch):
+    monkeypatch.setitem(sys.modules, "resvg_py", ModuleType("resvg_py"))
+    script = Path(__file__).resolve().parents[2] / "scripts" / "generate_icons.py"
+    spec = importlib.util.spec_from_file_location("icon_generator_wipe_under_test", script)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    source = tmp_path / "source"
+    source.mkdir()
+    out = tmp_path / "products" / "icons"
+    leftover = out / "apps/desktop/public/nous-girl.png"
+    leftover.parent.mkdir(parents=True)
+    leftover.write_bytes(b"stale last-night artwork")
+    (out / "website/static/img/nous-logo.png").parent.mkdir(parents=True)
+    (out / "website/static/img/nous-logo.png").write_bytes(b"stale logo")
+    image = io.BytesIO()
+    Image.new("RGBA", (2, 2), (0, 0, 0, 0)).save(image, "PNG")
+    art = SimpleNamespace()
+    monkeypatch.setattr(module, "TARGETS", [("apps/desktop/public/apple-touch-icon.png", "png", "icon")])
+    monkeypatch.setattr(module, "build_art", lambda _source: (art, art))
+    monkeypatch.setattr(module, "target_bytes", lambda *_: image.getvalue())
+    monkeypatch.setattr(sys, "argv", [str(script), "--source", str(source), "--out", str(out)])
+    try:
+        module.main()
+    except SystemExit as stopped:
+        assert stopped.code == 0
+    assert (out / "apps/desktop/public/apple-touch-icon.png").is_file()
+    assert not leftover.exists()
+    assert not (out / "website/static/img/nous-logo.png").exists()
+
+
+def test_in_tree_product_icons_dir_is_wiped_before_generate(tmp_path, monkeypatch):
+    """apps/desktop/build/products/icons lives under source and still must wipe."""
+    monkeypatch.setitem(sys.modules, "resvg_py", ModuleType("resvg_py"))
+    script = Path(__file__).resolve().parents[2] / "scripts" / "generate_icons.py"
+    spec = importlib.util.spec_from_file_location("icon_generator_in_tree_wipe_under_test", script)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    source = tmp_path / "checkout"
+    source.mkdir()
+    out = source / "apps/desktop/build/products/icons"
+    leftover = out / "apps/desktop/public/nous-girl.png"
+    leftover.parent.mkdir(parents=True)
+    leftover.write_bytes(b"stale last-night artwork")
+    image = io.BytesIO()
+    Image.new("RGBA", (2, 2), (0, 0, 0, 0)).save(image, "PNG")
+    art = SimpleNamespace()
+    monkeypatch.setattr(module, "TARGETS", [("apps/desktop/public/apple-touch-icon.png", "png", "icon")])
+    monkeypatch.setattr(module, "build_art", lambda _source: (art, art))
+    monkeypatch.setattr(module, "target_bytes", lambda *_: image.getvalue())
+    monkeypatch.setattr(sys, "argv", [str(script), "--source", str(source), "--out", str(out)])
+    try:
+        module.main()
+    except SystemExit as stopped:
+        assert stopped.code == 0
+    assert (out / "apps/desktop/public/apple-touch-icon.png").is_file()
+    assert not leftover.exists()
+
+
 @pytest.mark.parametrize("failure", [None, "render", "directory", "verify"])
 def test_write_status_includes_every_target(tmp_path, monkeypatch, capsys, failure):
     # The renderer is build-only. This test injects failures at its byte boundary.
@@ -122,12 +180,13 @@ def test_icon_portrait_sits_on_the_plain_tile_inside_the_outer_silhouette(monkey
     assert clip is not None
     assert tuple(float(clip.attrib[key]) for key in ("x", "y", "width", "height", "rx")) == geometry
     group = result[-1]
-    portrait = group[-1]
     portraits = [child for child in group if child.tag == f"{{{ns['svg']}}}svg"]
-    assert portraits == [portrait], "extend the existing contour, not a duplicate strip"
-    # The commit badge rides inside the same clip, so its anti-aliased edge can
-    # never add alpha outside the plate (visible at targetsize-16..30).
-    assert [child.tag for child in group[:-1]] == [f"{{{ns['svg']}}}g"]
+    assert len(portraits) == 1, "extend the existing contour, not a duplicate strip"
+    portrait = portraits[0]
+    # The commit badge rides inside the same clip (after the art so horns
+    # cannot hide the SHA), so its anti-aliased edge can never add alpha
+    # outside the plate (visible at targetsize-16..30).
+    assert [child.tag for child in group if child is not portrait] == [f"{{{ns['svg']}}}g"]
     assert portrait.get("preserveAspectRatio") == "xMidYMax meet"
     assert tuple(float(portrait.attrib[key]) for key in ("x", "y", "width", "height")) == module.GIRL_BOXES[name]
     clip_path = result.find("svg:defs/svg:clipPath", ns)

@@ -5,7 +5,9 @@ import { join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { isMain } from './frontend-common.mjs'
 
-const receiptName = 'hermes-build.json'
+const receiptName = 'dragon-build.json'
+const legacyReceiptName = 'hermes-build.json'
+const receiptNames = [receiptName, legacyReceiptName]
 const workspaces = { tui: 'ui-tui', web: 'web', desktop: 'apps/desktop' }
 const generated = new Set(['node_modules', 'dist', 'build', 'release', '.cache', '.git', 'coverage', 'test-results', 'playwright-report'])
 
@@ -71,8 +73,10 @@ export function sourceHash(source, product) {
 function outputHash(out) {
   // Native binaries can be signed after compilation. Their ABI validation is
   // owned by native preparation; renderer/main/preload bytes must stay intact.
-  return treeHash(out, readdirSync(out).sort(), name => name === receiptName || name === '.hermes-product',
-    name => !name.split('/').includes('node_modules') && !name.startsWith('native/'))
+  return treeHash(out, readdirSync(out).sort(), name => {
+    const base = name.split('/').pop()
+    return receiptNames.includes(base) || base === '.dragon-product' || base === '.hermes-product'
+  }, name => !name.split('/').includes('node_modules') && !name.startsWith('native/'))
 }
 
 // The desktop install stamp is a real prepared input — buildDesktop bakes its bytes
@@ -146,6 +150,14 @@ function preparedPaths(inputs) {
 // then certify a product whose packaged clock disagrees with electron-main.mjs.
 // Undefined (tui/web, which have no stamp) is dropped from the receipt, which is
 // exactly the "predates this" shape productCurrent already tolerates.
+function receiptPath(out) {
+  for (const name of receiptNames) {
+    const file = join(out, name)
+    if (existsSync(file)) return file
+  }
+  return join(out, receiptName)
+}
+
 export function recordProduct({ source, product, out, inputs, stampClock }) {
   if (JSON.stringify(buildInputs(source, product, preparedPaths(inputs))) !== JSON.stringify(inputs)) {
     throw new Error('Build inputs changed during compilation; retry the build')
@@ -158,7 +170,7 @@ export function recordProduct({ source, product, out, inputs, stampClock }) {
 
 export function productCurrent({ source, product, out, prepared }) {
   try {
-    const saved = JSON.parse(readFileSync(join(out, receiptName), 'utf8'))
+    const saved = JSON.parse(readFileSync(receiptPath(out), 'utf8'))
     const paths = prepared ?? preparedPaths(saved.inputs)
     return saved.schema === 1 && saved.product === product
       && saved.platform === process.platform && saved.arch === process.arch

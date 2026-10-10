@@ -1,5 +1,7 @@
 'use strict'
 
+const productFeed = require('../../branding/product-feed.json')
+
 // Historical native URLs are a compatibility layout, not a channel registry.
 /** @param {string} channel @param {boolean} light */
 function darwinFeed(channel, light = false) {
@@ -37,4 +39,46 @@ function feedBaseUrl(raw) {
   return canonical
 }
 
-module.exports = { darwinFeed, feedBaseUrl }
+/** @returns {string} */
+function productRepository() {
+  return productFeed.productRepository
+}
+
+/** @returns {string} */
+function upstreamRepository() {
+  return productFeed.upstreamRepository
+}
+
+/** @param {string | undefined | null} repository */
+function isProductRepository(repository) {
+  return String(repository || '').toLowerCase() === String(productFeed.productRepository).toLowerCase()
+}
+
+/** @param {string | undefined | null} repository */
+function isUpstreamRepository(repository) {
+  return String(repository || '').toLowerCase() === String(productFeed.upstreamRepository).toLowerCase()
+}
+
+/**
+ * Packaged builds publish to GitHub Releases unless product-feed.json names an
+ * assets CDN. A leftover Hermes R2 URL in CI must not become the client feed.
+ * @param {string | undefined} envUrl
+ */
+function packagedFeedBaseUrl(envUrl) {
+  const configured = productFeed.publicAssetsBase
+  if (typeof configured === 'string' && configured.trim()) {
+    return feedBaseUrl(configured)
+  }
+  return undefined
+}
+
+module.exports = {
+  darwinFeed,
+  feedBaseUrl,
+  packagedFeedBaseUrl,
+  productFeed,
+  productRepository,
+  upstreamRepository,
+  isProductRepository,
+  isUpstreamRepository
+}

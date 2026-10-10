@@ -60,6 +60,7 @@ def test_web_failure_is_not_success_even_with_an_old_dist(source_products, fatal
     assert acquired == ["npm"]
     assert [event["step"] for event in _events(root)] == ["deps", "web"]
     assert dist.read_text() == "old product"
+    assert not (root / "hermes_cli/web_dist/dragon-build.json").exists()
     assert not (root / "hermes_cli/web_dist/hermes-build.json").exists()
 
 
@@ -70,6 +71,7 @@ def test_failed_preparation_never_runs_web_compilation(source_products):
     assert not _build_web_ui(root / "web", fatal=True)
     assert acquired == ["npm"]
     assert _events(root) == []
+    assert not (root / "hermes_cli/web_dist/dragon-build.json").exists()
     assert not (root / "hermes_cli/web_dist/hermes-build.json").exists()
 
 

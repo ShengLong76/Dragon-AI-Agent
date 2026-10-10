@@ -22,6 +22,11 @@ from scripts.releases.versioning import (
 )
 
 WORKFLOW = "stable-release.yml"
+_FEED_PATH = Path(__file__).resolve().parents[2] / "branding" / "product-feed.json"
+
+
+def _product_name() -> str:
+    return json.loads(_FEED_PATH.read_text(encoding="utf-8-sig"))["productName"]
 # A fetch refspec may hold one ``*``; the parsers filter what the globs over-match.
 _ATTEMPT_GLOBS = ("rc.*", "abandoned-rc.*")
 
@@ -262,7 +267,7 @@ def release(commit: str, *, bump: str, repo: Path, remote: str, repository: str,
             url = (execute([
                 "gh", "release", "create", tag, "--repo", repository,
                 "--verify-tag", "--draft", "--notes-file", file.name,
-                "--title", f"Hermes Agent v{version}",
+                "--title", f"{_product_name()} v{version}",
             ]) or "").strip()
         finally:
             os.unlink(file.name)

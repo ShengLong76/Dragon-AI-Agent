@@ -1,3 +1,5 @@
+import { HYPERFRAMES_IDENTIFIER } from '@/lib/dragon-hub-catalog'
+
 /** A bot seat in a marketplace team. Each seat installs as its own bot profile. */
 export interface TeamSeat {
   slug: string
@@ -7,6 +9,8 @@ export interface TeamSeat {
   color: string
   /** The seat drives its own VM desktop (browser, apps) rather than only chatting. */
   computer?: boolean
+  /** Skills Hub identifiers installed into this seat's bot profile. */
+  skills?: string[]
 }
 
 export interface MarketplaceTeam {
@@ -14,9 +18,11 @@ export interface MarketplaceTeam {
   name: string
   tagline: string
   description: string
-  category: 'Business' | 'Engineering' | 'Finance' | 'Research' | 'Sales' | 'Support'
+  category: 'Business' | 'Engineering' | 'Finance' | 'Marketing' | 'Research' | 'Sales' | 'Support'
   accent: string
   seats: TeamSeat[]
+  /** Skills mentioned on every seat SOUL as team capabilities (install is per-seat). */
+  skills?: string[]
 }
 
 export const TEAMS_CATALOG: MarketplaceTeam[] = [
@@ -41,8 +47,11 @@ export const TEAMS_CATALOG: MarketplaceTeam[] = [
         slug: 'writer',
         title: 'Listing Writer',
         role: 'Copywriter',
-        mission: 'Turn property facts and photos into listing descriptions, open-house flyers, and social posts in the agent’s voice.',
-        color: '#c0784a'
+        mission:
+          'Turn property facts and photos into listing descriptions, open-house flyers, social posts, and short listing videos in the agent’s voice. Use HyperFrames for HTML-to-MP4 listing clips.',
+        color: '#c0784a',
+        computer: true,
+        skills: [HYPERFRAMES_IDENTIFIER]
       },
       {
         slug: 'closer',
@@ -63,18 +72,20 @@ export const TEAMS_CATALOG: MarketplaceTeam[] = [
   },
   {
     slug: 'marketing',
-    name: 'Marketing Team',
-    tagline: 'Plan the campaign, write the content, ship it on schedule.',
+    name: 'Marketing',
+    tagline: 'Plan the campaign, write the copy, produce the video, ship it.',
     description:
-      'A strategist who owns the calendar, a writer and a social manager who produce the work, and an analyst who reports what actually moved.',
-    category: 'Business',
+      'A lead who routes briefs, a writer for long-form, a video producer who renders HTML to MP4 with HyperFrames, and a social manager who adapts each piece for every channel.',
+    category: 'Marketing',
     accent: '#e0607e',
+    skills: [HYPERFRAMES_IDENTIFIER],
     seats: [
       {
         slug: 'lead',
-        title: 'Campaign Lead',
-        role: 'Strategist',
-        mission: 'Own the content calendar, break campaigns into briefs, and hand each brief to the right teammate.',
+        title: 'Marketing Lead',
+        role: 'Router',
+        mission:
+          'Own the content calendar, break campaigns into briefs, and hand writing to Content Writer, video to Video Producer (HyperFrames), and channel posts to Social Media Manager.',
         color: '#e0607e'
       },
       {
@@ -85,19 +96,22 @@ export const TEAMS_CATALOG: MarketplaceTeam[] = [
         color: '#d68a4c'
       },
       {
-        slug: 'social',
-        title: 'Social Manager',
-        role: 'Social',
-        mission: 'Adapt each piece for every channel, schedule posts, and summarize replies worth answering.',
-        color: '#5b8def',
-        computer: true
+        slug: 'video',
+        title: 'Video Producer',
+        role: 'Video',
+        mission:
+          'Turn briefs and HTML compositions into short deterministic MP4s with HyperFrames. Render in this bot’s Linux Computer sandbox (Node 22+, Chromium, ffmpeg). Start from /hyperframes.',
+        color: '#c45c9e',
+        computer: true,
+        skills: [HYPERFRAMES_IDENTIFIER]
       },
       {
-        slug: 'analyst',
-        title: 'Growth Analyst',
-        role: 'Reporter',
-        mission: 'Collect campaign metrics each week and write a short report on what worked and what to stop.',
-        color: '#47a875'
+        slug: 'social',
+        title: 'Social Media Manager',
+        role: 'Social',
+        mission: 'Adapt each piece — including HyperFrames clips from Video Producer — for every channel, schedule posts, and summarize replies worth answering.',
+        color: '#5b8def',
+        computer: true
       }
     ]
   },
@@ -246,8 +260,22 @@ export function seatProfileName(team: MarketplaceTeam, seat: TeamSeat): string {
   return `${team.slug}-${seat.slug}`.slice(0, 64)
 }
 
+export function seatSkillIdentifiers(seat: TeamSeat): string[] {
+  return [...(seat.skills ?? [])]
+}
+
+export function teamInstallPlan(team: MarketplaceTeam): { profile: string; skills: string[]; title: string }[] {
+  return team.seats.map(seat => ({
+    profile: seatProfileName(team, seat),
+    skills: seatSkillIdentifiers(seat),
+    title: seat.title
+  }))
+}
+
 export function seatSoul(team: MarketplaceTeam, seat: TeamSeat): string {
   const teammates = team.seats.filter(other => other.slug !== seat.slug)
+  const ownSkills = seatSkillIdentifiers(seat)
+  const teamSkills = [...(team.skills ?? [])]
 
   return [
     `# ${seat.title}`,
@@ -257,6 +285,22 @@ export function seatSoul(team: MarketplaceTeam, seat: TeamSeat): string {
     '',
     '## Team',
     ...teammates.map(other => `- @${seatProfileName(team, other)}: ${other.title} (${other.role})`),
+    teamSkills.length
+      ? [
+          '',
+          '## Team skills',
+          ...teamSkills.map(id => `- ${id}`),
+          'These skills are available to the team. Video work uses HyperFrames (Apache-2.0, HeyGen) — prefer the Linux Computer sandbox for renders.'
+        ].join('\n')
+      : '',
+    ownSkills.length
+      ? [
+          '',
+          '## Your skills',
+          ...ownSkills.map(id => `- ${id}`),
+          'Installed into this bot profile. For HyperFrames, run `/hyperframes` then render in the sandbox.'
+        ].join('\n')
+      : '',
     '',
     'Hand work to a teammate with message_agent when it is theirs to do, and report back to the Chief of Staff when a task is finished or blocked.',
     seat.computer ? '\nYou have your own computer (a VM desktop). Use it to browse and run apps when the task needs it.' : ''

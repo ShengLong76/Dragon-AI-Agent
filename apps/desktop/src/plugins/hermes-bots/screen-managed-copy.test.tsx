@@ -35,13 +35,15 @@ vi.mock('./routing', () => {
   return { botConnectionRoute: () => route, resolveBotConnectionRoute: () => ({ status: 'resolved', route }) }
 })
 vi.mock('./data', () => ({ botSelectionKey: (bot: RosterRow) => bot.name }))
+vi.mock('./screen-open', () => ({ openBotScreen: vi.fn() }))
 vi.mock('./i18n', () => ({
   useBots: () => ({
     screen: {
       title: 'Screen',
-      portalUnavailable: 'Update the bot’s Hermes to use Screen',
-      portalUnavailableManaged: 'Screen is not available on this managed Hermes release yet',
-      unavailableTitle: 'Screen needs a newer Hermes'
+      portalUnavailable: 'Update the bot to use Screen',
+      portalUnavailableManaged: 'Screen is not available on this managed release yet',
+      unavailableTitle: 'Screen needs a newer Dragon AI',
+      unavailableLocalBody: 'This runtime has no Computer service'
     }
   })
 }))
@@ -71,17 +73,18 @@ it('a managed Cloud backend gets the managed-release copy, not a self-update ins
   const view = render(<BotScreenPane bot={cloudBot} />)
   await act(async () => {})
 
-  expect(view.getByText('Screen is not available on this managed Hermes release yet')).toBeTruthy()
-  expect(view.queryByText('Update the bot’s Hermes to use Screen')).toBeNull()
+  expect(view.getByText('Screen is not available on this managed release yet')).toBeTruthy()
+  expect(view.queryByText('This runtime has no Computer service')).toBeNull()
   view.unmount()
 })
 
-it('a self-upgradable backend keeps the update instruction', async () => {
+it('a self-upgradable backend names the missing Computer service, not a silent pane', async () => {
   vi.mocked(host.requestProfile).mockImplementation(() => methodNotFound())
   const view = render(<BotScreenPane bot={gitBot} />)
   await act(async () => {})
 
-  expect(view.getByText('Update the bot’s Hermes to use Screen')).toBeTruthy()
-  expect(view.queryByText('Screen is not available on this managed Hermes release yet')).toBeNull()
+  expect(view.getByText('This runtime has no Computer service')).toBeTruthy()
+  expect(view.queryByText('Screen is not available on this managed release yet')).toBeNull()
+  expect(view.container.querySelector('[data-remote-screen]')).toBeNull()
   view.unmount()
 })

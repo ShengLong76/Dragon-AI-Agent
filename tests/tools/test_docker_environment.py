@@ -474,7 +474,7 @@ def test_snap_compat_drops_only_init_and_no_new_privileges(monkeypatch):
     assert "--init" not in compat and "no-new-privileges" not in compat
 
     def strip(argv):  # everything except the two flags and the random container name
-        return [a for a in argv if a not in ("--init", "--security-opt", "no-new-privileges") and not a.startswith("hermes-")]
+        return [a for a in argv if a not in ("--init", "--security-opt", "no-new-privileges") and not a.startswith(("hermes-", "dragon-"))]
 
     assert strip(default) == strip(compat)
 
@@ -556,6 +556,37 @@ def _labels_in_run_args(run_args):
     }
 
 
+def test_sandbox_alias_run_uses_pull_never_and_skips_local_tag_pull(monkeypatch):
+    """``docker run dragon-sandbox:desktop`` must not hit Docker Hub.
+
+    The local-only tag has no Hub repo (``pull access denied``). ensure_sandbox_image
+    makes it local; ``--pull never`` stops ``docker run`` from auto-pulling it.
+    """
+    monkeypatch.setattr(docker_env, "find_docker", lambda: "/usr/bin/docker")
+    calls = _mock_subprocess_run(monkeypatch)
+
+    _make_dummy_env(image="dragon-sandbox:desktop")
+
+    args = _run_args_from_calls(calls)
+    pull_at = args.index("--pull")
+    assert args[pull_at + 1] == "never"
+    pulls = [
+        cmd[0]
+        for cmd in calls
+        if isinstance(cmd[0], list) and len(cmd[0]) >= 3 and cmd[0][1] == "pull"
+    ]
+    assert all(cmd[2] != "dragon-sandbox:desktop" for cmd in pulls)
+
+
+def test_non_sandbox_image_run_does_not_force_pull_never(monkeypatch):
+    monkeypatch.setattr(docker_env, "find_docker", lambda: "/usr/bin/docker")
+    calls = _mock_subprocess_run(monkeypatch)
+
+    _make_dummy_env(image="python:3.11")
+
+    assert "--pull" not in _run_args_from_calls(calls)
+
+
 def test_run_command_tags_hermes_agent_label(monkeypatch):
     """Every container hermes-agent starts must carry the hermes-agent=1 label
     so the orphan reaper (and external operators) can identify them with a
@@ -569,6 +600,9 @@ def test_run_command_tags_hermes_agent_label(monkeypatch):
     labels = _labels_in_run_args(_run_args_from_calls(calls))
     assert "hermes-agent=1" in labels, (
         f"hermes-agent=1 label missing; got labels: {sorted(labels)}"
+    )
+    assert "dragon-agent=1" in labels, (
+        f"dragon-agent=1 label missing; got labels: {sorted(labels)}"
     )
 
 
@@ -819,6 +853,7 @@ def test_labels_attribute_populated_after_init(monkeypatch):
     environment_label = labels.pop("hermes-environment")
     assert labels == {
         "hermes-agent": "1",
+        "dragon-agent": "1",
         "hermes-task-id": "abc",
         "hermes-profile": "default",
         "hermes-egress": "off",
@@ -1248,7 +1283,7 @@ def test_failed_docker_run_cleans_up_orphaned_container(monkeypatch):
     assert len(cleanup_calls) == 1, "docker rm should be called once for the orphaned container"
     rm_cmd = cleanup_calls[0]
     assert rm_cmd[1] == "rm" and rm_cmd[2] == "-f"
-    assert rm_cmd[3].startswith("hermes-"), "should remove the container by its generated name"
+    assert rm_cmd[3].startswith("dragon-"), "should remove the container by its generated name"
 
 
 def test_docker_run_timeout_cleans_up_orphaned_container(monkeypatch):
@@ -1283,7 +1318,7 @@ def test_docker_run_timeout_cleans_up_orphaned_container(monkeypatch):
     assert len(cleanup_calls) == 1, "docker rm should be called once for the orphaned container"
     rm_cmd = cleanup_calls[0]
     assert rm_cmd[1] == "rm" and rm_cmd[2] == "-f"
-    assert rm_cmd[3].startswith("hermes-"), "should remove the container by its generated name"
+    assert rm_cmd[3].startswith("dragon-"), "should remove the container by its generated name"
 
 
 

@@ -323,6 +323,7 @@ export const zhHantChrome = {
       connectionSshTooltip: host => `SSH · ${host}`,
       connectionRemoteTooltip: host => `Remote · ${host}`,
       backendLabel: version => `後端 v${version}`,
+      runtimeExternal: '執行環境 · 外部',
       commit: sha => `提交 ${sha}`,
       branch: branch => `分支 ${branch}`,
       closeCommandCenter: '關閉命令中心',

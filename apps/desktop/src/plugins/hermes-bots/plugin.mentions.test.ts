@@ -256,7 +256,7 @@ describe('@-mention completions', () => {
     expect(provide('').map(item => item.insert)).toContain('@default-vera')
   })
 
-  it('surfaces default as @hermes and prefix-filters on the handle', async () => {
+  it('surfaces default as @main and prefix-filters on the handle', async () => {
     const { provide } = await contributions({
       focused: 'researcher',
       profiles: [
@@ -266,7 +266,8 @@ describe('@-mention completions', () => {
       ]
     })
 
-    expect(provide('').map(item => item.insert)).toEqual(expect.arrayContaining(['@hermes', '@writer-homelab']))
+    expect(provide('').map(item => item.insert)).toEqual(expect.arrayContaining(['@main', '@writer-homelab']))
+    expect(provide('').map(item => item.insert)).not.toContain('@hermes')
     expect(provide('wri').map(item => item.insert)).toEqual(['@writer-homelab'])
   })
 
@@ -308,7 +309,7 @@ describe('@-mention completions', () => {
 
   /** Local default plus two remote defaults, each titled on its own host
    *  (#103731). Order-flipped so a Map-last-wins slip in the resolver or the
-   *  picker would surface as a retargeted local @hermes. */
+   *  picker would surface as a retargeted local @main. */
   const REMOTE_DEFAULTS: Array<Record<string, unknown>> = [
     {
       connectionId: 'vps',
@@ -337,25 +338,31 @@ describe('@-mention completions', () => {
       profiles: [...REMOTE_DEFAULTS].reverse().concat([{ name: 'researcher' }, { name: 'default' }])
     }
   ])(
-    'lists titled remote defaults under their slug, qualified on collision, and keeps @hermes local ($label)',
+    'lists titled remote defaults under their slug, qualified on collision, and keeps @main local ($label)',
     async ({ profiles }) => {
       const { handler, provide } = await contributions({ focused: 'researcher', profiles })
       const inserts = provide('').map(item => item.insert)
 
       // Both remote defaults tag as "CoS Bot" — the bare slug names neither, so
-      // the picker pins each to its connection; the local default stays @hermes.
-      expect(inserts).toEqual(expect.arrayContaining(['@hermes', '@cos-bot@vps', '@cos-bot@wsl']))
+      // the picker pins each to its connection; the local default stays @main.
+      expect(inserts).toEqual(expect.arrayContaining(['@main', '@cos-bot@vps', '@cos-bot@wsl']))
       expect(inserts).not.toContain('@cos-bot')
-      expect(inserts.filter(insert => insert === '@hermes')).toHaveLength(1)
+      expect(inserts).not.toContain('@hermes')
+      expect(inserts.filter(insert => insert === '@main')).toHaveLength(1)
 
       const qualified = await handler({ text: 'ask @cos-bot@wsl for the plan' })
       expect(qualified.text).toMatch(/message_agent target: "default@wsl"/)
       expect(qualified.text).not.toMatch(/default@vps/)
 
-      // A bare @hermes is this machine's default in either roster order.
-      const local = await handler({ text: '@hermes summarize' })
-      expect(local.text).toMatch(/@hermes = agent profile "default"/)
+      // A bare @main (or the retired @hermes alias) is this machine's default.
+      const local = await handler({ text: '@main summarize' })
+      expect(local.text).toMatch(/@main = agent profile "default"/)
+      expect(local.text).not.toMatch(/@hermes/)
       expect(local.text).not.toMatch(/message_agent target: "default@/)
+
+      const legacy = await handler({ text: '@hermes summarize' })
+      expect(legacy.text).toMatch(/@main = agent profile "default"/)
+      expect(legacy.text).not.toMatch(/@hermes = /)
     }
   )
 
@@ -425,7 +432,7 @@ describe('the mention middleware', () => {
   it('annotates the resolvable handle for a local row whose UI alias differs', async () => {
     // The reporter's shape (#97678 / Discord video): the LOCAL twin carries
     // the 'default-this-device' alias when the remote gateway is active.
-    // The local resolver only knows bare profile names / 'hermes'.
+    // The local resolver only knows bare profile names.
     const { handler } = await contributions({
       focused: 'ops',
       profiles: [
@@ -437,7 +444,7 @@ describe('the mention middleware', () => {
     const result = await handler({ text: 'ping @default-this-device' })
 
     expect(result.text).toMatch(/@default-this-device = agent profile "default"/)
-    expect(result.text).toMatch(/message_agent target: "hermes"/)
+    expect(result.text).toMatch(/message_agent target: "default"/)
     expect(result.text).not.toMatch(/message_agent target: "default-this-device/)
   })
 

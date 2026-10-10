@@ -212,11 +212,12 @@ npm run build:fast --prefix website
 Use a Node/npm version accepted by the corresponding `package.json` engines.
 Native desktop dependencies can also require the platform build toolchain.
 
-Logos and icons are generated from `assets/nous-girl-*.svg` and
-`assets/backgrounds/`. `node scripts/generate-icons.mjs` renders them with the
-Hermes runtime Python (`HERMES_PYTHON`, else `python` on PATH): Pillow and
-resvg-py are core dependencies. Generated outputs are committed and CI fails if
-they are stale; rerun the generator and commit after changing any source SVG.
+Logos and icons are generated from `branding/dragon-logo.png` /
+`assets/dragon-logo.png` and `assets/backgrounds/`. `node scripts/generate-icons.mjs`
+renders them with the Dragon runtime Python (`HERMES_PYTHON`, else `python` on PATH):
+Pillow and resvg-py are core dependencies. Generated outputs are committed and CI
+fails if they are stale; rerun the generator and commit after changing the Dragon
+artwork. Never source icons from nous-girl or hermes.png assets.
 
 ### Run tests
 
