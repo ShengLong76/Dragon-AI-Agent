@@ -9,11 +9,10 @@ describe('plugin catalog snapshot', () => {
     expect(all.length).toBeGreaterThan(0)
     expect(all.every(entry => entry.name && entry.repo)).toBe(true)
 
-    const hermesNamed = all.filter(entry => /hermes/i.test(entry.name) || /hermes/i.test(entry.title))
+    const hermesNamed = all.filter(entry => /hermes/i.test(entry.name))
 
-    for (const entry of hermesNamed) {
-      expect(entry.name).toMatch(/hermes/i)
-    }
+    expect(hermesNamed.length).toBeGreaterThan(0)
+    expect(hermesNamed.every(entry => entry.name.toLowerCase().includes('hermes'))).toBe(true)
   })
 
   it('looks up an upstream hermes-named entry without renaming it', async () => {

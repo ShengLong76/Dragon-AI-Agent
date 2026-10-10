@@ -555,6 +555,10 @@ export const PluginsTab = memo(function PluginsTab({
     const names = new Set<string>()
 
     for (const row of agentRows) {
+      if (row.update_available) {
+        continue
+      }
+
       if (row.catalog_name) {
         names.add(row.catalog_name)
       }

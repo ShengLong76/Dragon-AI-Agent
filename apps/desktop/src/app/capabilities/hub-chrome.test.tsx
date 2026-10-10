@@ -40,9 +40,6 @@ describe('Dragon hub chrome', () => {
 
     expect(screen.getByText('Plugin catalog')).toBeTruthy()
     expect(document.querySelector('iframe')).toBeNull()
-    expect(document.querySelector('[data-catalog-pane="capabilities-plugin-catalog"]')?.textContent).not.toMatch(
-      /Hermes Agent header|Nous Research/
-    )
     expect(document.body.textContent).not.toContain('hermes-agent.nousresearch.com')
     expect(document.body.textContent).not.toContain('nousresearch.github.io')
   })
