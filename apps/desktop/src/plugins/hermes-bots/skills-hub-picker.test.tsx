@@ -88,6 +88,8 @@ describe('hub pick messages', () => {
     render(<HubSkillsSection />)
 
     expect(screen.getByText('HyperFrames — make videos from HTML')).toBeTruthy()
+    expect(screen.getByText(/Standalone skill/)).toBeTruthy()
+    expect(screen.getByText(/add to any bot/i)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '+ Add to this Agent: HyperFrames — make videos from HTML' }))
     expect(installCalls()).toEqual([['skills.manage', { action: 'install', query: 'heygen-com/hyperframes' }]])
   })

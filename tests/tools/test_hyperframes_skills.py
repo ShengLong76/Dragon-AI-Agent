@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from io import StringIO
 
 import pytest
@@ -71,7 +72,8 @@ def test_setup_steps_name_license_and_sandbox_not_upstream_product():
     assert "Linux sandbox" in text
     assert "Windows host" in text
     assert "ffmpeg" in text
-    assert "hermes" not in text.lower()
+    assert "this bot's skills folder" in text
+    assert not re.search(r"\bhermes\b", text, flags=re.IGNORECASE)
 
 
 def test_install_core_calls_install_one_for_each_skill_and_cli_update():

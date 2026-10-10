@@ -62,6 +62,8 @@ describe('HyperFrames featured catalog entry', () => {
     expect(DRAGON_FEATURED_SKILLS[0]).toEqual(HYPERFRAMES_HUB_SKILL)
     expect(HYPERFRAMES_HUB_SKILL.identifier).toBe(HYPERFRAMES_IDENTIFIER)
     expect(HYPERFRAMES_HUB_SKILL.name).toBe('HyperFrames — make videos from HTML')
+    expect(HYPERFRAMES_HUB_SKILL.description).toMatch(/Standalone skill/)
+    expect(HYPERFRAMES_HUB_SKILL.description).toMatch(/any bot/)
     expect(HYPERFRAMES_HUB_SKILL.description).toMatch(/Apache-2\.0/)
     expect(HYPERFRAMES_HUB_SKILL.description).toMatch(/heygen-com\/hyperframes/)
     expect(HYPERFRAMES_HUB_SKILL.description).not.toMatch(/hermes/i)

@@ -700,13 +700,14 @@ def do_install(identifier: str, category: str = "", force: bool = False,
     core set into the active profile instead of treating the whole repo as one skill.
     Returns ``True`` on that path so ``skills.manage`` reports a real install."""
     from tools.hyperframes_skills import install_hyperframes_core, is_hyperframes_identifier
-    from tools.skills_hub import HubLockFile
 
     if is_hyperframes_identifier(identifier):
         ok = install_hyperframes_core(console=console or _console, force=force)
         if not ok:
             raise SystemExit(1)
         return True
+
+    from tools.skills_hub import HubLockFile
 
     fresh = not HubLockFile().get_installed(identifier.rstrip("/").rsplit("/", 1)[-1])
     try:

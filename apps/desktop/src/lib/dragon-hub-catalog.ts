@@ -21,7 +21,7 @@ export const HYPERFRAMES_IDENTIFIER = 'heygen-com/hyperframes'
 export const HYPERFRAMES_HUB_SKILL: HubCatalogSkill = {
   aliases: ['hyperframes', 'heygen-com/hyperframes'],
   description:
-    'Make videos from HTML. Installs the HyperFrames core skill set (router /hyperframes) into this bot. Apache-2.0 — HeyGen, https://github.com/heygen-com/hyperframes. Needs Node 22+, Chrome, and ffmpeg; prefer the bot Linux sandbox.',
+    'Standalone skill — add to any bot on its own. Make videos from HTML. Installs the HyperFrames core skill set (router /hyperframes) into this bot. Separate from the Marketing team pack and Listing Writer. Apache-2.0 — HeyGen, https://github.com/heygen-com/hyperframes. Needs Node 22+, Chrome, and ffmpeg; prefer the bot Linux sandbox.',
   identifier: HYPERFRAMES_IDENTIFIER,
   name: 'HyperFrames — make videos from HTML',
   source: 'github'

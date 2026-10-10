@@ -21,8 +21,6 @@ import subprocess
 from dataclasses import dataclass
 from typing import Callable, Iterable, Optional, Sequence
 
-from hermes_constants import display_hermes_home
-
 HYPERFRAMES_REPO = "heygen-com/hyperframes"
 HYPERFRAMES_REPO_URL = f"https://github.com/{HYPERFRAMES_REPO}"
 HYPERFRAMES_LICENSE = "Apache-2.0"
@@ -166,7 +164,7 @@ def setup_steps(probe: Optional[HyperFramesProbe] = None) -> str:
         "  2. Install ffmpeg (https://ffmpeg.org) and add it to PATH.",
         "  3. Install Chrome or Edge. Then click Add again.",
         "",
-        f"Skills land in {display_hermes_home()}/skills/ for the chosen bot profile.",
+        "Skills land in this bot's skills folder for the chosen profile.",
     ])
     return "\n".join(lines)
 
