@@ -155,6 +155,11 @@ def check_browser_requirements() -> bool:
     # CDP override needs no local binary. Raw (no-I/O) check: this runs during schema build, where a stale endpoint must not cost a blocking probe.
     if _cdp._get_cdp_override_raw():
         return True
+    # Sandbox Computer tab: agent-browser + Chromium live in the guest image.
+    # Do not require a host CLI/Chromium (Windows Docker Desktop has neither).
+    from tools.bot_desktop import placement
+    if placement.resolve().where == placement.TERMINAL:
+        return True
     # Do not exec ``agent-browser --version`` here: Windows .cmd shims flash a console during Desktop startup. Execution paths still validate.
     try:
         _find_agent_browser(validate=False)
