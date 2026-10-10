@@ -15,8 +15,8 @@ import {
   $lastJobs,
   CreateRoutineDialog,
   RoutineDetailDialog,
-  RoutineRow,
   routineFilterHint,
+  RoutineRow,
   selectRoutineJobs,
   useRoutines
 } from './cron'
@@ -136,6 +136,7 @@ export function BotPanelPane() {
 
 function BotDetails({ bot, description }: { bot: RosterRow; description: string }) {
   const b = useBots()
+
   const { data: soul, isLoading: soulLoading } = useQuery({
     queryKey: botSoulQueryKey(bot),
     queryFn: async () => {
@@ -144,6 +145,7 @@ function BotDetails({ bot, description }: { bot: RosterRow; description: string 
       return res.soul || ''
     }
   })
+
   const [editing, setEditing] = useState(false)
   const content = soul || ''
 

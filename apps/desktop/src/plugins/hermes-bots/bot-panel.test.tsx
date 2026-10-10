@@ -58,6 +58,7 @@ function renderPanel() {
 beforeEach(() => {
   vi.clearAllMocks()
   let soul = '# Researcher persona'
+
   const respond = async (method: string, params?: { soul?: string }) => {
     if (method === 'profiles.describe') {
       return { soul }
@@ -292,6 +293,7 @@ describe('Routines is the cron surface', () => {
       schedule: 'every 1h',
       state: 'scheduled'
     }
+
     const respond = async (method: string, params?: { action?: string }) => {
       if (method === 'profiles.describe') {
         return { soul: '' }

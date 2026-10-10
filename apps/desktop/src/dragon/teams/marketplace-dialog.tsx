@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import type { EccWorkflowStatus } from '@/hermes'
 import { queryClient } from '@/lib/query-client'
 import { cn } from '@/lib/utils'
 import { $gateway } from '@/store/gateway'
@@ -16,14 +17,12 @@ import {
   ECC_WORKFLOW_PACK,
   ECC_WORKFLOW_PACK_ID,
   MARKETPLACE_INTRO,
+  WORKFLOW_PACKS,
   type WorkflowPack,
   type WorkflowPackAction,
   workflowPackProgressCopy,
-  workflowPackSuccessCopy,
-  WORKFLOW_PACKS
+  workflowPackSuccessCopy
 } from './workflow-packs'
-
-import type { EccWorkflowStatus } from '@/hermes'
 
 /** Bot Mode's plugin id: installed seats carry their look and section in that plugin's ui_meta slot. */
 const BOTS_PLUGIN_ID = 'hermes-bots'
@@ -108,10 +107,12 @@ async function installTeam(team: MarketplaceTeam, onProgress: (done: number) => 
 
 export function TeamsMarketplaceDialog() {
   const open = useStore($teamsMarketplaceOpen)
+
   const [selected, setSelected] = useState<MarketplaceSelection>({
     kind: 'pack',
     slug: ECC_WORKFLOW_PACK_ID
   })
+
   const [installs, setInstalls] = useState<Record<string, InstallState>>({})
   const [eccStatus, setEccStatus] = useState<EccWorkflowStatus | null>(null)
   const [packAction, setPackAction] = useState<PackActionState>({ status: 'idle' })
@@ -172,6 +173,7 @@ export function TeamsMarketplaceDialog() {
         } else {
           setEccStatus(prev => (prev ? { ...prev, installed: true } : prev))
         }
+
         setPackAction({ status: 'done', action })
         notify({ kind: 'success', message: workflowPackSuccessCopy(action) })
       })

@@ -37,9 +37,9 @@ import {
   $screenState,
   beginScreenStatusRequest,
   screenStateFor,
+  setScreenError,
   setScreenLease,
   setScreenStatus,
-  setScreenError,
   setScreenUnavailable,
   setScreenViewer
 } from './screen-state'

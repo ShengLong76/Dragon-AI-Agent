@@ -1,6 +1,6 @@
-import { capabilityScoped, type ProfileScope } from './client'
-
 import type { ActionResponse } from '@/types/hermes'
+
+import { capabilityScoped, type ProfileScope } from './client'
 
 export interface EccWorkflowStatus {
   cursor_hooks: boolean

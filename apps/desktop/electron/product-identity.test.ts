@@ -47,6 +47,7 @@ function loadIdentityModule(): {
   WINDOWS_NSIS_GUID: string
 } {
   delete require.cache[require.resolve('../product-identity.cjs')]
+
   return require('../product-identity.cjs')
 }
 
@@ -238,6 +239,7 @@ test('packaging isolates boot metadata and executable names without renaming rel
     const identity: ProductIdentity = finalizeIdentity(flavor, packagingPlatform())
     const windows: ProductIdentity = finalizeIdentity(flavor, 'win32')
     const config: PackagingConfiguration = load()
+
     // Electron bootstrap gives productName precedence over name. appId alone
     // changes neither its early userData lookup nor its single-instance lock.
     // Windows (and `electron-builder --win`) collapse flavor into the shared
@@ -248,6 +250,7 @@ test('packaging isolates boot metadata and executable names without renaming rel
     } else {
       assert.equal(config.extraMetadata.productName, undefined)
     }
+
     assert.equal(config.extraMetadata.name, identity.appNamePascal)
     assert.equal(config.win.executableName, windows.windowsExecutableName)
     assert.equal(config.nsis.guid, windows.nsisGuid)
@@ -332,6 +335,7 @@ test('Windows commit, canary, bundled and channel builds share the stable Dragon
 
   const load: () => PackagingConfiguration = (): PackagingConfiguration => {
     delete require.cache[require.resolve('../electron-builder.config.cjs')]
+
     return require('../electron-builder.config.cjs')
   }
 

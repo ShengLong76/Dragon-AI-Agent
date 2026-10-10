@@ -3,7 +3,7 @@ import { memo, useMemo, useState } from 'react'
 
 import { CatalogCard, catalogPaneHeight, catalogPaneOpen, ResizableCatalogPane } from '@/app/capabilities/catalog-browser'
 import { useI18n } from '@/i18n'
-import { searchPluginCatalog, type PluginCatalogBrowseEntry } from '@/lib/plugin-catalog'
+import { type PluginCatalogBrowseEntry, searchPluginCatalog } from '@/lib/plugin-catalog'
 import { $paneHeightOverride } from '@/store/panes'
 import { openCatalogPluginInstall } from '@/store/plugin-catalog-install'
 
@@ -31,6 +31,7 @@ export const PluginCatalogBrowser = memo(function PluginCatalogBrowser({
 
   const rows = useMemo(() => {
     const matches = searchPluginCatalog(query)
+
     return matches.slice(0, query.trim() ? SEARCH_LIMIT : BROWSE_LIMIT)
   }, [query])
 

@@ -12,6 +12,7 @@ it('replaces the raw Xvnc leftover-lock dump with the friendly Computer copy', (
     '(EE) Server is already active for display 20\n' +
     'If this server is no longer running, remove /tmp/.X20-lock and start again.\n' +
     '(EE) Xvnc exited during startup'
+
   expect(isLeftoverDisplayError(raw)).toBe(true)
   expect(friendlyScreenStartError(raw, leftover)).toBe(leftover)
   expect(friendlyScreenStartError(raw, leftover)).not.toMatch(/\(EE\)/)

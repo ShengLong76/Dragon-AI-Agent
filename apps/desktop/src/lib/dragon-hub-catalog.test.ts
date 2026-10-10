@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest'
 
 import {
   DRAGON_FEATURED_SKILLS,
+  type HubCatalogSkill,
+  hubSkillKey,
   HYPERFRAMES_HUB_SKILL,
   HYPERFRAMES_IDENTIFIER,
-  hubSkillKey,
   isHyperFramesIdentifier,
   matchesInstalled,
-  mergeHubCatalogSkills,
-  type HubCatalogSkill
+  mergeHubCatalogSkills
 } from './dragon-hub-catalog'
 
 describe('mergeHubCatalogSkills', () => {
@@ -41,6 +41,7 @@ describe('mergeHubCatalogSkills', () => {
     const featured: HubCatalogSkill[] = [
       { description: 'local', identifier: 'web-research', name: 'web-research' }
     ]
+
     const extra: HubCatalogSkill[] = [
       { description: 'registry', identifier: 'web-research', name: 'web-research' }
     ]

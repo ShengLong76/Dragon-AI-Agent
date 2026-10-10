@@ -27,9 +27,11 @@ export function createNsisStrategy(deps: NsisClientDeps): MacStrategy {
   }
 
   const [owner, repo] = feedContract.productRepository().split('/')
+
   if (!owner || !repo) {
     throw new Error('packaged Windows feed is missing ShengLong76/Dragon-AI-Agent')
   }
+
   updater.setFeedURL({ provider: 'github', owner, repo, channel })
 
   return new MacStrategy({

@@ -313,16 +313,19 @@ export class GrokVoiceSession {
 
     switch (event.type) {
       case 'session.created':
+
       case 'session.updated':
         return
 
       case 'response.output_audio.delta':
+
       case 'response.audio.delta':
         this.play(event.delta ?? '')
 
         return
 
       case 'response.output_audio_transcript.delta':
+
       case 'response.audio_transcript.delta':
         this.assistantLine += event.delta ?? ''
 
@@ -343,7 +346,6 @@ export class GrokVoiceSession {
         this.pushTranscript('user', event.transcript ?? '')
 
         return
-
       case 'response.function_call_arguments.done': {
         if (event.name !== this.tool || !event.call_id) {
           return

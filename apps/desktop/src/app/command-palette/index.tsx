@@ -589,6 +589,7 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
     const apply = backend ? backendApply : clientApply
     const status = backend ? backendStatus : clientStatus
     const dragonRuntime = isDragonProductVersion(backend ? status?.currentVersion : desktopVersion?.appVersion)
+
     const version = backend
       ? sanitizeRuntimeVersion(status?.currentVersion)
       : DRAGON_PRODUCT_VERSION

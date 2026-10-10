@@ -3859,6 +3859,7 @@ function createNativePackagedStrategy(
     if (target) {
       return createChannelMacStrategy(deps, target)
     }
+
     return process.platform === 'win32' ? createNsisStrategy(deps) : createMacStrategy(deps)
   }
 

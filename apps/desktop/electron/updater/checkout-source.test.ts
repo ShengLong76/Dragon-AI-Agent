@@ -8,11 +8,11 @@ import { promisify } from 'node:util'
 
 import { expect, it, vi } from 'vitest'
 
+import feedContract from '../../update-feed.cjs'
 import * as updaterProcess from '../updater-process'
 
 import { type CheckoutStrategyDeps, createCheckoutStrategy } from './checkout'
 import { readSourceUpdate, type SourceUpdate } from './checkout-source'
-import feedContract from '../../update-feed.cjs'
 
 const officialRepository: string = feedContract.productRepository()
 

@@ -3,6 +3,7 @@ import { type FC, type ReactNode, useCallback, useEffect, useRef, useState } fro
 
 import { DirectiveContent } from '@/components/assistant-ui/directive-text'
 import { isAttachmentRef } from '@/components/assistant-ui/reference-kinds'
+import { CHAT_BUBBLE_RADIUS_CLASS, CHAT_BUBBLE_WIDTH_CLASS } from '@/components/assistant-ui/thread/chat-bubble'
 import {
   messageAttachmentRefs,
   messageContentText,
@@ -10,7 +11,6 @@ import {
 } from '@/components/assistant-ui/thread/content'
 import { MessageHoverTime } from '@/components/assistant-ui/thread/message-hover-time'
 import { ReactionBadge, ReactionPicker } from '@/components/assistant-ui/thread/message-reactions'
-import { CHAT_BUBBLE_RADIUS_CLASS, CHAT_BUBBLE_WIDTH_CLASS } from '@/components/assistant-ui/thread/chat-bubble'
 import { BackgroundResult } from '@/components/assistant-ui/thread/system-message'
 import { threadUserOrdinal } from '@/components/assistant-ui/thread/thread-message-index'
 import { MessageTimelineTimestamp } from '@/components/assistant-ui/thread/timeline-timestamp'

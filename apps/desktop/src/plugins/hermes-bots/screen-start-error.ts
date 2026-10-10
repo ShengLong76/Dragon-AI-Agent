@@ -8,8 +8,10 @@ export function isLeftoverDisplayError(raw: string): boolean {
 
 export function friendlyScreenStartError(raw: string, leftoverCopy: string): string {
   const text = raw.trim()
+
   if (!text) {
     return leftoverCopy
   }
+
   return isLeftoverDisplayError(text) ? leftoverCopy : text
 }

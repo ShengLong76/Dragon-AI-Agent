@@ -18,6 +18,7 @@ const repoRoot = resolve(desktopRoot, '../..')
 describe('Dragon product version', () => {
   it('reads the desktop package version and matches the product feed', () => {
     const desktop = JSON.parse(readFileSync(resolve(desktopRoot, 'package.json'), 'utf8')) as { version: string }
+
     const feed = JSON.parse(readFileSync(resolve(repoRoot, 'branding/product-feed.json'), 'utf8')) as {
       productVersion: string
     }

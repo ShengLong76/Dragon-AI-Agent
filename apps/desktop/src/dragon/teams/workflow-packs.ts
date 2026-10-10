@@ -44,9 +44,11 @@ export function workflowPackProgressCopy(action: WorkflowPackAction): string {
   if (action === 'install') {
     return 'Installing ECC skills…'
   }
+
   if (action === 'update') {
     return 'Updating ECC skills…'
   }
+
   return 'Removing ECC Workflows…'
 }
 
@@ -54,6 +56,8 @@ export function workflowPackSuccessCopy(action: WorkflowPackAction): string {
   if (action === 'remove') {
     return 'ECC Workflows removed from this Dragon data folder.'
   }
+
   const verb = action === 'update' ? 'updated' : 'installed'
+
   return `ECC Workflows ${verb}. Skills are under Capabilities → Skills.`
 }
