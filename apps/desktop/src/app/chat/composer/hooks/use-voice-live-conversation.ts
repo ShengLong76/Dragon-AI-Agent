@@ -100,8 +100,10 @@ export function liveEndedMessage(
  * so the composer can mount either from `voice.voice_chat_mode`.
  *
  * Status mapping: `listening` = session up, voice idle; `speaking` = the
- * remote track is producing audio; `thinking` = a delegation is in flight in
- * Hermes. There is no `transcribing` phase: the voice model owns speech.
+ * remote track is producing audio; `thinking` = a delegation is in flight.
+ * There is no `transcribing` phase: the voice model owns speech.
+ * `level` is live local-mic RMS for the Listening waveform; remote speech
+ * only flips status and must not zero the meter.
  */
 export function useVoiceLiveConversation({
   busy,
@@ -335,9 +337,9 @@ export function useVoiceLiveConversation({
         onError: (message, fatal) => {
           notify({ kind: fatal ? 'error' : 'warning', message, title: voiceCopy.liveError })
         },
+        onInputLevel: setLevel,
         onSpeakingChange: speaking => {
           speakingRef.current = speaking
-          setLevel(speaking ? 0.6 : 0)
           refreshStatus()
         }
       },

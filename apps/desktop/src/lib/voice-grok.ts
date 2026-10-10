@@ -1,6 +1,8 @@
 import { type OwnerScope, ownerScoped } from '@/api/client'
 import { hermesApi } from '@/hermes'
 
+import { rmsLevelFromFloatSamples } from './mic-level'
+import { closeMeterContext, meterContextsClosed } from './mic-meter-context'
 import type { LiveHistoryMessage, LiveTranscriptFragment, VoiceLiveHandlers } from './voice-live'
 
 /**
@@ -179,6 +181,8 @@ export class GrokVoiceSession {
 
     this.tool = grant.tool || this.tool
 
+    await meterContextsClosed()
+
     this.microphone = await navigator.mediaDevices.getUserMedia({
       audio: { autoGainControl: true, echoCancellation: true, noiseSuppression: true }
     })
@@ -237,13 +241,16 @@ export class GrokVoiceSession {
     const processor = context.createScriptProcessor(CAPTURE_FRAME, 1, 1)
 
     processor.onaudioprocess = event => {
+      const samples = event.inputBuffer.getChannelData(0)
+      this.handlers.onInputLevel?.(this.muted ? 0 : rmsLevelFromFloatSamples(samples))
+
       if (this.muted || !this.connected) {
         return
       }
 
       this.send({
         type: 'input_audio_buffer.append',
-        audio: toBase64(floatToPcm16(event.inputBuffer.getChannelData(0)))
+        audio: toBase64(floatToPcm16(samples))
       })
     }
 
@@ -437,7 +444,9 @@ export class GrokVoiceSession {
     this.finalized = true
     this.stopPlayback()
     this.processor?.disconnect()
-    void this.captureContext?.close().catch(() => undefined)
+    const capture = this.captureContext
+    this.captureContext = null
+    closeMeterContext(capture)
     void this.playbackContext?.close().catch(() => undefined)
     this.microphone?.getTracks().forEach(track => track.stop())
 
