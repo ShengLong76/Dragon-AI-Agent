@@ -49,8 +49,9 @@ def linux_guest_task_id() -> str:
     from hermes_cli.profiles import get_active_profile_name
     from hermes_constants import hermes_home_key
 
+    key = hermes_home_key()
     profile = get_active_profile_name() or "default"
-    digest = hashlib.sha256(hermes_home_key().encode("utf-8")).hexdigest()[:12]
+    digest = hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
     return f"{LINUX_GUEST_TASK_ID}:{profile}:{digest}"
 
 

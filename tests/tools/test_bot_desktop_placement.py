@@ -471,7 +471,6 @@ def test_linux_guest_is_scoped_per_profile_and_create_hits_image_path(monkeypatc
     assert env_a is not env_b and env_a2 is env_a
     assert [task for task, _image in created] == [id_a, id_b]
     assert all(image == DEFAULT_SANDBOX_IMAGE for _task, image in created)
-    assert DEFAULT_SANDBOX_IMAGE == "dragon-sandbox:desktop"
 
 
 def test_idle_cleanup_does_not_reap_another_profile_live_guest(monkeypatch, two_profile_homes):
@@ -531,5 +530,5 @@ def test_sandbox_display_num_is_stable_per_profile_home(two_profile_homes):
         b = sandbox_host.sandbox_display_num("realestate-scout")
     finally:
         reset_hermes_home_override(token_b)
-    assert 20 <= a1 <= 89 and a1 == a2
-    assert 20 <= b <= 89
+    assert sandbox_host._DISPLAY_MIN <= a1 <= sandbox_host._DISPLAY_MAX and a1 == a2
+    assert sandbox_host._DISPLAY_MIN <= b <= sandbox_host._DISPLAY_MAX

@@ -393,9 +393,10 @@ def hosts_live_screen(task_id: str, env: Any) -> bool:
     container = marker.get("container")
     if container and container == getattr(env, "_container_id", None):
         return True
-    from tools.bot_desktop.placement import LINUX_GUEST_TASK_ID, is_linux_guest_task_id, linux_guest_task_id
-    # Current-profile guest while this profile's marker exists (legacy unscoped id too).
-    return is_linux_guest_task_id(task_id) and task_id in (linux_guest_task_id(), LINUX_GUEST_TASK_ID)
+    from tools.bot_desktop.placement import LINUX_GUEST_TASK_ID
+    # Stamp is the multiplex-safe signal. This only covers the legacy unscoped
+    # id (and only while *this* profile's marker exists — the reaper is unbound).
+    return task_id == LINUX_GUEST_TASK_ID
 
 
 def open_rfb_stream(env: Any, profile: str) -> subprocess.Popen:
