@@ -124,6 +124,46 @@ describe('Voice-live toast copy', () => {
   })
 })
 
+describe('GPT-Live listening meter', () => {
+  beforeEach(resetToasts)
+  afterEach(cleanup)
+
+  it('drives the Listening meter from live mic RMS, not from remote speech', async () => {
+    const hook = mountLive()
+
+    await act(async () => {
+      await hook.result.current.start()
+    })
+
+    const handlers = transport.handlers.at(-1) as VoiceLiveHandlers
+
+    expect(hook.result.current.status).toBe('listening')
+    expect(hook.result.current.level).toBe(0)
+
+    act(() => {
+      handlers.onInputLevel?.(0.72)
+    })
+
+    expect(hook.result.current.level).toBe(0.72)
+    expect(hook.result.current.status).toBe('listening')
+
+    act(() => {
+      handlers.onSpeakingChange?.(true)
+    })
+
+    expect(hook.result.current.status).toBe('speaking')
+    expect(hook.result.current.level).toBe(0.72)
+
+    act(() => {
+      handlers.onSpeakingChange?.(false)
+      handlers.onInputLevel?.(0.18)
+    })
+
+    expect(hook.result.current.status).toBe('listening')
+    expect(hook.result.current.level).toBe(0.18)
+  })
+})
+
 describe('GPT-Live delegation → Hermes turn', () => {
   it('sends the latest user words as the turn and the exchange as model-only context', () => {
     // The delegation event carries no text: both are reconstructed from

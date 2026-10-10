@@ -100,7 +100,7 @@ export function VoiceWaveformWidget({ level, muted, status, onEnd, onToggleMute 
         <Codicon name={muted ? 'mic-off' : 'mic'} size="1rem" />
       </button>
 
-      <div aria-hidden="true" className="flex h-9 w-[9.5rem] items-center justify-between">
+      <div aria-hidden="true" className="flex h-9 w-[9.5rem] items-center justify-between" data-slot="voice-waveform-bars">
         {bars.map((height, index) => (
           <span
             className={cn('w-[3px] rounded-full', muted ? 'bg-white/35' : 'bg-white')}
