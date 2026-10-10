@@ -286,6 +286,7 @@ module.exports = {
     guid: windowsIdentity.nsisGuid,
     shortcutName: windowsIdentity.displayName,
     uninstallDisplayName: windowsIdentity.displayName,
+    include: 'packaging/installer.nsh',
     installerIcon: 'assets/icon.ico',
     uninstallerIcon: 'assets/icon.ico',
     installerHeaderIcon: 'assets/icon.ico',

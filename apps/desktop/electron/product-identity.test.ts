@@ -340,7 +340,7 @@ test('Windows commit, canary, bundled and channel builds share the stable Dragon
   for (const current of [stable, bundled, canary, commit]) {
     const windows: ProductIdentity = finalizeIdentity(current, 'win32')
     assert.equal(windows.displayName, 'Dragon AI')
-    assert.equal(windows.appId, 'ai.dragon.dragon-ai-claude')
+    assert.equal(windows.appId, 'ai.dragon.dragon-ai')
     assert.equal(windows.windowsExecutableName, 'Dragon AI')
     assert.equal(windows.cliName, 'dragon')
     assert.equal(windows.nsisGuid, WINDOWS_NSIS_GUID)
@@ -364,7 +364,7 @@ test('Windows commit, canary, bundled and channel builds share the stable Dragon
   process.env.HERMES_BUILD_COMMIT = ''
   const light: ProductIdentity = finalizeIdentity(flavorForVariant('light'), 'win32')
   assert.equal(light.displayName, 'Dragon AI Light')
-  assert.equal(light.appId, 'ai.dragon.dragon-ai-claude-light')
+  assert.equal(light.appId, 'ai.dragon.dragon-ai-light')
   assert.equal(light.windowsExecutableName, 'Dragon AI Light')
   assert.equal(light.cliName, 'dragon-light')
   assert.equal(light.nsisGuid, WINDOWS_NSIS_GUID)
@@ -373,7 +373,7 @@ test('Windows commit, canary, bundled and channel builds share the stable Dragon
 test('store carries the Partner Center MSIX identity and no other variant does', async (): Promise<void> => {
   const store: ProductIdentity = await identityForVariant('store')
   assert.deepEqual(store.storeMsix, {
-    identityName: 'DragonAI.DragonAIClaude',
+    identityName: 'DragonAI.DragonAIAgent',
     publisher: 'CN=EE6D86E4-606F-4E38-B940-AD7248C9D519',
     publisherDisplayName: 'Dragon AI'
   })
@@ -381,4 +381,34 @@ test('store carries the Partner Center MSIX identity and no other variant does',
   for (const v of [undefined, 'bundled', 'light'] as const) {
     assert.equal((await identityForVariant(v)).storeMsix, undefined, `variant ${v} must carry no storeMsix`)
   }
+})
+
+test('packaging and runtime identity never bake Claude into product names or paths', async (): Promise<void> => {
+  const load: () => PackagingConfiguration = (): PackagingConfiguration => {
+    delete require.cache[require.resolve('../electron-builder.config.cjs')]
+    delete require.cache[require.resolve('../product-identity.cjs')]
+
+    return require('../electron-builder.config.cjs')
+  }
+
+  for (const variant of [undefined, 'bundled', 'light', 'store'] as const) {
+    const identity: ProductIdentity = await identityForVariant(variant)
+    for (const field of ['displayName', 'appId', 'appNamePascal', 'artifactNamePascal', 'cliName', 'msixAppIdWithOrg'] as const) {
+      assert.doesNotMatch(identity[field], /claude/i, `${variant ?? 'full'} ${field}`)
+    }
+    if (identity.storeMsix) {
+      assert.doesNotMatch(identity.storeMsix.identityName, /claude/i)
+    }
+  }
+
+  delete process.env.HERMES_DESKTOP_VARIANT
+  const config: PackagingConfiguration = load()
+  assert.equal(config.productName, 'Dragon AI')
+  assert.equal(config.nsis.shortcutName, 'Dragon AI')
+  assert.equal(config.nsis.uninstallDisplayName, 'Dragon AI')
+  assert.equal(config.nsis.include, 'packaging/installer.nsh')
+  assert.match(config.nsis.artifactName, /^DragonAIAgent-Setup-/)
+  assert.doesNotMatch(config.appId, /claude/i)
+  assert.doesNotMatch(config.extraMetadata.name, /claude/i)
+  assert.doesNotMatch(JSON.stringify(config.nsis), /claude/i)
 })
