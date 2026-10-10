@@ -1,6 +1,7 @@
 /**
  * The bot profile pane is Details | Library | Computer | Routines.
- * Computer is the live VM desktop. Routines is the cron list only.
+ * Computer is the live VM desktop. Routines is the cron list only —
+ * the standalone Scheduled Jobs column is gone.
  */
 
 import type * as HermesSdk from '@hermes/plugin-sdk'
@@ -9,12 +10,21 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { translateBots } from './i18n-test-helper'
+import type { RosterRow } from './types'
 
-const { notify, notifyError, request, requestProfile } = vi.hoisted(() => ({
+// Radix calls these on open; jsdom doesn't implement them.
+beforeAll(() => {
+  Element.prototype.scrollIntoView = vi.fn()
+  Element.prototype.hasPointerCapture = vi.fn(() => false)
+  Element.prototype.releasePointerCapture = vi.fn()
+})
+
+const { notify, notifyError, request, requestProfile, revealPane } = vi.hoisted(() => ({
   notify: vi.fn(),
   notifyError: vi.fn(),
   request: vi.fn(),
-  requestProfile: vi.fn()
+  requestProfile: vi.fn(),
+  revealPane: vi.fn()
 }))
 
 vi.mock('@hermes/plugin-sdk', async importOriginal => {
@@ -22,7 +32,7 @@ vi.mock('@hermes/plugin-sdk', async importOriginal => {
 
   return {
     ...sdk,
-    host: { ...sdk.host, notify, notifyError, request, requestProfile, revealPane: vi.fn() },
+    host: { ...sdk.host, notify, notifyError, request, requestProfile, revealPane },
     usePluginI18n: () => translateBots
   }
 })
@@ -32,12 +42,8 @@ vi.mock('./screen-pane', () => ({
 }))
 vi.mock('./skills-hub', () => ({ HubSkillsSection: () => <div>library-skills</div> }))
 
-const { $botPanel, BotPanelPane } = await import('./bot-panel')
+const { $botPanel, BotPanelPane, openBotRoutines } = await import('./bot-panel')
 const { $lastRoster } = await import('./data')
-
-beforeAll(() => {
-  Element.prototype.scrollIntoView = vi.fn()
-})
 
 function renderPanel() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -110,10 +116,24 @@ describe('the bot profile pane has four tabs and keeps Computer', () => {
       screen.getByRole('tab', { name: 'Routines' }).click()
     })
 
-    expect(await screen.findByRole('button', { name: 'New cron' })).toBeTruthy()
+    expect((await screen.findAllByRole('button', { name: 'New cron' })).length).toBeGreaterThanOrEqual(1)
     expect(await screen.findByText('No scheduled jobs yet')).toBeTruthy()
+    expect(screen.getByText(/Schedule a prompt to run on a cron expression/)).toBeTruthy()
     expect(screen.queryByText('bot-computer')).toBeNull()
     expect(screen.getByRole('tab', { name: 'Computer' })).toBeTruthy()
+    expect(screen.queryByText(/hermes/i)).toBeNull()
+
+    await act(async () => {
+      screen.getAllByRole('button', { name: 'New cron' })[0].click()
+    })
+
+    expect((await screen.findByRole('dialog')).textContent).toMatch(/research/i)
+
+    await act(async () => {
+      screen.getByRole('button', { name: 'Cancel' }).click()
+    })
+
+    expect(screen.queryByRole('dialog')).toBeNull()
 
     await act(async () => {
       screen.getByRole('tab', { name: 'Computer' }).click()
@@ -136,7 +156,7 @@ describe('the bot profile pane has four tabs and keeps Computer', () => {
       fireEvent.doubleClick(document.querySelector('[data-slot="soul-preview"]')!)
     })
 
-    const editor = await screen.findByLabelText('SOUL.md') as HTMLTextAreaElement
+    const editor = (await screen.findByLabelText('SOUL.md')) as HTMLTextAreaElement
     expect(editor.value).toBe('# Researcher persona')
     expect(document.querySelector('[data-slot="soul-editor"]')).toBeTruthy()
 
@@ -260,5 +280,86 @@ describe('the bot profile pane has four tabs and keeps Computer', () => {
       expect(document.querySelector('[data-slot="soul-editor"]')).toBeNull()
     })
     expect(request).not.toHaveBeenCalledWith('profiles.configure', expect.anything())
+  })
+})
+
+describe('Routines is the cron surface', () => {
+  it('lists, opens, and deletes jobs through cron.manage', async () => {
+    const job = {
+      enabled: true,
+      job_id: 'digest-1',
+      name: '[bot:research] Morning digest',
+      schedule: 'every 1h',
+      state: 'scheduled'
+    }
+    const respond = async (method: string, params?: { action?: string }) => {
+      if (method === 'profiles.describe') {
+        return { soul: '' }
+      }
+
+      if (method === 'cron.manage' && params?.action === 'remove') {
+        return { success: true }
+      }
+
+      return { jobs: [job], scoped: 'research' }
+    }
+
+    request.mockImplementation(async (method: string, params?: { action?: string }) => respond(method, params))
+    requestProfile.mockImplementation(async (_route: unknown, method: string, params?: { action?: string }) =>
+      respond(method, params)
+    )
+
+    renderPanel()
+
+    await act(async () => {
+      screen.getByRole('tab', { name: 'Routines' }).click()
+    })
+
+    expect(await screen.findByText('Morning digest')).toBeTruthy()
+    expect(screen.getByRole('switch')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /delete/i })).toBeTruthy()
+
+    await act(async () => {
+      screen.getByRole('button', { name: /delete/i }).click()
+    })
+
+    const calls = [...request.mock.calls, ...requestProfile.mock.calls]
+    expect(
+      calls.some(call => {
+        const method = typeof call[0] === 'string' ? call[0] : call[1]
+        const params = (typeof call[0] === 'string' ? call[1] : call[2]) as { action?: string } | undefined
+
+        return method === 'cron.manage' && params?.action === 'remove'
+      })
+    ).toBe(true)
+
+    await act(async () => {
+      screen.getByText('Morning digest').click()
+    })
+
+    expect(await screen.findByRole('dialog')).toBeTruthy()
+    expect(screen.getByRole('dialog').textContent).toMatch(/Morning digest/)
+  })
+
+  it('openBotRoutines selects the Routines tab instead of a Scheduled Jobs pane', () => {
+    const bot = { connectionId: 'local', name: 'research' } as RosterRow
+
+    openBotRoutines(bot)
+
+    expect($botPanel.get()).toEqual({ key: 'research', tab: 'routines' })
+    expect(revealPane).toHaveBeenCalledWith('hermes-bots:bot-panel')
+    expect(revealPane).not.toHaveBeenCalledWith('hermes-bots:routines')
+  })
+
+  it('never paints hermes as the Chief of Staff handle', async () => {
+    $lastRoster.set([{ connectionId: 'local', name: 'default' }])
+    $botPanel.set({ key: 'default', tab: 'routines' })
+
+    renderPanel()
+
+    expect(await screen.findByText('Chief of Staff')).toBeTruthy()
+    expect(screen.queryByText(/@hermes/i)).toBeNull()
+    expect(screen.queryByText(/hermes/i)).toBeNull()
+    expect((await screen.findAllByRole('button', { name: 'New cron' })).length).toBeGreaterThanOrEqual(1)
   })
 })
