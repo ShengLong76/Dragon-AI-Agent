@@ -556,6 +556,37 @@ def _labels_in_run_args(run_args):
     }
 
 
+def test_sandbox_alias_run_uses_pull_never_and_skips_local_tag_pull(monkeypatch):
+    """``docker run dragon-sandbox:desktop`` must not hit Docker Hub.
+
+    The local-only tag has no Hub repo (``pull access denied``). ensure_sandbox_image
+    makes it local; ``--pull never`` stops ``docker run`` from auto-pulling it.
+    """
+    monkeypatch.setattr(docker_env, "find_docker", lambda: "/usr/bin/docker")
+    calls = _mock_subprocess_run(monkeypatch)
+
+    _make_dummy_env(image="dragon-sandbox:desktop")
+
+    args = _run_args_from_calls(calls)
+    pull_at = args.index("--pull")
+    assert args[pull_at + 1] == "never"
+    pulls = [
+        cmd[0]
+        for cmd in calls
+        if isinstance(cmd[0], list) and len(cmd[0]) >= 3 and cmd[0][1] == "pull"
+    ]
+    assert all(cmd[2] != "dragon-sandbox:desktop" for cmd in pulls)
+
+
+def test_non_sandbox_image_run_does_not_force_pull_never(monkeypatch):
+    monkeypatch.setattr(docker_env, "find_docker", lambda: "/usr/bin/docker")
+    calls = _mock_subprocess_run(monkeypatch)
+
+    _make_dummy_env(image="python:3.11")
+
+    assert "--pull" not in _run_args_from_calls(calls)
+
+
 def test_run_command_tags_hermes_agent_label(monkeypatch):
     """Every container hermes-agent starts must carry the hermes-agent=1 label
     so the orphan reaper (and external operators) can identify them with a

@@ -2618,7 +2618,7 @@ export const en: Translations = {
       openLog: 'Open log',
       actionLog: 'Action log',
       alreadyInstalled: (name: string) => `"${name}" is already installed`,
-      pickerTitle: 'Skills Hub',
+      pickerTitle: 'Dragon AI Skills Hub',
       pickerBrowse: 'Browse the full hub',
       pickerHide: 'Hide the hub browser',
       pickerHint: 'Hit "+ Add to this Agent" on any skill — it installs and appears in the list above.',
