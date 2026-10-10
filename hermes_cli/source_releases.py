@@ -10,11 +10,19 @@ import subprocess
 import urllib.error
 import urllib.request
 
+from hermes_cli.product_feed import (
+    is_upstream_repository,
+    product_repository,
+    public_assets_base,
+    update_repository,
+)
 from hermes_cli.update_channel import STABLE_TAG_RE, is_canary_tag
 
 logger = logging.getLogger(__name__)
-_PUBLIC_BASE = "https://hermes-assets.nousresearch.com"
-OFFICIAL_REPOSITORY = "NousResearch/hermes-agent"
+# Tests monkeypatch this. Empty/None means "no R2 channel records" — GitHub
+# Releases on the product repo are the only publication source.
+_PUBLIC_BASE = public_assets_base()
+OFFICIAL_REPOSITORY = product_repository()
 _GITHUB_ORIGIN = re.compile(
     r"^(?:https://github\.com/|git@github\.com:|ssh://git@github\.com/)"
     r"([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+?)(?:\.git)?/?$", re.IGNORECASE,
@@ -34,7 +42,7 @@ def source_repository(git_cmd=None, cwd=None) -> str:
         )
         match = _GITHUB_ORIGIN.fullmatch(result.stdout.strip())
         if result.returncode == 0 and match:
-            return match[1]
+            return update_repository(match[1])
     return OFFICIAL_REPOSITORY
 
 
@@ -66,9 +74,13 @@ def _resolve_channel(name: str, repository: str):
     admits its retirement constraints before any checkout operation. No legacy
     GitHub fallback is allowed when a record is unavailable; the one exception
     is an unpublished ``main`` record, which resolves to the main branch.
+    Dragon's product feed has no R2 records — those channels resolve via GitHub
+    Releases or the source branch.
     """
-    from hermes_cli.release_channels import ChannelReader
+    from hermes_cli.release_channels import ChannelNotFound, ChannelReader
 
+    if not _PUBLIC_BASE:
+        raise ChannelNotFound(name)
     return ChannelReader(_PUBLIC_BASE, repository=repository).resolve(name)
 
 
@@ -77,15 +89,21 @@ def resolve_source_target(channel: str, git_cmd=None, cwd=None, *, repository=No
     from hermes_cli.release_channels import ChannelNotFound, validate_name
 
     validate_name(channel)
-    repository = repository or source_repository(git_cmd, cwd)
+    repository = update_repository(repository or source_repository(git_cmd, cwd))
+    if is_upstream_repository(repository):
+        repository = OFFICIAL_REPOSITORY
     try:
         resolved = _resolve_channel(channel, repository)
     except ChannelNotFound:
-        if channel != "main":
-            raise
-        # main IS the source branch; its record can only add a retirement.
-        # Until one is published, a checkout keeps following the branch via git.
-        return SourceTarget(channel, channel, repository, branch="main")
+        if channel == "main" or not _PUBLIC_BASE:
+            if channel == "main":
+                return SourceTarget(channel, channel, repository, branch="main")
+            tag, sha = resolve_source_release(channel, git_cmd, cwd, repository=repository)
+            if sha:
+                return SourceTarget(channel, channel, repository, commit=sha,
+                                    version=tag[1:] if isinstance(tag, str) and tag.startswith("v") else tag)
+            raise ValueError(f"No published {channel} release on {repository}")
+        raise
     terminal = resolved.terminal
     if terminal["repository"].lower() != repository.lower():
         raise ValueError("Channel repository does not match this source installation")
@@ -254,8 +272,11 @@ def resolve_source_release(channel: str, git_cmd=None, cwd=None, *, repository=N
     try:
         repository = repository or source_repository(git_cmd, cwd)
         base = f"https://api.github.com/repos/{repository}"
-        tag, pinned_sha = (_release_pointer(channel)
-                           if repository.lower() == OFFICIAL_REPOSITORY.lower() else (None, None))
+        tag, pinned_sha = (
+            _release_pointer(channel)
+            if _PUBLIC_BASE and repository.lower() == OFFICIAL_REPOSITORY.lower()
+            else (None, None)
+        )
         if tag is None:
             release = _published_fallback(channel, base)
             tag = release["tag_name"]

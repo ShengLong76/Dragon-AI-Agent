@@ -1,6 +1,5 @@
 /**
- * The real skills hub page embedded as a picker, plus its offline search
- * fallback.
+ * Dragon AI Skills Hub: a local catalog picker plus offline search.
  *
  * A leaf: the advanced profile editor and the create dialog both mount it, and
  * it reaches back into neither.
@@ -9,27 +8,63 @@
 import { Button, Codicon, host, Input, useI18n } from '@hermes/plugin-sdk'
 import { useEffect, useRef, useState } from 'react'
 
+import { ADD_TO_AGENT_LABEL, DRAGON_FEATURED_SKILLS, HYPERFRAMES_HUB_SKILL } from '@/lib/dragon-hub-catalog'
+
 import { useBots } from './i18n'
 import { requestForBot } from './routing'
 import type { RosterRow } from './types'
 
-// ── skills hub section: the REAL hub page (docs) embedded as a picker ──────
-// https://hermes-agent.nousresearch.com/docs/skills?embed=picker hides the
-// docs chrome and adds "+ Add to this Agent" per card, posting
-// {type: 'hermes-skill-pick', ...} to us (hermes-agent#86243). We validate
-// the origin, install via skills.manage, and bubble onInstalled so the
-// checklist above gains the row. Search-box fallback kept for offline use.
+// Local Dragon-branded picker. Do not embed the upstream docs catalog —
+// that page still carries the old product heading. Cards post
+// {type: 'hermes-skill-pick'} (internal message name) back to this frame;
+// we validate source + charset and install via skills.manage.
 
-const HUB_ORIGIN = 'https://hermes-agent.nousresearch.com'
-const FALLBACK_HUB_ORIGIN = 'https://nousresearch.github.io'
-const HUB_PICKER_URL = HUB_ORIGIN + '/docs/skills?embed=picker'
-const FALLBACK_HUB_PICKER_URL = FALLBACK_HUB_ORIGIN + '/hermes-agent/docs/skills?embed=picker'
-// A WAF-blocked or unreachable docs host must not delay the fallback longer
-// than this — the probe only decides which origin to embed, never blocks it.
-const HUB_PROBE_TIMEOUT_MS = 8_000
+const FEATURED_HUB_SKILLS = DRAGON_FEATURED_SKILLS.map(skill => ({
+  description: skill.description,
+  identifier: skill.identifier,
+  name: skill.name
+}))
+
+const DRAGON_HUB_PAGE = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Dragon AI Skills Hub</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 20px; font-family: ui-sans-serif, system-ui, sans-serif; background: #111; color: #f4f4f5; }
+    h1 { font-size: 1.25rem; margin: 0 0 6px; }
+    p { color: #a1a1aa; margin: 0 0 16px; font-size: 0.85rem; }
+    .card { display: flex; gap: 12px; align-items: center; border: 1px solid #333; border-radius: 8px; padding: 10px 12px; margin: 8px 0; }
+    .card strong { display: block; }
+    .card span { color: #a1a1aa; font-size: 0.75rem; }
+    button { flex-shrink: 0; border: 0; border-radius: 6px; padding: 6px 10px; background: #e11d48; color: #fff; font-weight: 600; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Dragon AI</h1>
+  <p>Featured skills for this bot — one click adds the skill to this profile. Search below for more from the catalog.</p>
+  <div id="cards"></div>
+  <script>
+    const skills = ${JSON.stringify(FEATURED_HUB_SKILLS)};
+    const root = document.getElementById('cards');
+    for (const skill of skills) {
+      const row = document.createElement('div');
+      row.className = 'card';
+      row.innerHTML = '<div><strong></strong><span></span></div><button type="button">Add</button>';
+      row.querySelector('strong').textContent = skill.name;
+      row.querySelector('span').textContent = skill.description;
+      row.querySelector('button').addEventListener('click', () => {
+        parent.postMessage({ type: 'hermes-skill-pick', name: skill.name, identifier: skill.identifier || skill.name }, '*');
+      });
+      root.appendChild(row);
+    }
+  </script>
+</body>
+</html>`
 
 function isHubOrigin(origin: string) {
-  return origin === HUB_ORIGIN || origin === FALLBACK_HUB_ORIGIN
+  return origin === window.location.origin || origin === 'null'
 }
 
 /** One `skills.manage action=search` hit. */
@@ -53,42 +88,8 @@ export function HubSkillsSection({ bot, onInstalled }: HubSkillsSectionProps) {
   const [installing, setInstalling] = useState<null | string>(null)
   const [installed, setInstalled] = useState<Record<string, boolean>>({})
   const [browseHub, setBrowseHub] = useState(false)
-  const [hubPickerUrl, setHubPickerUrl] = useState(HUB_PICKER_URL)
   const installRef = useRef<((name: string, displayName?: string) => Promise<void>) | null>(null)
   const frameRef = useRef<HTMLIFrameElement | null>(null)
-
-  // Vercel's WAF denies some residential IP ranges for the whole docs domain,
-  // leaving the pane on a block page (#118203). The equivalent GitHub Pages
-  // deployment serves the same picker, so probe the primary before each
-  // browse session and fall back when it is unreachable or refuses us. The
-  // probe carries its own deadline — a hanging connection must not stall the
-  // fallback.
-  useEffect(() => {
-    if (!browseHub) {
-      return undefined
-    }
-
-    let mounted = true
-
-    void fetch(HUB_PICKER_URL, {
-      method: 'HEAD',
-      signal: AbortSignal.timeout(HUB_PROBE_TIMEOUT_MS)
-    })
-      .then(response => {
-        if (mounted && !response.ok) {
-          setHubPickerUrl(FALLBACK_HUB_PICKER_URL)
-        }
-      })
-      .catch(() => {
-        if (mounted) {
-          setHubPickerUrl(FALLBACK_HUB_PICKER_URL)
-        }
-      })
-
-    return () => {
-      mounted = false
-    }
-  }, [browseHub])
 
   // Picker messages from the embedded hub page. Origin- AND source-checked —
   // only OUR frame may ask for an install (the hub origin alone would let any
@@ -210,6 +211,31 @@ export function HubSkillsSection({ bot, onInstalled }: HubSkillsSectionProps) {
           {browseHub ? h.pickerHide : h.pickerBrowse}
         </Button>
       </div>
+      <div className="flex items-center gap-2 rounded-lg border border-(--ui-stroke-secondary) px-2.5 py-2">
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[0.75rem] font-medium">{HYPERFRAMES_HUB_SKILL.name}</div>
+          <div className="line-clamp-2 text-[0.65rem] leading-4 text-(--ui-text-quaternary)">
+            {HYPERFRAMES_HUB_SKILL.description}
+          </div>
+        </div>
+        {installed[HYPERFRAMES_HUB_SKILL.name] || installed[HYPERFRAMES_HUB_SKILL.identifier] ? (
+          <span className="flex shrink-0 items-center gap-0.5 text-[0.65rem] text-(--ui-text-tertiary)">
+            <Codicon name="check" size="0.65rem" />
+            {h.installed}
+          </span>
+        ) : (
+          <Button
+            aria-label={`${ADD_TO_AGENT_LABEL}: ${HYPERFRAMES_HUB_SKILL.name}`}
+            className="shrink-0 px-2 font-semibold"
+            disabled={installing !== null}
+            onClick={() => void install(HYPERFRAMES_HUB_SKILL.identifier, HYPERFRAMES_HUB_SKILL.name)}
+            size="sm"
+            variant="secondary"
+          >
+            {installing === HYPERFRAMES_HUB_SKILL.name ? '…' : ADD_TO_AGENT_LABEL}
+          </Button>
+        )}
+      </div>
       {browseHub ? (
         <div className="grid gap-1">
           {/* Resizable viewport: native CSS resize handle (bottom-right */
@@ -227,26 +253,15 @@ export function HubSkillsSection({ bot, onInstalled }: HubSkillsSectionProps) {
             }}
           >
             <iframe
-              // The hub page needs three capabilities beyond the bare sandbox
-              // posture (#91612): same-origin so its own routing and storage
-              // work, popups so its external links (docs, GitHub, Discord)
-              // reach the OS browser — pinned by the main-process
-              // window-open-policy delegation, never a popup window — and
-              // clipboard-write for the Copy controls, granted only to the
-              // hub origins by the session permission handlers. The
-              // will-frame-navigate guard in main keeps this frame pinned to
-              // the picker URL.
               allow="clipboard-write"
               ref={frameRef}
-              sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-              src={hubPickerUrl}
+              sandbox="allow-scripts allow-same-origin"
+              srcDoc={DRAGON_HUB_PAGE}
               style={{
-                width: '133.34%',
-                height: '133.34%',
+                width: '100%',
+                height: '100%',
                 border: 'none',
-                background: 'transparent',
-                transform: 'scale(0.75)',
-                transformOrigin: 'top left'
+                background: 'transparent'
               }}
               title={b.tools.skillsHub}
             />

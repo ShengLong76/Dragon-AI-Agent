@@ -7,7 +7,7 @@
  * where the user can take over.
  */
 
-import { Codicon } from '@hermes/plugin-sdk'
+import { Codicon, EmptyState, GlyphSpinner } from '@hermes/plugin-sdk'
 import { useEffect, useRef, useState } from 'react'
 
 import { botSelectionKey } from './data'
@@ -117,7 +117,33 @@ function ScreenHeroContent({ bot, meta }: { bot: RosterRow; meta?: BotMeta | nul
   const { dataUrl, boxRef, stale, suppressed } = useLiveThumbnail(bot, running)
 
   if (tone === 'unsupported' || tone === 'unavailable') {
-    return null
+    return (
+      <EmptyState
+        description={
+          tone === 'unsupported'
+            ? t.screen.unsupportedBody
+            : isManagedBackend(bot)
+              ? t.screen.portalUnavailableManaged
+              : t.screen.unavailableLocalBody
+        }
+        title={tone === 'unsupported' ? t.screen.unsupportedTitle : t.screen.unavailableTitle}
+      />
+    )
+  }
+
+  if (tone === 'unknown') {
+    return (
+      <div
+        className="grid min-h-48 place-items-center rounded-lg border border-(--ui-stroke-secondary) bg-(--ui-bg-tertiary)/40 p-6 text-center"
+        data-computer-status="checking"
+      >
+        <div className="flex flex-col items-center gap-2">
+          <GlyphSpinner />
+          <div className="text-sm font-medium">{t.screen.checkingTitle}</div>
+          <div className="text-xs text-(--ui-text-tertiary)">{t.screen.checkingBody}</div>
+        </div>
+      </div>
+    )
   }
 
   const caption = suppressed

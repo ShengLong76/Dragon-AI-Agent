@@ -15,14 +15,9 @@
  * There is no fixed Electron 40.x, so the defence lives here regardless of the
  * pin: deny every request and never open a URL from this handler.
  *
- * The ONE, narrow exception (#91612): the embedded Skills Hub picker — whose
- * origin is pinned in hub-iframe-policy.ts — shows documentation and install
- * links that must open in the OS browser. For it, and ONLY it, the handler
- * delegates an http/https/mailto URL to the same audited `openExternalUrl`.
- * The delegation is a SIDE EFFECT of the deny decision: no window is ever
- * created from this path, and a frame whose origin is not EXACTLY the hub
- * origin (an opaque sandboxed frame reports `null`) triggers no side effect at
- * all, preserving the CVE-2026-70608 posture for every other guest.
+ * Dragon no longer embeds an upstream hub iframe, so the former hub-origin
+ * exception is closed: `isHermesHubOrigin` is always false and this handler
+ * never opens a URL. Trusted links still go through `hermes:openExternal`.
  */
 
 import { isHermesHubExternalUrl, isHermesHubOrigin } from './hub-iframe-policy'
@@ -63,9 +58,8 @@ export function describeDeniedUrl(url: string): string {
  * Build a `setWindowOpenHandler` callback that denies unconditionally.
  * `onDenied` is logging-only and receives the sanitized origin; a throwing
  * observer must not be able to change the decision or the side effect.
- * With `trusted` set, hub-origin openers additionally get their http/https/
- * mailto URL delegated to the audited external opener — still DENIED as a
- * window, never a popup.
+ * `trusted` is accepted for call-site compatibility; with no hub origin
+ * admitted it never opens a URL.
  */
 export function createWindowOpenHandler(
   onDenied?: (origin: string) => void,

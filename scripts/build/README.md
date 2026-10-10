@@ -118,8 +118,10 @@ directory, not an application package. The exported functions are `buildTui`,
 `buildWeb`, and `buildDesktop`. They return output paths and publish the build-input
 receipt described below.
 
-Each compiler publishes `hermes-build.json` inside its output (inside `dist/`
+Each compiler publishes `dragon-build.json` inside its output (inside `dist/`
 for TUI). `freshness.mjs` owns this receipt and all source input selection.
+A leftover `hermes-build.json` from an older product is still read so a warm
+rebuild can replace it.
 TUI inputs are its source tree, the Ink source alias, shared sources, their
 manifests and TypeScript configuration, dependency locks, and its compiler and
 shared compiler helpers. Tests, workspace documentation, dependency-provider
@@ -163,8 +165,9 @@ to the destination. A successful compile replaces the destination. A failed
 compile leaves the previous product in place and reports failure. Its presence
 alone does not prove that the latest build succeeded.
 
-Existing arbitrary output directories require the builder's `.hermes-product`
-marker. Files, symlinks, and source directories are rejected. The exact npm
+Existing arbitrary output directories require the builder's `.dragon-product`
+marker (a leftover `.hermes-product` from an older product is still accepted
+so the next publish can replace it). Files, symlinks, and source directories are rejected. The exact npm
 destinations (`ui-tui/dist`, `hermes_cli/web_dist`, `apps/desktop/dist`, and
 `apps/desktop/build/native-deps`) remain rebuildable without a prior marker.
 Other in-tree products live beneath `.build/` or `apps/desktop/build/products/`.

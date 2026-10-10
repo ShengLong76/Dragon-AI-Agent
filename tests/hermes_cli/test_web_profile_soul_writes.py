@@ -155,3 +155,15 @@ class TestSoulReadReportsPresence:
 
         assert r.status_code == 200, r.text
         assert r.json() == {"content": "", "exists": True}
+
+
+class TestSoulWriteStaysInProfile:
+    def test_put_rejects_encoded_traversal_profile_name(self, client, profile_dir: Path):
+        # A raw ``../`` segment is resolved by the HTTP client before FastAPI
+        # sees it (405 on a different route). The encoded form is the one a
+        # crafted client would send as the {name} parameter.
+        r = client.put("/api/profiles/%2e%2e/soul", json={"content": "# escaped\n"})
+
+        assert r.status_code == 400, r.text
+        assert not (profile_dir.parent / "SOUL.md").exists()
+        assert not (profile_dir / "SOUL.md").exists()

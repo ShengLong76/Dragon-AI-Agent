@@ -1,7 +1,7 @@
 /**
  * Routines: the Hermes cron jobs scoped to the bot you're chatting with — the
  * list query and its owner resolution, the schedule picker, the create and
- * detail dialogs, and the pane the right tile renders.
+ * detail dialogs, and the list the bot panel Routines tab renders.
  */
 
 import {

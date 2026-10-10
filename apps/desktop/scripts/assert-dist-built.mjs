@@ -17,6 +17,7 @@
 import { existsSync, readFileSync, statSync, readdirSync } from "fs"
 import { spawnSync } from "child_process"
 import { join, resolve } from "path"
+import { findForbiddenShippedAssets, forbiddenShippedAssetsError } from "./forbidden-shipped-assets.mjs"
 import { isMain } from "./utils.mjs"
 
 const ROUTER_CONTEXT_ERROR = "may be used only in the context of a"
@@ -90,6 +91,11 @@ export function checkDistBuilt(distDir) {
   const chunkParse = verifyChunksParse(assetsDir)
   if (!chunkParse.ok) {
     return chunkParse
+  }
+
+  const leaked = findForbiddenShippedAssets(distDir)
+  if (leaked.length) {
+    return { ok: false, error: forbiddenShippedAssetsError(leaked) }
   }
 
   return { ok: true }

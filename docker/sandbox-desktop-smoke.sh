@@ -23,7 +23,7 @@ echo "== 1. binaries (as pn)"
 docker exec -u pn "$NAME" bash -c '
   set -e
   for b in Xvnc xfwm4 xfce4-panel xfdesktop xfsettingsd dbus-run-session xauth xdpyinfo xprop \
-           xfce4-terminal cua-driver agent-browser jq rg fd tmux rsync sudo python3 node; do
+           xfce4-terminal cua-driver agent-browser jq rg fd tmux rsync sudo python3 node ffmpeg; do
     command -v "$b" >/dev/null || { echo "missing: $b"; exit 1; }
   done
   cua-driver --version

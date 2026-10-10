@@ -5,7 +5,14 @@
  */
 import { host } from '@hermes/plugin-sdk'
 
-import { botFriendlyNames, botHandle, botMentionTag, mentionNameForms } from './data'
+import {
+  botFriendlyNames,
+  botHandle,
+  botMentionTag,
+  mentionNameForms,
+  PRIMARY_BOT_HANDLE,
+  PRIMARY_BOT_HANDLE_ALIASES
+} from './data'
 import { groupFailureReason, recordGroupActivity } from './group-activity'
 import {
   $groupChats,
@@ -58,8 +65,9 @@ export function parseGroupChatMentions(text: unknown, members: GroupMember[]) {
 
   for (const member of members) {
     const title = String(member.title || '').trim()
-    // Normalize legacy "default" handles without aliasing device-qualified
-    // defaults to @hermes: that would retarget the primary tag by roster order.
+    // Normalize legacy "default"/"hermes" handles without aliasing
+    // device-qualified defaults to @main: that would retarget the primary
+    // tag by roster order.
     const handle = String(botHandle(member.name, member) || '').trim()
 
     const forms = new Set([
@@ -70,6 +78,15 @@ export function parseGroupChatMentions(text: unknown, members: GroupMember[]) {
         ? [title.toLowerCase(), title.toLowerCase().replace(/[\s_-]+/g, ''), title.split(/\s+/)[0].toLowerCase()]
         : [])
     ])
+
+    // The local primary answers to @main and the retired @hermes alias.
+    // Device-qualified remotes keep their own handle and must not steal @main.
+    if (handle.toLowerCase() === PRIMARY_BOT_HANDLE) {
+      forms.add(PRIMARY_BOT_HANDLE)
+      for (const alias of PRIMARY_BOT_HANDLE_ALIASES) {
+        forms.add(alias)
+      }
+    }
 
     // Renamed members answer to their friendly names too (profile
     // display_name and Bot Mode title), in slugged and collapsed forms —

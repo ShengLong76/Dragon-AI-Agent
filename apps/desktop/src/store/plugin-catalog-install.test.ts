@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { PLUGIN_CATALOG_URL, type PluginCatalogLookup } from '@/lib/plugin-catalog'
+import { listPluginCatalog, type PluginCatalogLookup } from '@/lib/plugin-catalog'
 
 import { $agentPlugins } from './agent-plugins'
 import { $notifications } from './notifications'
@@ -45,8 +45,8 @@ describe('requestPluginCatalogInstallFromDeepLink', () => {
   })
 
   it.each([
-    ['unknown', 'not in the Hermes plugin catalog'],
-    ['unavailable', 'Could not load the Hermes plugin catalog'],
+    ['unknown', 'not in the Dragon AI plugin catalog'],
+    ['unavailable', 'Could not load the Dragon AI plugin catalog'],
     ['invalid_name', 'missing or invalid']
   ] as const)('%s → error toast, no dialog, no git fallback', async (error, fragment) => {
     await requestPluginCatalogInstallFromDeepLink('not-a-real-plugin', lookupFor({ ok: false, error }))
@@ -58,22 +58,24 @@ describe('requestPluginCatalogInstallFromDeepLink', () => {
     expect(toasts[0]?.message).toContain(fragment)
   })
 
-  it('resolves against the live catalog feed by default and rejects unknown names', async () => {
-    const feed = JSON.stringify([
-      { name: 'weather', repo: 'https://github.com/x/weather', sha: 'a'.repeat(40), subdir: '' }
-    ])
+  it('resolves against the bundled catalog and rejects unknown names without fetching', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    const [entry] = listPluginCatalog()
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response(feed, { status: 200 }))
+    expect(entry).toBeTruthy()
 
     await requestPluginCatalogInstallFromDeepLink('weather-evil')
 
-    expect(fetchSpy).toHaveBeenCalledWith(PLUGIN_CATALOG_URL, expect.anything())
+    expect(fetchSpy).not.toHaveBeenCalled()
     expect($pluginInstallRequest.get()).toBeNull()
-    expect($notifications.get()[0]?.message).toContain('\u201Cweather-evil\u201D is not in the Hermes plugin catalog')
+    expect($notifications.get()[0]?.message).toContain('\u201Cweather-evil\u201D is not in the Dragon AI plugin catalog')
 
-    await requestPluginCatalogInstallFromDeepLink('weather')
+    await requestPluginCatalogInstallFromDeepLink(entry.name)
 
-    expect($pluginInstallRequest.get()).toMatchObject({ catalogName: 'weather', repo: 'https://github.com/x/weather' })
+    expect($pluginInstallRequest.get()).toMatchObject({
+      catalogName: entry.name,
+      repo: entry.subdir ? `${entry.repo}#${entry.subdir}` : entry.repo
+    })
   })
 })
 

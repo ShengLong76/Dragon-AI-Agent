@@ -1162,17 +1162,43 @@ export function mergeMultiSourceRoster(
   }
 }
 
+/** Dragon-facing @handle for the primary (`default`) profile. The word
+ *  `hermes` is never shown — older transcripts and typed `@hermes` still
+ *  resolve through {@link PRIMARY_BOT_HANDLE_ALIASES}. */
+export const PRIMARY_BOT_HANDLE = 'main'
+
+/** Legacy / internal aliases that still resolve to the primary profile. */
+export const PRIMARY_BOT_HANDLE_ALIASES = ['hermes', 'default'] as const
+
+export function isPrimaryBotHandle(token: string): boolean {
+  const value = token.trim().toLowerCase()
+
+  return value === PRIMARY_BOT_HANDLE || PRIMARY_BOT_HANDLE_ALIASES.includes(value as (typeof PRIMARY_BOT_HANDLE_ALIASES)[number])
+}
+
 /** The @handle users tag a bot with. Multi-source rosters precompute the
  *  handle (bare name, or name-device when the profile exists on several
  *  registered sources) — prefer it when present. The primary profile's
- *  callable alias is 'hermes' — the mention middleware resolves it back to
- *  'default' — so the word 'default' never surfaces in the UI. */
+ *  callable alias is {@link PRIMARY_BOT_HANDLE} — the mention middleware
+ *  resolves it back to `default` — so neither `default` nor `hermes`
+ *  surfaces in the UI. */
 export function botHandle(name: string, bot?: Partial<RosterRow> | null): string {
-  if (bot?.handle && bot.handle !== name) {
-    return bot.handle
+  const profile = (name || '').trim()
+  const stored = String(bot?.handle || '').trim()
+  const raw = stored && stored !== profile ? stored : profile
+  const lower = raw.toLowerCase()
+
+  // Device-qualified remote defaults keep their precomputed handle
+  // (`default-vera`). Only the bare primary alias is Dragon-branded.
+  if (stored && stored !== profile && !isPrimaryBotHandle(stored)) {
+    return stored
   }
 
-  return (name || '').trim().toLowerCase() === 'default' ? 'hermes' : name
+  if (lower === 'hermes' || profile.toLowerCase() === 'default' || lower === 'default') {
+    return PRIMARY_BOT_HANDLE
+  }
+
+  return raw || profile
 }
 
 /** Taggable @-forms derived from a bot's friendly names — the core profile
@@ -1180,7 +1206,7 @@ export function botHandle(name: string, bot?: Partial<RosterRow> | null): string
  *  reduces to the mention charset two ways: slugified ("Research Buddy" →
  *  research-buddy, the form autocomplete inserts) and collapsed
  *  (researchbuddy). Reserved tokens are dropped so a bot renamed "Hermes"
- *  can never hijack the primary profile's @hermes alias. */
+ *  can never hijack the primary profile's @main alias. */
 export function mentionNameForms(value: null | string | undefined): string[] {
   const name = String(value || '')
     .trim()
@@ -1194,7 +1220,9 @@ export function mentionNameForms(value: null | string | undefined): string[] {
   const collapsed = name.replace(/[^a-z0-9_-]+/g, '')
 
   return [...new Set([slug, collapsed])].filter(
-    form => /^[a-z0-9][a-z0-9_-]*$/.test(form) && !['all', 'everyone', 'user', 'default', 'hermes'].includes(form)
+    form =>
+      /^[a-z0-9][a-z0-9_-]*$/.test(form) &&
+      !['all', 'everyone', 'user', 'default', 'hermes', PRIMARY_BOT_HANDLE].includes(form)
   )
 }
 
@@ -1414,8 +1442,8 @@ export function resolveRosterMentions(
     let token = match[2].toLowerCase()
     const connection = (match[3] || '').toLowerCase()
 
-    if (token === 'hermes') {
-      token = byForm.has('hermes') ? 'hermes' : token
+    if (isPrimaryBotHandle(token)) {
+      token = byForm.has(PRIMARY_BOT_HANDLE) ? PRIMARY_BOT_HANDLE : token
     }
 
     const bot = connection
@@ -1641,11 +1669,13 @@ export function filterBots(roster: RosterRow[], metaByName: Record<string, BotMe
     const sourceLabel = (bot.connectionLabel || '').toLowerCase()
     const role = `${meta?.description || ''} ${bot.description || ''}`.toLowerCase()
     const preview = String(botActivitySession(bot)?.preview || '').toLowerCase()
+    const primaryAlias = profile === 'default' && isPrimaryBotHandle(needle)
 
     return (
       display.includes(needle) ||
       profile.includes(needle) ||
       handle.includes(needle) ||
+      primaryAlias ||
       sourceLabel.includes(needle) ||
       role.includes(needle) ||
       preview.includes(needle)

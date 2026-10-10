@@ -1431,10 +1431,10 @@ export const host = {
   /** Forget a persisted Close for a contributed pane so adoption puts it back
    *  where its dock hint says — WITHOUT fronting it or un-collapsing its zone
    *  (that is `revealPane`, for an explicit user action). For a pane a plugin
-   *  registers conditionally (Bot Mode's Scheduled jobs pane exists only while
-   *  Bot Mode is on screen), its re-registration is the only "show" the user
-   *  ever performs, so a remembered Close would otherwise strand the pane until
-   *  a full layout reset (#102224). Feature-detect on older desktops. */
+   *  registers conditionally (a contributed pane that exists only while its
+   *  host surface is on screen), its re-registration is the only "show" the
+   *  user ever performs, so a remembered Close would otherwise strand the pane
+   *  until a full layout reset (#102224). Feature-detect on older desktops. */
   undismissPane: (paneId: string): void => {
     const id = (paneId ?? '').trim()
 

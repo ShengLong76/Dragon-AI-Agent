@@ -1,0 +1,107 @@
+name: Dragon upstream sync
+
+# Fetch NousResearch/hermes-agent, merge it onto a Dragon sync branch, and open
+# or update a pull request into main. Never auto-merges. Conflicts still open a
+# draft PR that lists the conflicting files.
+
+on:
+  schedule:
+    - cron: "17 14 * * 1-5" # weekdays 14:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: dragon-upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Merge Hermes upstream into a review PR
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Fetch Hermes default branch
+        env:
+          UPSTREAM_REPO: NousResearch/hermes-agent
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote remove hermes-upstream 2>/dev/null || true
+          git remote add hermes-upstream "https://github.com/${UPSTREAM_REPO}.git"
+          git fetch hermes-upstream HEAD
+          echo "UPSTREAM_SHA=$(git rev-parse hermes-upstream/HEAD)" >> "$GITHUB_ENV"
+          echo "DEFAULT_BRANCH=${{ github.event.repository.default_branch }}" >> "$GITHUB_ENV"
+
+      - name: Cut sync branch from Dragon main and merge
+        run: |
+          set -euo pipefail
+          if git merge-base --is-ancestor "${UPSTREAM_SHA}" "origin/${DEFAULT_BRANCH}"; then
+            echo "Dragon ${DEFAULT_BRANCH} already contains ${UPSTREAM_SHA}; no sync PR."
+            echo "ALREADY_MERGED=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          git checkout -B dragon/upstream-sync "origin/${DEFAULT_BRANCH}"
+          set +e
+          git merge --no-ff --no-edit "${UPSTREAM_SHA}"
+          merge_status=$?
+          set -e
+          # Capture unmerged paths before the commit clears the index conflict state.
+          git diff --name-only --diff-filter=U > /tmp/dragon-sync-conflicts.txt || true
+          if [ "$merge_status" -ne 0 ]; then
+            echo "Merge reported conflicts; committing the conflicted tree for a draft PR."
+            git add -u
+            git commit --no-verify -m "chore: sync upstream Hermes (conflicts remain)"
+          fi
+          python3 scripts/dragon/rebrand_strings.py || true
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "Rebrand made no extra edits."
+          else
+            git add -u
+            git commit --no-verify -m "chore: reapply Dragon AI branding after upstream merge" || true
+          fi
+          python3 scripts/dragon/sync_upstream.py describe \
+            --base "${DEFAULT_BRANCH}" \
+            --upstream-sha "${UPSTREAM_SHA}" \
+            --conflicts-file /tmp/dragon-sync-conflicts.txt \
+            --out /tmp/dragon-sync-report.json
+          python3 scripts/dragon/sync_upstream.py pr-body \
+            --report /tmp/dragon-sync-report.json > /tmp/dragon-sync-pr.txt
+          {
+            echo "HAS_CONFLICTS=$(python3 -c 'import json; print(json.load(open("/tmp/dragon-sync-report.json"))["has_conflicts"])')"
+          } >> "$GITHUB_ENV"
+
+      - name: Push sync branch
+        if: env.ALREADY_MERGED != '1'
+        run: git push --force-with-lease origin dragon/upstream-sync
+
+      - name: Open or update the review PR
+        if: env.ALREADY_MERGED != '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          title="$(sed -n '1p' /tmp/dragon-sync-pr.txt)"
+          body="$(sed -n '3,$p' /tmp/dragon-sync-pr.txt)"
+          existing="$(gh pr list --head dragon/upstream-sync --base "${DEFAULT_BRANCH}" --json number --jq '.[0].number')"
+          draft_flag=()
+          if [ "${HAS_CONFLICTS}" = "True" ]; then
+            draft_flag=(--draft)
+          fi
+          if [ -n "${existing}" ]; then
+            gh pr edit "${existing}" --title "${title}" --body "${body}"
+            if [ "${HAS_CONFLICTS}" = "True" ]; then
+              gh pr ready "${existing}" --undo || true
+            fi
+          else
+            gh pr create --head dragon/upstream-sync --base "${DEFAULT_BRANCH}" \
+              --title "${title}" --body "${body}" "${draft_flag[@]}"
+          fi

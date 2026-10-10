@@ -10,9 +10,11 @@ from __future__ import annotations
 
 import json
 import subprocess
+from pathlib import Path
 
 import pytest
 
+from hermes_constants import reset_hermes_home_override, set_hermes_home_override
 from tools.bot_desktop import placement, runtime, sandbox_host
 from tools.environments import streams
 from tools.terminal_tool_lifecycle import _cleanup_inactive_envs
@@ -29,18 +31,20 @@ def test_idle_cleanup_does_not_reap_a_live_linux_guest_screen(monkeypatch):
 
     class _Env:
         _container_id = "hermes-02e09f8d"
+        _bd_hosts_screen = True
 
         def cleanup(self, force_remove=None):
             torn.append(True)
 
     env = _Env()
-    monkeypatch.setattr(tt, "_active_environments", {placement.LINUX_GUEST_TASK_ID: env})
-    monkeypatch.setattr(tt, "_last_activity", {placement.LINUX_GUEST_TASK_ID: time.time() - 10_000})
+    task_id = placement.linux_guest_task_id()
+    monkeypatch.setattr(tt, "_active_environments", {task_id: env})
+    monkeypatch.setattr(tt, "_last_activity", {task_id: time.time() - 10_000})
     monkeypatch.setattr(tt, "_creation_locks", {})
     monkeypatch.setattr(sandbox_host, "_read_marker", lambda: {"container": "hermes-02e09f8d"})
     _cleanup_inactive_envs(300)
     assert torn == []
-    assert placement.LINUX_GUEST_TASK_ID in tt._active_environments
+    assert task_id in tt._active_environments
 
 
 def test_linux_guest_paths_do_not_use_a_windows_host_cwd():
@@ -393,3 +397,138 @@ def test_sandbox_cdp_endpoint_is_rewritten_to_the_forwarded_local_port(monkeypat
     assert buc._reach_sandbox_cdp("wss://cloud.example/session/1") == "wss://cloud.example/session/1"
     monkeypatch.setattr(bts, "_browser_in_sandbox", lambda: False)
     assert buc._reach_sandbox_cdp("ws://127.0.0.1:9223/x") == "ws://127.0.0.1:9223/x"
+
+
+@pytest.fixture
+def two_profile_homes(tmp_path, monkeypatch):
+    """Default + two named profile homes, Path.home mocked so names resolve."""
+    root = tmp_path / ".hermes"
+    root.mkdir()
+    researcher = root / "profiles" / "researcher"
+    scout = root / "profiles" / "realestate-scout"
+    researcher.mkdir(parents=True)
+    scout.mkdir(parents=True)
+    (researcher / "config.yaml").write_text("model: x\n", encoding="utf-8")
+    (scout / "config.yaml").write_text("model: x\n", encoding="utf-8")
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    monkeypatch.setenv("HERMES_HOME", str(root))
+    return {"default": root, "researcher": researcher, "scout": scout}
+
+
+def test_linux_guest_is_scoped_per_profile_and_create_hits_image_path(monkeypatch, two_profile_homes):
+    """primary-shared routes Lead Scout through Researcher's process. The guest
+    slot must be per-profile so Start creates a NEW container (and therefore
+    runs ensure_sandbox_image) instead of adopting hermes-0090c7b5 / :20."""
+    import tools.terminal_tool as tt
+    from hermes_cli.config_defaults import DEFAULT_SANDBOX_IMAGE
+
+    created: list[tuple[str, str]] = []
+    envs: dict[str, object] = {}
+
+    class _Guest:
+        def __init__(self, task_id):
+            self.task_id = task_id
+            self._container_id = f"dragon-{task_id[-8:]}"
+
+    def _create(config, env_type, *, image, cwd, timeout, task_id, host_cwd):
+        created.append((task_id, image))
+        env = _Guest(task_id)
+        envs[task_id] = env
+        return env
+
+    monkeypatch.setattr(tt, "_active_environments", {})
+    monkeypatch.setattr(tt, "_last_activity", {})
+    monkeypatch.setattr(tt, "_creation_locks", {})
+    monkeypatch.setattr(tt, "_get_env_config", lambda: {"env_type": "local", "cwd": "/root", "timeout": 30})
+    from tools import terminal_tool_lifecycle as ttl
+    monkeypatch.setattr(ttl, "_create_configured_env", _create)
+
+    homes = two_profile_homes
+    token_a = set_hermes_home_override(str(homes["researcher"]))
+    try:
+        id_a = placement.linux_guest_task_id()
+        env_a = placement._linux_guest_environment(create=True)
+    finally:
+        reset_hermes_home_override(token_a)
+
+    token_b = set_hermes_home_override(str(homes["scout"]))
+    try:
+        id_b = placement.linux_guest_task_id()
+        env_b = placement._linux_guest_environment(create=True)
+        # A→B→A: returning to researcher must reuse A's guest, not B's.
+        token_a2 = set_hermes_home_override(str(homes["researcher"]))
+        try:
+            id_a2 = placement.linux_guest_task_id()
+            env_a2 = placement._linux_guest_environment(create=False)
+        finally:
+            reset_hermes_home_override(token_a2)
+    finally:
+        reset_hermes_home_override(token_b)
+
+    assert id_a != id_b
+    assert id_a2 == id_a
+    assert placement.is_linux_guest_task_id(id_a) and placement.is_linux_guest_task_id(id_b)
+    assert env_a is not env_b and env_a2 is env_a
+    assert [task for task, _image in created] == [id_a, id_b]
+    assert all(image == DEFAULT_SANDBOX_IMAGE for _task, image in created)
+
+
+def test_idle_cleanup_does_not_reap_another_profile_live_guest(monkeypatch, two_profile_homes):
+    """The reaper is unbound (launch home). A stamped Lead Scout guest must
+    survive even when the current marker is Researcher's."""
+    import time
+
+    import tools.terminal_tool as tt
+
+    torn = []
+
+    class _Env:
+        def __init__(self, cid, live):
+            self._container_id = cid
+            self._bd_hosts_screen = live
+
+        def cleanup(self, force_remove=None):
+            torn.append(self._container_id)
+
+    idle = _Env("hermes-0090c7b5", False)
+    scout = _Env("dragon-scout01", True)
+    token = set_hermes_home_override(str(two_profile_homes["researcher"]))
+    try:
+        idle_id = placement.linux_guest_task_id()
+    finally:
+        reset_hermes_home_override(token)
+    token = set_hermes_home_override(str(two_profile_homes["scout"]))
+    try:
+        scout_id = placement.linux_guest_task_id()
+    finally:
+        reset_hermes_home_override(token)
+
+    monkeypatch.setattr(tt, "_active_environments", {idle_id: idle, scout_id: scout})
+    monkeypatch.setattr(tt, "_last_activity", {
+        idle_id: time.time() - 10_000,
+        scout_id: time.time() - 10_000,
+    })
+    monkeypatch.setattr(tt, "_creation_locks", {})
+    # Unbound reaper: launch home has no marker. Only the stamped guest is in use.
+    monkeypatch.setattr(sandbox_host, "_read_marker", lambda: {})
+    _cleanup_inactive_envs(300)
+    assert torn == ["hermes-0090c7b5"]
+    assert scout_id in tt._active_environments
+    assert idle_id not in tt._active_environments
+
+
+def test_sandbox_display_num_is_stable_per_profile_home(two_profile_homes):
+    """Display is derived from profile + home, not hardcoded :20 for every bot."""
+    token_a = set_hermes_home_override(str(two_profile_homes["researcher"]))
+    try:
+        a1 = sandbox_host.sandbox_display_num("researcher")
+        a2 = sandbox_host.sandbox_display_num("researcher")
+    finally:
+        reset_hermes_home_override(token_a)
+    token_b = set_hermes_home_override(str(two_profile_homes["scout"]))
+    try:
+        b = sandbox_host.sandbox_display_num("realestate-scout")
+    finally:
+        reset_hermes_home_override(token_b)
+    assert sandbox_host._DISPLAY_MIN <= a1 <= sandbox_host._DISPLAY_MAX and a1 == a2
+    assert sandbox_host._DISPLAY_MIN <= b <= sandbox_host._DISPLAY_MAX

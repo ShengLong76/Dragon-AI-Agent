@@ -688,14 +688,27 @@ def _record_skill_install(identifier: str, bundle, outcome: str) -> None:
 def do_install(identifier: str, category: str = "", force: bool = False,
                console: Optional[Console] = None, skip_confirm: bool = False,
                invalidate_cache: bool = True, name_override: str = "",
-               source_id: Optional[str] = None) -> None:
+               source_id: Optional[str] = None):
     """Fetch, quarantine, scan, confirm, and install a skill. ``source_id`` pins resolution to one
     adapter; callers that know the provenance (``do_update``) must pass it so a bare identifier
     cannot resolve to a same-named skill elsewhere.
 
     A first install is recorded once as an extension install; updates and ``--force`` reinstalls
-    of an installed skill run through here too and are not installs, nor is a cancelled prompt."""
+    of an installed skill run through here too and are not installs, nor is a cancelled prompt.
+
+    The HyperFrames umbrella id (``heygen-com/hyperframes``) installs the published
+    core set into the active profile instead of treating the whole repo as one skill.
+    Returns ``True`` on that path so ``skills.manage`` reports a real install."""
+    from tools.hyperframes_skills import install_hyperframes_core, is_hyperframes_identifier
+
+    if is_hyperframes_identifier(identifier):
+        ok = install_hyperframes_core(console=console or _console, force=force)
+        if not ok:
+            raise SystemExit(1)
+        return True
+
     from tools.skills_hub import HubLockFile
+
     fresh = not HubLockFile().get_installed(identifier.rstrip("/").rsplit("/", 1)[-1])
     try:
         bundle, outcome = _install_skill(identifier, category, force, console or _console,

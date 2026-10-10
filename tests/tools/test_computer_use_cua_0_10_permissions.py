@@ -191,7 +191,7 @@ def test_retired_browser_grant_cannot_change_standard_runtime(tmp_path, monkeypa
     from tools.computer_use.cua_backend_session import _AsyncBridge, _CuaDriverSession
 
     (tmp_path / "config.yaml").write_text(
-        "computer_use:\n  grant_existing_profile: true\n",
+        "computer_use:\n  grant_existing_profile: true\n  host_control: true\n",
         encoding="utf-8",
     )
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))

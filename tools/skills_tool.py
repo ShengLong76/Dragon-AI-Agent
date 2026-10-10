@@ -364,14 +364,23 @@ def _collect_skill_candidates(name, local_category_name, all_dirs):
               and not _is_package_owned_markdown(flat, search_root)):
             _record(None, flat)
 
+    from agent.skill_aliases import canonical_skill_name, skill_name_equivalents
+    wanted = skill_name_equivalents(name) | skill_name_equivalents(local_category_name or "")
+    if local_category_name:
+        wanted |= {canonical_skill_name(local_category_name)}
     for search_dir in all_dirs:
-        for direct in filter(None, (name, local_category_name)):  # "p:x" with no plugin p → "p/x"
+        for direct in filter(None, (name, local_category_name, canonical_skill_name(name),
+                                    canonical_skill_name(local_category_name or ""))):
             _record_direct(search_dir / direct, search_dir)
         # Recursive by directory name plus frontmatter `name:` — skills_list()
         # exposes the frontmatter name, so skill_view(name) must accept it too.
+        # Legacy hermes-* ids are in `wanted` so existing installs keep resolving.
         for found_skill_md in iter_skill_index_files(search_dir, "SKILL.md"):
-            if (found_skill_md.parent.name == name
-                    or _safe_frontmatter(found_skill_md).get("name") == name):
+            found_name = _safe_frontmatter(found_skill_md).get("name")
+            if (found_skill_md.parent.name in wanted
+                    or found_name in wanted
+                    or found_skill_md.parent.name == name
+                    or found_name == name):
                 _record(found_skill_md.parent, found_skill_md)
         # Legacy flat <name>.md anywhere under the dir. Markdown owned by an ancestor
         # directory skill loads through file_path and must not shadow a real skill.

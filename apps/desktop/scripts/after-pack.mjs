@@ -17,11 +17,13 @@ import { copyFile, mkdir, readdir } from 'node:fs/promises'
 import { runPython } from '../../../scripts/build/python.mjs'
 
 import { assertPackagedBackendReadyArtifact, resolvePackagedAsarPath } from './backend-ready-artifact.mjs'
+import { findForbiddenShippedAssets, forbiddenShippedAssetsError } from './forbidden-shipped-assets.mjs'
 import { batchSignAppTree } from './batch-sign-binaries.mjs'
 import { rehashPayloadDigests } from './payload-digests.mjs'
 import { resolveSigningIdentity, signNestedChromium } from './sign-nested-chromium.mjs'
 import { signWheelZipMembers } from './sign-wheel-zips.mjs'
 import { sanitizeTree } from './sanitize-pe-signatures.mjs'
+import { writeGitHubAppUpdateYml } from './write-github-app-update-yml.mjs'
 
 /**
  * Put our full-resolution `assets/icon.icns` back as the bundle's legacy icon.
@@ -69,6 +71,13 @@ export default async function afterPack(context) {
   const asarPath = resolvePackagedAsarPath(context)
   assertPackagedBackendReadyArtifact(asarPath)
   console.log(`[after-pack] verified backend readiness parser in ${asarPath}`)
+  const leaked = [...new Set([
+    ...findForbiddenShippedAssets(path.join(context.appOutDir, 'dist')),
+    ...findForbiddenShippedAssets(`${asarPath}.unpacked`),
+  ])]
+  if (leaked.length) {
+    throw new Error(forbiddenShippedAssetsError(leaked))
+  }
   const resources = platform === 'darwin'
     ? path.join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`, 'Contents', 'Resources')
     : path.join(context.appOutDir, 'resources')
@@ -109,7 +118,8 @@ export default async function afterPack(context) {
     return
   }
 
-  const productName = context.packager?.appInfo?.productFilename || 'Hermes'
+  const productName = context.packager?.appInfo?.productFilename || 'Dragon AI'
+  writeGitHubAppUpdateYml(path.join(context.appOutDir, 'resources'))
   const exe = path.join(context.appOutDir, `${productName}.exe`)
 
   // Repair dangling PE certificate tables BEFORE electron-builder signs the

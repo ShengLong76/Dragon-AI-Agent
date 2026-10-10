@@ -23,6 +23,7 @@
 // - Detection is a windowed majority (>=80% of the last SUSTAINED_MS above
 //   trigger) so intra-word energy dips don't reset progress.
 
+import { rmsLevelFromByteTimeDomain } from '@/lib/mic-level'
 import { closeMeterContext, meterContextsClosed } from '@/lib/mic-meter-context'
 import { $voiceSilenceMs } from '@/store/voice-prefs'
 
@@ -251,14 +252,7 @@ export function monitorSpeechDuringPlayback(callbacks: BargeMonitorCallbacks): (
 
         analyser.getByteTimeDomainData(data)
 
-        let sum = 0
-
-        for (const value of data) {
-          const centered = value - 128
-          sum += centered * centered
-        }
-
-        const level = Math.min(1, Math.sqrt(sum / data.length) / 42)
+        const level = rmsLevelFromByteTimeDomain(data)
         const now = Date.now()
         const playing = callbacks.isPlaying ? callbacks.isPlaying() : true
 

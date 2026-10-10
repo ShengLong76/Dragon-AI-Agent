@@ -406,6 +406,7 @@ export const arChrome = {
       backendVersion: version => `الخلفية ${version}`,
       clientLabel: version => `العميل ${version}`,
       backendLabel: version => `الخلفية ${version}`,
+      runtimeExternal: 'وقت التشغيل · خارجي',
       commit: sha => `commit ${sha}`,
       branch: branch => `الفرع ${branch}`,
       closeCommandCenter: 'إغلاق مركز الأوامر',

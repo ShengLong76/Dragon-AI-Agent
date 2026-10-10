@@ -15,6 +15,7 @@ const path = require('node:path')
 const feedContract = require('./update-feed.cjs')
 const { createMacSigner } = require('./scripts/mac-sign.mjs')
 
+const productIdentity = require('./product-identity.cjs')
 const {
   light,
   store,
@@ -23,11 +24,11 @@ const {
   appId,
   appNamePascal,
   artifactNamePascal,
-  windowsExecutableName,
   channel,
   msixAppIdWithOrg,
   token
-} = require('./product-identity.cjs')
+} = productIdentity
+const windowsIdentity = productIdentity.finalizeIdentity(productIdentity.flavorIdentity, 'win32')
 
 // `storeMsix` is optional on the identity type but guaranteed present when
 // `store` is true (product-identity.cjs spreads it only in that branch).
@@ -57,7 +58,7 @@ const channelRequest = channelBuildRequest()
 
 /** @typedef {import("app-builder-lib").Configuration} Configuration */
 
-const [owner, repo] = (process.env.GITHUB_REPOSITORY || 'NousResearch/hermes-agent').split('/')
+const [owner, repo] = (process.env.GITHUB_REPOSITORY || feedContract.productRepository()).split('/')
 if (!owner || !repo) {
   throw new Error(`invalid GITHUB_REPOSITORY ${process.env.GITHUB_REPOSITORY}`)
 }
@@ -67,7 +68,7 @@ if (!/^\d+\.\d+\.\d+$/.test(electronVersion)) {
 }
 
 const macFeed = channelRequest ? null : feedContract.darwinFeed(channel === 'canary' || channel === 'light-canary' ? 'canary' : 'stable', light)
-const publicUrl = feedContract.feedBaseUrl(process.env.CLOUDFLARE_R2_PUBLIC_URL)
+const publicUrl = feedContract.packagedFeedBaseUrl(process.env.CLOUDFLARE_R2_PUBLIC_URL)
 
 /** @satisfies {Configuration} */
 module.exports = {
@@ -93,13 +94,12 @@ module.exports = {
   // var (local, or a fork without the R2 vars) keep the github provider, which
   // is exactly today's behavior. The store build has no feed at all (the Store
   // owns its distribution and updates).
-  publish: channelRequest ? null : !channel
+  // Dragon has no assets CDN. A github publish provider instantiates
+  // GitHubPublisher and demands GH_TOKEN even under `--publish never`.
+  // The packaged Windows feed is written by after-pack (app-update.yml).
+  publish: channelRequest ? null : !channel || !publicUrl
     ? null
-    : [
-        publicUrl
-          ? { provider: 'generic', url: publicUrl, channel }
-          : { provider: 'github', owner, repo, channel }
-      ],
+    : [{ provider: 'generic', url: publicUrl, channel }],
   extraMetadata: {
     name: appNamePascal,
     // Electron bootstrap reads package.productName before main.ts. Keep the
@@ -203,7 +203,7 @@ module.exports = {
     // paste onto the stock removable-drive icon). It lives in packaging/ with
     // the background so the `files` whitelist keeps it out of the app bundle.
     icon: 'packaging/dmg-volume.icns',
-    title: 'Hermes Agent Installer',
+    title: 'Dragon AI Installer',
     // A prebuilt .tiff on purpose, not a PNG plus a @2x sibling: dmg-builder's
     // PNG path runs `tiffutil -cathidpicheck`, which on macOS 26 rewrites both
     // frames to 72 dpi and silently drops the 2x representation. A .tiff is
@@ -231,8 +231,8 @@ module.exports = {
     ]
   },
   win: {
-    executableName: windowsExecutableName,
-    legalTrademarks: displayName,
+    executableName: windowsIdentity.windowsExecutableName,
+    legalTrademarks: windowsIdentity.displayName,
     target: ['nsis'],
     // The updaters' relaunch waiter is PowerShell run outside the package. The
     // sealed payload's snapshot omits scripts/, so it ships as a resource
@@ -283,8 +283,9 @@ module.exports = {
     allowToChangeInstallationDirectory: true,
     createDesktopShortcut: false,
     createStartMenuShortcut: true,
-    shortcutName: displayName,
-    uninstallDisplayName: displayName,
+    guid: windowsIdentity.nsisGuid,
+    shortcutName: windowsIdentity.displayName,
+    uninstallDisplayName: windowsIdentity.displayName,
     include: 'packaging/installer.nsh',
     installerIcon: 'assets/icon.ico',
     uninstallerIcon: 'assets/icon.ico',

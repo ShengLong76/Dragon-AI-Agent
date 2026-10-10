@@ -24,6 +24,7 @@ for _stream in (sys.stdout, sys.stderr):
         with suppress(ValueError, TypeError):
             _stream.reconfigure(encoding="utf-8", errors="replace")
 from hermes_constants import get_bundled_skills_dir, get_hermes_home, get_optional_skills_dir
+from agent.skill_aliases import canonical_skill_name, legacy_names_for
 from agent.skill_utils import ESSENTIAL_SKILLS, is_excluded_skill_path
 from tools.skill_usage import _read_skill_name
 from tools.skills_sync_optional import (
@@ -222,6 +223,22 @@ def _copy_dir(src: Path, dest: Path) -> None:
     shutil.copytree(src, dest, ignore=_ignore_runtime_cache)
 
 
+def _remap_aliased_manifest(st: "_SyncState", bundled_skills: List[Tuple[str, Path]]) -> None:
+    """Move manifest keys from a legacy skill id onto the shipped Dragon id.
+
+    Existing installs recorded ``hermes-agent:<hash>``. After the rebrand the
+    bundled name is ``dragon-agent``; without this remap the old copy is treated
+    as user-deleted and the new id is installed beside it, leaving Hermes
+    branding on disk.
+    """
+    bundled_names = {name for name, _src in bundled_skills}
+    for old, new in ((old, canonical_skill_name(old)) for old in list(st.manifest)):
+        if old == new or new not in bundled_names or new in st.manifest:
+            continue
+        st.manifest[new] = st.manifest.pop(old)
+        logger.info("Remapped bundled-skill manifest %s -> %s", old, new)
+
+
 def _recover_renamed_skill(st: "_SyncState", skill_name: str, dest: Path) -> Optional[str]:
     """Move a bundled skill's stale copy to its new canonical path after an upstream RENAME /
     RECATEGORIZATION (else it is misread as user-deleted and stranded forever). Only a copy
@@ -234,7 +251,9 @@ def _recover_renamed_skill(st: "_SyncState", skill_name: str, dest: Path) -> Opt
         for md in _iter_active_skill_mds():
             st.active_index.setdefault(_read_skill_name(md, md.parent.name), []).append(md.parent)
         st.hub_paths = _read_hub_install_paths()
-    for candidate in st.active_index.get(skill_name, []):
+    lookup_names = {skill_name, *legacy_names_for(skill_name)}
+    candidates = [c for lookup in lookup_names for c in st.active_index.get(lookup, [])]
+    for candidate in candidates:
         if candidate == dest or not candidate.is_dir():
             continue
         try:
@@ -396,7 +415,7 @@ def _seed_category_descriptions(bundled_dir: Path, only_dirs: Optional[Set[Path]
 def sync_skills(quiet: bool = False) -> dict:
     """Sync bundled skills into ~/.hermes/skills/ using the manifest; returns the per-category
     result dict. Opted-out profiles seed ONLY ESSENTIAL_SKILLS (the system prompt always
-    points at ``hermes-agent``)."""
+    points at ``dragon-agent``)."""
     essential_only = (_hermes_home() / NO_BUNDLED_SKILLS_MARKER).exists()
     if essential_only and not quiet:
         print("  (profile opted out of bundled skills via .no-bundled-skills — seeding essential skills only)")
@@ -411,6 +430,7 @@ def sync_skills(quiet: bool = False) -> dict:
     suppressed = _read_suppressed_names()
     external_index = _build_external_skill_index()
     st = _SyncState(manifest=_read_manifest(), quiet=quiet)
+    _remap_aliased_manifest(st, bundled_skills)
 
     for skill_name, skill_src in bundled_skills:
         # Curator-pruned built-ins must not resurrect on every update; essentials are exempt.
