@@ -140,3 +140,31 @@ def test_stop_clears_the_sandbox_display_lock(monkeypatch, isolated_home):
     monkeypatch.setattr(sandbox_host, "_clear_sandbox_display", lambda e, n: cleared.append(n))
     sandbox_host.stop(env, "default")
     assert cleared == [sandbox_host.sandbox_display_num("default")]
+
+
+def test_seed_files_travel_on_stdin_not_argv(monkeypatch, tmp_path):
+    """Windows CreateProcess caps a command line at 32,767 chars; the seeded launcher/lock/wallpaper must not
+    ride in argv ([WinError 206])."""
+    import io
+    import tarfile
+
+    calls = []
+
+    class _Proc:
+        returncode = 1
+        stdout = b""
+        stderr = b"stop here"
+
+    def _run_in(env, argv, *, child_env=None, user=None, timeout=30.0, stdin=None):
+        calls.append((argv, stdin))
+        return _Proc()
+
+    monkeypatch.setattr(sandbox_host.streams, "run_in", _run_in)
+    monkeypatch.setattr(sandbox_host, "_user_for", lambda env: None)
+    with pytest.raises(RuntimeError, match="could not seed"):
+        sandbox_host._attempt_start(object(), "researcher", "/tmp/x", geometry="1280x800", wait_seconds=1,
+                                    browser_exec=None, browser_exec_line=None, display_num=11)
+    argv, stdin = calls[0]
+    assert sum(len(a) for a in argv) < 2000
+    names = tarfile.open(fileobj=io.BytesIO(stdin)).getnames()
+    assert sorted(names) == ["display_lock.py", "launcher.sh", "wallpaper.png"]
