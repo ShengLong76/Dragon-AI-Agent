@@ -18,7 +18,10 @@ import { useSessionView } from '@/app/chat/session-view'
 import { SETTINGS_ROUTE } from '@/app/routes'
 import { dispatchedTo } from '@/components/assistant-ui/thread/agent-delivery'
 import { ChangedFilesCard } from '@/components/assistant-ui/thread/changed-files-card'
-import { CHAT_BUBBLE_RADIUS_CLASS, CHAT_BUBBLE_WIDTH_CLASS } from '@/components/assistant-ui/thread/chat-bubble'
+import {
+  ASSISTANT_CHAT_BUBBLE_WIDTH_CLASS,
+  CHAT_BUBBLE_RADIUS_CLASS
+} from '@/components/assistant-ui/thread/chat-bubble'
 import {
   contentHasVisibleText,
   messageContentText,
@@ -308,7 +311,7 @@ const AssistantMessageBody: FC<AssistantMessageProps & { collapsedNotice?: null 
             className={cn(
               'composer-assistant-message wrap-anywhere min-w-0 overflow-hidden border border-(--ui-stroke-tertiary) bg-(--dt-assistant-bubble) text-pretty text-[length:var(--conversation-text-font-size)] leading-(--dt-line-height) text-foreground',
               CHAT_BUBBLE_RADIUS_CLASS,
-              CHAT_BUBBLE_WIDTH_CLASS
+              ASSISTANT_CHAT_BUBBLE_WIDTH_CLASS
             )}
             data-slot="aui_assistant-message-content"
           >

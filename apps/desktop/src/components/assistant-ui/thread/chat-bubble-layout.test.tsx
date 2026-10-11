@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { stubThreadEnvironment, stubThreadViewportSize, ThreadRuntime, userMessage } from '../test-utils'
 
-import { hasChatBubbleColumnCap } from './chat-bubble'
+import { hasChatBubbleColumnCap, isChatBubbleHug } from './chat-bubble'
 
 import { Thread } from '.'
 
@@ -39,28 +39,43 @@ function ancestorsUntil(node: Element, root: Element): Element[] {
 }
 
 describe('chat bubble layout', () => {
-  it('applies the column cap once on the painted bubble, not on nested hug wrappers', async () => {
+  it('caps the hug cluster once against the row; the timestamp rides that cluster', async () => {
     render(
-      <ThreadRuntime messages={[userMessage('user-1', 'what is dragon serve'), assistantMessage('a short reply')]}>
+      <ThreadRuntime messages={[userMessage('user-1', 'what kind of a search did you do?'), assistantMessage('Got it.')]}>
         <Thread />
       </ThreadRuntime>
     )
 
     const userRoot = document.querySelector('[data-slot="aui_user-message-root"]')
+    const userCluster = document.querySelector('[data-slot="aui_user-bubble-cluster"]')
     const userBubble = await screen.findByRole('button', { name: 'Edit message' })
     const assistantBubble = document.querySelector('[data-slot="aui_assistant-message-content"]')
 
     expect(userRoot).toBeTruthy()
+    expect(userCluster).toBeTruthy()
     expect(assistantBubble).toBeTruthy()
 
-    expect(hasChatBubbleColumnCap(userBubble.className)).toBe(true)
-    expect(userBubble.className).toMatch(/\bw-max\b/)
+    expect(hasChatBubbleColumnCap(userCluster!.className)).toBe(true)
+    expect(isChatBubbleHug(userCluster!.className)).toBe(true)
+    expect(userCluster!.className).not.toMatch(/\bw-full\b/)
 
-    for (const ancestor of ancestorsUntil(userBubble, userRoot!)) {
+    expect(isChatBubbleHug(userBubble.className)).toBe(true)
+    expect(userBubble.className).not.toMatch(/\bw-max\b/)
+    expect(hasChatBubbleColumnCap(userBubble.className)).toBe(false)
+
+    for (const ancestor of ancestorsUntil(userCluster!, userRoot!)) {
       expect(hasChatBubbleColumnCap(ancestor.className), ancestor.className).toBe(false)
     }
 
-    expect(hasChatBubbleColumnCap(assistantBubble!.className)).toBe(true)
-    expect(assistantBubble!.className).toMatch(/\bw-max\b/)
+    expect(userCluster!.contains(userBubble)).toBe(true)
+    expect(userCluster!.className).toMatch(/\brelative\b/)
+    const hoverStamp = [...userCluster!.querySelectorAll('[class*="absolute"]')].find(node => node.querySelector('time'))
+    expect(hoverStamp).toBeTruthy()
+    expect(hoverStamp!.querySelector('time')).toBeTruthy()
+
+    expect(isChatBubbleHug(assistantBubble!.className)).toBe(true)
+    expect(assistantBubble!.className).toMatch(/\bmax-w-full\b/)
+    expect(assistantBubble!.className).not.toMatch(/\bw-max\b/)
+    expect(hasChatBubbleColumnCap(assistantBubble!.className)).toBe(false)
   })
 })
