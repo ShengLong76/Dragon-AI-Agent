@@ -14,7 +14,6 @@ socat is not). cua-driver runs the same way: ``cua_mcp_argv()`` is the docker/ss
 """
 from __future__ import annotations
 
-import base64
 import hashlib
 import json
 import logging
@@ -291,22 +290,35 @@ def start(env: Any, profile: str, *, geometry: str, wait_seconds: float = 20.0,
     raise RuntimeError(format_sandbox_start_error(wait_seconds, str(last_error)))
 
 
+def _seed_archive() -> bytes:
+    """launcher.sh, display_lock.py and wallpaper.png as an uncompressed tar, fed to ``tar -xf -`` on stdin."""
+    import io
+    import tarfile
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w", format=tarfile.USTAR_FORMAT) as tar:
+        for name in ("launcher.sh", "display_lock.py", "wallpaper.png"):
+            data = Path(__file__).with_name(name).read_bytes()
+            info = tarfile.TarInfo(name)
+            info.size = len(data)
+            info.mode = 0o700 if name == "launcher.sh" else 0o600
+            tar.addfile(info, io.BytesIO(data))
+    return buf.getvalue()
+
+
 def _attempt_start(env: Any, profile: str, rdir: str, *, geometry: str, wait_seconds: float,
                    browser_exec: Optional[str], browser_exec_line: Optional[str],
                    display_num: int) -> Dict[str, str]:
     """Seed the launcher into ``rdir`` and wait until it publishes DISPLAY. Caller already stopped leftovers."""
     user = _user_for(env)
-    launcher = Path(__file__).with_name("launcher.sh").read_bytes()
-    wallpaper = Path(__file__).with_name("wallpaper.png").read_bytes()
-    lock_py = Path(__file__).with_name("display_lock.py").read_bytes()
+    seed_payload = _seed_archive()
+    # The files travel on stdin, never in argv: inlined as base64 they pushed the ``docker exec`` command
+    # line past Windows' 32,767-char CreateProcess limit ([WinError 206] The filename or extension is too long).
     seed = (
         f"set -e; rm -rf {shlex.quote(rdir)}; mkdir -p {shlex.quote(rdir)}; cd {shlex.quote(rdir)};"
-        f" echo {shlex.quote(base64.b64encode(launcher).decode())} | base64 -d > launcher.sh;"
-        f" echo {shlex.quote(base64.b64encode(lock_py).decode())} | base64 -d > display_lock.py;"
-        f" echo {shlex.quote(base64.b64encode(wallpaper).decode())} | base64 -d > wallpaper.png;"
+        " tar -xf -;"
         " chmod 0700 . launcher.sh"
     )
-    proc = streams.run_in(env, ["bash", "-c", seed], user=user, timeout=30)
+    proc = streams.run_in(env, ["bash", "-c", seed], user=user, timeout=30, stdin=seed_payload)
     if proc.returncode != 0:
         raise RuntimeError(f"could not seed the sandbox desktop dir: {proc.stderr.decode('utf-8', 'replace')[-500:]}")
     num = int(display_num)
