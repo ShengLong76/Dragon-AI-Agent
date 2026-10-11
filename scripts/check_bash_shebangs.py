@@ -25,6 +25,8 @@ def check(root: Path) -> list[str]:
             continue
         relative = name.decode("utf-8", errors="surrogateescape")
         path = root / relative
+        if relative.startswith(".cursor/") or relative.startswith(".cursor\\"):
+            continue
         if path.is_symlink() or not path.is_file():
             continue
         data = path.read_bytes()

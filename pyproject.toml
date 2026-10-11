@@ -921,6 +921,8 @@ select = ["PLW1514", "ASYNC210", "ASYNC220", "ASYNC221", "ASYNC251", "TID251"]
 # Skills and plugins are partially user-authored — their own conventions.
 "skills/**" = ["PLW1514"]
 "optional-skills/**" = ["PLW1514"]
+# ECC / harness skill trees are imported into .cursor and are not product code.
+".cursor/**" = ["PLW1514"]
 # Plugin platform adapters run ON the gateway event loop — the ASYNC gate
 # applies to them with full force; only PLW1514 stays relaxed.
 "plugins/**" = ["PLW1514"]
