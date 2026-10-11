@@ -59,6 +59,7 @@ import {
 } from '@/app/chat/hooks/use-composer-actions'
 import { uploadComposerAttachment } from '@/app/session/hooks/use-prompt-actions'
 import { hermesDirectiveFormatter } from '@/components/assistant-ui/directive-text'
+import { CHAT_BUBBLE_WIDTH_CLASS } from '@/components/assistant-ui/thread/chat-bubble'
 import {
   StickyHumanMessageContainer,
   StopGlyph,
@@ -863,6 +864,7 @@ export const UserEditComposer: FC<UserEditComposerProps> = ({ cwd, gateway, sess
           <div
             className={cn(
               USER_BUBBLE_BASE_CLASS,
+              CHAT_BUBBLE_WIDTH_CLASS,
               'ui-prompt-input__container relative border-(--ui-stroke-secondary) data-[expanded=true]:min-h-20',
               COMPOSER_DROP_FADE_CLASS,
               dragActive && COMPOSER_DROP_ACTIVE_CLASS
