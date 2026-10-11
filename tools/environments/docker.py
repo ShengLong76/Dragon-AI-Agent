@@ -430,6 +430,31 @@ _storage_opt_ok: Optional[bool] = None  # cached result across instances
 _cgroup_limits_ok: Optional[bool] = None  # cached result across instances
 
 
+def _resolve_probe_image(docker_exe: str, image: str) -> Optional[str]:
+    """Make *image* local before the cgroup probe ``docker run``.
+
+    Alias tags (``dragon-sandbox:desktop`` and friends) have no Docker Hub repo.
+    ``docker run dragon-sandbox:desktop`` auto-pulls ``library/dragon-sandbox``
+    and logs ``pull access denied`` without ever looking at a locally present
+    ``nousresearch/hermes-sandbox:desktop``. Route those through
+    ``resolve_sandbox_image`` (local tag → retag local upstream/GHCR → pull
+    GHCR → pull upstream + retag). Non-alias pins are used as-is.
+    """
+    from tools.environments.sandbox_image import (
+        SANDBOX_IMAGE_ALIASES,
+        SandboxImageError,
+        resolve_sandbox_image,
+    )
+
+    if image not in SANDBOX_IMAGE_ALIASES:
+        return image
+    try:
+        return resolve_sandbox_image(docker_exe, image, run_capture=run_capture)
+    except SandboxImageError as exc:
+        logger.warning("Cgroup limit probe skipped; sandbox image is not local: %s", exc)
+        return None
+
+
 def _cgroup_limits_available(image: str) -> bool:
     """Probe once per process whether ``--cpus``/``--memory``/``--pids-limit`` work here, via a
     throwaway ``sleep 0`` container from *image* (no extra pull). Without delegated cgroup
@@ -445,10 +470,17 @@ def _cgroup_limits_available(image: str) -> bool:
     if not docker_exe or not image:
         return False  # not cached: docker may appear later in this process
 
+    from tools.environments.sandbox_image import SANDBOX_IMAGE_ALIASES
+
+    resolved = _resolve_probe_image(docker_exe, image)
+    if not resolved:
+        return False  # not cached: image may become local later this process
+    pull_never = ["--pull", "never"] if image in SANDBOX_IMAGE_ALIASES else []
+
     try:
         result = run_capture(
-            [docker_exe, "run", "--rm", "--cpus", "0.5", "--memory", "64m", "--pids-limit", "32",
-             image, "sleep", "0"],
+            [docker_exe, "run", "--rm", *pull_never, "--cpus", "0.5", "--memory", "64m",
+             "--pids-limit", "32", resolved, "sleep", "0"],
             timeout=60)
     except Exception as e:
         logger.warning("Cgroup limit probe failed; containers run without "
@@ -697,6 +729,14 @@ class DockerEnvironment(BaseEnvironment):
 
         _ensure_docker_available()
 
+        # Alias tags must be local before the cgroup probe or any ``docker run``.
+        # ``_resource_args`` probes with a throwaway container; a missing
+        # ``dragon-sandbox:desktop`` would otherwise Hub-pull ``library/dragon-sandbox``.
+        self._docker_exe = find_docker() or "docker"
+        self._image_pinned = image_pinned
+        image = self._resolve_alias_image(image)
+        self._image = image
+
         resource_args = self._resource_args(image, cpu, memory, disk, network, shm_size, extra_args)
         volume_args, writable_args = self._mount_args(volumes, host_cwd, auto_mount_cwd, task_id)
         mount = getattr(self, "host_cwd_mount", None)
@@ -712,9 +752,6 @@ class DockerEnvironment(BaseEnvironment):
             self._egress_and_env_args(extra_args))
         volume_args.extend(egress_volume_args)
         user_args = _host_user_args(run_as_host_user)
-
-        # Resolved once so it works when /usr/local/bin is not in PATH (macOS services).
-        self._docker_exe = find_docker() or "docker"
 
         # s6-overlay images (e.g. hermes-agent:latest) already use /init as PID 1 and exec
         # /run/s6/basedir/bin/init during startup. For those images we must (a) skip Docker's --init (two
@@ -768,8 +805,6 @@ class DockerEnvironment(BaseEnvironment):
             ]
             self._labels[_ENVIRONMENT_LABEL_KEY] = self._environment_label_aliases[0]
         # Saved for container recreation on "No such container" recovery.
-        self._image = image
-        self._image_pinned = image_pinned
         self._image_uses_s6_init = image_uses_s6_init
         self._all_run_args = all_run_args
 
@@ -998,23 +1033,47 @@ class DockerEnvironment(BaseEnvironment):
             container_id[:12], task_label, profile_name, state)
         return True
 
-    def _ensure_sandbox_image(self) -> bool:
+    def _resolve_alias_image(self, image: str) -> str:
+        """Make a Dragon/alias sandbox tag local before any ``docker run``.
+
+        Best-effort at construct time: a miss leaves *image* unchanged so an
+        existing container can still be attached. ``_docker_run`` raises the
+        operator-facing :class:`SandboxImageError` when a fresh container
+        needs the image and every fallback failed.
+        """
+        from tools.environments.sandbox_image import (
+            SANDBOX_IMAGE_ALIASES,
+            SandboxImageError,
+            resolve_sandbox_image,
+        )
+        if image not in SANDBOX_IMAGE_ALIASES:
+            return image
+        try:
+            return resolve_sandbox_image(
+                self._docker_exe, image, run_capture=run_capture, pinned=self._image_pinned,
+            )
+        except SandboxImageError as exc:
+            logger.warning("Docker: %s", exc)
+            return image
+
+    def _ensure_sandbox_image(self, *, required: bool = False) -> bool:
         """Resolve a Dragon/alias sandbox tag locally (pull + retag). Other pins pull as-is."""
         from tools.environments.sandbox_image import (
-            DEFAULT_SANDBOX_IMAGE,
             SANDBOX_IMAGE_ALIASES,
-            ensure_sandbox_image,
+            SandboxImageError,
+            resolve_sandbox_image,
+            unavailable_sandbox_image_message,
         )
         if self._image in SANDBOX_IMAGE_ALIASES:
             try:
-                self._image = ensure_sandbox_image(
-                    self._docker_exe,
-                    DEFAULT_SANDBOX_IMAGE if not self._image_pinned else self._image,
-                    run_capture=run_capture,
+                self._image = resolve_sandbox_image(
+                    self._docker_exe, self._image, run_capture=run_capture, pinned=self._image_pinned,
                 )
                 return True
-            except RuntimeError as exc:
-                logger.warning("Docker: %s", exc)
+            except SandboxImageError:
+                if required:
+                    raise SandboxImageError(unavailable_sandbox_image_message(self._image))
+                logger.warning("Docker: %s", unavailable_sandbox_image_message(self._image))
                 return False
         try:
             probe = run_capture([self._docker_exe, "image", "inspect", self._image, "--format", "{{.Id}}"],
@@ -1070,10 +1129,12 @@ class DockerEnvironment(BaseEnvironment):
         removed by name before re-raising."""
         from tools.environments.sandbox_image import new_container_name
 
-        if not self._ensure_sandbox_image():
-            raise RuntimeError(
-                f"sandbox image {self._image} is not available locally and fallback pull failed"
+        if not self._ensure_sandbox_image(required=True):
+            from tools.environments.sandbox_image import (
+                SandboxImageError,
+                unavailable_sandbox_image_message,
             )
+            raise SandboxImageError(unavailable_sandbox_image_message(self._image))
         container_name = new_container_name()
         run_cmd = self._run_command(
             container_name, container_workdir(cwd, getattr(self, "host_cwd_mount", None)))

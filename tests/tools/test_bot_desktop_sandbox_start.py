@@ -96,6 +96,42 @@ def test_start_does_not_retry_an_unrelated_seed_failure(monkeypatch, isolated_ho
     assert attempts == [1]
 
 
+def test_start_in_sandbox_surfaces_sandbox_image_error(monkeypatch, isolated_home):
+    """display.start shows the operator-facing image-fallback text, not a generic miss."""
+    from tools.bot_desktop import runtime
+    from tools.environments.sandbox_image import (
+        SandboxImageError,
+        UPSTREAM_SANDBOX_IMAGE,
+        unavailable_sandbox_image_message,
+    )
+
+    def _boom(*, create):
+        raise SandboxImageError(unavailable_sandbox_image_message())
+
+    monkeypatch.setattr(runtime, "_sandbox_env", _boom)
+    with pytest.raises(SandboxImageError, match="Bot Desktop cannot start") as ei:
+        runtime._start_in_sandbox(1.0)
+    assert UPSTREAM_SANDBOX_IMAGE in str(ei.value)
+    assert "pull access denied" in str(ei.value)
+
+
+def test_start_in_sandbox_surfaces_docker_daemon_error(monkeypatch, isolated_home):
+    """Docker-not-running must reach the Computer pane, not become a generic close."""
+    from tools.bot_desktop import runtime
+    from tools.environments.base import EnvironmentConnectionError
+
+    def _boom(*, create):
+        raise EnvironmentConnectionError(
+            "Docker daemon is not responding. Ensure Docker is running and try again.",
+            retry_hint="Start Docker Desktop, then retry.",
+        )
+
+    monkeypatch.setattr(runtime, "_sandbox_env", _boom)
+    with pytest.raises(EnvironmentConnectionError, match="Docker daemon is not responding") as ei:
+        runtime._start_in_sandbox(1.0)
+    assert "Start Docker Desktop" in ei.value.retry_hint
+
+
 def test_stop_clears_the_sandbox_display_lock(monkeypatch, isolated_home):
     env = _FakeDocker()
     cleared: list[int] = []

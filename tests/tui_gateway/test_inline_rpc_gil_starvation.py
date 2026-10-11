@@ -91,3 +91,28 @@ def test_dispatch_inline_rpc_does_not_block_under_gil_pressure(server):
     )
 
     released.set()
+
+
+def test_display_start_is_pooled_so_docker_cannot_starve_ping(server):
+    """display.start may block on docker pull/run. If it ran inline, the WS
+    reader would miss gateway.ping and the Computer pane would show
+    'Dragon AI gateway connection closed' instead of the real image/daemon
+    error. Pool routing must return immediately from dispatch()."""
+    released = threading.Event()
+
+    def slow_start(rid, params):
+        released.wait(timeout=5)
+        return server._ok(rid, {"running": True})
+
+    server._methods["display.start"] = server._methods["display.stop"] = slow_start
+    server._methods["fast.check"] = lambda rid, params: server._ok(rid, {"ok": True})
+
+    assert "display.start" in server._LONG_HANDLERS
+    assert "display.stop" in server._LONG_HANDLERS
+    t0 = time.monotonic()
+    assert [server.dispatch({"id": m, "method": m, "params": p})
+            for m, p in (("display.start", {}), ("display.stop", {}))] == [None] * 2
+    fast_resp = server.dispatch({"id": "fast", "method": "fast.check", "params": {}})
+    assert fast_resp["result"] == {"ok": True}
+    assert time.monotonic() - t0 < 2.0, "display.start blocked the WS read loop"
+    released.set()

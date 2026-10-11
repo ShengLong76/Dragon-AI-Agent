@@ -797,9 +797,16 @@ def _sandbox_env(*, create: bool):
 
 def _start_in_sandbox(wait_seconds: float) -> DesktopStatus:
     from tools.bot_desktop import sandbox_host
-    env = _sandbox_env(create=True)
+    from tools.environments.sandbox_image import SandboxImageError, unavailable_sandbox_image_message
+    try:
+        env = _sandbox_env(create=True)
+    except SandboxImageError:
+        raise
     if env is None:
-        raise RuntimeError("the terminal backend's sandbox could not be started, so there is nowhere to put the screen")
+        raise SandboxImageError(
+            unavailable_sandbox_image_message()
+            + " The terminal backend's sandbox could not be started, so there is nowhere to put the screen."
+        )
     sd = state_dir()
     sd.mkdir(parents=True, exist_ok=True)
     os.chmod(sd, 0o700)

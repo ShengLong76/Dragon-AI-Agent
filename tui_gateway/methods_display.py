@@ -87,7 +87,13 @@ def _(rid, params: dict) -> dict:
         _bd_runtime.start()
         return _ok(rid, _display_snapshot())
     except Exception as e:
-        return _err(rid, _DISPLAY_ERR, str(e))
+        # Surface the operator-facing reason (missing image, docker not running, …)
+        # rather than letting a closed socket hide it behind a generic close.
+        detail = str(e)
+        hint = getattr(e, "retry_hint", None)
+        if hint and hint not in detail:
+            detail = f"{detail} {hint}".strip()
+        return _err(rid, _DISPLAY_ERR, detail)
 
 
 @method("display.stop")
