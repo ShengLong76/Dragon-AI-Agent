@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { stubThreadEnvironment, stubThreadViewportSize, ThreadRuntime, userMessage } from '../test-utils'
 
-import { hasChatBubbleColumnCap, isChatBubbleHug } from './chat-bubble'
+import { hasChatBubbleClipGuard, isChatBubbleHug } from './chat-bubble'
 
 import { Thread } from '.'
 
@@ -38,10 +38,19 @@ function ancestorsUntil(node: Element, root: Element): Element[] {
   return chain
 }
 
+function isFlexOrGrid(className: string): boolean {
+  return /(?:^|\s)(?:flex|inline-flex|grid|inline-grid)(?:\s|$)/.test(className)
+}
+
 describe('chat bubble layout', () => {
-  it('caps the hug cluster once against the row; the timestamp rides that cluster', async () => {
+  it('guards the hug cluster against column overflow; the timestamp rides that cluster', async () => {
     render(
-      <ThreadRuntime messages={[userMessage('user-1', 'what kind of a search did you do?'), assistantMessage('Got it.')]}>
+      <ThreadRuntime
+        messages={[
+          userMessage('user-1', 'what kind of a search did you do? https://example.com/very/long/path/that/must/wrap'),
+          assistantMessage('Got it.')
+        ]}
+      >
         <Thread />
       </ThreadRuntime>
     )
@@ -55,16 +64,18 @@ describe('chat bubble layout', () => {
     expect(userCluster).toBeTruthy()
     expect(assistantBubble).toBeTruthy()
 
-    expect(hasChatBubbleColumnCap(userCluster!.className)).toBe(true)
+    expect(hasChatBubbleClipGuard(userCluster!.className)).toBe(true)
     expect(isChatBubbleHug(userCluster!.className)).toBe(true)
-    expect(userCluster!.className).not.toMatch(/\bw-full\b/)
+    expect(userCluster!.className).not.toMatch(/(?:^|\s)w-full(?:\s|$)/)
 
+    expect(hasChatBubbleClipGuard(userBubble.className)).toBe(true)
     expect(isChatBubbleHug(userBubble.className)).toBe(true)
     expect(userBubble.className).not.toMatch(/\bw-max\b/)
-    expect(hasChatBubbleColumnCap(userBubble.className)).toBe(false)
 
-    for (const ancestor of ancestorsUntil(userCluster!, userRoot!)) {
-      expect(hasChatBubbleColumnCap(ancestor.className), ancestor.className).toBe(false)
+    for (const ancestor of [userRoot!, ...ancestorsUntil(userCluster!, userRoot!)]) {
+      if (isFlexOrGrid(ancestor.className)) {
+        expect(ancestor.className, ancestor.className).toMatch(/\bmin-w-0\b/)
+      }
     }
 
     expect(userCluster!.contains(userBubble)).toBe(true)
@@ -73,9 +84,8 @@ describe('chat bubble layout', () => {
     expect(hoverStamp).toBeTruthy()
     expect(hoverStamp!.querySelector('time')).toBeTruthy()
 
+    expect(hasChatBubbleClipGuard(assistantBubble!.className)).toBe(true)
     expect(isChatBubbleHug(assistantBubble!.className)).toBe(true)
-    expect(assistantBubble!.className).toMatch(/\bmax-w-full\b/)
     expect(assistantBubble!.className).not.toMatch(/\bw-max\b/)
-    expect(hasChatBubbleColumnCap(assistantBubble!.className)).toBe(false)
   })
 })

@@ -320,14 +320,14 @@ them. Their wrappers stay unpainted. Both voices own a rounded fill from the
 existing palette: the user bubble on the right uses `--dt-user-bubble` (`#2f2f2f`
 in dark, the lighter graphite), the agent bubble on the left uses
 `--dt-assistant-bubble` (`#1b1b1b` in dark). Both corners are a literal
-`1.25rem` so `--radius-scalar` cannot flatten them. User bubbles are
-`inline-flex` + `w-fit`, wrap at `min(80%, 36rem)` of the full-width transcript
-row, and keep the hover timestamp on that hug cluster (not a `w-full` wrapper).
-Assistant bubbles are `inline-block` + `w-fit` with `max-w-full` so short
-replies hug and code/tables can still use the column. The 80% class is a
-static Tailwind candidate — interpolating it drops the utility from the
-bundle and every bubble paints full-bleed. HUD mode keeps both fills
-transparent.
+`1.25rem` so `--radius-scalar` cannot flatten them. Both voices may hug short
+text (`w-fit`) but the load-bearing rule is the pane-resize contract: every
+bubble stays inside the conversation column (`min-w-0 max-w-full
+wrap-anywhere` on the paint and on flex/grid ancestors). Long URLs and words
+wrap; horizontal scroll lives only inside code blocks and tables. An 80% /
+36rem cap is gone — it clipped unbreakable chrome when a side pane narrowed
+the column. The hover timestamp rides the user hug cluster. HUD mode keeps
+both fills transparent.
 Clipping follows the pinned prompt and its live height without changing layout,
 so glass and message-bubble transparency do not reveal scrolling text.
 

@@ -1,64 +1,49 @@
 /**
  * Shared Grok-style chat bubble geometry and fills.
  *
- * User bubbles sit on the right, agent bubbles on the left. Both shrink to
- * their text instead of painting a full-bleed slab.
+ * User bubbles sit on the right, agent bubbles on the left. Short phrases
+ * may hug (`w-fit`); that is secondary. The load-bearing rule is James's
+ * pane-resize contract: when the conversation column shrinks, every bubble
+ * (user, assistant, code, table, tool card, long URL) must still fit. Text
+ * is never clipped or hidden behind overflow. Horizontal scroll is allowed
+ * only inside code blocks and tables.
  *
- * Radius is a literal rem, not `rounded-xl`. `--radius-xl` is
- * `--radius-scalar * 1rem` (3.2px at the default 0.2 scalar, 9.6px under
- * Dragon's 0.6) so `rounded-xl` reads as square. 1.25rem (20px) is the Grok
- * Bot corner James approved.
+ * The clip guard is a static Tailwind candidate — `min-w-0 max-w-full
+ * wrap-anywhere`. `min-w-0` lets flex/grid parents shrink below max-content
+ * (the default `min-width: auto` is what clips when a side pane narrows the
+ * column). `max-w-full` caps at the conversation row. `wrap-anywhere` breaks
+ * long tokens. Do not interpolate these classes; Tailwind v4 will not emit
+ * the utility and the bubble overflows the column.
  *
- * Fills are the two Grok graphite values, not theme mixes: the user token
- * used to ride `--ui-chat-bubble-background`, which dark-mixes `#2f2f2f`
- * 46% into `#161618` and lands on the same gray as `--dt-muted` (`#1b1b1b`).
- *
- * Width: `inline-flex` / `inline-block` + `w-fit` so a short phrase hugs on
- * one line. User bubbles wrap after `min(80% of the conversation row, 36rem)`.
- * Assistant bubbles may grow to the full column so code/tables stay readable.
- *
- * The percentage MUST resolve against a definite-width ancestor — the
- * full-width transcript row (`CHAT_BUBBLE_ROW_CLASS`) — and the class string
- * MUST be a static Tailwind candidate. Interpolating `min(${percent}%,…)`
- * hides the utility from the scanner, so the cap never ships and `w-max` on
- * a block-level flex item with `w-full` children takes the whole column.
- *
- * Nesting the percentage cap inside another hug box is cyclic (the #57
- * wrap-too-early bug). Put the cap on the outermost hug box that is a child
- * of the row; inner painted surfaces use `CHAT_BUBBLE_HUG_CLASS`.
+ * An 80% / 36rem wrap cap is intentionally gone. It wraps prose early, but
+ * unbreakable chrome (fences, tables, URLs) wider than that cap overflows
+ * and gets clipped by the transcript's `overflow-x-hidden`.
  */
 
-/** Share of the transcript row a user bubble may occupy before wrapping. */
-export const CHAT_BUBBLE_MAX_COLUMN_PERCENT = 80
-
-/** Absolute wrap cap so ultrawide windows stay readable. */
-export const CHAT_BUBBLE_MAX_WIDTH_REM = 36
-
-/** Full-width alignment row. Gives the 80% cap a definite containing block. */
+/** Full-width alignment row. Definite containing block; can shrink. */
 export const CHAT_BUBBLE_ROW_CLASS = 'w-full min-w-0 max-w-full'
 
-/** Shrink-wrap only. Safe to nest; no percentage cap. */
-export const CHAT_BUBBLE_HUG_CLASS = 'inline-flex w-fit'
-
 /**
- * User/cluster: hug text, wrap at 80% of a definite-width row (or 36rem).
- * Static string — Tailwind v4 will not emit an interpolated arbitrary value.
+ * Never exceed the conversation column. Safe on the painted bubble and on
+ * every flex/grid ancestor that sizes from content.
  */
-export const CHAT_BUBBLE_WIDTH_CLASS = 'inline-flex w-fit max-w-[min(80%,36rem)]'
+export const CHAT_BUBBLE_CLIP_GUARD_CLASS = 'min-w-0 max-w-full wrap-anywhere'
 
-/** Assistant: hug short replies; grow for code/tables up to the column. */
-export const ASSISTANT_CHAT_BUBBLE_WIDTH_CLASS = 'inline-block w-fit max-w-full'
+/** Shrink-wrap short text without dropping the clip guard. */
+export const CHAT_BUBBLE_HUG_CLASS = `inline-flex w-fit ${CHAT_BUBBLE_CLIP_GUARD_CLASS}`
+
+/** User/cluster: hug when it fits; always bounded by the column. */
+export const CHAT_BUBBLE_WIDTH_CLASS = CHAT_BUBBLE_HUG_CLASS
+
+/** Assistant: same bound; `inline-block` so markdown/code/tables can grow. */
+export const ASSISTANT_CHAT_BUBBLE_WIDTH_CLASS = `inline-block w-fit ${CHAT_BUBBLE_CLIP_GUARD_CLASS}`
 
 /** Visible Grok-style corner. Must not go through `--radius-*` / `--radius-scalar`. */
 export const CHAT_BUBBLE_RADIUS_CLASS = 'rounded-[1.25rem]'
 
-const COLUMN_CAP_RE = new RegExp(
-  String.raw`max-w-\[min\(${CHAT_BUBBLE_MAX_COLUMN_PERCENT}%,${CHAT_BUBBLE_MAX_WIDTH_REM}rem\)\]`
-)
-
-/** True when a class list applies the conversation-row percentage cap. */
-export function hasChatBubbleColumnCap(className: string): boolean {
-  return COLUMN_CAP_RE.test(className)
+/** True when a class list cannot overflow its containing block. */
+export function hasChatBubbleClipGuard(className: string): boolean {
+  return /\bmin-w-0\b/.test(className) && /\bmax-w-full\b/.test(className) && /\bwrap-anywhere\b/.test(className)
 }
 
 /** True when a class list shrink-wraps instead of taking the row's width. */
@@ -74,35 +59,37 @@ export type ChatBubbleRole = 'assistant' | 'user'
 
 /**
  * Used width of a painted bubble given the conversation column and the
- * content's max-content width (unwrapped text, a code card, a table).
+ * content's preferred width (unwrapped text, a code card, a table, a URL).
  *
- * User bubbles never occupy the full column unless the text itself is that
- * wide: they cap at `min(80% of the column, 36rem)`. Assistant bubbles may
- * grow to the full column so code blocks and tables stay readable, but a
- * short reply still reports only its content width.
+ * The used width is never larger than the column — that is the pane-resize
+ * invariant. Short content may still hug. Unbreakable content that would
+ * overflow is treated as wrapping (or scrolling inside a code/table card)
+ * down to the column, not as spilling past it.
  *
  * CSS is the runtime; this is the numeric twin the width tests measure
  * (jsdom has no layout). Keep it in lockstep with the static class strings.
  */
 export function measureChatBubbleWidth({
-  role,
   columnWidthPx,
-  contentWidthPx,
-  remPx = 16
+  contentWidthPx
 }: {
-  role: ChatBubbleRole
+  role?: ChatBubbleRole
   columnWidthPx: number
   contentWidthPx: number
-  remPx?: number
 }): number {
   if (columnWidthPx <= 0) {
     return 0
   }
 
-  const cap =
-    role === 'assistant'
-      ? columnWidthPx
-      : Math.min((columnWidthPx * CHAT_BUBBLE_MAX_COLUMN_PERCENT) / 100, CHAT_BUBBLE_MAX_WIDTH_REM * remPx)
+  return Math.min(Math.max(contentWidthPx, 0), columnWidthPx)
+}
 
-  return Math.min(Math.max(contentWidthPx, 0), cap)
+/** Pixels of bubble that would paint past the conversation column. */
+export function measureChatBubbleOverflow(args: {
+  role?: ChatBubbleRole
+  columnWidthPx: number
+  contentWidthPx: number
+}): number {
+  const used = measureChatBubbleWidth(args)
+  return Math.max(0, used - Math.max(args.columnWidthPx, 0))
 }

@@ -309,7 +309,7 @@ const AssistantMessageBody: FC<AssistantMessageProps & { collapsedNotice?: null 
         <>
           <div
             className={cn(
-              'composer-assistant-message wrap-anywhere min-w-0 overflow-hidden border border-(--ui-stroke-tertiary) bg-(--dt-assistant-bubble) text-pretty text-[length:var(--conversation-text-font-size)] leading-(--dt-line-height) text-foreground',
+              'composer-assistant-message border border-(--ui-stroke-tertiary) bg-(--dt-assistant-bubble) text-pretty text-[length:var(--conversation-text-font-size)] leading-(--dt-line-height) text-foreground',
               CHAT_BUBBLE_RADIUS_CLASS,
               ASSISTANT_CHAT_BUBBLE_WIDTH_CLASS
             )}
