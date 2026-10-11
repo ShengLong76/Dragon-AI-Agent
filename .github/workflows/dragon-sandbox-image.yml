@@ -4,6 +4,11 @@ name: Dragon sandbox desktop image
 # ghcr.io/shenglong76/dragon-sandbox:desktop from the same Dockerfile as
 # the upstream desktop sandbox (no agent code). The runtime falls back to
 # nousresearch/hermes-sandbox:desktop and retags locally when GHCR is empty.
+#
+# After the first successful publish, set the GHCR package visibility to
+# public (GitHub → Packages → dragon-sandbox → Package settings). A private
+# package is indistinguishable from a missing one: `docker pull` returns
+# "pull access denied", which the runtime treats as fallthrough.
 
 on:
   push:
@@ -12,11 +17,13 @@ on:
       - docker/sandbox-desktop.Dockerfile
       - docker/sandbox-desktop-smoke.sh
       - .github/workflows/dragon-sandbox-image.yml
+      - tools/environments/sandbox_image.py
   pull_request:
     paths:
       - docker/sandbox-desktop.Dockerfile
       - docker/sandbox-desktop-smoke.sh
       - .github/workflows/dragon-sandbox-image.yml
+      - tools/environments/sandbox_image.py
   workflow_dispatch:
     inputs:
       publish:

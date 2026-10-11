@@ -9,6 +9,11 @@ image and retag it locally so the pane keeps working.
 Never ``docker pull dragon-sandbox:desktop``: that name is a local-only tag
 with no Docker Hub repo, and Hub answers ``pull access denied``. Check local
 existence first, then GHCR, then upstream + ``docker tag``.
+
+Every ``docker run`` of an alias tag — cgroup probe included — must go through
+``resolve_sandbox_image`` / ``ensure_sandbox_image``. A bare
+``docker run dragon-sandbox:desktop`` auto-pulls ``library/dragon-sandbox``
+and never looks at a locally present upstream image.
 """
 from __future__ import annotations
 
@@ -136,6 +141,51 @@ def _retag(run_capture, docker_exe: str, source: str, dest: str) -> bool:
         return False
 
 
+class SandboxImageError(RuntimeError):
+    """The sandbox image is not local and no fallback produced it.
+
+    Subclasses RuntimeError so existing ``except RuntimeError`` handlers (display.start,
+    bot-desktop start) still surface the message in the Computer pane.
+    """
+
+
+def unavailable_sandbox_image_message(desired: str = DEFAULT_SANDBOX_IMAGE) -> str:
+    """Operator-facing text when every local/GHCR/upstream fallback failed."""
+    return (
+        f"Bot Desktop cannot start: sandbox image {desired!r} is not available locally "
+        f"and every fallback failed. {desired} is a local-only tag (not on Docker Hub), "
+        f"so `docker pull {desired}` is expected to fail with 'pull access denied'. "
+        f"Dragon already tried: (1) a local {desired} tag, "
+        f"(2) retag a locally present {UPSTREAM_SANDBOX_IMAGE} or {PUBLISHED_SANDBOX_IMAGE}, "
+        f"(3) pull {PUBLISHED_SANDBOX_IMAGE}, "
+        f"(4) pull {UPSTREAM_SANDBOX_IMAGE} and retag. "
+        f"Fix: `docker pull {UPSTREAM_SANDBOX_IMAGE}` then retry Start screen, "
+        f"or check that Docker Desktop is running and can reach ghcr.io / Docker Hub."
+    )
+
+
+def resolve_sandbox_image(
+    docker_exe: str,
+    image: str,
+    *,
+    run_capture,
+    pinned: bool = False,
+    pull_candidates: Optional[Iterable[str]] = None,
+) -> str:
+    """Return a locally-available name for *image*.
+
+    Alias tags (``dragon-sandbox:desktop`` / GHCR / upstream) go through
+    :func:`ensure_sandbox_image`. Any other pin is returned unchanged so a
+    custom ``terminal.docker_image`` is not rewritten.
+    """
+    if image not in SANDBOX_IMAGE_ALIASES:
+        return image
+    desired = image if pinned else DEFAULT_SANDBOX_IMAGE
+    return ensure_sandbox_image(
+        docker_exe, desired, run_capture=run_capture, pull_candidates=pull_candidates,
+    )
+
+
 def ensure_sandbox_image(
     docker_exe: str,
     desired: str = DEFAULT_SANDBOX_IMAGE,
@@ -145,30 +195,42 @@ def ensure_sandbox_image(
 ) -> str:
     """Return a locally-available image name for *desired*.
 
-    Order: ``docker image inspect`` *desired* → (registry refs only) pull
-    *desired* → inspect/pull each published/upstream candidate and ``docker tag``
-    as *desired*. Local-only tags are never pulled. ``pull access denied`` and
-    ``not found`` fall through to the next candidate. Raises RuntimeError only
-    when nothing can be made local; callers that must keep an existing
-    container should catch that.
+    Order: ``docker image inspect`` *desired* → retag a locally present
+    published/upstream candidate → (registry refs only) pull *desired* →
+    inspect/pull each published/upstream candidate and ``docker tag`` as
+    *desired*. Local-only tags are never pulled. ``pull access denied`` and
+    ``not found`` fall through to the next candidate. Raises
+    :class:`SandboxImageError` only when nothing can be made local; callers
+    that must keep an existing container should catch that.
     """
     if _inspect_image(run_capture, docker_exe, desired):
         return desired
-    if is_registry_ref(desired) and _pull_image(run_capture, docker_exe, desired) and _inspect_image(
-        run_capture, docker_exe, desired
-    ):
-        return desired
+    # Prefer a locally present upstream/GHCR tag over any network pull. A
+    # Windows install that already has nousresearch/hermes-sandbox:desktop must
+    # retag it even when GHCR is empty or denied.
     candidates = list(pull_candidates or (PUBLISHED_SANDBOX_IMAGE, UPSTREAM_SANDBOX_IMAGE))
     for candidate in candidates:
         if candidate == desired:
             continue
-        available = _inspect_image(run_capture, docker_exe, candidate)
-        if not available:
-            available = _pull_image(run_capture, docker_exe, candidate) and _inspect_image(
-                run_capture, docker_exe, candidate)
+        if _inspect_image(run_capture, docker_exe, candidate) and _retag(
+            run_capture, docker_exe, candidate, desired
+        ):
+            logger.info("Docker: tagged local %s as %s (sandbox fallback)", candidate, desired)
+            return desired
+    if is_registry_ref(desired) and _pull_image(run_capture, docker_exe, desired) and _inspect_image(
+        run_capture, docker_exe, desired
+    ):
+        return desired
+    for candidate in candidates:
+        if candidate == desired:
+            continue
+        if _inspect_image(run_capture, docker_exe, candidate):
+            continue
+        available = _pull_image(run_capture, docker_exe, candidate) and _inspect_image(
+            run_capture, docker_exe, candidate)
         if not available:
             continue
         if _retag(run_capture, docker_exe, candidate, desired):
             logger.info("Docker: tagged %s as %s (sandbox fallback)", candidate, desired)
             return desired
-    raise RuntimeError(f"sandbox image {desired} is not available locally and fallback pull failed")
+    raise SandboxImageError(unavailable_sandbox_image_message(desired))

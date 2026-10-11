@@ -11,6 +11,7 @@ from tools.environments.sandbox_image import (
     LEGACY_CONTAINER_NAME_PREFIX,
     PUBLISHED_SANDBOX_IMAGE,
     UPSTREAM_SANDBOX_IMAGE,
+    SandboxImageError,
     ensure_sandbox_image,
     fingerprint_alias_images,
     images_are_equivalent,
@@ -18,6 +19,8 @@ from tools.environments.sandbox_image import (
     is_pull_fallthrough,
     is_registry_ref,
     new_container_name,
+    resolve_sandbox_image,
+    unavailable_sandbox_image_message,
 )
 
 
@@ -182,7 +185,7 @@ def test_ensure_raises_when_everything_is_denied():
             UPSTREAM_SANDBOX_IMAGE: "Error: not found",
         },
     )
-    with pytest.raises(RuntimeError, match="fallback pull failed"):
+    with pytest.raises(SandboxImageError, match="every fallback failed"):
         ensure_sandbox_image("docker", run_capture=docker)
     assert DEFAULT_SANDBOX_IMAGE not in docker.local
     assert not any(cmd[1] == "pull" and cmd[2] == DEFAULT_SANDBOX_IMAGE for cmd in docker.calls)
@@ -190,5 +193,40 @@ def test_ensure_raises_when_everything_is_denied():
 
 def test_ensure_raises_when_nothing_can_be_pulled():
     docker = _FakeDocker(local=(), pull_ok=())
-    with pytest.raises(RuntimeError, match="fallback pull failed"):
+    with pytest.raises(SandboxImageError, match="every fallback failed"):
         ensure_sandbox_image("docker", run_capture=docker)
+
+
+def test_ensure_retags_local_upstream_before_any_network_pull():
+    """Windows repro: nousresearch/hermes-sandbox:desktop is already local.
+
+    A GHCR miss must not block the retag, and we must not pull the bare
+    dragon-sandbox tag (Hub answers access-denied).
+    """
+    docker = _FakeDocker(
+        local={UPSTREAM_SANDBOX_IMAGE},
+        pull_ok={PUBLISHED_SANDBOX_IMAGE, UPSTREAM_SANDBOX_IMAGE},
+    )
+    assert ensure_sandbox_image("docker", run_capture=docker) == DEFAULT_SANDBOX_IMAGE
+    assert not any(cmd[1] == "pull" for cmd in docker.calls)
+    tags = [cmd for cmd in docker.calls if cmd[1] == "tag"]
+    assert any(cmd[2] == UPSTREAM_SANDBOX_IMAGE and cmd[3] == DEFAULT_SANDBOX_IMAGE for cmd in tags)
+    assert DEFAULT_SANDBOX_IMAGE in docker.local
+
+
+def test_resolve_sandbox_image_rewrites_aliases_only():
+    docker = _FakeDocker(local={UPSTREAM_SANDBOX_IMAGE})
+    assert resolve_sandbox_image("docker", DEFAULT_SANDBOX_IMAGE, run_capture=docker) == DEFAULT_SANDBOX_IMAGE
+    assert resolve_sandbox_image("docker", UPSTREAM_SANDBOX_IMAGE, run_capture=docker) == DEFAULT_SANDBOX_IMAGE
+    assert resolve_sandbox_image("docker", "python:3.11", run_capture=docker) == "python:3.11"
+    assert DEFAULT_SANDBOX_IMAGE in docker.local
+
+
+def test_unavailable_message_names_every_fallback_and_the_hub_trap():
+    msg = unavailable_sandbox_image_message()
+    assert DEFAULT_SANDBOX_IMAGE in msg
+    assert PUBLISHED_SANDBOX_IMAGE in msg
+    assert UPSTREAM_SANDBOX_IMAGE in msg
+    assert "pull access denied" in msg
+    assert "not on Docker Hub" in msg
+    assert "docker pull" in msg
