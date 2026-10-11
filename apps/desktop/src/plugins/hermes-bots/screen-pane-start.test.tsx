@@ -118,7 +118,7 @@ it('shows the real sandbox-image error instead of a generic close', async () => 
   fireEvent.click(view.getByRole('button', { name: /Start screen/ }))
   await waitFor(() => expect(view.getByText(image)).toBeTruthy())
   expect(view.queryByText(/gateway connection closed/i)).toBeNull()
-  expect(view.getByRole('button', { name: /Start screen/ })).toBeEnabled()
+  expect((view.getByRole('button', { name: /Start screen/ }) as HTMLButtonElement).disabled).toBe(false)
   view.unmount()
 })
 
@@ -154,11 +154,11 @@ it('maps a heartbeat-closed start to docker/image copy and lets Start retry', as
   )
   expect(view.queryByText('Dragon AI gateway connection closed')).toBeNull()
 
-  const start = view.getByRole('button', { name: /Start screen/ })
-  expect(start).toBeEnabled()
+  const start = view.getByRole('button', { name: /Start screen/ }) as HTMLButtonElement
+  expect(start.disabled).toBe(false)
   fireEvent.click(start)
   await waitFor(() => expect(view.queryByText(/Docker may not be running/)).toBeNull())
   expect(vi.mocked(host.requestProfile).mock.calls.filter(([, method]) => method === 'display.start')).toHaveLength(2)
-  expect(view.getByRole('button', { name: /Start screen/ })).toBeEnabled()
+  expect((view.getByRole('button', { name: /Start screen/ }) as HTMLButtonElement).disabled).toBe(false)
   view.unmount()
 })
