@@ -88,10 +88,21 @@ describe('hub pick messages', () => {
     render(<HubSkillsSection />)
 
     expect(screen.getByText('HyperFrames — make videos from HTML')).toBeTruthy()
-    expect(screen.getByText(/Standalone skill/)).toBeTruthy()
-    expect(screen.getByText(/add to any bot/i)).toBeTruthy()
+    expect(screen.getAllByText(/Standalone skill/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/add to any bot/i).length).toBeGreaterThan(0)
     fireEvent.click(screen.getByRole('button', { name: '+ Add to this Agent: HyperFrames — make videos from HTML' }))
     expect(installCalls()).toEqual([['skills.manage', { action: 'install', query: 'heygen-com/hyperframes' }]])
+  })
+
+  it('pins standalone YouTube, RSS, and Web Reader one-click adds on every bot', () => {
+    render(<HubSkillsSection />)
+
+    expect(screen.getByText('YouTube — transcripts and search')).toBeTruthy()
+    expect(screen.getByText('RSS — read and summarize feeds')).toBeTruthy()
+    expect(screen.getByText('Web Reader — clean page text')).toBeTruthy()
+    expect(screen.getAllByText(/Agent-Reach/).length).toBeGreaterThan(0)
+    fireEvent.click(screen.getByRole('button', { name: '+ Add to this Agent: YouTube — transcripts and search' }))
+    expect(installCalls()).toEqual([['skills.manage', { action: 'install', query: 'dragon/youtube' }]])
   })
 
   it('embeds a Dragon-branded local catalog, not the Hermes docs site', () => {
@@ -104,6 +115,13 @@ describe('hub pick messages', () => {
     expect(page).toContain('HyperFrames — make videos from HTML')
     expect(page).toContain('heygen-com/hyperframes')
     expect(page).toContain('Apache-2.0')
+    expect(page).toContain('YouTube — transcripts and search')
+    expect(page).toContain('dragon/youtube')
+    expect(page).toContain('RSS — read and summarize feeds')
+    expect(page).toContain('dragon/rss')
+    expect(page).toContain('Web Reader — clean page text')
+    expect(page).toContain('dragon/web-reader')
+    expect(page).toContain('Agent-Reach')
     expect(page).not.toContain('Hermes Agent')
     expect(page).not.toContain('hermes-agent.nousresearch.com')
     expect(page).not.toContain('nousresearch.github.io')

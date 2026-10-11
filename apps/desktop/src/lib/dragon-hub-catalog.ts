@@ -33,8 +33,59 @@ export function isHyperFramesIdentifier(identifier: string): boolean {
   return key === HYPERFRAMES_IDENTIFIER || key === 'hyperframes' || key === 'hyperframes/hyperframes'
 }
 
-export const DRAGON_FEATURED_SKILLS: readonly HubCatalogSkill[] = [
+/** Bundled Dragon research helpers — Skills Hub one-click add + Marketing seats. */
+export const DRAGON_YOUTUBE_IDENTIFIER = 'dragon/youtube'
+export const DRAGON_RSS_IDENTIFIER = 'dragon/rss'
+export const DRAGON_WEB_READER_IDENTIFIER = 'dragon/web-reader'
+
+const AGENT_REACH_CREDIT =
+  'Inspired by Agent-Reach (MIT) — https://github.com/Panniantong/Agent-Reach. Dragon wrote these helpers; Agent-Reach is not bundled. No login, cookies, or browser profiles. Works on Windows.'
+
+export const DRAGON_YOUTUBE_HUB_SKILL: HubCatalogSkill = {
+  aliases: ['dragon-youtube', 'official/research/dragon-youtube'],
+  description: `Standalone skill — add to any bot on its own. Search YouTube and fetch public transcripts with yt-dlp. Separate from the Marketing team pack. Pins yt-dlp on install. ${AGENT_REACH_CREDIT}`,
+  identifier: DRAGON_YOUTUBE_IDENTIFIER,
+  name: 'YouTube — transcripts and search',
+  source: 'official'
+}
+
+export const DRAGON_RSS_HUB_SKILL: HubCatalogSkill = {
+  aliases: ['dragon-rss', 'official/research/dragon-rss'],
+  description: `Standalone skill — add to any bot on its own. Read and summarize public RSS/Atom feeds with feedparser. Separate from the Marketing team pack. Pins feedparser on install. ${AGENT_REACH_CREDIT}`,
+  identifier: DRAGON_RSS_IDENTIFIER,
+  name: 'RSS — read and summarize feeds',
+  source: 'official'
+}
+
+export const DRAGON_WEB_READER_HUB_SKILL: HubCatalogSkill = {
+  aliases: ['dragon-web-reader', 'official/research/dragon-web-reader'],
+  description: `Standalone skill — add to any bot on its own. Read a web page as clean text via Jina Reader (r.jina.ai) with a plain-fetch fallback. ${AGENT_REACH_CREDIT}`,
+  identifier: DRAGON_WEB_READER_IDENTIFIER,
+  name: 'Web Reader — clean page text',
+  source: 'official'
+}
+
+export const DRAGON_STANDALONE_HUB_SKILLS: readonly HubCatalogSkill[] = [
   HYPERFRAMES_HUB_SKILL,
+  DRAGON_YOUTUBE_HUB_SKILL,
+  DRAGON_RSS_HUB_SKILL,
+  DRAGON_WEB_READER_HUB_SKILL
+]
+
+const DRAGON_HUB_ID_SET = new Set(
+  DRAGON_STANDALONE_HUB_SKILLS.flatMap(skill => [
+    skill.identifier,
+    skill.name,
+    ...(skill.aliases ?? [])
+  ]).map(key => key.toLowerCase())
+)
+
+export function isDragonHubIdentifier(identifier: string): boolean {
+  return DRAGON_HUB_ID_SET.has(identifier.trim().toLowerCase().replace(/\/+$/, ''))
+}
+
+export const DRAGON_FEATURED_SKILLS: readonly HubCatalogSkill[] = [
+  ...DRAGON_STANDALONE_HUB_SKILLS,
   {
     description: 'Use, configure, theme, extend, and orchestrate Dragon AI.',
     identifier: 'dragon-agent',

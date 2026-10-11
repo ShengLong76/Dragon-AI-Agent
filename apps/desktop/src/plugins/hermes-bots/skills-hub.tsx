@@ -8,7 +8,7 @@
 import { Button, Codicon, host, Input, useI18n } from '@hermes/plugin-sdk'
 import { useEffect, useRef, useState } from 'react'
 
-import { ADD_TO_AGENT_LABEL, DRAGON_FEATURED_SKILLS, HYPERFRAMES_HUB_SKILL } from '@/lib/dragon-hub-catalog'
+import { ADD_TO_AGENT_LABEL, DRAGON_FEATURED_SKILLS, DRAGON_STANDALONE_HUB_SKILLS } from '@/lib/dragon-hub-catalog'
 
 import { useBots } from './i18n'
 import { requestForBot } from './routing'
@@ -211,31 +211,33 @@ export function HubSkillsSection({ bot, onInstalled }: HubSkillsSectionProps) {
           {browseHub ? h.pickerHide : h.pickerBrowse}
         </Button>
       </div>
-      <div className="flex items-center gap-2 rounded-lg border border-(--ui-stroke-secondary) px-2.5 py-2">
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-[0.75rem] font-medium">{HYPERFRAMES_HUB_SKILL.name}</div>
-          <div className="line-clamp-2 text-[0.65rem] leading-4 text-(--ui-text-quaternary)">
-            {HYPERFRAMES_HUB_SKILL.description}
+      {DRAGON_STANDALONE_HUB_SKILLS.map(skill => (
+        <div className="flex items-center gap-2 rounded-lg border border-(--ui-stroke-secondary) px-2.5 py-2" key={skill.identifier}>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[0.75rem] font-medium">{skill.name}</div>
+            <div className="line-clamp-2 text-[0.65rem] leading-4 text-(--ui-text-quaternary)">
+              {skill.description}
+            </div>
           </div>
+          {installed[skill.name] || installed[skill.identifier] ? (
+            <span className="flex shrink-0 items-center gap-0.5 text-[0.65rem] text-(--ui-text-tertiary)">
+              <Codicon name="check" size="0.65rem" />
+              {h.installed}
+            </span>
+          ) : (
+            <Button
+              aria-label={`${ADD_TO_AGENT_LABEL}: ${skill.name}`}
+              className="shrink-0 px-2 font-semibold"
+              disabled={installing !== null}
+              onClick={() => void install(skill.identifier, skill.name)}
+              size="sm"
+              variant="secondary"
+            >
+              {installing === skill.name ? '…' : ADD_TO_AGENT_LABEL}
+            </Button>
+          )}
         </div>
-        {installed[HYPERFRAMES_HUB_SKILL.name] || installed[HYPERFRAMES_HUB_SKILL.identifier] ? (
-          <span className="flex shrink-0 items-center gap-0.5 text-[0.65rem] text-(--ui-text-tertiary)">
-            <Codicon name="check" size="0.65rem" />
-            {h.installed}
-          </span>
-        ) : (
-          <Button
-            aria-label={`${ADD_TO_AGENT_LABEL}: ${HYPERFRAMES_HUB_SKILL.name}`}
-            className="shrink-0 px-2 font-semibold"
-            disabled={installing !== null}
-            onClick={() => void install(HYPERFRAMES_HUB_SKILL.identifier, HYPERFRAMES_HUB_SKILL.name)}
-            size="sm"
-            variant="secondary"
-          >
-            {installing === HYPERFRAMES_HUB_SKILL.name ? '…' : ADD_TO_AGENT_LABEL}
-          </Button>
-        )}
-      </div>
+      ))}
       {browseHub ? (
         <div className="grid gap-1">
           {/* Resizable viewport: native CSS resize handle (bottom-right */
