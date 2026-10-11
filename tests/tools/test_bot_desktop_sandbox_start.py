@@ -115,6 +115,23 @@ def test_start_in_sandbox_surfaces_sandbox_image_error(monkeypatch, isolated_hom
     assert "pull access denied" in str(ei.value)
 
 
+def test_start_in_sandbox_surfaces_docker_daemon_error(monkeypatch, isolated_home):
+    """Docker-not-running must reach the Computer pane, not become a generic close."""
+    from tools.bot_desktop import runtime
+    from tools.environments.base import EnvironmentConnectionError
+
+    def _boom(*, create):
+        raise EnvironmentConnectionError(
+            "Docker daemon is not responding. Ensure Docker is running and try again.",
+            retry_hint="Start Docker Desktop, then retry.",
+        )
+
+    monkeypatch.setattr(runtime, "_sandbox_env", _boom)
+    with pytest.raises(EnvironmentConnectionError, match="Docker daemon is not responding") as ei:
+        runtime._start_in_sandbox(1.0)
+    assert "Start Docker Desktop" in ei.value.retry_hint
+
+
 def test_stop_clears_the_sandbox_display_lock(monkeypatch, isolated_home):
     env = _FakeDocker()
     cleared: list[int] = []

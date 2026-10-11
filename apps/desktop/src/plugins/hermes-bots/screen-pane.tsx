@@ -20,6 +20,7 @@ import { useBots } from './i18n'
 import {
   type DisplayLease,
   type DisplayObserveResult,
+  DISPLAY_START_REQUEST_TIMEOUT_MS,
   displayRequest,
   type DisplayStatus,
   isDisplayUnavailable,
@@ -343,18 +344,22 @@ export function BotScreenPane({ bot }: { bot: RosterRow }) {
 
   const start = useCallback(async () => {
     setBusy(true)
+    setError(null)
 
     try {
-      const next = await displayRequest<DisplayStatus>(bot, 'display.start')
+      const next = await displayRequest<DisplayStatus>(bot, 'display.start', {}, DISPLAY_START_REQUEST_TIMEOUT_MS)
       setScreenStatus(bot, next)
       setConn('idle')
+      setError(null)
     } catch (err) {
       const raw = err instanceof Error ? err.message : String(err)
-      setError(friendlyScreenStartError(raw, t.screen.startFailedLeftoverDisplay))
+      setError(
+        friendlyScreenStartError(raw, t.screen.startFailedLeftoverDisplay, t.screen.startFailedCheckDocker)
+      )
     } finally {
       setBusy(false)
     }
-  }, [bot, t.screen.startFailedLeftoverDisplay])
+  }, [bot, t.screen.startFailedCheckDocker, t.screen.startFailedLeftoverDisplay])
 
   // The pending default-image switch: both answers pin an image server-side, so the card
   // disappears after either; approve leaves the container to be recreated on next terminal use.

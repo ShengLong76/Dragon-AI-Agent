@@ -266,3 +266,25 @@ def test_switch_sandbox_image_decides_only_a_pending_switch(monkeypatch, tmp_pat
     assert decided == [(switch, False)]
     assert resp["result"]["docker_image"] == "nousresearch/hermes-sandbox:desktop"
     assert resp["result"]["running"] is False and "lease" in resp["result"]
+
+
+def test_start_returns_the_docker_daemon_error_not_a_generic_close(monkeypatch):
+    """The Computer pane paints error.message. A Docker-down start must name
+    Docker, not hide behind a closed-socket string."""
+    import tui_gateway.server as server
+    from tools.bot_desktop import runtime
+    from tools.environments.base import EnvironmentConnectionError
+
+    def _boom():
+        raise EnvironmentConnectionError(
+            "Docker daemon is not responding. Ensure Docker is running and try again.",
+            retry_hint="Start Docker Desktop, then retry.",
+        )
+
+    monkeypatch.setattr(runtime, "start", _boom)
+    resp = _call(server, "display.start", {})
+    assert "error" in resp
+    msg = resp["error"]["message"]
+    assert "Docker daemon is not responding" in msg
+    assert "Start Docker Desktop" in msg
+    assert "connection closed" not in msg.lower()

@@ -417,6 +417,7 @@ type BotsMessages = {
     imageSwitchKeep: string
     start: string
     startFailedLeftoverDisplay: string
+    startFailedCheckDocker: string
     attaching: string
     streamLost: string
     reconnect: string
@@ -877,6 +878,8 @@ const en: BotsMessages = {
     start: 'Start screen',
     startFailedLeftoverDisplay:
       'The sandbox screen could not start. A leftover display from a previous run was still in the container — click Start screen again.',
+    startFailedCheckDocker:
+      'The screen did not start. Docker may not be running, or the sandbox image is missing. Start Docker Desktop (or run `docker pull nousresearch/hermes-sandbox:desktop`), then click Start screen again.',
     attaching: 'Connecting to the screen\u2026',
     streamLost: 'Screen stream ended',
     reconnect: 'Reconnect',
@@ -1336,6 +1339,8 @@ const ja: BotsMessages = {
     start: '画面を起動',
     startFailedLeftoverDisplay:
       'サンドボックスの画面を起動できませんでした。前回の実行のディスプレイロックがコンテナに残っていました。もう一度「画面を起動」をクリックしてください。',
+    startFailedCheckDocker:
+      '画面を起動できませんでした。Docker が起動していないか、サンドボックスイメージがありません。Docker Desktop を起動する（または `docker pull nousresearch/hermes-sandbox:desktop` を実行する）してから、もう一度「画面を起動」をクリックしてください。',
     attaching: '画面に接続中…',
     streamLost: '画面ストリームが終了しました',
     reconnect: '再接続',
@@ -1780,6 +1785,8 @@ const zh: BotsMessages = {
     start: '启动屏幕',
     startFailedLeftoverDisplay:
       '无法启动沙箱屏幕。上次运行留下的显示锁仍在容器中 — 请再次点击“启动屏幕”。',
+    startFailedCheckDocker:
+      '无法启动屏幕。Docker 可能未运行，或缺少沙箱镜像。请启动 Docker Desktop（或运行 `docker pull nousresearch/hermes-sandbox:desktop`），然后再次点击“启动屏幕”。',
     attaching: '正在连接屏幕…',
     streamLost: '屏幕流已结束',
     reconnect: '重新连接',
@@ -2224,6 +2231,8 @@ const zhHant: BotsMessages = {
     start: '啟動螢幕',
     startFailedLeftoverDisplay:
       '無法啟動沙箱螢幕。上次執行留下的顯示鎖定仍在容器中 — 請再按一次「啟動螢幕」。',
+    startFailedCheckDocker:
+      '無法啟動螢幕。Docker 可能未在執行，或缺少沙箱映像。請啟動 Docker Desktop（或執行 `docker pull nousresearch/hermes-sandbox:desktop`），然後再按一次「啟動螢幕」。',
     attaching: '正在連線至螢幕…',
     streamLost: '螢幕串流已結束',
     reconnect: '重新連線',

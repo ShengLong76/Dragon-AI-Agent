@@ -119,7 +119,18 @@ export function isEventForBotScreen(bot: RosterRow, event: RpcEvent, profileKey:
   return expected === actual || (expected === 'local' && actual === null)
 }
 
-export function displayRequest<T>(bot: RosterRow, method: string, params: Record<string, unknown> = {}): Promise<T> {
+/** `display.start` may pull a sandbox image (docker pull timeout 900s) then
+ *  `docker run` (120s). The generic 30s RPC deadline would otherwise surface
+ *  as "request timed out" / a dropped heartbeat ("Dragon AI gateway
+ *  connection closed") and hide the real image/docker error. */
+export const DISPLAY_START_REQUEST_TIMEOUT_MS = 1_050_000
+
+export function displayRequest<T>(
+  bot: RosterRow,
+  method: string,
+  params: Record<string, unknown> = {},
+  timeoutMs?: number
+): Promise<T> {
   const route = botScreenRoute(bot)
 
   if (route === null) {
@@ -134,8 +145,13 @@ export function displayRequest<T>(bot: RosterRow, method: string, params: Record
   // param never overrides it. (Inline `targetProfile || profile` like the other
   // call sites, so partial `./routing` mocks keep working.)
   const profile = typeof route === 'string' ? route : route.targetProfile || route.profile
+  const scoped = { ...params, profile }
 
-  return host.requestProfile<T>(route, method, { ...params, profile })
+  // Keep the three-argument shape when no deadline is set so older desktop
+  // shells (and the arity-pinning tests) see the same call.
+  return timeoutMs === undefined
+    ? host.requestProfile<T>(route, method, scoped)
+    : host.requestProfile<T>(route, method, scoped, timeoutMs)
 }
 
 /**

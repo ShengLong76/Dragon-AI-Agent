@@ -46,7 +46,12 @@ vi.mock('./routing', async importOriginal => {
 
 import { host, resolveSiblingWsUrl } from '@hermes/plugin-sdk'
 
-import { displayRequest, isEventForBotScreen, resolveScreenWsUrl } from './screen-connection'
+import {
+  DISPLAY_START_REQUEST_TIMEOUT_MS,
+  displayRequest,
+  isEventForBotScreen,
+  resolveScreenWsUrl
+} from './screen-connection'
 
 const bot = { name: 'ops' } as RosterRow
 const orphan = { name: 'ops', remoteSource: true } as RosterRow
@@ -114,6 +119,21 @@ describe('displayRequest', () => {
       expect.objectContaining({ connectionId: 'conn-b', profile: 'home-ops' }),
       'display.observe',
       { viewer_id: 'v1', profile: 'home-ops' }
+    )
+  })
+
+  it('gives display.start a pull-length deadline so a docker block is not a 30s close', async () => {
+    routeMock.mockReturnValue({ connectionId: 'conn-b', profile: 'home-ops' })
+    vi.mocked(host.requestProfile).mockResolvedValue({})
+
+    await displayRequest({ name: 'home-ops' } as RosterRow, 'display.start', {}, DISPLAY_START_REQUEST_TIMEOUT_MS)
+
+    expect(DISPLAY_START_REQUEST_TIMEOUT_MS).toBeGreaterThan(30_000)
+    expect(host.requestProfile).toHaveBeenCalledWith(
+      expect.objectContaining({ connectionId: 'conn-b', profile: 'home-ops' }),
+      'display.start',
+      { profile: 'home-ops' },
+      DISPLAY_START_REQUEST_TIMEOUT_MS
     )
   })
 })
