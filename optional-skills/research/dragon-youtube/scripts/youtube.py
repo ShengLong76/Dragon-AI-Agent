@@ -163,6 +163,8 @@ def _run_text(argv: Sequence[str], timeout: float) -> str:
         list(argv),
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=timeout,
         check=False,
     )
@@ -201,7 +203,7 @@ def fetch_transcript(
     vtt_files = sorted(dest.glob("*.vtt"))
     if not vtt_files:
         raise RuntimeError("no public captions found for this video")
-    text = vtt_to_text(vtt_files[0].read_text(encoding="utf-8", errors="replace"))
+    text = vtt_to_text(vtt_files[0].read_text(encoding="utf-8-sig", errors="replace"))
     return {
         "video_id": video_id,
         "language": languages,

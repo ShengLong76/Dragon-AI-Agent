@@ -48,6 +48,13 @@ def test_bundled_folders_are_local_and_have_helpers():
         assert "https://" not in str(src)
 
 
+def test_read_pinned_requirements_tolerates_utf8_bom(tmp_path):
+    skill_dir = tmp_path / "skill"
+    skill_dir.mkdir()
+    (skill_dir / "requirements.txt").write_bytes(b"\xef\xbb\xbfyt-dlp>=2025.1.26,<2027\n")
+    assert read_pinned_requirements(skill_dir) == [YOUTUBE_REQUIREMENT]
+
+
 def test_pins_are_bounded_and_match_requirements_files():
     youtube = resolve_dragon_hub_skill(YOUTUBE_IDENTIFIER)
     rss = resolve_dragon_hub_skill(RSS_IDENTIFIER)
@@ -99,7 +106,7 @@ def test_install_copies_local_files_and_pins_deps(tmp_path):
     dest = dest_root / "dragon-youtube"
     assert (dest / "SKILL.md").is_file()
     assert (dest / "scripts" / "youtube.py").is_file()
-    assert (dest / ".helper-python").read_text(encoding="utf-8").endswith("python")
+    assert (dest / ".helper-python").read_text(encoding="utf-8-sig").endswith("python")
     assert seen == [("dragon-youtube", (YOUTUBE_REQUIREMENT,), helper_root)]
     log = sink.file.getvalue()
     assert "Agent-Reach" in log

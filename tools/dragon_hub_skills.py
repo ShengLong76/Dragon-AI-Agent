@@ -114,7 +114,7 @@ def read_pinned_requirements(skill_dir: Path) -> list[str]:
     if not req.is_file():
         return []
     pins: list[str] = []
-    for raw in req.read_text(encoding="utf-8").splitlines():
+    for raw in req.read_text(encoding="utf-8-sig").splitlines():
         line = raw.split("#", 1)[0].strip()
         if line:
             pins.append(line)
@@ -203,7 +203,14 @@ def _venv_pip_install(name: str, requirements: Sequence[str], root: Path) -> Pat
     venv.create(dest, with_pip=True)
     python = dest / "Scripts" / "python.exe" if sys.platform == "win32" else dest / "bin" / "python"
     cmd = [str(python), "-m", "pip", "install", "--disable-pip-version-check", *requirements]
-    completed = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    completed = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
     if completed.returncode != 0:
         raise RuntimeError((completed.stderr or completed.stdout or "pip install failed").strip())
     return python
