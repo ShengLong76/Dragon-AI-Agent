@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { HYPERFRAMES_IDENTIFIER } from '@/lib/dragon-hub-catalog'
+import { DRAGON_RSS_IDENTIFIER, DRAGON_YOUTUBE_IDENTIFIER, HYPERFRAMES_IDENTIFIER } from '@/lib/dragon-hub-catalog'
 
 import {
   seatProfileName,
@@ -90,6 +90,8 @@ describe('Marketing team pack', () => {
     expect(team.name).toBe('Marketing')
     expect(team.category).toBe('Marketing')
     expect(team.skills).toContain(HYPERFRAMES_IDENTIFIER)
+    expect(team.skills).toContain(DRAGON_YOUTUBE_IDENTIFIER)
+    expect(team.skills).toContain(DRAGON_RSS_IDENTIFIER)
     expect(team.seats.map(seat => seat.title)).toEqual([
       'Marketing Lead',
       'Content Writer',
@@ -111,6 +113,21 @@ describe('Marketing team pack', () => {
     expect(video?.skills).toEqual([HYPERFRAMES_IDENTIFIER])
     expect(plan.filter(row => row.skills.includes(HYPERFRAMES_IDENTIFIER)).map(row => row.title)).toEqual([
       'Video Producer'
+    ])
+  })
+
+  it('installs YouTube and RSS on Content Writer and Social Media Manager', () => {
+    const team = marketingTeam()
+    const writer = team.seats.find(seat => seat.slug === 'writer')
+    const social = team.seats.find(seat => seat.slug === 'social')
+    const plan = teamInstallPlan(team)
+
+    expect(seatSkillIdentifiers(writer as TeamSeat)).toEqual([DRAGON_YOUTUBE_IDENTIFIER, DRAGON_RSS_IDENTIFIER])
+    expect(seatSkillIdentifiers(social as TeamSeat)).toEqual([DRAGON_YOUTUBE_IDENTIFIER, DRAGON_RSS_IDENTIFIER])
+    expect(seatSoul(team, writer as TeamSeat)).toMatch(/YouTube|RSS/)
+    expect(plan.filter(row => row.skills.includes(DRAGON_YOUTUBE_IDENTIFIER)).map(row => row.title)).toEqual([
+      'Content Writer',
+      'Social Media Manager'
     ])
   })
 })

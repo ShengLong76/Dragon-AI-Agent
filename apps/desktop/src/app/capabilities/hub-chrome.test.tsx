@@ -35,6 +35,10 @@ describe('Dragon hub chrome', () => {
     expect(screen.getByText('dragon-agent')).toBeTruthy()
     expect(screen.getByText('HyperFrames — make videos from HTML')).toBeTruthy()
     expect(screen.getByRole('button', { name: '+ Add to this Agent: HyperFrames — make videos from HTML' })).toBeTruthy()
+    expect(screen.getByText('YouTube — transcripts and search')).toBeTruthy()
+    expect(screen.getByText('RSS — read and summarize feeds')).toBeTruthy()
+    expect(screen.getByText('Web Reader — clean page text')).toBeTruthy()
+    expect(screen.getByRole('button', { name: '+ Add to this Agent: YouTube — transcripts and search' })).toBeTruthy()
   })
 
   it('renders a native plugin catalog with Dragon chrome and no upstream iframe', () => {

@@ -1,0 +1,1 @@
+# stdlib only — urllib + html.parser. Kept so install stays uniform.

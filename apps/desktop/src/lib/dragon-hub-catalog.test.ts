@@ -2,9 +2,17 @@ import { describe, expect, it } from 'vitest'
 
 import {
   DRAGON_FEATURED_SKILLS,
+  DRAGON_RSS_HUB_SKILL,
+  DRAGON_RSS_IDENTIFIER,
+  DRAGON_STANDALONE_HUB_SKILLS,
+  DRAGON_WEB_READER_HUB_SKILL,
+  DRAGON_WEB_READER_IDENTIFIER,
+  DRAGON_YOUTUBE_HUB_SKILL,
+  DRAGON_YOUTUBE_IDENTIFIER,
   HYPERFRAMES_HUB_SKILL,
   HYPERFRAMES_IDENTIFIER,
   hubSkillKey,
+  isDragonHubIdentifier,
   isHyperFramesIdentifier,
   matchesInstalled,
   mergeHubCatalogSkills,
@@ -69,6 +77,36 @@ describe('HyperFrames featured catalog entry', () => {
     expect(HYPERFRAMES_HUB_SKILL.description).not.toMatch(/hermes/i)
     expect(isHyperFramesIdentifier(HYPERFRAMES_IDENTIFIER)).toBe(true)
     expect(isHyperFramesIdentifier('heygen-com/hyperframes/skills/hyperframes')).toBe(false)
+  })
+
+  it('lists YouTube, RSS, and Web Reader as standalone hub skills with Agent-Reach credit', () => {
+    expect(DRAGON_STANDALONE_HUB_SKILLS).toEqual([
+      HYPERFRAMES_HUB_SKILL,
+      DRAGON_YOUTUBE_HUB_SKILL,
+      DRAGON_RSS_HUB_SKILL,
+      DRAGON_WEB_READER_HUB_SKILL
+    ])
+    expect(DRAGON_FEATURED_SKILLS.slice(0, 4)).toEqual(DRAGON_STANDALONE_HUB_SKILLS)
+
+    for (const skill of [DRAGON_YOUTUBE_HUB_SKILL, DRAGON_RSS_HUB_SKILL, DRAGON_WEB_READER_HUB_SKILL]) {
+      expect(skill.description).toMatch(/Standalone skill/)
+      expect(skill.description).toMatch(/any bot/)
+      expect(skill.description).toMatch(/Agent-Reach/)
+      expect(skill.description).toMatch(/Panniantong\/Agent-Reach/)
+      expect(skill.description).toMatch(/not bundled/)
+      expect(skill.description).toMatch(/no login/i)
+      expect(skill.description).not.toMatch(/hermes/i)
+      expect(isDragonHubIdentifier(skill.identifier)).toBe(true)
+    }
+
+    expect(DRAGON_YOUTUBE_HUB_SKILL.identifier).toBe(DRAGON_YOUTUBE_IDENTIFIER)
+    expect(DRAGON_RSS_HUB_SKILL.identifier).toBe(DRAGON_RSS_IDENTIFIER)
+    expect(DRAGON_WEB_READER_HUB_SKILL.identifier).toBe(DRAGON_WEB_READER_IDENTIFIER)
+    expect(DRAGON_YOUTUBE_HUB_SKILL.description).toMatch(/yt-dlp/)
+    expect(DRAGON_RSS_HUB_SKILL.description).toMatch(/feedparser/)
+    expect(DRAGON_WEB_READER_HUB_SKILL.description).toMatch(/r\.jina\.ai/)
+    expect(matchesInstalled(DRAGON_YOUTUBE_HUB_SKILL, new Set(['dragon-youtube']))).toBe(true)
+    expect(matchesInstalled(DRAGON_RSS_HUB_SKILL, new Set([DRAGON_RSS_IDENTIFIER]))).toBe(true)
   })
 
   it('treats the router skill name as already-installed for the featured card', () => {

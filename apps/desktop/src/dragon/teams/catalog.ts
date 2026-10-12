@@ -1,4 +1,4 @@
-import { HYPERFRAMES_IDENTIFIER } from '@/lib/dragon-hub-catalog'
+import { DRAGON_RSS_IDENTIFIER, DRAGON_YOUTUBE_IDENTIFIER, HYPERFRAMES_IDENTIFIER } from '@/lib/dragon-hub-catalog'
 
 /** A bot seat in a marketplace team. Each seat installs as its own bot profile. */
 export interface TeamSeat {
@@ -75,26 +75,28 @@ export const TEAMS_CATALOG: MarketplaceTeam[] = [
     name: 'Marketing',
     tagline: 'Plan the campaign, write the copy, produce the video, ship it.',
     description:
-      'A lead who routes briefs, a writer for long-form, a video producer who renders HTML to MP4 with HyperFrames, and a social manager who adapts each piece for every channel.',
+      'A lead who routes briefs, a writer for long-form, a video producer who renders HTML to MP4 with HyperFrames, and a social manager who adapts each piece for every channel. The writer and social seats use YouTube transcripts and RSS feeds for research.',
     category: 'Marketing',
     accent: '#e0607e',
-    skills: [HYPERFRAMES_IDENTIFIER],
+    skills: [HYPERFRAMES_IDENTIFIER, DRAGON_YOUTUBE_IDENTIFIER, DRAGON_RSS_IDENTIFIER],
     seats: [
-      {
-        slug: 'lead',
-        title: 'Marketing Lead',
-        role: 'Router',
-        mission:
-          'Own the content calendar, break campaigns into briefs, and hand writing to Content Writer, video to Video Producer (HyperFrames), and channel posts to Social Media Manager.',
-        color: '#e0607e'
-      },
-      {
-        slug: 'writer',
-        title: 'Content Writer',
-        role: 'Writer',
-        mission: 'Write blog posts, newsletters, and landing-page copy from a brief, matching the brand voice guide.',
-        color: '#d68a4c'
-      },
+        {
+          slug: 'lead',
+          title: 'Marketing Lead',
+          role: 'Router',
+          mission:
+            'Own the content calendar, break campaigns into briefs, and hand writing to Content Writer, video to Video Producer (HyperFrames), and channel posts to Social Media Manager. Point writers at YouTube and RSS when a brief needs public clips or feed recaps.',
+          color: '#e0607e'
+        },
+        {
+          slug: 'writer',
+          title: 'Content Writer',
+          role: 'Writer',
+          mission:
+            'Write blog posts, newsletters, and landing-page copy from a brief, matching the brand voice guide. Pull public YouTube transcripts and RSS items when the brief needs source material.',
+          color: '#d68a4c',
+          skills: [DRAGON_YOUTUBE_IDENTIFIER, DRAGON_RSS_IDENTIFIER]
+        },
       {
         slug: 'video',
         title: 'Video Producer',
@@ -109,9 +111,11 @@ export const TEAMS_CATALOG: MarketplaceTeam[] = [
         slug: 'social',
         title: 'Social Media Manager',
         role: 'Social',
-        mission: 'Adapt each piece — including HyperFrames clips from Video Producer — for every channel, schedule posts, and summarize replies worth answering.',
+        mission:
+          'Adapt each piece — including HyperFrames clips from Video Producer — for every channel, schedule posts, and summarize replies worth answering. Watch competitor channels and industry feeds with YouTube and RSS.',
         color: '#5b8def',
-        computer: true
+        computer: true,
+        skills: [DRAGON_YOUTUBE_IDENTIFIER, DRAGON_RSS_IDENTIFIER]
       }
     ]
   },
@@ -290,7 +294,7 @@ export function seatSoul(team: MarketplaceTeam, seat: TeamSeat): string {
           '',
           '## Team skills',
           ...teamSkills.map(id => `- ${id}`),
-          'These skills are available to the team. Video work uses HyperFrames (Apache-2.0, HeyGen) — prefer the Linux Computer sandbox for renders.'
+          'These skills are available to the team. Video work uses HyperFrames (Apache-2.0, HeyGen) — prefer the Linux Computer sandbox for renders. YouTube and RSS helpers are public-web only — no login.'
         ].join('\n')
       : '',
     ownSkills.length
@@ -298,7 +302,7 @@ export function seatSoul(team: MarketplaceTeam, seat: TeamSeat): string {
           '',
           '## Your skills',
           ...ownSkills.map(id => `- ${id}`),
-          'Installed into this bot profile. For HyperFrames, run `/hyperframes` then render in the sandbox.'
+          'Installed into this bot profile. For HyperFrames, run `/hyperframes` then render in the sandbox. For YouTube and RSS, run the bundled Python helpers via `terminal`.'
         ].join('\n')
       : '',
     '',

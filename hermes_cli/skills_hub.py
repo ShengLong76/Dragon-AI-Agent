@@ -698,11 +698,21 @@ def do_install(identifier: str, category: str = "", force: bool = False,
 
     The HyperFrames umbrella id (``heygen-com/hyperframes``) installs the published
     core set into the active profile instead of treating the whole repo as one skill.
-    Returns ``True`` on that path so ``skills.manage`` reports a real install."""
+    Bundled Dragon hub ids (``dragon/youtube``, ``dragon/rss``, ``dragon/web-reader``)
+    copy the local helpers and pin their Python deps — they never fetch an install
+    script from a live URL.
+    Returns ``True`` on those paths so ``skills.manage`` reports a real install."""
     from tools.hyperframes_skills import install_hyperframes_core, is_hyperframes_identifier
+    from tools.dragon_hub_skills import install_dragon_hub_skill, is_dragon_hub_identifier
 
     if is_hyperframes_identifier(identifier):
         ok = install_hyperframes_core(console=console or _console, force=force)
+        if not ok:
+            raise SystemExit(1)
+        return True
+
+    if is_dragon_hub_identifier(identifier):
+        ok = install_dragon_hub_skill(identifier, console=console or _console, force=force)
         if not ok:
             raise SystemExit(1)
         return True

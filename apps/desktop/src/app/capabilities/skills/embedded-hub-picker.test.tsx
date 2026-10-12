@@ -83,11 +83,22 @@ describe('EmbeddedHubPicker', () => {
     render(<EmbeddedHubPicker installedNames={new Set()} profile="listing-writer" />)
 
     expect(screen.getByText('HyperFrames — make videos from HTML')).toBeTruthy()
-    expect(screen.getByText(/Standalone skill/)).toBeTruthy()
+    expect(screen.getAllByText(/Standalone skill/).length).toBeGreaterThan(0)
     expect(screen.getByText(/Apache-2\.0/)).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: '+ Add to this Agent: HyperFrames — make videos from HTML' }))
 
     await waitFor(() => expect(installHubSkill).toHaveBeenCalledWith('heygen-com/hyperframes', 'listing-writer'))
+  })
+
+  it('offers YouTube as a featured one-click add with the dragon identifier', async () => {
+    render(<EmbeddedHubPicker installedNames={new Set()} profile="content-writer" />)
+
+    expect(screen.getByText('YouTube — transcripts and search')).toBeTruthy()
+    expect(screen.getAllByText(/Agent-Reach/).length).toBeGreaterThan(0)
+
+    fireEvent.click(screen.getByRole('button', { name: '+ Add to this Agent: YouTube — transcripts and search' }))
+
+    await waitFor(() => expect(installHubSkill).toHaveBeenCalledWith('dragon/youtube', 'content-writer'))
   })
 })
