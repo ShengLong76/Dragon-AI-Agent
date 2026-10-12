@@ -18,9 +18,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useBots } from './i18n'
 import {
+  DISPLAY_START_REQUEST_TIMEOUT_MS,
   type DisplayLease,
   type DisplayObserveResult,
-  DISPLAY_START_REQUEST_TIMEOUT_MS,
   displayRequest,
   type DisplayStatus,
   isDisplayUnavailable,
@@ -38,9 +38,9 @@ import {
   $screenState,
   beginScreenStatusRequest,
   screenStateFor,
+  setScreenError,
   setScreenLease,
   setScreenStatus,
-  setScreenError,
   setScreenUnavailable,
   setScreenViewer
 } from './screen-state'

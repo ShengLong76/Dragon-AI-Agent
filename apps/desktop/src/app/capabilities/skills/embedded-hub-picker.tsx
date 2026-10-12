@@ -3,7 +3,7 @@ import { memo, useEffect, useMemo, useState } from 'react'
 
 import { CatalogCard, catalogPaneHeight, catalogPaneOpen, ResizableCatalogPane } from '@/app/capabilities/catalog-browser'
 import { Button } from '@/components/ui/button'
-import { getSkillHubSources, searchSkillsHub, type ProfileScope } from '@/hermes'
+import { getSkillHubSources, type ProfileScope, searchSkillsHub } from '@/hermes'
 import { useI18n } from '@/i18n'
 import {
   DRAGON_FEATURED_SKILLS,
@@ -106,6 +106,7 @@ export const EmbeddedHubPicker = memo(function EmbeddedHubPicker({
       .sort()
       .join('|')
   )
+
   const runningInstalls = useMemo(
     () => new Set(runningInstallKey.split('|').filter(Boolean)),
     [runningInstallKey]
@@ -177,10 +178,10 @@ export const EmbeddedHubPicker = memo(function EmbeddedHubPicker({
       onSearchSubmit={runSearch}
       open={open}
       paneId={HUB_PANE_ID}
+      searching={searching}
       searchLabel={h.search}
       searchPlaceholder={h.searchPlaceholder}
       searchValue={query}
-      searching={searching}
       title={h.pickerTitle}
       toggleHide={h.pickerHide}
       toggleShow={h.pickerBrowse}

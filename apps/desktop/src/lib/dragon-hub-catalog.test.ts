@@ -9,14 +9,14 @@ import {
   DRAGON_WEB_READER_IDENTIFIER,
   DRAGON_YOUTUBE_HUB_SKILL,
   DRAGON_YOUTUBE_IDENTIFIER,
+  type HubCatalogSkill,
+  hubSkillKey,
   HYPERFRAMES_HUB_SKILL,
   HYPERFRAMES_IDENTIFIER,
-  hubSkillKey,
   isDragonHubIdentifier,
   isHyperFramesIdentifier,
   matchesInstalled,
-  mergeHubCatalogSkills,
-  type HubCatalogSkill
+  mergeHubCatalogSkills
 } from './dragon-hub-catalog'
 
 describe('mergeHubCatalogSkills', () => {
@@ -49,6 +49,7 @@ describe('mergeHubCatalogSkills', () => {
     const featured: HubCatalogSkill[] = [
       { description: 'local', identifier: 'web-research', name: 'web-research' }
     ]
+
     const extra: HubCatalogSkill[] = [
       { description: 'registry', identifier: 'web-research', name: 'web-research' }
     ]

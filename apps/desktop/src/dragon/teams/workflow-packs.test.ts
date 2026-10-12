@@ -5,10 +5,10 @@ import {
   ECC_WORKFLOW_PACK,
   ECC_WORKFLOW_PACK_ID,
   MARKETPLACE_INTRO,
+  WORKFLOW_PACKS,
   workflowPackProgressCopy,
   workflowPackSuccessCopy,
-  workflowPackUserCopy,
-  WORKFLOW_PACKS
+  workflowPackUserCopy
 } from './workflow-packs'
 
 describe('ECC workflow pack catalog', () => {
@@ -27,11 +27,13 @@ describe('ECC workflow pack catalog', () => {
     for (const line of workflowPackUserCopy(ECC_WORKFLOW_PACK)) {
       expect(copyNamesFramework(line), line).toBe(false)
     }
+
     expect(copyNamesFramework('Dragon data folder')).toBe(false)
     expect(copyNamesFramework('Installing ECC skills…')).toBe(false)
     expect(copyNamesFramework(MARKETPLACE_INTRO)).toBe(false)
     expect(MARKETPLACE_INTRO).toContain('workflow pack')
     expect(MARKETPLACE_INTRO).toContain('Dragon data folder')
+
     for (const action of ['install', 'update', 'remove'] as const) {
       expect(copyNamesFramework(workflowPackProgressCopy(action)), action).toBe(false)
       expect(copyNamesFramework(workflowPackSuccessCopy(action)), action).toBe(false)

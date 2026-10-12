@@ -91,5 +91,6 @@ export function measureChatBubbleOverflow(args: {
   contentWidthPx: number
 }): number {
   const used = measureChatBubbleWidth(args)
+
   return Math.max(0, used - Math.max(args.columnWidthPx, 0))
 }

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
+
 import { afterEach, test } from 'vitest'
 
 const require: NodeJS.Require = createRequire(import.meta.url)
@@ -32,6 +33,7 @@ test('the packaged updater feed is Dragon GitHub Releases, never Hermes', (): vo
   delete process.env.CLOUDFLARE_R2_PUBLIC_URL
   process.env.HERMES_PAYLOAD_TAG = 'v0.28.0+canary.20260818T000000Z'
   process.env.HERMES_DESKTOP_VARIANT = 'bundled'
+
   const config: { publish: null | Array<{ provider: string; url?: string }> } =
     require('../electron-builder.config.cjs')
 

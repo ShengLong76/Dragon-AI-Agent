@@ -721,6 +721,7 @@ export default {
         keywords: ['cron', 'scheduled', 'jobs', 'schedule', 'routine', 'routines'],
         run: () => {
           const roster = $lastRoster.get()
+
           const bot =
             selectedRosterBot(roster, $selectedRosterKey.get()) ||
             roster.find(row => isDefaultBot(row) && !row.remoteSource)

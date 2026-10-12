@@ -93,6 +93,7 @@ describe('GPT-Live local mic meter', () => {
     installApi()
 
     const onInputLevel = vi.fn()
+
     const handlers: VoiceLiveHandlers = {
       onClosed: () => undefined,
       onDelegation: () => undefined,

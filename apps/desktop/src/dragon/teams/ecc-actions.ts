@@ -3,8 +3,8 @@ import {
   getActionStatus,
   getEccWorkflowStatus,
   installEccWorkflows,
-  removeEccWorkflows,
   type ProfileScope,
+  removeEccWorkflows,
   updateEccWorkflows
 } from '@/hermes'
 import { queryClient } from '@/lib/query-client'
@@ -54,6 +54,7 @@ export async function refreshAfterEccChange(): Promise<void> {
 export async function runEccWorkflowAction(action: EccWorkflowAction, profile?: ProfileScope): Promise<void> {
   const spawn =
     action === 'install' ? installEccWorkflows : action === 'update' ? updateEccWorkflows : removeEccWorkflows
+
   const started = await spawn(profile)
 
   await waitForAction(started.name, profile)

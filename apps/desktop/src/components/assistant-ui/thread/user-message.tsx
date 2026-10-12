@@ -4,18 +4,18 @@ import { type FC, type ReactNode, useCallback, useEffect, useRef, useState } fro
 import { DirectiveContent } from '@/components/assistant-ui/directive-text'
 import { isAttachmentRef } from '@/components/assistant-ui/reference-kinds'
 import {
+  CHAT_BUBBLE_HUG_CLASS,
+  CHAT_BUBBLE_RADIUS_CLASS,
+  CHAT_BUBBLE_ROW_CLASS,
+  CHAT_BUBBLE_WIDTH_CLASS
+} from '@/components/assistant-ui/thread/chat-bubble'
+import {
   messageAttachmentRefs,
   messageContentText,
   PROCESS_NOTIFICATION_RE
 } from '@/components/assistant-ui/thread/content'
 import { MessageHoverTime } from '@/components/assistant-ui/thread/message-hover-time'
 import { ReactionBadge, ReactionPicker } from '@/components/assistant-ui/thread/message-reactions'
-import {
-  CHAT_BUBBLE_HUG_CLASS,
-  CHAT_BUBBLE_RADIUS_CLASS,
-  CHAT_BUBBLE_ROW_CLASS,
-  CHAT_BUBBLE_WIDTH_CLASS
-} from '@/components/assistant-ui/thread/chat-bubble'
 import { BackgroundResult } from '@/components/assistant-ui/thread/system-message'
 import { threadUserOrdinal } from '@/components/assistant-ui/thread/thread-message-index'
 import { MessageTimelineTimestamp } from '@/components/assistant-ui/thread/timeline-timestamp'
@@ -440,12 +440,12 @@ export const UserMessage: FC<{
             >
               <div
                 className={`relative ${CHAT_BUBBLE_WIDTH_CLASS}`}
-                data-slot="aui_user-bubble-cluster"
                 // The app context menu skips PLAIN right-clicks here (the
                 // attr below) so this handler keeps the picker gesture; a
                 // link/image/selection inside the bubble still gets the app
                 // menu, and this handler's selection guard keeps ⌘C flows.
                 data-context-menu-skip=""
+                data-slot="aui_user-bubble-cluster"
                 onContextMenu={
                   // Right-click is the desktop stand-in for iOS touch-and-hold —
                   // but only when there's nothing selected. A live highlight

@@ -8,6 +8,7 @@ import {
 
 const leftover =
   'The sandbox screen could not start. A leftover display from a previous run was still in the container — click Start screen again.'
+
 const docker =
   'The screen did not start. Docker may not be running, or the sandbox image is missing. Start Docker Desktop, then click Start screen again.'
 
@@ -18,6 +19,7 @@ it('replaces the raw Xvnc leftover-lock dump with the friendly Computer copy', (
     '(EE) Server is already active for display 20\n' +
     'If this server is no longer running, remove /tmp/.X20-lock and start again.\n' +
     '(EE) Xvnc exited during startup'
+
   expect(isLeftoverDisplayError(raw)).toBe(true)
   expect(friendlyScreenStartError(raw, leftover, docker)).toBe(leftover)
   expect(friendlyScreenStartError(raw, leftover, docker)).not.toMatch(/\(EE\)/)
@@ -33,6 +35,7 @@ it('keeps the real image-missing and docker-daemon errors', () => {
   const image =
     "Bot Desktop cannot start: sandbox image 'dragon-sandbox:desktop' is not available locally " +
     "and every fallback failed. Fix: `docker pull nousresearch/hermes-sandbox:desktop`"
+
   const daemon = 'Docker daemon is not responding. Ensure Docker is running and try again.'
   expect(isOpaqueGatewayStartError(image)).toBe(false)
   expect(isOpaqueGatewayStartError(daemon)).toBe(false)

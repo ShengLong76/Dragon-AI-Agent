@@ -94,6 +94,7 @@ describe('Grok Voice local mic meter', () => {
     installGrokTransport()
 
     const onInputLevel = vi.fn()
+
     const handlers: VoiceLiveHandlers = {
       onClosed: () => undefined,
       onDelegation: () => undefined,

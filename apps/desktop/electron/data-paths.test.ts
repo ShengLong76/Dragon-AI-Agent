@@ -42,6 +42,7 @@ test('default data roots append the suffix literally on each platform', (): void
     const home: string = platform === 'win32' ? 'C:\\Users\\test' : '/home/test'
     const local: string = paths.join(home, 'AppData', 'Local')
     const userData: string = paths.join(home, 'app-data', 'Hermes')
+
     const base: string =
       platform === 'win32' ? paths.join(local, WINDOWS_PRODUCT_DIR, 'home') : paths.join(home, POSIX_PRODUCT_DIR)
 
@@ -166,10 +167,12 @@ test('migrateLegacyProductHome copies when dest already exists empty and never o
     writeText: (): void => undefined,
     mkdirp: (): void => undefined
   })
+
   assert.deepEqual(emptyDest, { migrated: true, method: 'copy', source, dest })
   assert.deepEqual(copied, [{ from: source, to: dest }])
 
   copied.length = 0
+
   const liveDest = migrateLegacyProductHome({
     dest,
     sources: [source],
@@ -181,6 +184,7 @@ test('migrateLegacyProductHome copies when dest already exists empty and never o
       copied.push({ from, to })
     }
   })
+
   assert.deepEqual(liveDest, { migrated: false, reason: 'dest-populated' })
   assert.deepEqual(copied, [])
 })

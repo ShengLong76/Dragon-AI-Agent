@@ -59,6 +59,7 @@ export function SoulEditorDialog({ bot, initialContent, onClose, open }: SoulEdi
   useEffect(() => {
     if (!open) {
       wasOpen.current = false
+
       return
     }
 
@@ -93,6 +94,7 @@ export function SoulEditorDialog({ bot, initialContent, onClose, open }: SoulEdi
           kind: 'error',
           message: b.soulEditor.saveFailed
         })
+
         return
       }
 
@@ -114,6 +116,7 @@ export function SoulEditorDialog({ bot, initialContent, onClose, open }: SoulEdi
 
     if (dirty) {
       setConfirmDiscard(true)
+
       return
     }
 

@@ -79,11 +79,13 @@ describe('measureChatBubbleWidth', () => {
       columnWidthPx: 800,
       contentWidthPx: LONG_CONTENT_PX
     })
+
     const mid = measureChatBubbleWidth({
       role: 'user',
       columnWidthPx: 400,
       contentWidthPx: LONG_CONTENT_PX
     })
+
     const narrow = measureChatBubbleWidth({
       role: 'user',
       columnWidthPx: 200,

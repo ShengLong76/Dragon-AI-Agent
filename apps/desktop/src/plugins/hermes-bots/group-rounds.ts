@@ -83,6 +83,7 @@ export function parseGroupChatMentions(text: unknown, members: GroupMember[]) {
     // Device-qualified remotes keep their own handle and must not steal @main.
     if (handle.toLowerCase() === PRIMARY_BOT_HANDLE) {
       forms.add(PRIMARY_BOT_HANDLE)
+
       for (const alias of PRIMARY_BOT_HANDLE_ALIASES) {
         forms.add(alias)
       }

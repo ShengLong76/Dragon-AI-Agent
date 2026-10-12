@@ -97,10 +97,13 @@ function mockStatusThenStart(startImpl: (call: number) => Promise<unknown>) {
     if (method === 'display.status') {
       return stopped
     }
+
     if (method === 'display.start') {
       starts += 1
+
       return startImpl(starts)
     }
+
     throw new Error(`unexpected ${method}`)
   })
 }
@@ -109,6 +112,7 @@ it('shows the real sandbox-image error instead of a generic close', async () => 
   const image =
     "Bot Desktop cannot start: sandbox image 'dragon-sandbox:desktop' is not available locally " +
     'and every fallback failed. Fix: `docker pull nousresearch/hermes-sandbox:desktop`'
+
   mockStatusThenStart(async () => {
     throw new Error(image)
   })
@@ -141,6 +145,7 @@ it('maps a heartbeat-closed start to docker/image copy and lets Start retry', as
     if (call === 1) {
       throw new Error('Dragon AI gateway connection closed')
     }
+
     // A later Start after docker/tag recovery must not be wedged: the card
     // stays on Screen-is-off and the previous red error is cleared.
     return stopped

@@ -8,8 +8,8 @@ import type * as HermesSdk from '@hermes/plugin-sdk'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { AvatarPicker } from './avatar-picker'
 import { $imagenAvailable, IMAGE_GEN_SETTINGS_PATH } from './avatar-image'
+import { AvatarPicker } from './avatar-picker'
 import { translateBotsIn } from './i18n-test-helper'
 
 const { navigate, request } = vi.hoisted(() => ({

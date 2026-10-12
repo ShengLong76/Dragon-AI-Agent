@@ -7,9 +7,9 @@
  * `0.21.5+9105`).
  */
 
-import packageJson from '../../package.json'
-
 import { shortVersion } from '@/lib/version-label'
+
+import packageJson from '../../package.json'
 
 export const DRAGON_PRODUCT_VERSION: string = packageJson.version
 

@@ -20,14 +20,18 @@ export function friendlyScreenStartError(
   opaqueGatewayCopy?: string
 ): string {
   const text = raw.trim()
+
   if (!text) {
     return leftoverCopy
   }
+
   if (isLeftoverDisplayError(text)) {
     return leftoverCopy
   }
+
   if (opaqueGatewayCopy && isOpaqueGatewayStartError(text)) {
     return opaqueGatewayCopy
   }
+
   return text
 }

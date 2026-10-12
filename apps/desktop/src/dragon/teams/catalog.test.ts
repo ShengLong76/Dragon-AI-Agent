@@ -3,17 +3,18 @@ import { describe, expect, it } from 'vitest'
 import { DRAGON_RSS_IDENTIFIER, DRAGON_YOUTUBE_IDENTIFIER, HYPERFRAMES_IDENTIFIER } from '@/lib/dragon-hub-catalog'
 
 import {
+  type MarketplaceTeam,
   seatProfileName,
   seatSkillIdentifiers,
   seatSoul,
-  TEAMS_CATALOG,
   teamInstallPlan,
-  type MarketplaceTeam,
+  TEAMS_CATALOG,
   type TeamSeat
 } from './catalog'
 import { copyNamesFramework } from './workflow-packs'
 
 const REQUIRED_SEAT_KEYS: (keyof TeamSeat)[] = ['slug', 'title', 'role', 'mission', 'color']
+
 const REQUIRED_TEAM_KEYS: (keyof MarketplaceTeam)[] = [
   'slug',
   'name',

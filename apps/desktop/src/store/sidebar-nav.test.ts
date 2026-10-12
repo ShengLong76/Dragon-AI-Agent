@@ -16,6 +16,7 @@ const prefs = (id: string, data: { hide?: string[]; order?: string[] }, order?: 
 describe('placeSidebarPluginNav', () => {
   it('puts the Kanban board row under Messaging and leaves other plugin rows after the built-ins', () => {
     const builtIn = [{ id: 'new-session' }, { id: 'capabilities' }, { id: 'messaging' }, { id: 'artifacts' }]
+
     const contributed = [
       { id: 'reports-nav', route: '/reports' },
       { id: 'kanban:nav', route: '/kanban' }
