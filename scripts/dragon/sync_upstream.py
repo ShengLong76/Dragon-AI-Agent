@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from dataclasses import asdict, dataclass, field
@@ -18,6 +19,11 @@ ROOT = Path(__file__).resolve().parents[2]
 FEED_PATH = ROOT / "branding" / "product-feed.json"
 SYNC_BRANCH = "dragon/upstream-sync"
 UPSTREAM_REMOTE = "hermes-upstream"
+_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+
+
+class UpstreamTipError(RuntimeError):
+    """The Hermes upstream tip SHA could not be resolved."""
 
 
 def load_feed() -> dict:
@@ -139,6 +145,76 @@ def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
+def peel_commit(repo: Path, rev: str) -> str | None:
+    """Return the 40-char commit SHA for rev, or None if it is not a commit."""
+    result = _git(repo, "rev-parse", "--verify", f"{rev}^{{commit}}")
+    sha = result.stdout.strip().lower()
+    if result.returncode == 0 and _SHA_RE.fullmatch(sha):
+        return sha
+    return None
+
+
+def discover_upstream_default_branch(repo: Path, remote: str) -> str | None:
+    """Read the remote's symbolic HEAD (e.g. refs/heads/main → main)."""
+    result = _git(repo, "ls-remote", "--symref", remote, "HEAD")
+    if result.returncode != 0:
+        return None
+    for line in result.stdout.splitlines():
+        if not line.startswith("ref:"):
+            continue
+        parts = line.split()
+        if len(parts) < 2:
+            continue
+        ref = parts[1]
+        prefix = "refs/heads/"
+        if ref.startswith(prefix) and ref[len(prefix):]:
+            return ref[len(prefix):]
+    return None
+
+
+def fetch_upstream_tip(repo: Path, remote: str) -> str:
+    """Fetch the remote default tip into an explicit tracking ref.
+
+    `git fetch <remote> HEAD` only writes FETCH_HEAD and does not create
+    `refs/remotes/<remote>/HEAD`, so a later `git rev-parse <remote>/HEAD`
+    cannot resolve. Fetch the named default branch (or HEAD) into
+    `refs/remotes/<remote>/<branch>` instead.
+    """
+    branch = discover_upstream_default_branch(repo, remote)
+    if branch:
+        tracking_ref = f"refs/remotes/{remote}/{branch}"
+        fetchspec = f"refs/heads/{branch}:{tracking_ref}"
+    else:
+        tracking_ref = f"refs/remotes/{remote}/main"
+        fetchspec = f"HEAD:{tracking_ref}"
+    result = _git(repo, "fetch", remote, fetchspec)
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout).strip() or "unknown error"
+        raise UpstreamTipError(
+            f"Could not resolve a Hermes upstream tip SHA from {remote}: "
+            f"fetch {fetchspec} failed: {detail}"
+        )
+    return tracking_ref
+
+
+def resolve_fetched_tip(repo: Path, tracking_ref: str, remote: str | None = None) -> str:
+    """Resolve a commit SHA from a tracking ref, or FETCH_HEAD if that is missing."""
+    sha = peel_commit(repo, tracking_ref) or peel_commit(repo, "FETCH_HEAD")
+    if not sha:
+        source = f" from {remote}" if remote else ""
+        raise UpstreamTipError(
+            f"Could not resolve a Hermes upstream tip SHA{source} "
+            f"(tried {tracking_ref} and FETCH_HEAD)."
+        )
+    return sha
+
+
+def resolve_upstream_tip(repo: Path, remote: str = UPSTREAM_REMOTE) -> str:
+    """Return the 40-char SHA at the remote's default-branch tip."""
+    tracking_ref = fetch_upstream_tip(repo, remote)
+    return resolve_fetched_tip(repo, tracking_ref, remote=remote)
+
+
 def collect_report(
     *,
     repo: Path,
@@ -197,7 +273,21 @@ def main(argv: list[str] | None = None) -> int:
     describe.add_argument("--upstream-sha", required=True)
     describe.add_argument("--conflicts-file", type=Path)
     describe.add_argument("--out", type=Path)
+    resolve = sub.add_parser(
+        "resolve-tip",
+        help="print the commit SHA at an upstream remote's default tip",
+    )
+    resolve.add_argument("--repo", type=Path, default=ROOT)
+    resolve.add_argument("--remote", default=UPSTREAM_REMOTE)
     args = parser.parse_args(argv)
+
+    if args.cmd == "resolve-tip":
+        try:
+            sys.stdout.write(resolve_upstream_tip(args.repo, args.remote) + "\n")
+        except UpstreamTipError as exc:
+            sys.stderr.write(f"error: {exc}\n")
+            return 1
+        return 0
 
     feed = load_feed()
     if args.cmd == "describe":
