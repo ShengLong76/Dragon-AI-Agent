@@ -872,7 +872,7 @@
     },
     {
       "name": "display.observe",
-      "summary": "Mint a single-use ticket for /api/display/ws and the server-minted viewer id for this connection.",
+      "summary": "Mint a single-use ticket for /api/display/voxl or /api/display/ws and the server-minted viewer id.",
       "params": [
         {
           "name": "params",
@@ -12803,6 +12803,30 @@
             ],
             "default": null
           },
+          "stream_backend": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Stream Backend"
+          },
+          "fallback_notice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Fallback Notice"
+          },
           "lease": {
             "$ref": "#/components/schemas/DisplayLease"
           },
@@ -12982,6 +13006,30 @@
             ],
             "default": null
           },
+          "stream_backend": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Stream Backend"
+          },
+          "fallback_notice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Fallback Notice"
+          },
           "lease": {
             "$ref": "#/components/schemas/DisplayLease"
           },
@@ -13144,6 +13192,30 @@
               }
             ],
             "default": null
+          },
+          "stream_backend": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Stream Backend"
+          },
+          "fallback_notice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Fallback Notice"
           },
           "lease": {
             "$ref": "#/components/schemas/DisplayLease"
@@ -13339,6 +13411,30 @@
             ],
             "default": null
           },
+          "stream_backend": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Stream Backend"
+          },
+          "fallback_notice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Fallback Notice"
+          },
           "lease": {
             "$ref": "#/components/schemas/DisplayLease"
           },
@@ -13530,6 +13626,30 @@
               }
             ],
             "default": null
+          },
+          "stream_backend": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Stream Backend"
+          },
+          "fallback_notice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Fallback Notice"
           },
           "lease": {
             "$ref": "#/components/schemas/DisplayLease"

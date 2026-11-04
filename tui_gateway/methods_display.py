@@ -155,21 +155,26 @@ def _foreign_viewer_id(rid, viewer_id: str):
 @method("display.observe")
 @_profile_scoped
 def _(rid, params: dict) -> dict:
-    """Mint a single-use, 30 s ticket for ``/api/display/ws``. The ticket carries the profile home so
-    the bridge dials THIS profile's RFB socket, and a server-minted viewer id (returned to the caller,
-    who passes it to ``display.lease.acquire`` / ``release``) so the lease can name the holder."""
+    """Mint a single-use, 30 s ticket for the live streamer (``/api/display/voxl`` or
+    ``/api/display/ws``). The ticket carries the profile home so the bridge dials THIS profile's
+    desktop, and a server-minted viewer id (returned to the caller, who passes it to
+    ``display.lease.acquire`` / ``release``) so the lease can name the holder."""
     from hermes_constants import get_hermes_home
     from hermes_cli.dashboard_auth.ws_tickets import mint_ticket
     from tools.bot_desktop import runtime as _bd_runtime
+    from tools.bot_desktop import voxl as _voxl
     try:
-        # The bridge dials either the host RFB socket or the sandbox relay; neither exists before start.
-        if _bd_runtime.rfb_socket_path() is None and not _bd_runtime.sandbox_screen_running():
+        # The bridge dials the host RFB socket, the sandbox relay, or a running voxl.
+        if (_bd_runtime.rfb_socket_path() is None and not _bd_runtime.sandbox_screen_running()
+                and not _voxl.is_running()):
             return _err(rid, _DISPLAY_ERR, "this profile's Bot Desktop is not running; call display.start first")
         viewer_id = _mint_viewer_id(str(params.get("viewer_id") or "").strip())
         ticket = mint_ticket(user_id=f"display:{viewer_id}", provider="bot-desktop",
                              extra={"hermes_home": str(get_hermes_home()), "viewer_id": viewer_id})
-        return _ok(rid, {"ticket": ticket, "path": "/api/display/ws", "viewer_id": viewer_id,
-                         **_display_snapshot()})
+        snapshot = _display_snapshot()
+        stream = snapshot.get("stream_backend") or "vnc"
+        path = "/api/display/voxl" if stream == "voxl" and _voxl.is_running() else "/api/display/ws"
+        return _ok(rid, {"ticket": ticket, "path": path, "viewer_id": viewer_id, **snapshot})
     except Exception as e:
         return _err(rid, _DISPLAY_ERR, str(e))
 

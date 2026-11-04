@@ -2559,6 +2559,12 @@ DEFAULT_CONFIG = {
         #             and computer_use then act OUTSIDE the terminal sandbox. Explicit opt-in.
         # The sandbox image needs the desktop stack: dragon-sandbox:desktop.
         "placement": "auto",
+        # Computer / Screen pane streamer. "voxl" (H.264, default) or "vnc" (TigerVNC RFB).
+        # voxl falls back to VNC on its own when the binary is missing or fails to start.
+        "screen_backend": "voxl",
+        # voxl audio/microphone are off by default; the pane chrome does not expose them.
+        "audio_enabled": False,
+        "microphone_enabled": False,
     },
     "computer_use": {
         # cua-driver's upstream PostHog telemetry defaults ON; Hermes sets

@@ -2319,3 +2319,21 @@ updates:
 #   # This runs ONCE per process at startup, so it cannot replace a credential
 #   # that expires mid-session. For a single provider whose token needs
 #   # re-minting during a session, use `providers.<name>.key_cmd` instead.
+
+# =============================================================================
+# Bot Desktop / Computer tab
+# =============================================================================
+# Headless Xfce screen the Computer tab and Screen pane attach to. Streamer is
+# voxl (H.264 over WebSocket) with automatic VNC fallback. Audio and microphone
+# stay off unless you opt in. The voxl password is generated into
+# <HERMES_HOME>/bot-desktop/voxl.secret and is never put in a URL.
+#
+# bot_desktop:
+#   geometry: "1440x900"
+#   auto_start: false
+#   min_free_memory_mb: 1536
+#   idle_stop_minutes: 30
+#   placement: auto            # auto | terminal | gateway
+#   screen_backend: voxl       # voxl | vnc
+#   audio_enabled: false
+#   microphone_enabled: false

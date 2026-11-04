@@ -50,7 +50,9 @@ import {
   DISPLAY_START_REQUEST_TIMEOUT_MS,
   displayRequest,
   isEventForBotScreen,
-  resolveScreenWsUrl
+  isVoxlObservePath,
+  resolveScreenWsUrl,
+  siblingWsUrlToHttp
 } from './screen-connection'
 
 const bot = { name: 'ops' } as RosterRow
@@ -151,5 +153,16 @@ describe('resolveScreenWsUrl', () => {
       '/api/display/ws',
       { stripGatewayCredential: true }
     )
+  })
+
+  it('swaps the observe path for the voxl iframe and converts ws to http', async () => {
+    routeMock.mockReturnValue({ connectionId: 'conn-a', profile: 'launch', targetProfile: 'home-ops' })
+    vi.mocked(resolveSiblingWsUrl).mockResolvedValue('wss://gateway.example/api/display/voxl')
+
+    const wsUrl = await resolveScreenWsUrl(bot, 'ticket-123', '/api/display/voxl')
+    expect(wsUrl).toBe('wss://gateway.example/api/display/voxl?display_ticket=ticket-123')
+    expect(siblingWsUrlToHttp(wsUrl)).toBe('https://gateway.example/api/display/voxl?display_ticket=ticket-123')
+    expect(isVoxlObservePath('/api/display/voxl')).toBe(true)
+    expect(isVoxlObservePath('/api/display/ws')).toBe(false)
   })
 })

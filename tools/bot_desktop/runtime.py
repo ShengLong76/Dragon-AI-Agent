@@ -15,6 +15,7 @@ Chromium spawns merge in so the agent acts on this profile's screen and nowhere 
 from __future__ import annotations
 
 import contextlib
+import json
 import logging
 import os
 import shutil
@@ -24,7 +25,7 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 from hermes_constants import get_hermes_home
 from tools.bot_desktop import placement
@@ -156,6 +157,8 @@ class DesktopStatus:
     memory_limit_mb: Optional[int] = None
     placement: str = "gateway"  # "gateway" | "terminal:<backend>" — where Xvnc runs
     image_switch: Optional[Dict[str, object]] = None  # pending default-image switch the pane can approve
+    stream_backend: Optional[str] = None  # "voxl" | "vnc" — live Computer-tab streamer
+    fallback_notice: Optional[str] = None  # set only when voxl was wanted and VNC took over
 
     def as_dict(self) -> Dict[str, object]:
         return dict(self.__dict__)
@@ -555,7 +558,12 @@ def _owned_sandbox_env():
 
 
 def is_running() -> bool:
-    return bool(published_env().get("DISPLAY"))
+    if published_env().get("DISPLAY"):
+        return True
+    if sys.platform == "win32":
+        from tools.bot_desktop import voxl
+        return voxl.is_running()
+    return False
 
 
 def open_rfb_stream() -> "subprocess.Popen":
@@ -573,6 +581,55 @@ def geometry() -> str:
     return str(cfg.get("geometry") or "1440x900")
 
 
+def _stream_state_path() -> Path:
+    return state_dir() / "stream.json"
+
+
+def _write_stream_state(backend: str, notice: Optional[str]) -> None:
+    path = _stream_state_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"backend": backend, "notice": notice}
+    path.write_text(json.dumps(payload, ensure_ascii=True), encoding="ascii")
+
+
+def _read_stream_state() -> Tuple[Optional[str], Optional[str]]:
+    try:
+        data = json.loads(_stream_state_path().read_text(encoding="ascii"))
+    except (OSError, ValueError):
+        return None, None
+    if not isinstance(data, dict):
+        return None, None
+    backend = data.get("backend")
+    notice = data.get("notice")
+    if backend not in ("voxl", "vnc"):
+        backend = None
+    if not isinstance(notice, str) or not notice:
+        notice = None
+    return backend, notice
+
+
+def _apply_stream_fields(st: DesktopStatus) -> DesktopStatus:
+    from tools.bot_desktop import voxl
+    backend, notice = _read_stream_state()
+    if voxl.is_running():
+        backend = "voxl"
+    elif backend == "voxl":
+        backend = "vnc" if (rfb_socket_path() is not None or sandbox_screen_running()) else None
+    st.stream_backend = backend
+    st.fallback_notice = notice
+    return st
+
+
+def _with_stream(st: DesktopStatus) -> DesktopStatus:
+    from tools.bot_desktop import backend as _be
+    vnc_ok = bool(st.socket) or sandbox_screen_running() or bool(st.display)
+    chosen, notice = _be.attach_preferred(vnc_available=vnc_ok, sandbox=in_sandbox())
+    _write_stream_state(chosen, notice)
+    st.stream_backend = chosen
+    st.fallback_notice = notice
+    return st
+
+
 def status(profile: Optional[str] = None) -> DesktopStatus:
     from tools.bot_desktop import browser as _bd_browser
     from tools.bot_desktop import resources
@@ -587,7 +644,9 @@ def status(profile: Optional[str] = None) -> DesktopStatus:
     env = published_env()
     running = pid is not None and bool(env.get("DISPLAY"))
     mem = resources.memory_info() if is_supported_host() else resources.MemoryInfo(None, None)
-    return DesktopStatus(
+    if sys.platform == "win32" and not is_supported_host():
+        return _windows_host_status(profile)
+    return _apply_stream_fields(DesktopStatus(
         profile=profile or _profile_name(),
         supported=is_supported_host(),
         installed=not missing,
@@ -603,7 +662,7 @@ def status(profile: Optional[str] = None) -> DesktopStatus:
         blocker=None if running or missing or not is_supported_host() else resources.memory_blocker(mem),
         memory_available_mb=mem.available_mb,
         memory_limit_mb=mem.limit_mb,
-    )
+    ))
 
 
 def _sandbox_status(profile: Optional[str], where) -> DesktopStatus:
@@ -633,7 +692,7 @@ def _sandbox_status(profile: Optional[str], where) -> DesktopStatus:
                 blocker = (f"Your sandbox container still runs {sw.current_image}, which has no desktop. "
                            f"Switch it to {sw.target_image}: files in /root and /workspace stay, packages "
                            f"installed inside the container are reinstalled on demand.")
-    return DesktopStatus(
+    return _apply_stream_fields(DesktopStatus(
         profile=profile or _profile_name(),
         supported=True,
         installed=True,
@@ -650,7 +709,29 @@ def _sandbox_status(profile: Optional[str], where) -> DesktopStatus:
         memory_limit_mb=None,
         placement=f"{placement.TERMINAL}:{where.backend}",
         image_switch=image_switch,
-    )
+    ))
+
+
+def _windows_host_status(profile: Optional[str] = None) -> DesktopStatus:
+    """Explicit ``bot_desktop.placement: gateway`` on Windows streams the host desktop via voxl DXGI."""
+    from tools.bot_desktop import voxl
+    running = voxl.is_running()
+    installed = voxl.is_available() or running
+    return _apply_stream_fields(DesktopStatus(
+        profile=profile or _profile_name(),
+        supported=True,
+        installed=installed,
+        missing=[] if installed else ["voxl"],
+        running=running,
+        pid=None,
+        display=None,
+        socket=None,
+        geometry=geometry(),
+        install_command=None if installed else "cargo install voxl-server --version 0.3.3 --locked",
+        browser=None,
+        blocker=None if installed else "voxl is not installed on this Windows host",
+        placement=placement.GATEWAY,
+    ))
 
 
 def _profile_name() -> str:
@@ -684,7 +765,9 @@ def start(*, wait_seconds: float = 15.0) -> DesktopStatus:
     if where.where == placement.REFUSED:
         raise RuntimeError(where.reason)
     if where.where == placement.TERMINAL:
-        return _start_in_sandbox(wait_seconds)
+        return _with_stream(_start_in_sandbox(wait_seconds))
+    if sys.platform == "win32" and where.where == placement.GATEWAY:
+        return _start_windows_host_voxl()
     if not is_supported_host():
         raise RuntimeError("Bot Desktop runs on Linux gateway hosts only")
     missing = missing_binaries()
@@ -706,7 +789,7 @@ def start(*, wait_seconds: float = 15.0) -> DesktopStatus:
     os.chmod(sd, 0o700)
     with _flocked(sd / "start.lock"):
         if _launcher_pid() is not None and published_env().get("DISPLAY"):
-            return status()
+            return _with_stream(status())
         from tools.bot_desktop import resources
         floor = resources.min_free_mb()
         mem = resources.memory_info()
@@ -777,7 +860,7 @@ def _spawn_and_wait(sd: Path, wait_seconds: float) -> DesktopStatus:
             if env_file.exists() and (sd / "rfb.sock").exists():
                 logger.info("Bot Desktop for profile %s up on :%s", _profile_name(), num)
                 touch_activity()
-                return status()
+                return _with_stream(status())
             time.sleep(0.1)
         # Giving up must take the launch down: left alone, the launcher publishes DISPLAY and rfb.sock a moment
         # later and a screen whose start() reported failure stays up as "running". The launcher is its own
@@ -823,6 +906,26 @@ def _start_in_sandbox(wait_seconds: float) -> DesktopStatus:
     return status()
 
 
+def _start_windows_host_voxl() -> DesktopStatus:
+    """Stream this Windows machine's desktop with voxl (DXGI). Unverified on Linux CI."""
+    from tools.bot_desktop import voxl
+    sd = state_dir()
+    sd.mkdir(parents=True, exist_ok=True)
+    os.chmod(sd, 0o700)
+    with _flocked(sd / "start.lock"):
+        if voxl.is_running():
+            return _with_stream(status())
+        if voxl.start_for_desktop() is None:
+            raise RuntimeError(
+                "voxl could not start on this Windows host. Install the pinned voxl-server crate "
+                "(cargo install voxl-server --version 0.3.3 --locked) with x264/libyuv/opus via vcpkg, "
+                "or set bot_desktop.placement so the Computer tab uses a Linux guest."
+            )
+        (sd / "env").write_text("VOXL=1\n", encoding="ascii")
+        touch_activity()
+        return _with_stream(status())
+
+
 def _sandbox_published_env() -> Dict[str, str]:
     """Published env of a sandbox-hosted screen (the caller saw the host-side marker written at start)."""
     from tools.bot_desktop import sandbox_host
@@ -836,6 +939,12 @@ def stop() -> bool:
     """Stop this profile's desktop; True when a running launcher (or the X server a dead one left behind)
     was signalled."""
     from tools.bot_desktop import sandbox_host
+    from tools.bot_desktop import voxl as _voxl
+    voxl_stopped = _voxl.stop()
+    try:
+        _stream_state_path().unlink()
+    except OSError:
+        pass
     if sandbox_host._read_marker() or placement.resolve().where == placement.TERMINAL:
         # The marker names the sandbox that owns the screen; stop THAT one (re-attaching after a restart),
         # whatever the placement setting says now. A marker whose sandbox is gone is simply dropped.
@@ -845,6 +954,10 @@ def stop() -> bool:
         for name in ("env", "activity"):
             (state_dir() / name).unlink(missing_ok=True)
         return stopped
+    if sys.platform == "win32" and not is_supported_host():
+        for name in ("env", "activity"):
+            (state_dir() / name).unlink(missing_ok=True)
+        return voxl_stopped
     if not is_supported_host():
         return False
     sd = state_dir()

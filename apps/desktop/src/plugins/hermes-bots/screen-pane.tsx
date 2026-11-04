@@ -26,9 +26,11 @@ import {
   isDisplayUnavailable,
   isEventForBotScreen,
   isManagedBackend,
+  isVoxlObservePath,
   leaseHeldBy,
   resolveScreenWsUrl,
   retainBotScreen,
+  siblingWsUrlToHttp,
   viewerHash
 } from './screen-connection'
 import { ScreenInstallCard } from './screen-install'
@@ -94,8 +96,10 @@ export function BotScreenPane({ bot }: { bot: RosterRow }) {
   const iHold = leaseHeldBy(lease, viewer)
 
   const canvasHost = useRef<HTMLDivElement | null>(null)
+  const iframeHost = useRef<HTMLIFrameElement | null>(null)
   const rfb = useRef<RfbLike | null>(null)
   const socket = useRef<WebSocket | null>(null)
+  const [voxlSrc, setVoxlSrc] = useState<string | null>(null)
   // Pins the bot's pooled gateway socket for the attach lifetime so display.lease
   // events keep arriving for an inactive registry-routed bot.
   const retention = useRef<(() => void) | null>(null)
@@ -174,6 +178,7 @@ export function BotScreenPane({ bot }: { bot: RosterRow }) {
     rfb.current = null
     socket.current?.close()
     socket.current = null
+    setVoxlSrc(null)
     retention.current?.()
     retention.current = null
     pasteCleanup.current?.()
@@ -196,9 +201,6 @@ export function BotScreenPane({ bot }: { bot: RosterRow }) {
       setError(null)
 
       try {
-        // Load the client BEFORE dialing: noVNC's Websock installs its own `onopen`, so a socket that
-        // opened while the dynamic import was still in flight never hands it the open event.
-        const Rfb = await loadRfb()
         const retain = await retainBotScreen(bot)
 
         if (generation !== attachGeneration.current) {
@@ -222,7 +224,8 @@ export function BotScreenPane({ bot }: { bot: RosterRow }) {
 
         const minted = { id: observe.viewer_id, hash: await viewerHash(observe.viewer_id) }
         setScreenStatus(bot, observe)
-        const url = await resolveScreenWsUrl(bot, observe.ticket)
+        const streamPath = observe.path || '/api/display/ws'
+        const url = await resolveScreenWsUrl(bot, observe.ticket, streamPath)
 
         if (generation !== attachGeneration.current || !canvasHost.current) {
           return
@@ -230,6 +233,16 @@ export function BotScreenPane({ bot }: { bot: RosterRow }) {
 
         setScreenViewer(bot, minted)
         dialedAt.current = Date.now()
+
+        if (isVoxlObservePath(streamPath)) {
+          setVoxlSrc(siblingWsUrlToHttp(url))
+          setConn('attaching')
+          return
+        }
+
+        // Load the client BEFORE dialing: noVNC's Websock installs its own `onopen`, so a socket that
+        // opened while the dynamic import was still in flight never hands it the open event.
+        const Rfb = await loadRfb()
         const ws = new WebSocket(url)
         ws.binaryType = 'arraybuffer'
         socket.current = ws
@@ -341,6 +354,39 @@ export function BotScreenPane({ bot }: { bot: RosterRow }) {
       }
     }
   }, [iHold])
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as { type?: string; code?: number } | null
+
+      if (data?.type !== 'hermes-display-ws-close') {
+        return
+      }
+
+      if (data.code === CLOSE_CONTROL_TAKEN) {
+        rapidEvictions.current =
+          Date.now() - dialedAt.current < EVICTION_LOOP_WINDOW_MS ? rapidEvictions.current + 1 : 1
+
+        if (rapidEvictions.current > MAX_RAPID_EVICTIONS) {
+          setEvicted(false)
+          setConn('error')
+          setError(t.screen.controlTaken)
+        } else {
+          setEvicted(true)
+          setConn('idle')
+        }
+
+        void refresh()
+      } else if (data.code && data.code !== 1000 && data.code !== 1001) {
+        setConn('error')
+        setError(t.screen.streamLost)
+      }
+    }
+
+    window.addEventListener('message', onMessage)
+
+    return () => window.removeEventListener('message', onMessage)
+  }, [refresh, t.screen.controlTaken, t.screen.streamLost])
 
   const start = useCallback(async () => {
     setBusy(true)
@@ -518,6 +564,12 @@ export function BotScreenPane({ bot }: { bot: RosterRow }) {
             <Codicon name="bell" /> {lease.reason}
           </span>
         ) : null}
+        {status.fallback_notice ? (
+          <span className="max-w-[40%] truncate rounded bg-amber-500/15 px-2 py-0.5 text-amber-700 dark:text-amber-300"
+            title={status.fallback_notice}>
+            {status.fallback_notice}
+          </span>
+        ) : null}
         {iHold ? (
           <span className="rounded bg-red-500/15 px-2 py-0.5 font-medium text-red-600 dark:text-red-400">
             {t.screen.youControl}
@@ -547,6 +599,22 @@ export function BotScreenPane({ bot }: { bot: RosterRow }) {
             data-remote-screen: tells the ⌘W close-tab router this is NOT a local terminal tab —
             the chord belongs to the remote desktop, nothing local should close. */}
         <div className="absolute inset-0" data-remote-screen="" data-terminal="" ref={canvasHost} />
+        {voxlSrc ? (
+          <iframe
+            allow="clipboard-read; clipboard-write; fullscreen"
+            className="absolute inset-0 h-full w-full border-0 bg-black"
+            data-remote-screen=""
+            data-terminal=""
+            onLoad={() => {
+              setConn('live')
+              setEvicted(false)
+            }}
+            referrerPolicy="no-referrer"
+            ref={iframeHost}
+            src={voxlSrc}
+            title={t.screen.title}
+          />
+        ) : null}
         {conn === 'attaching' || conn === 'idle' ? (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs text-white/70">
             <GlyphSpinner /> {t.screen.attaching}
