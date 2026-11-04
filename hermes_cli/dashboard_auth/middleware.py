@@ -25,7 +25,7 @@ from hermes_cli.dashboard_auth.cookies import (
     read_session_provider, read_sso_attempt_cookie, set_session_cookies,
     set_session_provider_cookie, set_sso_attempt_cookie)
 from hermes_cli.dashboard_auth.prefix import prefix_from_request
-from hermes_cli.dashboard_auth.public_paths import PUBLIC_API_PATHS
+from hermes_cli.dashboard_auth.public_paths import PUBLIC_API_PATHS, display_voxl_admitted
 from hermes_cli.dashboard_auth.refresh_singleflight import refresh_session_coalesced
 from hermes_cli.dashboard_auth.request_utils import (
     access_token_max_age as _expires_in_seconds, client_ip as _client_ip,
@@ -158,6 +158,13 @@ async def gated_auth_middleware(
     # Already authenticated by the token-auth seam (service caller on a registered token
     # route): not a cookie session, must not bounce to /login.
     if getattr(request.state, "token_authenticated", False) or _path_is_public(request.url.path):
+        return await call_next(request)
+    if display_voxl_admitted(
+        request.url.path,
+        ticket=request.query_params.get("display_ticket", ""),
+        cookie=request.cookies.get("display_voxl", ""),
+    ):
+        # Ticket / display_voxl cookie is the boundary (same idea as /api/cron/fire's JWT).
         return await call_next(request)
     # RFC 8252 native-app bearer path: the same provider-minted access token the cookie flow
     # stores, verified with the same provider stack, no cookie read or set. A presented-but-

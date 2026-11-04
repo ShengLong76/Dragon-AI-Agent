@@ -179,12 +179,33 @@ export async function retainBotScreen(bot: RosterRow): Promise<() => void> {
   }
 }
 
+/** `ws(s):` → `http(s):` for the voxl iframe (same host/path/query). */
+export function siblingWsUrlToHttp(wsUrl: string): string {
+  const url = new URL(wsUrl)
+
+  if (url.protocol === 'wss:') {
+    url.protocol = 'https:'
+  } else if (url.protocol === 'ws:') {
+    url.protocol = 'http:'
+  }
+
+  return url.toString()
+}
+
+export function isVoxlObservePath(path: string | null | undefined): boolean {
+  return typeof path === 'string' && path.includes('/api/display/voxl')
+}
+
 /**
- * Resolve the RFB WebSocket URL for `bot`: the bot's gateway `/api/ws` origin
+ * Resolve the stream URL for `bot`: the bot's gateway `/api/ws` origin
  * (fresh credential for OAuth remotes) with the path swapped for the display
- * bridge and the single-use display ticket attached.
+ * bridge (`display.observe`'s `path`) and the single-use display ticket attached.
  */
-export async function resolveScreenWsUrl(bot: RosterRow, ticket: string): Promise<string> {
+export async function resolveScreenWsUrl(
+  bot: RosterRow,
+  ticket: string,
+  path = '/api/display/ws'
+): Promise<string> {
   const resolved = resolveBotConnectionRoute(bot)
 
   if (resolved.status === 'owner_removed') {
@@ -192,6 +213,7 @@ export async function resolveScreenWsUrl(bot: RosterRow, ticket: string): Promis
   }
 
   const route = resolved.route
+  const streamPath = path.startsWith('/') ? path : `/${path}`
 
   // The /api/ws credential authenticated the RPC that minted the display ticket;
   // the bridge authenticates on the ticket alone, so the gateway credential is
@@ -199,7 +221,7 @@ export async function resolveScreenWsUrl(bot: RosterRow, ticket: string): Promis
   const url = new URL(
     await resolveSiblingWsUrl(
       { connectionId: route?.connectionId ?? null, profile: route?.targetProfile ?? route?.profile ?? bot.name },
-      '/api/display/ws',
+      streamPath,
       {
         stripGatewayCredential: true
       }

@@ -268,6 +268,22 @@ def test_switch_sandbox_image_decides_only_a_pending_switch(monkeypatch, tmp_pat
     assert resp["result"]["running"] is False and "lease" in resp["result"]
 
 
+def test_observe_uses_the_voxl_path_when_voxl_is_the_live_streamer(monkeypatch, tmp_path):
+    from tools.bot_desktop import runtime, voxl
+    import tui_gateway.server as server
+
+    monkeypatch.setattr(runtime, "rfb_socket_path", lambda: tmp_path / "rfb.sock")
+    monkeypatch.setattr(voxl, "is_running", lambda: True)
+    monkeypatch.setattr(runtime, "status", lambda profile=None: runtime.DesktopStatus(
+        profile="default", supported=True, installed=True, missing=[], running=True, pid=1,
+        display=":20", socket=str(tmp_path / "rfb.sock"), geometry="1440x900",
+        install_command=None, browser=None, stream_backend="voxl"))
+    observed = _rpc(server, "display.observe", {})["result"]
+    assert observed["path"] == "/api/display/voxl"
+    assert observed["stream_backend"] == "voxl"
+    assert "ticket" in observed
+
+
 def test_start_returns_the_docker_daemon_error_not_a_generic_close(monkeypatch):
     """The Computer pane paints error.message. A Docker-down start must name
     Docker, not hide behind a closed-socket string."""

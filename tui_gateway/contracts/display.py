@@ -61,6 +61,8 @@ class DisplayStatus(Result):
     memory_limit_mb: int | None = None
     placement: str = "gateway"  # "gateway" | "terminal:<backend>" — where Xvnc runs (bot_desktop.placement)
     image_switch: DisplayImageSwitch | None = None  # a default-image switch the pane may approve (docker placement)
+    stream_backend: str | None = None  # "voxl" | "vnc" — live Computer-tab streamer
+    fallback_notice: str | None = None  # set only when voxl was wanted and VNC took over
     lease: DisplayLease
     profile_key: str
 
@@ -110,7 +112,7 @@ class DisplayObserveResult(DisplayStatus):
 
 
 method("display.observe", params=DisplayObserveParams, result=DisplayObserveResult,
-       doc="Mint a single-use ticket for /api/display/ws and the server-minted viewer id for this connection.")
+       doc="Mint a single-use ticket for /api/display/voxl or /api/display/ws and the server-minted viewer id.")
 
 
 class DisplayInstallResult(Result):

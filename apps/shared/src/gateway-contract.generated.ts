@@ -1252,6 +1252,8 @@ export interface DisplayStatus {
   memory_limit_mb?: number | null
   placement?: string
   image_switch?: DisplayImageSwitch | null
+  stream_backend?: string | null
+  fallback_notice?: string | null
   lease: DisplayLease
   profile_key: string
 }
@@ -1297,6 +1299,8 @@ export interface DisplayStopResult {
   memory_limit_mb?: number | null
   placement?: string
   image_switch?: DisplayImageSwitch | null
+  stream_backend?: string | null
+  fallback_notice?: string | null
   lease: DisplayLease
   profile_key: string
   stopped: boolean
@@ -1322,6 +1326,8 @@ export interface DisplayObserveResult {
   memory_limit_mb?: number | null
   placement?: string
   image_switch?: DisplayImageSwitch | null
+  stream_backend?: string | null
+  fallback_notice?: string | null
   lease: DisplayLease
   profile_key: string
   ticket: string
@@ -1349,6 +1355,8 @@ export interface DisplaySwitchSandboxImageResult {
   memory_limit_mb?: number | null
   placement?: string
   image_switch?: DisplayImageSwitch | null
+  stream_backend?: string | null
+  fallback_notice?: string | null
   lease: DisplayLease
   profile_key: string
   docker_image: string
@@ -4483,6 +4491,8 @@ export interface DisplayStatusPayload {
   memory_limit_mb?: number | null
   placement?: string
   image_switch?: DisplayImageSwitch | null
+  stream_backend?: string | null
+  fallback_notice?: string | null
   lease: DisplayLease
   profile_key: string
 }
@@ -4976,7 +4986,7 @@ export interface RpcMethods {
   'display.lease.acquire': { params: DisplayLeaseAcquireParams; result: DisplayLeaseResult }
   /** Hand back. Without a viewer id the release is refused while a human holds unless force. */
   'display.lease.release': { params: DisplayLeaseReleaseParams; result: DisplayLeaseResult }
-  /** Mint a single-use ticket for /api/display/ws and the server-minted viewer id for this connection. */
+  /** Mint a single-use ticket for /api/display/voxl or /api/display/ws and the server-minted viewer id. */
   'display.observe': { params: DisplayObserveParams; result: DisplayObserveResult }
   /** Start this profile's Xvnc + Xfce (idempotent); blocks until the display is published. */
   'display.start': { params: ProfileParams; result: DisplayStatus }

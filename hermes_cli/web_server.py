@@ -446,7 +446,10 @@ app.add_middleware(
 # Endpoints that do NOT require the session token; everything else under /api/
 # is gated below. Shared with the OAuth gate so the two allowlists cannot
 # drift (/api/status once 401'd under the OAuth gate, breaking the portal probe).
-from hermes_cli.dashboard_auth.public_paths import PUBLIC_API_PATHS as _PUBLIC_API_PATHS
+from hermes_cli.dashboard_auth.public_paths import (
+    PUBLIC_API_PATHS as _PUBLIC_API_PATHS,
+    display_voxl_admitted as _display_voxl_admitted,
+)
 
 
 def _has_valid_session_token(request: Request) -> bool:
@@ -708,6 +711,11 @@ async def auth_middleware(request: Request, call_next):
         and path.startswith("/api/")
         and path not in _PUBLIC_API_PATHS
         and not path.startswith("/api/mcp/oauth/callback/")
+        and not _display_voxl_admitted(
+            path,
+            ticket=request.query_params.get("display_ticket", ""),
+            cookie=request.cookies.get("display_voxl", ""),
+        )
         and not _has_valid_session_token(request)
         and not _has_valid_query_token(request, path)
     ):

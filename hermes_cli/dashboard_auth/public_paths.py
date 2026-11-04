@@ -25,3 +25,16 @@ PUBLIC_API_PATHS: frozenset[str] = frozenset({
     # carries its own short-lived NAS-minted JWT (purpose=cron_fire), which the
     # handler verifies — the JWT, not this allowlist, is the security boundary.
     "/api/cron/fire"})
+
+# Bot Screen voxl proxy: not on PUBLIC_API_PATHS (that list is exact-match and
+# GET-public). The iframe authenticates with a single-use display ticket, then an
+# HttpOnly cookie. Must match hermes_cli.web_routers.display_voxl.PREFIX / COOKIE.
+DISPLAY_VOXL_PREFIX = "/api/display/voxl"
+DISPLAY_VOXL_COOKIE = "display_voxl"
+
+
+def display_voxl_admitted(path: str, *, ticket: str = "", cookie: str = "") -> bool:
+    """True when this request is the Bot Screen voxl proxy carrying its own admit."""
+    if path != DISPLAY_VOXL_PREFIX and not path.startswith(DISPLAY_VOXL_PREFIX + "/"):
+        return False
+    return bool(ticket or cookie)

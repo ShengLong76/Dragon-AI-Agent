@@ -29,9 +29,11 @@ from typing import Optional
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from hermes_cli.web_server_chat import _ws_request_is_allowed
+from hermes_cli.web_routers.display_voxl import router as voxl_router
 
 _log = logging.getLogger(__name__)
 router = APIRouter()
+router.include_router(voxl_router)
 
 _ACTIVITY_STAMP_S = 60.0
 _READ_CHUNK = 64 * 1024
